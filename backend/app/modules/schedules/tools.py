@@ -26,7 +26,6 @@ from .services.availability import AvailabilityService
 from .services.free_slots import FreeSlotService
 
 
-
 class AvailabilityArgs(BaseModel):
     date: date_cls = Field(description="Día a consultar (YYYY-MM-DD).")
     professional_id: UUID | None = Field(

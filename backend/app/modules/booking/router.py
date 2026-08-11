@@ -31,7 +31,6 @@ from .schemas import (
 )
 from .service import BookingService, BookingUnavailableError
 
-
 router = APIRouter()
 
 

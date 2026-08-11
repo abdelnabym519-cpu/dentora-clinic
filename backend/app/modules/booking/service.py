@@ -19,7 +19,6 @@ from app.modules.schedules.services.free_slots import FreeSlotService
 from .models import BookingSettings
 from .schemas import PublicBookingCreate
 
-
 _ACTIVE_APPOINTMENT_STATUSES = {
     "scheduled",
     "confirmed",

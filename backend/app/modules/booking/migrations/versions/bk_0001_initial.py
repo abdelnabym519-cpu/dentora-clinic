@@ -11,7 +11,6 @@ import sqlalchemy as sa
 
 from alembic import op
 
-
 revision: str = "bk_0001"
 down_revision: str | None = "0001"
 branch_labels: str | Sequence[str] | None = ("booking",)

@@ -17,7 +17,6 @@ from app.modules.agenda.service import AppointmentService
 
 from .availability import AvailabilityService
 
-
 BLOCKING_STATUSES = {
     "scheduled",
     "confirmed",

@@ -87,11 +87,7 @@ class FreeSlotService:
             professional_id,
         )
 
-        open_ranges = sorted(
-            (item.start, item.end)
-            for item in ranges
-            if item.state == "open"
-        )
+        open_ranges = sorted((item.start, item.end) for item in ranges if item.state == "open")
 
         if not open_ranges:
             return tz_name, []

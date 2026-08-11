@@ -63,9 +63,7 @@ class BookingService:
         clinic_id: UUID,
     ) -> BookingSettings | None:
         result = await db.execute(
-            select(BookingSettings).where(
-                BookingSettings.clinic_id == clinic_id
-            )
+            select(BookingSettings).where(BookingSettings.clinic_id == clinic_id)
         )
         return result.scalar_one_or_none()
 
@@ -74,9 +72,7 @@ class BookingService:
         db: AsyncSession,
         clinic_id: UUID,
     ) -> Clinic | None:
-        result = await db.execute(
-            select(Clinic).where(Clinic.id == clinic_id)
-        )
+        result = await db.execute(select(Clinic).where(Clinic.id == clinic_id))
         return result.scalar_one_or_none()
 
     @staticmethod
@@ -209,8 +205,7 @@ class BookingService:
             email_matches = [
                 patient
                 for patient in candidates
-                if patient.email
-                and patient.email.strip().lower() == wanted_email
+                if patient.email and patient.email.strip().lower() == wanted_email
             ]
 
             if len(email_matches) == 1:
@@ -240,9 +235,7 @@ class BookingService:
                 "first_name": data.first_name.strip(),
                 "last_name": data.last_name.strip(),
                 "phone": data.phone.strip(),
-                "email": str(data.email).strip().lower()
-                if data.email
-                else None,
+                "email": str(data.email).strip().lower() if data.email else None,
                 "date_of_birth": data.date_of_birth,
                 "preferred_language": "ar",
             },

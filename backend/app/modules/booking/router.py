@@ -281,9 +281,7 @@ async def create_public_booking(
             appointment_id=appointment.id,
             start_time=appointment.start_time,
             end_time=appointment.end_time,
-            professional_name=(
-                f"{professional.first_name} {professional.last_name}"
-            ).strip(),
+            professional_name=(f"{professional.first_name} {professional.last_name}").strip(),
             status=appointment.status,
         )
     )

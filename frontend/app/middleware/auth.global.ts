@@ -27,7 +27,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // ``/p/budget/<token>`` is the patient-facing budget view (ADR 0006),
   // authorized server-side via a token-scoped 2FA cookie; let it render.
-  const publicRoutes = ['/login', SETUP_PATH, '/p/budget']
+  const publicRoutes = ['/login', SETUP_PATH, '/p/budget', '/booking']
   const isPublicRoute = publicRoutes.some(route => to.path === route || to.path.startsWith(route + '/'))
 
   // Initialize auth state (fetch user if token exists) - works on server and client

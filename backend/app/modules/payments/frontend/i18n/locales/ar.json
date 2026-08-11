@@ -1,0 +1,290 @@
+{
+  "payments": {
+    "nav": {
+      "payments": "المدفوعات",
+      "reports": "تقارير المدفوعات"
+    },
+    "balance": {
+      "debt": "Owes",
+      "credit": "On account",
+      "paid": "Total paid"
+    },
+    "list": {
+      "title": "المدفوعات",
+      "subtitle": "مدفوعات المرضى والدفعات المقدمة والأرصدة.",
+      "empty": "لا توجد مدفوعات مسجلة.",
+      "new": "دفعة جديدة",
+      "searchPlaceholder": "المريض أو رقم المرجع",
+      "filterDateFrom": "من",
+      "filterDateTo": "إلى",
+      "filterMethod": "طريقة الدفع",
+      "filterPatient": "المريض",
+      "filter": {
+        "method": "طريقة الدفع",
+        "hasRefunds": "بها استردادات",
+        "hasUnallocated": "غير مخصص",
+        "patient": "المريض",
+        "withDebt": "عليه مديونية",
+        "paymentStatus": "الحالة"
+      },
+      "sort": {
+        "paymentDate": "التاريخ",
+        "amount": "المبلغ"
+      },
+      "budgetStatus": {
+        "paid": "Paid",
+        "partial": "Partial",
+        "unpaid": "Unpaid"
+      },
+      "row": {
+        "debtTooltip": "Patient outstanding balance",
+        "creditTooltip": "Patient credit balance",
+        "allocationsLabel": "Allocation",
+        "refundedLabel": "Refunded",
+        "noPatient": "No patient"
+      },
+      "columnDate": "التاريخ",
+      "columnPatient": "المريض",
+      "columnAmount": "المبلغ",
+      "columnMethod": "طريقة الدفع",
+      "columnAllocations": "التخصيص",
+      "columnNet": "الصافي",
+      "columnActions": "الإجراءات"
+    },
+    "detail": {
+      "title": "Payment {reference}",
+      "amount": "Amount",
+      "method": "Method",
+      "date": "Date",
+      "recordedBy": "Recorded by",
+      "allocations": "Allocations",
+      "refunds": "Refunds",
+      "refund": "Refund",
+      "refundedTotal": "Refunded",
+      "netAmount": "Net",
+      "reference": "Reference",
+      "notes": "Notes"
+    },
+    "new": {
+      "title": "تسجيل دفعة",
+      "patient": "المريض",
+      "patientPlaceholder": "ابحث عن المريض...",
+      "unknownPatient": "مريض غير معروف",
+      "amount": "المبلغ",
+      "suggestedHint": "المبلغ المطلوب تحصيله: {amount}",
+      "useSuggested": "استخدم هذا المبلغ",
+      "method": "طريقة الدفع",
+      "moreMethods": "خيارات أخرى",
+      "date": "التاريخ",
+      "today": "اليوم",
+      "advanced": "خيارات متقدمة",
+      "reference": "رقم المرجع",
+      "referencePlaceholder": "رقم العملية أو مرجع التحويل...",
+      "notes": "ملاحظات",
+      "allocations": "تخصيص الدفعة",
+      "allocationsHint": "خصص الدفعة لخطة علاج أو اتركها كرصيد للمريض.",
+      "addAllocation": "إضافة تخصيص",
+      "allocationToBudget": "إلى خطة العلاج",
+      "allocationOnAccount": "رصيد للمريض",
+      "sumLabel": "الإجمالي:",
+      "sumMismatch": "لا يساوي مبلغ الدفعة",
+      "submit": "تسجيل",
+      "submitWithAmount": "تحصيل {amount}",
+      "cancel": "إلغاء",
+      "errPatient": "اختر المريض",
+      "errAmount": "أدخل مبلغًا أكبر من صفر",
+      "errSum": "يجب أن يساوي مجموع التخصيصات مبلغ الدفعة",
+      "errUnknown": "تعذر تسجيل الدفعة. حاول مرة أخرى."
+    },
+    "methods": {
+      "cash": "نقدي",
+      "card": "بطاقة",
+      "bank_transfer": "تحويل بنكي",
+      "direct_debit": "خصم مباشر",
+      "insurance": "تأمين",
+      "other": "أخرى",
+      "instapay": "إنستا باي",
+      "vodafone_cash": "فودافون كاش",
+      "fawry": "فوري"
+    },
+    "refund": {
+      "title": "Refund payment",
+      "amount": "Amount",
+      "method": "Method",
+      "reason": "Reason",
+      "note": "Details",
+      "submit": "Refund",
+      "reasonCodes": {
+        "duplicate": "Duplicate payment",
+        "overpaid": "Overpaid",
+        "treatment_cancelled": "Treatment cancelled",
+        "dispute": "Dispute",
+        "other": "Other"
+      }
+    },
+    "ledger": {
+      "title": "Patient ledger",
+      "totalPaid": "Total paid",
+      "totalEarned": "Treatment performed",
+      "patientCredit": "Patient credit balance",
+      "clinicReceivable": "Clinic receivable",
+      "onAccount": "On account",
+      "empty": "No movements."
+    },
+    "budgetCard": {
+      "title": "Budget payments",
+      "budgetTotal": "Budgeted",
+      "collected": "Collected",
+      "pending": "Pending",
+      "collect": "Collect",
+      "empty": "No payments imputed to this budget yet.",
+      "collectedLabel": "Collected",
+      "pendingLabel": "Pending",
+      "outOfTotal": "of {total} total",
+      "settled": "Budget fully collected",
+      "history": "Payment history",
+      "payment": "Payment",
+      "emptyDetailed": "No payments collected yet. Use \"Collect\" to record the first one."
+    },
+    "budgetCollect": {
+      "title": "Collect budget",
+      "amountLabel": "Amount",
+      "methodLabel": "Payment method",
+      "dateLabel": "Payment date",
+      "today": "Today",
+      "quickFull": "Full",
+      "optionalDetails": "Add reference or notes (optional)",
+      "referenceLabel": "Reference",
+      "referencePlaceholder": "e.g. POS transaction id",
+      "notesLabel": "Internal notes",
+      "submit": "Collect",
+      "cancel": "Cancel",
+      "success": "Payment recorded",
+      "errorGeneric": "Could not record payment",
+      "noteAppliedToBudget": "applied to the budget.",
+      "notePendingAfter": "Remaining",
+      "noteFullySettled": "Budget will be fully settled.",
+      "noteToBudget": "applied to the budget and",
+      "noteExcessToOnAccount": "to patient on-account credit.",
+      "noteBudgetSettled": "Budget is already paid in full.",
+      "noteToOnAccount": "go to patient on-account credit."
+    },
+    "pendingCharges": {
+      "title": "Pending to charge",
+      "count": "{n} sessions",
+      "more": "+ {n} more",
+      "collect": "Collect {amount}",
+      "unnamedSession": "Untitled session"
+    },
+    "patientPanel": {
+      "title": "Patient ledger",
+      "kpis": {
+        "totalPaid": "Total paid",
+        "debt": "Clinic receivable",
+        "onAccount": "On account"
+      },
+      "sidebar": {
+        "title": "Summary",
+        "credit": "Patient credit",
+        "lastPayment": "Last payment",
+        "noLastPayment": "No payments yet",
+        "totalEarned": "Treatment performed"
+      },
+      "banner": {
+        "debtTitle": "Owes {amount} to the clinic",
+        "debtDescription": "Total paid is below treatment performed.",
+        "creditTitle": "Has {amount} in credit",
+        "creditDescription": "Paid above treatment performed."
+      },
+      "cobrar": "Record payment",
+      "timeline": {
+        "title": "Movements",
+        "empty": "No movements recorded",
+        "emptyCta": "Record first payment",
+        "loadError": "Could not load patient ledger.",
+        "retry": "Retry",
+        "drPrefix": "Dr. {name}",
+        "types": {
+          "payment": "Payment",
+          "refund": "Refund",
+          "earned": "Treatment performed"
+        },
+        "treatmentStatus": {
+          "planned": "Planned",
+          "performed": "Performed",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "in_progress": "In progress"
+        },
+        "rowMenu": {
+          "detail": "View detail",
+          "refund": "Refund"
+        }
+      },
+      "refundModal": {
+        "title": "Refund payment",
+        "amount": "Refund amount",
+        "method": "Refund method",
+        "reason": "Reason",
+        "note": "Details (optional)",
+        "submit": "Confirm refund",
+        "cancel": "Cancel",
+        "errorGeneric": "Could not record the refund"
+      }
+    },
+    "reports": {
+      "title": "Payment reports",
+      "subtitle": "Collections, refunds, patient balances and trends for the period.",
+      "cardDescription": "Collected, refunds, patient balances, aging and trends.",
+      "period": "Period",
+      "refresh": "Refresh",
+      "collected": "Collected",
+      "refunded": "Refunded",
+      "net": "Net",
+      "patientCredit": "Patient credit total",
+      "patientCreditHint": "On-account or advance balances.",
+      "clinicReceivable": "Clinic receivable",
+      "refundRatio": "Refund ratio",
+      "byMethod": "By method",
+      "byProfessional": "By professional",
+      "byProfessionalHint": "Treatment performed, not collected.",
+      "aging": "Receivables aging",
+      "agingHint": "Patients with outstanding balance grouped by debt age.",
+      "refunds": "Refunds by reason",
+      "refundsHint": "Distribution of refunds by recorded reason.",
+      "bucket": "{range} days",
+      "unknownProfessional": "Unassigned",
+      "countShort": "{n} txns",
+      "countPatients": "{n} patients",
+      "granularity": {
+        "day": "Day",
+        "week": "Week",
+        "month": "Month"
+      },
+      "hero": {
+        "netCollected": "Net collected",
+        "netCollectedHint": "Collections minus refunds in the period.",
+        "receivable": "Outstanding receivable",
+        "receivableHint": "Performed treatment not yet collected, by age.",
+        "vsPrevious": "vs. previous period",
+        "transactionsCount": "{n} transactions in the period"
+      },
+      "trend": {
+        "title": "Collection trend",
+        "subtitle": "Net per bucket. Dashed line overlays refunds."
+      },
+      "empty": {
+        "noDataTitle": "No data in this range",
+        "noDataDescription": "Adjust the period or record a payment to start seeing the report.",
+        "noTrend": "Not enough points to draw the trend.",
+        "noMethods": "No collections by method in the period.",
+        "noProfessionals": "No performed treatment in the period.",
+        "noReceivable": "No patients with outstanding debt."
+      },
+      "drilldown": {
+        "viewPayments": "View payments in the period",
+        "viewPatients": "View patients with debt"
+      }
+    }
+  }
+}

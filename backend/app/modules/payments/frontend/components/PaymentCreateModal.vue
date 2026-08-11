@@ -70,6 +70,9 @@ const PRIMARY_METHODS: MethodOption[] = [
   { value: 'cash', icon: 'i-lucide-banknote' },
   { value: 'card', icon: 'i-lucide-credit-card' },
   { value: 'bank_transfer', icon: 'i-lucide-building-2' },
+  { value: 'instapay', icon: 'i-lucide-smartphone' },
+  { value: 'vodafone_cash', icon: 'i-lucide-wallet-cards' },
+  { value: 'fawry', icon: 'i-lucide-receipt' },
   { value: 'insurance', icon: 'i-lucide-shield' }
 ]
 const SECONDARY_METHODS: MethodOption[] = [

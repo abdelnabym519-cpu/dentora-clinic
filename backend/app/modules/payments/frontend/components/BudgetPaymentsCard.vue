@@ -59,6 +59,9 @@ const METHOD_ICONS: Record<PaymentMethod, string> = {
   cash: 'i-lucide-banknote',
   card: 'i-lucide-credit-card',
   bank_transfer: 'i-lucide-landmark',
+  instapay: 'i-lucide-smartphone',
+  vodafone_cash: 'i-lucide-wallet-cards',
+  fawry: 'i-lucide-receipt',
   direct_debit: 'i-lucide-repeat',
   insurance: 'i-lucide-shield',
   other: 'i-lucide-circle-dollar-sign'

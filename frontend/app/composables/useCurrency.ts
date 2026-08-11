@@ -23,6 +23,11 @@ export function useCurrency() {
 
   function symbol(): string {
     const currency = currentClinic.value?.currency ?? 'EUR'
+
+    if (currency === 'EGP' && currentLocale.value.startsWith('ar')) {
+      return 'ج.م'
+    }
+
     const parts = new Intl.NumberFormat(currentLocale.value, {
       style: 'currency',
       currency,

@@ -103,7 +103,7 @@ const {
   fetcher
 })
 
-const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'card', 'bank_transfer', 'direct_debit', 'insurance', 'other']
+const PAYMENT_METHODS: PaymentMethod[] = ['cash', 'card', 'bank_transfer', 'instapay', 'vodafone_cash', 'fawry', 'direct_debit', 'insurance', 'other']
 
 const methodItems = computed(() =>
   PAYMENT_METHODS.map(m => ({ label: t(`payments.methods.${m}`), value: m }))
@@ -186,6 +186,12 @@ function methodIcon(method: string): string {
       return 'i-lucide-credit-card'
     case 'bank_transfer':
       return 'i-lucide-landmark'
+    case 'instapay':
+      return 'i-lucide-smartphone'
+    case 'vodafone_cash':
+      return 'i-lucide-wallet-cards'
+    case 'fawry':
+      return 'i-lucide-receipt'
     case 'direct_debit':
       return 'i-lucide-repeat'
     case 'insurance':

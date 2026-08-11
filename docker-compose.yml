@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-dental}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
-      - "5432:5432"
+      - "55434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,7 @@ services:
       # (gitignored). Empty default keeps the stack bootable without it.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
-      - "8000:8000"
+      - "8100:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -65,7 +65,7 @@ services:
       NUXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
       NODE_OPTIONS: --max-old-space-size=4096
     ports:
-      - "3000:3000"
+      - "3100:3000"
     depends_on:
       backend:
         condition: service_started

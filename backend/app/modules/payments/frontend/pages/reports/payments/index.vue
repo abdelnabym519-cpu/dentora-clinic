@@ -171,6 +171,9 @@ const METHOD_TONE: Record<string, 'primary' | 'success' | 'info' | 'warning' | '
   card: 'primary',
   cash: 'success',
   bank_transfer: 'info',
+  instapay: 'primary',
+  vodafone_cash: 'success',
+  fawry: 'warning',
   direct_debit: 'warning',
   insurance: 'danger',
   other: 'neutral'

@@ -10,6 +10,9 @@ const METHOD_TONES: Record<string, Tone> = {
   cash: 'success',
   card: 'primary',
   bank_transfer: 'info',
+  instapay: 'primary',
+  vodafone_cash: 'success',
+  fawry: 'warning',
   direct_debit: 'neutral',
   insurance: 'warning',
   other: 'neutral'

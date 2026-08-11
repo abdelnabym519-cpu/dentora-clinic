@@ -30,7 +30,7 @@ const { t } = useI18n()
 const { refund } = usePayments()
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-  'cash', 'card', 'bank_transfer', 'direct_debit', 'insurance', 'other'
+  'cash', 'card', 'bank_transfer', 'instapay', 'vodafone_cash', 'fawry', 'direct_debit', 'insurance', 'other'
 ]
 
 const REASON_CODES: RefundReason[] = [

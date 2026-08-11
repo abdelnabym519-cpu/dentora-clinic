@@ -149,6 +149,9 @@ function getPaymentMethodIcon(method: string): string {
     cash: 'i-lucide-banknote',
     card: 'i-lucide-credit-card',
     bank_transfer: 'i-lucide-building-2',
+    instapay: 'i-lucide-smartphone',
+    vodafone_cash: 'i-lucide-wallet-cards',
+    fawry: 'i-lucide-receipt',
     direct_debit: 'i-lucide-repeat',
     other: 'i-lucide-circle'
   }

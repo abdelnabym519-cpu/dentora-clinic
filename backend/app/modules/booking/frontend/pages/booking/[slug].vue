@@ -519,11 +519,11 @@ onMounted(async () => {
               type="submit"
               :disabled="
                 submitting
-                || !selectedStart
-                || !form.first_name.trim()
-                || !form.last_name.trim()
-                || !form.phone.trim()
-                || !form.date_of_birth
+                  || !selectedStart
+                  || !form.first_name.trim()
+                  || !form.last_name.trim()
+                  || !form.phone.trim()
+                  || !form.date_of_birth
               "
               class="w-full rounded-xl bg-gray-900 px-5 py-4 font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
             >

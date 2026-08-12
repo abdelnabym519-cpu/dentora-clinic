@@ -23,7 +23,8 @@ from pydantic import BaseModel, Field
 from app.core.agents import AgentContext, Tool, ToolCategory
 
 from .services.availability import AvailabilityService
-from .services.free_slots import FreeSlotService, _subtract as _subtract
+from .services.free_slots import FreeSlotService
+from .services.free_slots import _subtract as _subtract
 
 
 class AvailabilityArgs(BaseModel):

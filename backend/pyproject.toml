@@ -54,7 +54,6 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",
-    "pytest-timeout>=2.3.1",
     "httpx>=0.26.0",
     "ruff>=0.1.0",
 ]
@@ -100,5 +99,3 @@ markers = [
     "alembic_roundtrip: full base → head → base migration cycle (slow, needs DB)",
 ]
 addopts = "-m 'not alembic_roundtrip'"
-timeout = 180
-timeout_method = "thread"

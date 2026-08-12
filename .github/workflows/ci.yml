@@ -279,11 +279,16 @@ jobs:
       - name: Wait for backend health
         run: |
           for i in $(seq 1 60); do
-            if curl -sf http://localhost:8000/health > /dev/null; then
-              echo "backend ready"; break
+            if curl -sf http://127.0.0.1:8100/health > /dev/null; then
+              echo "backend ready"
+              exit 0
             fi
             sleep 2
           done
+          echo "backend did not become ready on port 8100"
+          docker compose ps
+          docker compose logs backend
+          exit 1
 
       - name: Run migrations
         run: docker compose exec -T backend alembic upgrade heads
@@ -331,8 +336,8 @@ jobs:
       - name: Start Nuxt dev in background
         working-directory: frontend
         env:
-          NUXT_PUBLIC_API_BASE_URL: http://localhost:8000
-          API_BASE_URL_SERVER: http://localhost:8000
+          NUXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8100
+          API_BASE_URL_SERVER: http://127.0.0.1:8100
           NITRO_HOST: 0.0.0.0
           NITRO_PORT: "3000"
         run: |
@@ -351,6 +356,8 @@ jobs:
 
       - name: Run E2E
         working-directory: frontend
+        env:
+          E2E_API_BASE: http://127.0.0.1:8100
         run: npx playwright test --reporter=list
 
       - name: Upload Nuxt log on failure

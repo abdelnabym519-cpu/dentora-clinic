@@ -13,20 +13,18 @@ appointments from those windows and returns discrete bookable slots
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, datetime, timedelta
 from datetime import date as date_cls
 from typing import Literal
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field
 
 from app.core.agents import AgentContext, Tool, ToolCategory
-from app.modules.agenda.service import AppointmentService
 
 from .services.availability import AvailabilityService
-
-_BLOCKING_STATUSES = {"scheduled", "confirmed", "checked_in", "in_treatment", "completed"}
+from .services.free_slots import FreeSlotService
+from .services.free_slots import _subtract as _subtract
 
 
 class AvailabilityArgs(BaseModel):
@@ -60,23 +58,6 @@ async def _get_availability(ctx: AgentContext, params: AvailabilityArgs) -> dict
     return {"date": params.date, "timezone": tz_name, "open_windows": open_windows}
 
 
-def _subtract(start: datetime, end: datetime, busy: list[tuple[datetime, datetime]]) -> list[tuple]:
-    """Return the sub-intervals of [start, end] not covered by ``busy``."""
-    free = [(start, end)]
-    for b0, b1 in busy:
-        nxt: list[tuple[datetime, datetime]] = []
-        for f0, f1 in free:
-            if b1 <= f0 or b0 >= f1:  # disjoint
-                nxt.append((f0, f1))
-                continue
-            if b0 > f0:
-                nxt.append((f0, b0))
-            if b1 < f1:
-                nxt.append((b1, f1))
-        free = nxt
-    return free
-
-
 def _overlaps_part(local_start: datetime, local_end: datetime, part: str) -> bool:
     """Whether a free window overlaps the requested part of the day (split at 14:00)."""
     if part == "morning":
@@ -90,49 +71,32 @@ def _overlaps_part(local_start: datetime, local_end: datetime, part: str) -> boo
 async def _find_free_slots(ctx: AgentContext, params: FreeSlotsArgs) -> dict:
     start_day = params.date_from or datetime.now(UTC).date()
     end_day = start_day + timedelta(days=params.days_ahead)
-    tz_name, ranges = await AvailabilityService.resolve(
-        ctx.db, ctx.clinic_id, start_day, end_day, params.professional_id
-    )
-    open_ranges = sorted((r.start, r.end) for r in ranges if r.state == "open")
-    if not open_ranges:
-        return {"professional_id": params.professional_id, "free_windows": []}
 
-    appts, _ = await AppointmentService.list_appointments(
+    _tz_name, free_windows = await FreeSlotService.find(
         ctx.db,
         ctx.clinic_id,
-        start_date=datetime.combine(start_day, time.min, tzinfo=UTC),
-        end_date=datetime.combine(end_day, time.max, tzinfo=UTC),
-        professional_id=params.professional_id,
-        page_size=500,
-    )
-    busy = sorted(
-        (a.start_time, a.end_time)
-        for a in appts
-        if a.status in _BLOCKING_STATUSES and a.start_time and a.end_time
+        params.professional_id,
+        start_day,
+        end_day,
+        min_minutes=params.slot_minutes,
     )
 
-    tz = ZoneInfo(tz_name)
-    min_dur = timedelta(minutes=params.slot_minutes)
-    windows: list[tuple[datetime, datetime]] = []
-    for win_start, win_end in open_ranges:
-        for free_start, free_end in _subtract(win_start, win_end, busy):
-            if free_end - free_start < min_dur:
-                continue
-            local_start = free_start.astimezone(tz)
-            local_end = free_end.astimezone(tz)
-            if not _overlaps_part(local_start, local_end, params.part_of_day):
-                continue
-            windows.append((local_start, local_end))
+    windows = [
+        window
+        for window in free_windows
+        if _overlaps_part(window.start, window.end, params.part_of_day)
+    ]
 
-    windows.sort(key=lambda w: w[0])
     return {
         "professional_id": params.professional_id,
         "min_minutes": params.slot_minutes,
-        # Contiguous free windows (real start/end), not fixed-size slots, so the
-        # agent knows the true extent of each gap.
         "free_windows": [
-            {"start": s, "end": e, "minutes": int((e - s).total_seconds() // 60)}
-            for s, e in windows[: params.limit]
+            {
+                "start": window.start,
+                "end": window.end,
+                "minutes": window.minutes,
+            }
+            for window in windows[: params.limit]
         ],
     }
 

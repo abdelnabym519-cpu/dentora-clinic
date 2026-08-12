@@ -14,7 +14,7 @@ export const ROLES = {
 
 export type Role = keyof typeof ROLES
 
-const API_BASE = process.env.E2E_API_BASE || 'http://localhost:8000'
+const API_BASE = process.env.E2E_API_BASE || 'http://127.0.0.1:8000'
 
 /**
  * Log in via direct API call + cookie set.

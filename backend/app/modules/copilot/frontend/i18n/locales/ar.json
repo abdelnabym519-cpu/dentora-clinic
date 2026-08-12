@@ -1,0 +1,185 @@
+{
+  "nav": {
+    "copilot": "المساعد الذكي"
+  },
+  "copilot": {
+    "title": "المساعد الذكي",
+    "open": "فتح المساعد الذكي",
+    "empty": "اسألني عن المرضى أو المواعيد أو اطلب مني حجز موعد.",
+    "placeholder": "اكتب رسالتك…",
+    "send": "إرسال",
+    "copy": "نسخ",
+    "new": "محادثة جديدة",
+    "thinking": "جارٍ التفكير…",
+    "you": "أنت",
+    "assistant": "المساعد الذكي",
+    "trust": "بياناتك محمية",
+    "phase": {
+      "working": "جارٍ العمل…",
+      "writing": "جارٍ الكتابة…"
+    },
+    "tabs": {
+      "pending": "المهام",
+      "chat": "المحادثة"
+    },
+    "pending": {
+      "empty": "لا توجد مهام معلقة.",
+      "unknownPatient": "مريض غير معروف",
+      "group": {
+        "recall": "متابعات المرضى المستحقة",
+        "budget": "عروض أسعار بانتظار الرد"
+      }
+    },
+    "nudge": {
+      "act": "مراجعة",
+      "dismiss": "تجاهل",
+      "appointmentCancelled": {
+        "text": "تم إلغاء موعد الساعة {time} — أصبح هناك موعد متاح.",
+        "prompt": "تم إلغاء موعد الساعة {time}. ابحث عن مرضى متابعة يمكنهم حجز هذا الموعد."
+      }
+    },
+    "suggest": {
+      "heading": "كيف يمكنني مساعدتك؟",
+      "cat": {
+        "workflows": "سير العمل",
+        "patients": "المرضى",
+        "agenda": "المواعيد",
+        "recalls": "المتابعات",
+        "money": "التحصيلات وعروض الأسعار",
+        "reports": "التقارير"
+      },
+      "dailyBriefing": "ملخص اليوم",
+      "prepareVisit": "تحضير زيارة",
+      "fillGap": "ملء موعد فارغ",
+      "searchPatient": "البحث عن مريض",
+      "patientSummary": "ملخص مريض",
+      "freeSlots": "المواعيد المتاحة اليوم",
+      "bookAppointment": "حجز موعد",
+      "dueRecalls": "المتابعات المستحقة",
+      "pendingBudgets": "عروض الأسعار بدون رد",
+      "recordPayment": "تسجيل دفعة",
+      "monthCollections": "تحصيلات هذا الشهر",
+      "agendaSummary": "ملخص جدول المواعيد",
+      "prompt": {
+        "dailyBriefing": "أعطني ملخص اليوم: مواعيد اليوم والمتابعات المتأخرة وعروض الأسعار التي لم يتم الرد عليها",
+        "prepareVisit": "حضّر لي الزيارة القادمة لأحد المرضى",
+        "fillGap": "أصبح هناك موعد فارغ في الجدول، بمن يمكننا الاتصال؟",
+        "searchPatient": "ابحث عن مريض",
+        "patientSummary": "أعطني ملخصًا عن مريض",
+        "freeSlots": "ما المواعيد المتاحة اليوم؟",
+        "bookAppointment": "أريد حجز موعد",
+        "dueRecalls": "ما المتابعات المستحقة هذا الشهر؟",
+        "pendingBudgets": "ما عروض الأسعار المرسلة التي لم يتم الرد عليها؟",
+        "recordPayment": "أريد تسجيل دفعة لمريض",
+        "monthCollections": "ملخص تحصيلات هذا الشهر",
+        "agendaSummary": "أعطني ملخصًا لجدول مواعيد اليوم"
+      }
+    },
+    "settings": {
+      "title": "المساعد الذكي",
+      "description": "مساعد ذكي للملخص اليومي وتنفيذ المهام",
+      "saved": "تم حفظ الإعدادات",
+      "digest": {
+        "title": "بريد الملخص الصباحي",
+        "description": "كل صباح: مواعيد اليوم والمتابعات المتأخرة وعروض الأسعار بدون رد.",
+        "enabled": "إرسال الملخص اليومي",
+        "hour": "وقت الإرسال",
+        "hourHelp": "يتم احتسابه حسب المنطقة الزمنية للعيادة.",
+        "recipients": "المستلمون",
+        "recipientsHelp": "يستلم كل موظف ملخصه وفقًا لما تسمح له صلاحياته برؤيته.",
+        "recipientsPlaceholder": "اختر الموظفين…"
+      },
+      "engine": {
+        "title": "المحرك",
+        "provider": "المزوّد",
+        "model": "النموذج",
+        "redaction": "إخفاء البيانات الصحية الحساسة",
+        "redactionOn": "مفعّل",
+        "redactionOff": "معطّل"
+      },
+      "metrics": {
+        "title": "الاستخدام",
+        "description": "آخر {days} يومًا.",
+        "toolCalls": "استدعاءات الأدوات",
+        "errorRate": "معدل الأخطاء",
+        "avgLatency": "متوسط زمن الاستجابة",
+        "conversations": "المحادثات",
+        "tokenBudget": "حد الاستخدام الشهري",
+        "topTools": "الأدوات الأكثر استخدامًا",
+        "toolNames": {
+          "recalls_list_due_recalls": "المتابعات المتأخرة",
+          "budget_list_budgets": "عروض الأسعار المعلقة",
+          "patients_list_patients": "البحث عن المرضى",
+          "appointments_list_appointments": "المواعيد",
+          "invoices_list_invoices": "الفواتير"
+        }
+      }
+    },
+    "tool": {
+      "running": "جارٍ تنفيذ {name}…",
+      "done": "تم تنفيذ {name}",
+      "failed": "فشل تنفيذ {name}"
+    },
+    "card": {
+      "viewPatient": "عرض ملف المريض",
+      "noResults": "لا توجد نتائج",
+      "notFound": "غير موجود",
+      "more": "+{n} أخرى",
+      "freeSlots": "المواعيد المتاحة",
+      "appointments": "المواعيد",
+      "patients": "المرضى"
+    },
+    "patientStatus": {
+      "active": "نشط",
+      "archived": "مؤرشف"
+    },
+    "apptStatus": {
+      "scheduled": "مجدول",
+      "confirmed": "مؤكد",
+      "checked_in": "تم تسجيل الحضور",
+      "in_treatment": "قيد العلاج",
+      "completed": "مكتمل",
+      "cancelled": "ملغي",
+      "no_show": "لم يحضر"
+    },
+    "confirm": {
+      "title": "تأكيد الإجراء",
+      "body": "يريد المساعد الذكي تنفيذ {name}.",
+      "approve": "تأكيد",
+      "reject": "إلغاء",
+      "approved": "تم التأكيد",
+      "rejected": "تم الإلغاء",
+      "destructiveNote": "لا يمكن التراجع عن هذا الإجراء.",
+      "action": {
+        "book_appointment": "يريد المساعد الذكي حجز موعد.",
+        "cancel_appointment": "يريد المساعد الذكي إلغاء موعد.",
+        "create_patient": "يريد المساعد الذكي إنشاء مريض جديد."
+      },
+      "field": {
+        "patient_id": "المريض",
+        "professional_id": "الطبيب",
+        "appointment_id": "الموعد",
+        "cabinet_id": "غرفة العلاج",
+        "cabinet": "غرفة العلاج",
+        "start_time": "التاريخ",
+        "end_time": "وقت الانتهاء",
+        "datetime": "التاريخ",
+        "service": "الخدمة",
+        "reason": "السبب",
+        "duration_minutes": "المدة بالدقائق",
+        "first_name": "الاسم الأول",
+        "last_name": "اسم العائلة",
+        "phone": "رقم الهاتف",
+        "email": "البريد الإلكتروني",
+        "date_of_birth": "تاريخ الميلاد",
+        "query": "بحث"
+      }
+    },
+    "budgetExceeded": "تم الوصول إلى حد استخدام المساعد الذكي لهذا الشهر.",
+    "error": "حدث خطأ ما.",
+    "page": {
+      "title": "المساعد الذكي",
+      "subtitle": "مساعد العيادة الذكي، ويعمل وفقًا لصلاحيات حسابك."
+    }
+  }
+}

@@ -1,4 +1,7 @@
+import { getTrialStatus } from '~/utils/trial'
+
 const SETUP_PATH = '/setup'
+const TRIAL_EXPIRED_PATH = '/trial-expired'
 
 // Module-level cache. The system can only flip from uninitialized → initialized
 // (never back), so once we've seen `true` we stop asking the backend.
@@ -23,6 +26,17 @@ async function isSystemInitialized(): Promise<boolean> {
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {
+  const config = useRuntimeConfig()
+  const trial = getTrialStatus(config.public)
+
+  // The hosted sales demo is intentionally time-limited. This check happens
+  // before auth/public-route handling so Agenda, login and public booking all
+  // land on the same purchase screen when the three-day window ends.
+  if (trial.enabled && trial.expired) {
+    return to.path === TRIAL_EXPIRED_PATH ? undefined : navigateTo(TRIAL_EXPIRED_PATH)
+  }
+  if (to.path === TRIAL_EXPIRED_PATH) return navigateTo('/')
+
   const auth = useAuth()
 
   // ``/p/budget/<token>`` is the patient-facing budget view (ADR 0006),

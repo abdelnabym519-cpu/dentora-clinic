@@ -292,6 +292,7 @@ function isActive(to: string): boolean {
       :class="isSidebarCollapsed ? 'md:ml-16' : 'md:ml-60'"
     >
       <DemoBanner />
+      <TrialBanner />
 
       <!-- Header -->
       <header class="sticky top-0 z-40 flex items-center h-14 px-3 sm:px-4 bg-surface border-b border-subtle">

@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.log_context import set_request_context
+from app.core.trial import ensure_trial_active
 from app.database import get_db
 
 from .models import Clinic, ClinicMembership, User
@@ -115,6 +116,11 @@ async def get_clinic_context(
             )
     else:
         membership = memberships[0]
+
+    # Trial mode is deployment-scoped. Paid/offline installations leave it
+    # disabled; hosted demos are rejected after the configured three-day
+    # window without touching clinic data or user accounts.
+    ensure_trial_active()
 
     # Bind clinic_id + user_id onto the per-request logging context so
     # every log line and event emitted inside this handler carries

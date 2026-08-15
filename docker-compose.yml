@@ -26,6 +26,10 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
       STORAGE_LOCAL_PATH: ${STORAGE_LOCAL_PATH:-/app/storage}
+      # Hosted sales demo only. Paid/offline installs keep TRIAL_MODE=false.
+      TRIAL_MODE: ${TRIAL_MODE:-false}
+      TRIAL_STARTED_AT: ${TRIAL_STARTED_AT:-}
+      TRIAL_DAYS: ${TRIAL_DAYS:-3}
       # Copilot agentic layer (app/core/llm/). Set OPENAI_API_KEY in .env
       # (gitignored). Empty default keeps the stack bootable without it.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
@@ -63,6 +67,9 @@ services:
       NITRO_HOST: 0.0.0.0
       NITRO_PORT: 3000
       NUXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+      NUXT_PUBLIC_TRIAL_MODE: ${TRIAL_MODE:-false}
+      NUXT_PUBLIC_TRIAL_STARTED_AT: ${TRIAL_STARTED_AT:-}
+      NUXT_PUBLIC_TRIAL_DAYS: ${TRIAL_DAYS:-3}
       NODE_OPTIONS: --max-old-space-size=4096
     ports:
       - "3100:3000"

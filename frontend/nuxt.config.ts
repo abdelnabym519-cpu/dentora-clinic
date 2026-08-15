@@ -73,6 +73,9 @@ export default defineNuxtConfig({
       // Client-side (browser)
       apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8000',
       demoMode: process.env.NUXT_PUBLIC_DEMO_MODE === 'true',
+      trialMode: process.env.NUXT_PUBLIC_TRIAL_MODE === 'true',
+      trialStartedAt: process.env.NUXT_PUBLIC_TRIAL_STARTED_AT || '',
+      trialDays: Number(process.env.NUXT_PUBLIC_TRIAL_DAYS || '3'),
       // Documentation portal origin used by the in-app help drawer
       // (Fase 5 of issue #75). Empty disables the help button.
       docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dentalpin.com'

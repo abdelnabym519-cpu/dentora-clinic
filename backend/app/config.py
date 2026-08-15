@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     # Testing
     TESTING: bool = False
 
+    # Optional sales demo. Disabled by default so paid/offline installations
+    # never expire. For a hosted trial, set TRIAL_MODE=true and pin
+    # TRIAL_STARTED_AT to an ISO-8601 UTC timestamp; restarts then cannot reset
+    # the clock. The commercial trial length is three days by default.
+    TRIAL_MODE: bool = False
+    TRIAL_STARTED_AT: str = ""
+    TRIAL_DAYS: int = 3
+
     # Module system
     DENTALPIN_DEV_MODULE_SCAN: bool = True  # Fallback filesystem scan for dev
     # Host-mounted path where `frontend/modules.json` lives. The backend

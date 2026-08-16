@@ -1,0 +1,13 @@
+[build]
+builder = "DOCKERFILE"
+# Production Nuxt build needs repository-root context because this Dockerfile
+# copies frontend/ plus backend/app/modules into /module_layers.
+dockerfilePath = "frontend/Dockerfile.prod"
+
+[deploy]
+startCommand = "sh -c 'HOST=0.0.0.0 PORT=${PORT:-3000} node .output/server/index.mjs'"
+# / redirects unauthenticated visitors, while /login returns 200.
+healthcheckPath = "/login"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

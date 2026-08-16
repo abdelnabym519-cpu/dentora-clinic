@@ -17,6 +17,7 @@ from app.core.auth.dependencies import (
 )
 from app.core.auth.router import limiter
 from app.core.schemas import ApiResponse
+from app.core.trial import ensure_trial_active
 from app.database import get_db
 
 from .models import BookingSettings
@@ -140,6 +141,11 @@ async def _public_settings_or_404(
     db: AsyncSession,
     slug: str,
 ) -> BookingSettings:
+    # Hosted trials are deployment-scoped. Public booking must expire with
+    # the staff application so a trial cannot keep accepting appointments
+    # after the three-day window has ended.
+    ensure_trial_active()
+
     settings = await BookingService.get_settings_by_slug(
         db,
         slug.strip().lower(),

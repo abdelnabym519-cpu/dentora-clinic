@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableExtensions
 cd /d "%~dp0"
 
 echo ==========================================
@@ -14,10 +14,55 @@ if errorlevel 1 (
 )
 
 if not exist ".env.client" (
-  echo ERROR: .env.client is missing.
-  echo Copy .env.client.example to .env.client and fill the secrets first.
-  pause
-  exit /b 1
+  echo First start detected. Creating a private installation configuration...
+
+  if not exist ".env.client.example" (
+    echo ERROR: .env.client.example is missing.
+    pause
+    exit /b 1
+  )
+
+  where powershell.exe >nul 2>&1
+  if errorlevel 1 (
+    echo ERROR: Windows PowerShell is required to generate secure installation secrets.
+    pause
+    exit /b 1
+  )
+
+  for /f "usebackq delims=" %%S in (`powershell.exe -NoProfile -Command "$rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); $b=New-Object byte[] 24; $rng.GetBytes($b); ($b ^| ForEach-Object { $_.ToString('x2') }) -join ''"`) do set "POSTGRES_PASSWORD=%%S"
+  for /f "usebackq delims=" %%S in (`powershell.exe -NoProfile -Command "$rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); $b=New-Object byte[] 32; $rng.GetBytes($b); ($b ^| ForEach-Object { $_.ToString('x2') }) -join ''"`) do set "SECRET_KEY=%%S"
+  for /f "usebackq delims=" %%S in (`powershell.exe -NoProfile -Command "$rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); $b=New-Object byte[] 32; $rng.GetBytes($b); ($b ^| ForEach-Object { $_.ToString('x2') }) -join ''"`) do set "BUDGET_PUBLIC_SECRET_KEY=%%S"
+
+  if not defined POSTGRES_PASSWORD (
+    echo ERROR: Could not generate the PostgreSQL password.
+    pause
+    exit /b 1
+  )
+  if not defined SECRET_KEY (
+    echo ERROR: Could not generate the application secret.
+    pause
+    exit /b 1
+  )
+  if not defined BUDGET_PUBLIC_SECRET_KEY (
+    echo ERROR: Could not generate the public budget secret.
+    pause
+    exit /b 1
+  )
+
+  set "DP_POSTGRES_PASSWORD=%POSTGRES_PASSWORD%"
+  set "DP_SECRET_KEY=%SECRET_KEY%"
+  set "DP_BUDGET_SECRET=%BUDGET_PUBLIC_SECRET_KEY%"
+
+  powershell.exe -NoProfile -Command "$text=Get-Content -Raw '.env.client.example'; $text=$text -replace '(?m)^POSTGRES_PASSWORD=.*$', ('POSTGRES_PASSWORD=' + $env:DP_POSTGRES_PASSWORD); $text=$text -replace '(?m)^SECRET_KEY=.*$', ('SECRET_KEY=' + $env:DP_SECRET_KEY); $text=$text -replace '(?m)^BUDGET_PUBLIC_SECRET_KEY=.*$', ('BUDGET_PUBLIC_SECRET_KEY=' + $env:DP_BUDGET_SECRET); [System.IO.File]::WriteAllText((Join-Path (Get-Location) '.env.client'), $text, (New-Object System.Text.UTF8Encoding($false)))"
+  if errorlevel 1 (
+    echo ERROR: Could not create .env.client.
+    pause
+    exit /b 1
+  )
+
+  echo Private installation secrets created successfully.
+  echo Do not copy .env.client from one clinic to another.
+  echo.
 )
 
 docker info >nul 2>&1

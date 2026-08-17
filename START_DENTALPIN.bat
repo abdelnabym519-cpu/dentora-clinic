@@ -42,7 +42,7 @@ for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"PUBLIC_URL=" ".env.client"'
 echo.
 echo DentalPin is starting at: %APP_URL%
 echo The first start can take several minutes while images are built.
-timeout /t 5 /nobreak >nul
+"%SystemRoot%\System32\timeout.exe" /t 5 /nobreak >nul
 start "" "%APP_URL%"
 
 endlocal

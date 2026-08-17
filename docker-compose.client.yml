@@ -35,6 +35,12 @@ services:
       TRIAL_MODE: "false"
       TRIAL_STARTED_AT: ""
       TRIAL_DAYS: "3"
+      LICENSE_ENFORCEMENT: "true"
+      LICENSE_SERVER_URL: ${LICENSE_SERVER_URL:-}
+      LICENSE_PUBLIC_KEY_B64: ${LICENSE_PUBLIC_KEY_B64:-}
+      LICENSE_MACHINE_FINGERPRINT: ${LICENSE_MACHINE_FINGERPRINT:-}
+      LICENSE_HTTP_TIMEOUT_SECONDS: "5"
+      LICENSE_REFRESH_RETRY_MINUTES: "60"
     volumes:
       - storage_data:/app/storage
     depends_on:

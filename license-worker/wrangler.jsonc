@@ -19,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "dentalpin-license",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "a50e357f-3574-44eb-83a1-7c14a8929930",
       "migrations_dir": "migrations"
     }
   ]

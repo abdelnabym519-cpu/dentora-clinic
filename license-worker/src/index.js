@@ -425,6 +425,62 @@ async function handleCreateLicense(request, env) {
   }, 201);
 }
 
+async function handleRenewLicense(request, env, licenseId) {
+  await requireAdmin(request, env);
+
+  const body = await readJson(request);
+  const durationDays = optionalPositiveInt(
+    body.duration_days,
+    "duration_days",
+    1,
+    3650,
+    null,
+  );
+
+  if (!durationDays) {
+    throw new HttpError(422, "duration_days is required");
+  }
+
+  const license = await env.DB.prepare(
+    "SELECT * FROM licenses WHERE id = ? LIMIT 1"
+  ).bind(licenseId).first();
+
+  if (!license) throw new HttpError(404, "License not found");
+
+  if (!license.expires_at) {
+    throw new HttpError(409, "Perpetual license does not need renewal");
+  }
+
+  const now = new Date();
+  const currentExpiry = new Date(license.expires_at);
+
+  const extendFrom =
+    Number.isNaN(currentExpiry.getTime()) || currentExpiry <= now
+      ? now
+      : currentExpiry;
+
+  const nextExpiry = new Date(
+    extendFrom.getTime() + durationDays * 86400000
+  ).toISOString();
+
+  const updatedAt = now.toISOString();
+
+  await env.DB.prepare(
+    "UPDATE licenses SET expires_at = ?, updated_at = ? WHERE id = ?"
+  ).bind(nextExpiry, updatedAt, licenseId).run();
+
+  return jsonResponse({
+    id: license.id,
+    customer_name: license.customer_name,
+    plan: license.plan,
+    status: license.status,
+    previous_expires_at: license.expires_at,
+    expires_at: nextExpiry,
+    duration_days: durationDays,
+    extended_from: extendFrom.toISOString(),
+  });
+}
+
 async function handleListLicenses(request, env) {
   await requireAdmin(request, env);
   const result = await env.DB.prepare(`
@@ -513,7 +569,10 @@ async function route(request, env) {
   if (method === "POST" && path === "/admin/licenses") return handleCreateLicense(request, env);
   if (method === "GET" && path === "/admin/licenses") return handleListLicenses(request, env);
 
-  let match = path.match(/^\/admin\/licenses\/([^/]+)\/suspend$/);
+  let match = path.match(/^\/admin\/licenses\/([^/]+)\/renew$/);
+  if (method === "POST" && match) return handleRenewLicense(request, env, match[1]);
+
+  match = path.match(/^\/admin\/licenses\/([^/]+)\/suspend$/);
   if (method === "POST" && match) return updateLicenseStatus(request, env, match[1], "suspended");
 
   match = path.match(/^\/admin\/licenses\/([^/]+)\/resume$/);

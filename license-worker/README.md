@@ -10,6 +10,7 @@ This is the production replacement for the local FastAPI/PostgreSQL proof-of-con
 - `GET /v1/public-key`
 - `POST /admin/licenses`
 - `GET /admin/licenses`
+- `POST /admin/licenses/:id/renew`
 - `POST /admin/licenses/:id/suspend`
 - `POST /admin/licenses/:id/resume`
 - `GET /admin/licenses/:id/activations`

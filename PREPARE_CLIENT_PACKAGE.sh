@@ -4,19 +4,18 @@ set -euo pipefail
 BRANCH="${1:-deploy/client-local}"
 ROOT="$(git rev-parse --show-toplevel)"
 DIST="$ROOT/dist"
-OUT="$DIST/DentalPin_Client"
-ZIP="$DIST/DentalPin_Client.zip"
+OUT="$DIST/DentalPin_Generic_Client"
+ZIP="$DIST/DentalPin_Generic_Client.zip"
 
-echo "=== DentalPin Client Package ==="
+echo "=== DentalPin Generic Client Package ==="
 echo "Source branch: $BRANCH"
 
 command -v git >/dev/null || { echo "git is required"; exit 1; }
-command -v openssl >/dev/null || { echo "openssl is required (Git Bash includes it on most installs)"; exit 1; }
 
 rm -rf "$OUT"
 mkdir -p "$OUT"
 
-echo "[1/4] Exporting tracked client branch..."
+echo "[1/4] Exporting tracked generic client branch..."
 git archive --format=tar "$BRANCH" | tar -x -C "$OUT"
 
 # Remove deployment/development files that are not needed on the clinic PC.
@@ -26,27 +25,20 @@ rm -f \
   "$OUT/docker-compose.prod.yml" \
   "$OUT/.env.prod.example" \
   "$OUT/railway.frontend.toml" \
-  "$OUT/backend/railway.toml"
+  "$OUT/backend/railway.toml" \
+  "$OUT/.env.client"
 
-# Keep only the client launcher as the obvious compose entry point.
-
-echo "[2/4] Generating per-install secrets..."
-cp "$OUT/.env.client.example" "$OUT/.env.client"
-POSTGRES_PASSWORD="$(openssl rand -hex 24)"
-SECRET_KEY="$(openssl rand -hex 32)"
-BUDGET_PUBLIC_SECRET_KEY="$(openssl rand -hex 32)"
-
-sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$POSTGRES_PASSWORD/" "$OUT/.env.client"
-sed -i "s/^SECRET_KEY=.*/SECRET_KEY=$SECRET_KEY/" "$OUT/.env.client"
-sed -i "s/^BUDGET_PUBLIC_SECRET_KEY=.*/BUDGET_PUBLIC_SECRET_KEY=$BUDGET_PUBLIC_SECRET_KEY/" "$OUT/.env.client"
-
-# The generated env contains installation secrets; do not copy it back into git.
-chmod 600 "$OUT/.env.client" 2>/dev/null || true
+# The generic ZIP deliberately contains no installation secrets.
+# START_DENTALPIN.bat generates unique secrets on each clinic PC the first time it runs.
+echo "[2/4] Preparing reusable first-run configuration..."
+test -f "$OUT/.env.client.example"
 
 printf '%s\n' \
-  "DentalPin Client local production package" \
+  "DentalPin Generic Client local production package" \
   "Branch: $BRANCH" \
   "Created: $(date -Iseconds)" \
+  "Reusable package: yes" \
+  "Per-install secrets: generated on first start" \
   "Trial: disabled" \
   "Demo seed: disabled" \
   > "$OUT/BUILD_INFO.txt"
@@ -64,15 +56,17 @@ else
   exit 0
 fi
 
-echo "[4/4] Verifying package..."
+echo "[4/4] Verifying generic package..."
 test -f "$OUT/docker-compose.client.yml"
-test -f "$OUT/.env.client"
+test -f "$OUT/.env.client.example"
+test ! -e "$OUT/.env.client"
 test -f "$OUT/START_DENTALPIN.bat"
 test -f "$OUT/CLIENT_INSTALL_AR.md"
+test ! -e "$OUT/SET_CLIENT_PROFILE.bat"
 test -s "$ZIP"
 
 echo
 echo "READY"
 echo "Folder: $OUT"
 echo "ZIP:    $ZIP"
-echo "Copy the ZIP to the client PC, extract it to C:\\DentalPin, then follow CLIENT_INSTALL_AR.md."
+echo "This ZIP can be reused for multiple clinics. Each extracted installation creates its own secrets on first start."

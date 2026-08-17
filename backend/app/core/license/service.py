@@ -38,6 +38,18 @@ class LicenseError(RuntimeError):
     pass
 
 
+class LicenseUnavailableError(LicenseError):
+    """The license service could not be reached or returned a transient 5xx."""
+
+
+class LicenseRejectedError(LicenseError):
+    """The license service explicitly rejected this license/activation."""
+
+    def __init__(self, message: str, status_code: int = 403) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
 class LicenseManager:
     def __init__(self) -> None:
         self._lock = asyncio.Lock()
@@ -159,6 +171,16 @@ class LicenseManager:
             "needs_refresh": bool(refresh_after and now >= refresh_after),
         }
 
+        blocked_reason = state.get("server_blocked_reason")
+        if blocked_reason:
+            return {
+                **common,
+                "active": False,
+                "state": "blocked",
+                "reason": blocked_reason,
+                "needs_refresh": True,
+            }
+
         if license_expires_at and now >= license_expires_at:
             return {**common, "state": "expired", "reason": "License subscription has expired"}
         if now >= valid_until:
@@ -175,8 +197,12 @@ class LicenseManager:
     async def _server_post(self, path: str, payload: dict) -> dict:
         url = settings.LICENSE_SERVER_URL.rstrip("/") + path
         timeout = httpx.Timeout(settings.LICENSE_HTTP_TIMEOUT_SECONDS)
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(url, json=payload)
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.post(url, json=payload)
+        except httpx.RequestError as exc:
+            raise LicenseUnavailableError("License server is temporarily unavailable") from exc
+
         if response.status_code >= 400:
             detail = None
             try:
@@ -184,10 +210,17 @@ class LicenseManager:
                 detail = body.get("detail") if isinstance(body, dict) else None
             except Exception:
                 pass
-            raise LicenseError(detail or f"License server returned HTTP {response.status_code}")
-        data = response.json()
+            message = detail or f"License server returned HTTP {response.status_code}"
+            if 400 <= response.status_code < 500:
+                raise LicenseRejectedError(message, response.status_code)
+            raise LicenseUnavailableError(message)
+
+        try:
+            data = response.json()
+        except Exception as exc:
+            raise LicenseUnavailableError("License server returned invalid JSON") from exc
         if not isinstance(data, dict) or not data.get("lease_token"):
-            raise LicenseError("License server returned an invalid response")
+            raise LicenseUnavailableError("License server returned an invalid response")
         return data
 
     async def activate(self, license_key: str) -> dict:
@@ -201,10 +234,12 @@ class LicenseManager:
                     "app_version": "2.0.0",
                 },
             )
+            now = utcnow().isoformat()
             state = {
                 "lease_token": data["lease_token"],
-                "activated_at": utcnow().isoformat(),
-                "last_refresh_attempt_at": utcnow().isoformat(),
+                "activated_at": now,
+                "last_refresh_attempt_at": now,
+                "last_refresh_success_at": now,
             }
             self._save_state(state)
             return self._status_from_state(state)
@@ -217,16 +252,27 @@ class LicenseManager:
                 raise LicenseError("No license lease is installed")
             state["last_refresh_attempt_at"] = utcnow().isoformat()
             self._save_state(state)
-            data = await self._server_post(
-                "/v1/refresh",
-                {
-                    "lease_token": token,
-                    "installation_id": self.installation_id(),
-                    "fingerprint": settings.LICENSE_MACHINE_FINGERPRINT,
-                },
-            )
+            try:
+                data = await self._server_post(
+                    "/v1/refresh",
+                    {
+                        "lease_token": token,
+                        "installation_id": self.installation_id(),
+                        "fingerprint": settings.LICENSE_MACHINE_FINGERPRINT,
+                    },
+                )
+            except LicenseRejectedError as exc:
+                state["server_blocked_reason"] = str(exc)
+                state["server_blocked_status_code"] = exc.status_code
+                state["server_blocked_at"] = utcnow().isoformat()
+                self._save_state(state)
+                raise
+
             state["lease_token"] = data["lease_token"]
             state["last_refresh_success_at"] = utcnow().isoformat()
+            state.pop("server_blocked_reason", None)
+            state.pop("server_blocked_status_code", None)
+            state.pop("server_blocked_at", None)
             self._save_state(state)
             return self._status_from_state(state)
 
@@ -236,18 +282,26 @@ class LicenseManager:
         if not settings.LICENSE_ENFORCEMENT or not allow_refresh:
             return status
 
-        should_refresh = status.get("needs_refresh") or status.get("state") == "lease_expired"
+        should_refresh = (
+            status.get("needs_refresh")
+            or status.get("state") == "lease_expired"
+            or bool(state.get("server_blocked_reason"))
+        )
         if should_refresh and state.get("lease_token") and self._refresh_attempt_due(state):
             try:
                 return await self.refresh(state)
-            except LicenseError as exc:
-                logger.warning("License refresh failed: %s", exc)
-                # A still-valid signed lease remains usable while offline.
+            except LicenseRejectedError as exc:
+                logger.warning("License server rejected refresh: %s", exc)
+                return self._status_from_state(self._load_state())
+            except LicenseUnavailableError as exc:
+                logger.warning("License refresh unavailable: %s", exc)
                 status = self._status_from_state(self._load_state())
                 if status.get("active"):
                     status["reason"] = "Offline grace period"
-                else:
-                    status["reason"] = str(exc)
+                return status
+            except LicenseError as exc:
+                logger.warning("License refresh failed: %s", exc)
+                return self._status_from_state(self._load_state())
         return status
 
 

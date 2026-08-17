@@ -5,7 +5,12 @@ from pydantic import BaseModel, Field
 
 from app.core.schemas import ApiResponse
 
-from .service import LicenseError, license_manager
+from .service import (
+    LicenseError,
+    LicenseRejectedError,
+    LicenseUnavailableError,
+    license_manager,
+)
 
 router = APIRouter(prefix="/license", tags=["license"])
 
@@ -39,9 +44,14 @@ async def license_status() -> ApiResponse[LicenseStatus]:
 async def activate_license(data: ActivateLicense) -> ApiResponse[LicenseStatus]:
     try:
         result = await license_manager.activate(data.license_key)
-    except LicenseError as exc:
+    except LicenseRejectedError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+    except (LicenseUnavailableError, LicenseError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
     return ApiResponse(data=LicenseStatus(**result))
@@ -51,7 +61,12 @@ async def activate_license(data: ActivateLicense) -> ApiResponse[LicenseStatus]:
 async def refresh_license() -> ApiResponse[LicenseStatus]:
     try:
         result = await license_manager.refresh()
-    except LicenseError as exc:
+    except LicenseRejectedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=str(exc),
+        ) from exc
+    except (LicenseUnavailableError, LicenseError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),

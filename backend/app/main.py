@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.core.auth.router import limiter
 from app.core.auth.router import router as auth_router
+from app.core.license.router import router as license_router
+from app.core.license.service import license_manager
 from app.core.log_context import (
     new_request_id,
     reset_request_context,
@@ -36,22 +38,16 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup and shutdown."""
-    # Logging: attach the context filter early so every line emitted
-    # during startup / module install also carries the bound fields
-    # (defaults to ``-`` outside a request).
     setup_logging()
 
-    # Startup
     load_modules(app)
 
-    # Sync in-memory registry into core_module (best-effort).
     try:
         async with async_session_maker() as session:
             await ModuleService(session).reconcile_with_db()
     except Exception:
         logger.exception("Module registry reconciliation failed at startup")
 
-    # Process pending install/uninstall/upgrade operations.
     try:
         processor = PendingProcessor(async_session_maker)
         processed = await processor.run()
@@ -60,12 +56,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         logger.exception("Pending module processor raised")
 
-    # Initialize scheduler for background jobs
     init_scheduler()
 
     yield
 
-    # Shutdown
     shutdown_scheduler()
     await engine.dispose()
 
@@ -80,12 +74,10 @@ app = FastAPI(
     redoc_url="/redoc" if settings.ENVIRONMENT == "development" else None,
 )
 
-# Configure rate limiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-# Configure CORS
 allowed_origins = settings.allowed_origins_list.copy()
 if settings.ENVIRONMENT == "development":
     allowed_origins.extend(
@@ -108,14 +100,7 @@ app.add_middleware(
 
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
-    """Bind ``request_id`` for the lifetime of one HTTP request.
-
-    Accepts an inbound ``X-Request-Id`` so a load balancer / client
-    can correlate traces; otherwise mints a fresh short id. Echoes
-    the value back on the response (success or error) so the caller
-    can grep server logs. ``clinic_id`` / ``user_id`` are bound later
-    by the auth dependency once they are known.
-    """
+    """Bind ``request_id`` for the lifetime of one HTTP request."""
     incoming = request.headers.get("x-request-id")
     rid = incoming if incoming and len(incoming) <= 64 else new_request_id()
     tokens = set_request_context(request_id=rid)
@@ -127,13 +112,30 @@ async def request_id_middleware(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def commercial_license_middleware(request: Request, call_next):
+    """Block paid local installations until a signed license lease is active.
+
+    Hosted/dev deployments are unaffected because LICENSE_ENFORCEMENT defaults
+    to false. The activation endpoints remain reachable while locked.
+    """
+    if settings.LICENSE_ENFORCEMENT and request.url.path.startswith("/api/v1"):
+        allowed_prefixes = (
+            "/api/v1/license/",
+        )
+        if not request.url.path.startswith(allowed_prefixes):
+            license_status = await license_manager.get_status(allow_refresh=True)
+            if not license_status.get("active"):
+                message = license_status.get("reason") or "DentalPin license activation required"
+                error_response = ErrorResponse(message=message, errors=[message])
+                return JSONResponse(
+                    status_code=402,
+                    content=error_response.model_dump(),
+                )
+    return await call_next(request)
+
+
 def _cors_headers(request: Request) -> dict[str, str]:
-    # CORSMiddleware can't add headers to responses produced by exception
-    # handlers (BaseHTTPMiddleware-based stacks lose the response when an
-    # exception escapes). Without these headers, browsers report any 5xx
-    # as a network error ("can't connect to server") instead of surfacing
-    # the real status — which masks bugs and confuses users. So we mirror
-    # CORSMiddleware's allow-list logic here for error responses.
     origin = request.headers.get("origin")
     if not origin:
         return {}
@@ -164,7 +166,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Global exception handler for unhandled errors."""
+    """Global exception handler for unhandled exceptions."""
     logger.exception("Unhandled exception", exc_info=exc)
     if settings.ENVIRONMENT == "development":
         error_response = ErrorResponse(
@@ -183,15 +185,15 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     )
 
 
-# Mount auth router
+# License endpoints must be mounted before normal first-run/auth flows so a
+# locked commercial installation can always be activated.
+app.include_router(license_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 
-# Mount module management router (install/uninstall/upgrade/restart).
 from app.core.plugins.router import router as modules_router  # noqa: E402
 
 app.include_router(modules_router, prefix="/api/v1")
 
-# Mount AI agents infrastructure router (approval queue, audit, agent CRUD).
 from app.core.agents.router import router as agents_router  # noqa: E402
 
 app.include_router(agents_router, prefix="/api/v1")
@@ -199,14 +201,7 @@ app.include_router(agents_router, prefix="/api/v1")
 
 @app.get("/health")
 async def health_check() -> JSONResponse:
-    """Liveness probe — process is up.
-
-    Used by the proxy/orchestrator to decide whether the container should
-    receive traffic. Must NOT depend on the DB: a transient DB blip should
-    not pull the backend out of the load balancer (we used to do that and
-    Cloudflare ended up serving "no available server" until someone redeployed
-    by hand).
-    """
+    """Liveness probe — process is up."""
     return JSONResponse(content={"status": "healthy", "version": "2.0.0"})
 
 
@@ -214,15 +209,7 @@ async def health_check() -> JSONResponse:
 async def readiness_check(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> JSONResponse:
-    """Readiness probe — schema is reachable.
-
-    Probes a core table so monitoring catches the case where the DB volume
-    gets recreated under a running container (schema gone, every business
-    endpoint 500s). Recovery from that state belongs in the entrypoint
-    (`alembic upgrade heads`) plus an explicit container restart — not in
-    the proxy healthcheck, since Docker's `restart: unless-stopped` does
-    not auto-restart on healthcheck failure.
-    """
+    """Readiness probe — schema is reachable."""
     try:
         await db.execute(text("SELECT 1 FROM users LIMIT 1"))
     except Exception as exc:

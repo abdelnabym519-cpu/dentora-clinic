@@ -43,6 +43,12 @@ def api(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
     data = None
     headers = {
         "Accept": "application/json",
+        "Accept-Language": "en-US,en;q=0.9",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/142.0.0.0 Safari/537.36"
+        ),
         "X-Admin-Key": load_admin_key(),
     }
     if body is not None:

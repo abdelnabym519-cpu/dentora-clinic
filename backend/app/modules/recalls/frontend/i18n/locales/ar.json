@@ -1,0 +1,129 @@
+{
+  "recalls": {
+    "title": "المتابعات",
+    "callList": "قائمة المتابعات",
+    "noRecallsThisMonth": "لا توجد متابعات معلقة هذا الشهر",
+    "filters": {
+      "month": "الشهر",
+      "reason": "السبب",
+      "professional": "الأخصائي",
+      "status": "الحالة",
+      "priority": "الأولوية",
+      "overdue": "إظهار المتأخر",
+      "any": "الكل",
+      "thisMonth": "هذا الشهر"
+    },
+    "counters": {
+      "due_this_week": "مستحقة هذا الأسبوع",
+      "due_this_month": "مستحقة هذا الشهر",
+      "overdue": "متأخرة",
+      "scheduled_this_month": "مجدولة هذا الشهر",
+      "completed_this_month": "مكتملة هذا الشهر",
+      "conversion_rate": "نسبة التحويل"
+    },
+    "setRecall": "إضافة متابعة",
+    "setRecallShort": "متابعة",
+    "history": "سجل المتابعات",
+    "viewAll": "عرض الكل",
+    "pillNext": "المتابعة القادمة: {month} · {reason}",
+    "pillNone": "لا توجد متابعة نشطة",
+    "reasons": {
+      "hygiene": "تنظيف",
+      "checkup": "فحص دوري",
+      "ortho_review": "مراجعة تقويم",
+      "implant_review": "مراجعة زراعة",
+      "post_op": "متابعة بعد الإجراء",
+      "treatment_followup": "متابعة العلاج",
+      "other": "أخرى"
+    },
+    "priority": {
+      "low": "منخفضة",
+      "normal": "عادية",
+      "high": "عالية"
+    },
+    "status": {
+      "pending": "معلقة",
+      "contacted_no_answer": "لا يوجد رد",
+      "contacted_scheduled": "تم تحديد موعد",
+      "contacted_declined": "رفض",
+      "done": "مكتملة",
+      "cancelled": "ملغاة",
+      "needs_review": "تحتاج مراجعة"
+    },
+    "actions": {
+      "call": "اتصال",
+      "logAttempt": "تسجيل محاولة",
+      "noAnswer": "لا يوجد رد",
+      "book": "حجز موعد",
+      "snooze": "تأجيل",
+      "cancel": "إلغاء",
+      "markDone": "تحديد كمكتملة",
+      "exportCsv": "تصدير CSV",
+      "save": "حفظ"
+    },
+    "closeoutPrompt": {
+      "title": "تحديد متابعة؟",
+      "subtitle": "انتهت زيارة المريض — متى تريد التواصل معه مرة أخرى؟",
+      "skip": "ليس الآن"
+    },
+    "modal": {
+      "title": "إضافة متابعة",
+      "subtitle": "حدد المريض للتواصل معه مستقبلًا",
+      "patient": "المريض",
+      "reason": "السبب",
+      "when": "الموعد",
+      "month": "الشهر المستهدف",
+      "targetMonth": "الشهر المستهدف",
+      "preciseDate": "اختيار يوم محدد",
+      "priority": "الأولوية",
+      "assigned": "الأخصائي المسؤول",
+      "note": "ملاحظة داخلية",
+      "notePlaceholder": "تفاصيل اختيارية (مثال: مراجعة حشو السن 47)",
+      "optional": "اختياري",
+      "duplicateGuard": "توجد متابعة معلقة بالفعل لهذا المريض ولنفس السبب. سيتم تحديثها."
+    },
+    "doNotContact": {
+      "cannotSchedule": "هذا المريض محدد كـ «عدم التواصل». لا يمكن جدولة متابعة حتى يتم تعديل تفضيل التواصل في بيانات المريض."
+    },
+    "activeRecallHint": "متابعة نشطة · اضغط للإدارة",
+    "logAttempt": {
+      "channel": "وسيلة التواصل",
+      "outcome": "النتيجة",
+      "note": "ملاحظة",
+      "submit": "تسجيل المحاولة"
+    },
+    "channel": {
+      "phone": "هاتف",
+      "whatsapp": "واتساب",
+      "sms": "رسالة SMS",
+      "email": "بريد إلكتروني"
+    },
+    "outcome": {
+      "no_answer": "لا يوجد رد",
+      "voicemail": "بريد صوتي",
+      "scheduled": "تم حجز موعد",
+      "declined": "رفض",
+      "wrong_number": "رقم غير صحيح"
+    },
+    "snoozePrompt": "تأجيل المتابعة لعدد كم من الشهور؟",
+    "settings": {
+      "title": "المتابعات",
+      "description": "الفترات الافتراضية وربط فئات العلاج",
+      "intervals": "الفترات الافتراضية (بالشهور)",
+      "categoryMap": "العلاج ← سبب المتابعة",
+      "categoryKeyPlaceholder": "مفتاح فئة الكتالوج",
+      "autoSuggest": "اقتراح متابعة عند اكتمال العلاج",
+      "autoLink": "ربط الموعد المحجوز بمتابعة معلقة",
+      "saved": "تم حفظ الإعدادات"
+    },
+    "dashboard": {
+      "title": "المتابعات"
+    },
+    "suggestion": {
+      "title": "متابعة مقترحة",
+      "body": "بعد هذا العلاج نقترح متابعة في {month} ({reason}).",
+      "create": "إنشاء متابعة",
+      "dismiss": "تجاهل"
+    }
+  }
+}

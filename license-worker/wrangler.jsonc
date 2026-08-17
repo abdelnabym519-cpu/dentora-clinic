@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dentalpin-license",
   "main": "src/index.js",
-  "compatibility_date": "2026-08-18",
+  "compatibility_date": "2026-08-17",
   "workers_dev": true,
   "vars": {
     "LICENSE_REFRESH_HOURS": "1",

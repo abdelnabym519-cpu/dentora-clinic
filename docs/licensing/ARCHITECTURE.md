@@ -2,7 +2,24 @@
 
 ## Goal
 
-Protect the reusable local Windows package from casual unlimited copying while keeping each clinic fully local for clinical data.
+Protect the reusable local Windows package from casual unlimited copying while keeping every clinic's clinical data local.
+
+## Production topology
+
+Production licensing uses Cloudflare Workers + D1:
+
+```text
+DentalPin clinic PC
+    |
+    | HTTPS
+    v
+Cloudflare Worker (license API)
+    |
+    v
+Cloudflare D1 (licenses + activations)
+```
+
+The earlier `license-server/` FastAPI/PostgreSQL service remains a local proof-of-concept and compatibility test harness. The production service lives in `license-worker/`.
 
 ## Commercial model
 
@@ -10,29 +27,31 @@ Protect the reusable local Windows package from casual unlimited copying while k
 - A license has a status: `active`, `suspended`, `expired`, or `revoked`.
 - A license has `max_activations` (default: 1).
 - Each installation creates its own installation ID and Windows-machine fingerprint.
-- The client must activate before the first administrator/clinic setup can be completed.
-- The license server issues a signed, time-limited lease.
-- The client refreshes the lease online when possible and can continue for a short offline grace period.
+- The client must activate before first administrator/clinic setup can be completed.
+- The license service issues an Ed25519-signed, time-limited lease.
+- The client refreshes the lease online and can continue during a temporary Internet outage for a bounded grace period.
 
 ## Trust model
 
-The license server keeps the Ed25519 private signing key. Client installations contain only the public verification key. A client therefore can verify a lease offline but cannot mint a valid lease.
+The Ed25519 private signing key is stored only as a secret on the remote license service. Client installations contain only the public verification key. A client can verify a lease offline but cannot mint a valid lease.
 
-This is a commercial-control layer, not unbreakable DRM. If source code is delivered to a determined attacker, the client checks can be patched out. The stronger release model is to distribute pre-built private Docker images instead of application source. That is a later hardening phase.
+The owner admin key is also a server-side secret and protects license-management endpoints. Plaintext license keys are returned only when a license is created; D1 stores a SHA-256 hash and a short display prefix.
+
+This is a commercial-control layer, not unbreakable DRM. If application source is delivered to a determined attacker, client checks can be patched out. A later hardening phase should distribute pre-built private Docker images rather than the full application source.
 
 ## Client flow
 
 1. `START_DENTALPIN.bat` creates per-install secrets and a machine fingerprint on first run.
 2. Backend starts with `LICENSE_ENFORCEMENT=true` for commercial local packages.
 3. Frontend checks `/api/v1/license/status` before setup/login.
-4. If unlicensed, all users are redirected to `/activate`.
-5. `/activate` sends the entered license key to `/api/v1/license/activate`.
-6. Backend sends the key, installation ID, and fingerprint to the remote license server.
-7. License server validates status/expiry/activation limits and returns an Ed25519-signed lease token.
-8. Backend persists only the signed lease and non-secret activation metadata under the persistent storage volume.
-9. The normal first-time `/setup` flow becomes available only after activation succeeds.
+4. If unlicensed or blocked, users are redirected to `/activate`.
+5. `/activate` sends the entered license key to the local DentalPin backend.
+6. The backend sends the key, installation ID, and fingerprint to the remote license service.
+7. The remote service validates license status, expiry, activation limits, and returns an Ed25519-signed lease.
+8. The backend persists only the signed lease and non-secret activation metadata under the persistent storage volume.
+9. `/setup` becomes available only after successful activation.
 
-## Offline behavior
+## Offline and suspension behavior
 
 A lease contains:
 
@@ -45,16 +64,19 @@ A lease contains:
 - `plan`
 - `features`
 
-The client should attempt refresh after `refresh_after`. If the license server is temporarily unreachable, the client may continue until `valid_until`. Once `valid_until` passes, protected API requests return HTTP 402 until the lease can be refreshed or a new license is activated.
+Production target policy:
 
-Initial target values:
-
-- refresh target: 24 hours
+- refresh target: 1 hour
 - offline lease/grace: 7 days
+- blocked-client retry: every 5 minutes
+
+If the remote service is temporarily unavailable, an already-valid signed lease remains usable until `valid_until`. This prevents a short Internet outage from closing a clinic.
+
+If the remote service explicitly rejects refresh because a license or activation is suspended/revoked/expired, the client records a local blocked state and protected API requests return HTTP 402. When the owner resumes the license, a later successful refresh clears the blocked state.
 
 ## Server-side data
 
-### licenses
+### `licenses`
 
 - id
 - key_hash
@@ -64,11 +86,11 @@ Initial target values:
 - status
 - expires_at
 - max_activations
-- features
+- features_json
 - created_at
 - updated_at
 
-### activations
+### `activations`
 
 - id
 - license_id
@@ -78,31 +100,31 @@ Initial target values:
 - last_seen_at
 - revoked_at
 
-The plaintext license key is returned only when an admin creates a license. The database stores a SHA-256 hash, not the plaintext key.
+## Remote API surface
 
-## API surface
+### Public client endpoints
 
-### Public client endpoints on license server
-
+- `GET /health`
+- `GET /v1/public-key`
 - `POST /v1/activate`
 - `POST /v1/refresh`
-- `GET /health`
 
-### Private commercial administration endpoints
+### Owner administration endpoints
 
-Protected with `X-Admin-Key` initially:
+Protected with `X-Admin-Key`:
 
 - `POST /admin/licenses`
 - `GET /admin/licenses`
 - `POST /admin/licenses/{license_id}/suspend`
 - `POST /admin/licenses/{license_id}/resume`
+- `GET /admin/licenses/{license_id}/activations`
 - `POST /admin/activations/{activation_id}/revoke`
 
-A dedicated owner dashboard can replace the admin API-key workflow later.
+A dedicated owner dashboard can replace the admin-key workflow later.
 
 ## Client API gate
 
-Allowed while unlicensed:
+Allowed while unlicensed/blocked:
 
 - `/health`
 - `/health/ready`
@@ -110,8 +132,8 @@ Allowed while unlicensed:
 - `/api/v1/license/activate`
 - `/api/v1/license/refresh`
 
-Everything else under `/api/v1` is blocked when commercial license enforcement is enabled and no valid lease exists. This includes first-time setup, login, public booking, and normal clinic APIs.
+Everything else under `/api/v1` is blocked when commercial license enforcement is enabled and no valid lease is active. This includes first-time setup, login, public booking, and normal clinic APIs.
 
 ## Deployment boundary
 
-`license-server/` must never be exported into `DentalPin_Generic_Client.zip`. The generic client package contains only the client-side public verification key/configuration and activation UI.
+Neither `license-server/` nor `license-worker/` nor `.license-dev/` may ever be exported into `DentalPin_Generic_Client.zip`. The client package contains only the remote service URL, Ed25519 public key, activation UI, and client-side lease verification logic.

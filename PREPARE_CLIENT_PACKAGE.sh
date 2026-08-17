@@ -26,10 +26,12 @@ mkdir -p "$OUT"
 echo "[1/5] Exporting tracked generic client branch..."
 git archive --format=tar "$BRANCH" | tar -x -C "$OUT"
 
-# Never distribute the owner-side license service or repository/deployment internals.
+# Never distribute owner-side license services, signing material, or repository/deployment internals.
 rm -rf \
   "$OUT/.github" \
-  "$OUT/license-server"
+  "$OUT/license-server" \
+  "$OUT/license-worker" \
+  "$OUT/.license-dev"
 rm -f \
   "$OUT/docker-compose.yml" \
   "$OUT/docker-compose.prod.yml" \
@@ -96,6 +98,8 @@ test -f "$OUT/START_DENTALPIN.bat"
 test -f "$OUT/CLIENT_INSTALL_AR.md"
 test ! -e "$OUT/SET_CLIENT_PROFILE.bat"
 test ! -e "$OUT/license-server"
+test ! -e "$OUT/license-worker"
+test ! -e "$OUT/.license-dev"
 test -s "$ZIP"
 
 echo

@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local Wrangler development only.
+# Never commit real secret values.
+LICENSE_ADMIN_API_KEY=replace-me
+LICENSE_SIGNING_PRIVATE_KEY_B64=base64-encoded-pkcs8-private-pem
+LICENSE_PUBLIC_KEY_B64=base64-encoded-spki-public-pem

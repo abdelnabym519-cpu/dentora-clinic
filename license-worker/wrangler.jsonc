@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dentalpin-license",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-18",
+  "workers_dev": true,
+  "vars": {
+    "LICENSE_REFRESH_HOURS": "1",
+    "LICENSE_OFFLINE_GRACE_DAYS": "7"
+  },
+  "secrets": {
+    "required": [
+      "LICENSE_ADMIN_API_KEY",
+      "LICENSE_SIGNING_PRIVATE_KEY_B64",
+      "LICENSE_PUBLIC_KEY_B64"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dentalpin-license",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

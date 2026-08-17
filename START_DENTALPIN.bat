@@ -29,40 +29,39 @@ if not exist ".env.client" (
     exit /b 1
   )
 
-  for /f "usebackq delims=" %%S in (`powershell.exe -NoProfile -Command "$rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); $b=New-Object byte[] 24; $rng.GetBytes($b); ($b ^| ForEach-Object { $_.ToString('x2') }) -join ''"`) do set "POSTGRES_PASSWORD=%%S"
-  for /f "usebackq delims=" %%S in (`powershell.exe -NoProfile -Command "$rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); $b=New-Object byte[] 32; $rng.GetBytes($b); ($b ^| ForEach-Object { $_.ToString('x2') }) -join ''"`) do set "SECRET_KEY=%%S"
-  for /f "usebackq delims=" %%S in (`powershell.exe -NoProfile -Command "$rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); $b=New-Object byte[] 32; $rng.GetBytes($b); ($b ^| ForEach-Object { $_.ToString('x2') }) -join ''"`) do set "BUDGET_PUBLIC_SECRET_KEY=%%S"
-  for /f "usebackq delims=" %%S in (`powershell.exe -NoProfile -Command "try { $id=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Cryptography').MachineGuid } catch { $id=$env:COMPUTERNAME }; $sha=[System.Security.Cryptography.SHA256]::Create(); $bytes=[System.Text.Encoding]::UTF8.GetBytes(('DentalPin|' + $id)); (($sha.ComputeHash($bytes) ^| ForEach-Object { $_.ToString('x2') }) -join '')"`) do set "LICENSE_MACHINE_FINGERPRINT=%%S"
-
-  if not defined POSTGRES_PASSWORD (
-    echo ERROR: Could not generate the PostgreSQL password.
-    pause
-    exit /b 1
-  )
-  if not defined SECRET_KEY (
-    echo ERROR: Could not generate the application secret.
-    pause
-    exit /b 1
-  )
-  if not defined BUDGET_PUBLIC_SECRET_KEY (
-    echo ERROR: Could not generate the public budget secret.
-    pause
-    exit /b 1
-  )
-  if not defined LICENSE_MACHINE_FINGERPRINT (
-    echo ERROR: Could not create the machine fingerprint.
-    pause
-    exit /b 1
-  )
-
-  set "DP_POSTGRES_PASSWORD=%POSTGRES_PASSWORD%"
-  set "DP_SECRET_KEY=%SECRET_KEY%"
-  set "DP_BUDGET_SECRET=%BUDGET_PUBLIC_SECRET_KEY%"
-  set "DP_LICENSE_FINGERPRINT=%LICENSE_MACHINE_FINGERPRINT%"
-
-  powershell.exe -NoProfile -Command "$text=Get-Content -Raw '.env.client.example'; $text=$text -replace '(?m)^POSTGRES_PASSWORD=.*$', ('POSTGRES_PASSWORD=' + $env:DP_POSTGRES_PASSWORD); $text=$text -replace '(?m)^SECRET_KEY=.*$', ('SECRET_KEY=' + $env:DP_SECRET_KEY); $text=$text -replace '(?m)^BUDGET_PUBLIC_SECRET_KEY=.*$', ('BUDGET_PUBLIC_SECRET_KEY=' + $env:DP_BUDGET_SECRET); $text=$text -replace '(?m)^LICENSE_MACHINE_FINGERPRINT=.*$', ('LICENSE_MACHINE_FINGERPRINT=' + $env:DP_LICENSE_FINGERPRINT); [System.IO.File]::WriteAllText((Join-Path (Get-Location) '.env.client'), $text, (New-Object System.Text.UTF8Encoding($false)))"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; function New-Hex([int]$n) { $rng=[System.Security.Cryptography.RandomNumberGenerator]::Create(); try { $b=New-Object byte[] $n; $rng.GetBytes($b); return ([BitConverter]::ToString($b).Replace('-','').ToLowerInvariant()) } finally { $rng.Dispose() } }; $text=Get-Content -Raw '.env.client.example'; $pg=New-Hex 24; $secret=New-Hex 32; $budget=New-Hex 32; try { $machine=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Cryptography' -ErrorAction Stop).MachineGuid } catch { $machine=$env:COMPUTERNAME }; if ([string]::IsNullOrWhiteSpace($machine)) { throw 'Could not determine Windows machine identity' }; $sha=[System.Security.Cryptography.SHA256]::Create(); try { $fp=[BitConverter]::ToString($sha.ComputeHash([System.Text.Encoding]::UTF8.GetBytes(('DentalPin|' + $machine)))).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }; $text=[regex]::Replace($text,'(?m)^POSTGRES_PASSWORD=.*$',('POSTGRES_PASSWORD=' + $pg)); $text=[regex]::Replace($text,'(?m)^SECRET_KEY=.*$',('SECRET_KEY=' + $secret)); $text=[regex]::Replace($text,'(?m)^BUDGET_PUBLIC_SECRET_KEY=.*$',('BUDGET_PUBLIC_SECRET_KEY=' + $budget)); $text=[regex]::Replace($text,'(?m)^LICENSE_MACHINE_FINGERPRINT=.*$',('LICENSE_MACHINE_FINGERPRINT=' + $fp)); [System.IO.File]::WriteAllText((Join-Path (Get-Location) '.env.client'),$text,(New-Object System.Text.UTF8Encoding($false)))"
   if errorlevel 1 (
     echo ERROR: Could not create .env.client.
+    pause
+    exit /b 1
+  )
+
+  for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"POSTGRES_PASSWORD=" ".env.client"') do set "CHECK_PG=%%B"
+  for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"SECRET_KEY=" ".env.client"') do set "CHECK_SECRET=%%B"
+  for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"BUDGET_PUBLIC_SECRET_KEY=" ".env.client"') do set "CHECK_BUDGET=%%B"
+  for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"LICENSE_MACHINE_FINGERPRINT=" ".env.client"') do set "CHECK_FP=%%B"
+
+  if not defined CHECK_PG (
+    echo ERROR: Generated PostgreSQL password is empty.
+    del /q ".env.client" >nul 2>&1
+    pause
+    exit /b 1
+  )
+  if not defined CHECK_SECRET (
+    echo ERROR: Generated application secret is empty.
+    del /q ".env.client" >nul 2>&1
+    pause
+    exit /b 1
+  )
+  if not defined CHECK_BUDGET (
+    echo ERROR: Generated public budget secret is empty.
+    del /q ".env.client" >nul 2>&1
+    pause
+    exit /b 1
+  )
+  if not defined CHECK_FP (
+    echo ERROR: Generated machine fingerprint is empty.
+    del /q ".env.client" >nul 2>&1
     pause
     exit /b 1
   )

@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Local license development material (private signing keys, admin secrets)
+.license-dev/
+
 # Claude Code
 .claude/
 

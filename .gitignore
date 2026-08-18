@@ -72,3 +72,11 @@ proyecto_open_source_dental.docx
 *.dpm
 *.dpmf
 test-results/
+
+# DentalPin Egypt owner demo private runtime files
+.egypt-demo.env
+.egypt-demo.override.yml
+.egypt-demo.compose.resolved.yml
+.egypt-demo-smoke.env
+.egypt-demo-smoke.override.yml
+.egypt-demo-smoke.compose.resolved.yml

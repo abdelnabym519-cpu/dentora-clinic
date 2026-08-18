@@ -103,10 +103,24 @@ class Settings(BaseSettings):
     # model. (ANTHROPIC_API_KEY + its model default land with that
     # provider.)
     OPENAI_API_KEY: str = ""
+    AI_GATEWAY_BASE_URL: str = ""
     COPILOT_PROVIDER_DEFAULT: str = "openai"
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
+
+    @property
+    def ai_gateway_base_url(self) -> str:
+        """Resolve the OpenAI-compatible DentalPin AI gateway base URL."""
+        configured = self.AI_GATEWAY_BASE_URL.strip()
+        if configured:
+            return configured.rstrip("/") + "/"
+
+        server = self.LICENSE_SERVER_URL.strip()
+        if not server:
+            return ""
+
+        return server.rstrip("/") + "/ai/v1/"
 
     @property
     def allowed_origins_list(self) -> list[str]:

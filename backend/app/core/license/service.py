@@ -305,4 +305,47 @@ class LicenseManager:
         return status
 
 
+    async def get_ai_gateway_credential(self) -> str:
+        """Return the current signed lease for internal AI gateway auth only."""
+        if not settings.LICENSE_ENFORCEMENT:
+            raise LicenseError(
+                "AI gateway credential is only available for licensed clients"
+            )
+
+        status = await self.get_status(allow_refresh=True)
+
+        if not status.get("active"):
+            raise LicenseRejectedError(
+                status.get("reason") or "License is not active",
+                403,
+            )
+
+        features = {
+            str(feature).strip().lower()
+            for feature in (status.get("features") or [])
+            if str(feature).strip()
+        }
+
+        if "ai" not in features:
+            raise LicenseRejectedError(
+                "AI feature is not enabled for this license",
+                403,
+            )
+
+        state = self._load_state()
+        token = state.get("lease_token")
+
+        if not token:
+            raise LicenseError("No license lease is installed")
+
+        payload = self._verify_token(token)
+
+        if payload.get("installation_id") != self.installation_id():
+            raise LicenseError("License installation mismatch")
+
+        if payload.get("fingerprint") != settings.LICENSE_MACHINE_FINGERPRINT:
+            raise LicenseError("License machine mismatch")
+
+        return token
+
 license_manager = LicenseManager()

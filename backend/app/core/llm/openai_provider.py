@@ -11,7 +11,7 @@ without juggling partially-resolved tool batches.
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 from app.core.llm.base import (
@@ -32,14 +32,39 @@ from app.core.llm.base import (
 class OpenAIProvider:
     """Streams completions from OpenAI, speaking neutral types."""
 
-    def __init__(self, *, api_key: str) -> None:
-        if not api_key:
+    def __init__(
+        self,
+        *,
+        api_key: str = "",
+        base_url: str | None = None,
+        api_key_resolver: Callable[[], Awaitable[str]] | None = None,
+    ) -> None:
+        if not api_key and api_key_resolver is None:
             raise LLMConfigError("OpenAI provider requires OPENAI_API_KEY")
+
+        self._api_key = api_key
+        self._base_url = base_url.rstrip("/") + "/" if base_url else None
+        self._api_key_resolver = api_key_resolver
+
+    async def _client_for_request(self):
+        api_key = self._api_key
+
+        if self._api_key_resolver is not None:
+            api_key = await self._api_key_resolver()
+
+        if not api_key:
+            raise LLMConfigError("AI provider credential is unavailable")
+
         # Imported lazily so the dependency is only needed when the
-        # provider is actually instantiated (keeps test/import light).
+        # provider is actually used.
         from openai import AsyncOpenAI
 
-        self._client = AsyncOpenAI(api_key=api_key)
+        kwargs: dict[str, Any] = {"api_key": api_key}
+
+        if self._base_url:
+            kwargs["base_url"] = self._base_url
+
+        return AsyncOpenAI(**kwargs)
 
     async def complete(
         self,
@@ -70,7 +95,8 @@ class OpenAIProvider:
         pending: dict[int, dict[str, str]] = {}
         stop_reason = "stop"
 
-        stream = await self._client.chat.completions.create(**kwargs)
+        client = await self._client_for_request()
+        stream = await client.chat.completions.create(**kwargs)
         async for chunk in stream:
             # The usage-only final chunk carries no choices.
             if chunk.usage is not None:

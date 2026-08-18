@@ -28,5 +28,15 @@
   ],
   "ai": {
     "binding": "AI"
-  }
+  },
+  "ratelimits": [
+    {
+      "name": "AI_RATE_LIMITER",
+      "namespace_id": "519260818",
+      "simple": {
+        "limit": 30,
+        "period": 60
+      }
+    }
+  ]
 }

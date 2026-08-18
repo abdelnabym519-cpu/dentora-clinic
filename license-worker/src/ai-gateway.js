@@ -354,6 +354,35 @@ function clampOutputTokens(body) {
   }
 }
 
+
+async function enforceAiRateLimit(
+  authorization,
+  env
+) {
+  if (
+    !env.AI_RATE_LIMITER
+    || typeof env.AI_RATE_LIMITER.limit
+      !== "function"
+  ) {
+    throw new GatewayError(
+      503,
+      "AI rate limiter is not configured"
+    );
+  }
+
+  const result =
+    await env.AI_RATE_LIMITER.limit({
+      key: authorization.activationId,
+    });
+
+  if (!result?.success) {
+    throw new GatewayError(
+      429,
+      "AI request rate limit exceeded"
+    );
+  }
+}
+
 function workersAiModel(env) {
   const model = String(
     env.AI_PROVIDER_MODEL
@@ -522,7 +551,16 @@ export async function handleAiChatCompletions(
   env
 ) {
   try {
-    await authorizeAi(request, env);
+    const authorization =
+      await authorizeAi(
+        request,
+        env
+      );
+
+    await enforceAiRateLimit(
+      authorization,
+      env
+    );
 
     return await proxyToWorkersAi(
       request,

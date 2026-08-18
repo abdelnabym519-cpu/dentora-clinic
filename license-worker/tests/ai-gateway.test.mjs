@@ -202,6 +202,14 @@ function makeEnv(publicKeyB64, row) {
       },
     },
 
+    AI_RATE_LIMITER: {
+      async limit() {
+        return {
+          success: true,
+        };
+      },
+    },
+
     DB: makeDb(row),
   };
 }
@@ -402,6 +410,71 @@ test(
         assert.match(
           body.detail,
           /revoked/i
+        );
+      }
+    );
+
+
+    await t.test(
+      "rate limited activation -> 429",
+      async () => {
+        const row = makeRow(
+          signed.payload
+        );
+
+        const env = makeEnv(
+          signing.publicKeyB64,
+          row
+        );
+
+        env.AI_RATE_LIMITER.limit =
+          async ({ key }) => {
+            assert.equal(
+              key,
+              signed.payload.activation_id
+            );
+
+            return {
+              success: false,
+            };
+          };
+
+        let aiCalled = false;
+
+        env.AI.run =
+          async () => {
+            aiCalled = true;
+
+            throw new Error(
+              "AI must not run after rate limit"
+            );
+          };
+
+        const response =
+          await handleAiChatCompletions(
+            makeRequest({
+              token:
+                signed.token,
+            }),
+            env
+          );
+
+        assert.equal(
+          response.status,
+          429
+        );
+
+        assert.equal(
+          aiCalled,
+          false
+        );
+
+        const body =
+          await json(response);
+
+        assert.match(
+          body.detail,
+          /rate limit/i
         );
       }
     );

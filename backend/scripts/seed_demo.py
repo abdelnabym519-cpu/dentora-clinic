@@ -648,7 +648,11 @@ async def main(lang: str = "en") -> None:
             await seed_patients(db)
 
             print("\n[4/10] Creating treatment catalog...")
-            catalog_result = await seed_catalog(db, CLINIC_ID)
+            catalog_result = await seed_catalog(
+                db,
+                CLINIC_ID,
+                profile="egypt" if lang == "ar" else None,
+            )
             print(f"  Created {catalog_result['categories']} categories")
             print(f"  Created {catalog_result['items']} catalog items")
             catalog_map = await _load_catalog_map(db)

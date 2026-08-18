@@ -23,6 +23,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.seeds.egypt_catalog import (
+    apply_egypt_category_overlay,
+    apply_egypt_treatment_overlay,
+)
+
 from .models import (
     CatalogItemSession,
     TreatmentCatalogItem,
@@ -2177,7 +2182,11 @@ async def _ensure_vat_types(db: AsyncSession, clinic_id: UUID) -> dict[str, UUID
     return vat_type_map
 
 
-async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
+async def seed_catalog(
+    db: AsyncSession,
+    clinic_id: UUID,
+    profile: str | None = None,
+) -> dict:
     """Seed catalog items for a clinic. Idempotent (skips existing internal_codes)."""
     vat_type_map = await _ensure_vat_types(db, clinic_id)
 
@@ -2186,19 +2195,29 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
     category_map: dict[str, UUID] = {}
 
     for cat_data in CATEGORIES:
+        category_data = (
+            apply_egypt_category_overlay(cat_data)
+            if profile == "egypt"
+            else cat_data
+        )
+
         existing = await db.execute(
             select(TreatmentCategory).where(
                 TreatmentCategory.clinic_id == clinic_id,
-                TreatmentCategory.key == cat_data["key"],
+                TreatmentCategory.key == category_data["key"],
             )
         )
         category = existing.scalar_one_or_none()
         if not category:
-            category = TreatmentCategory(clinic_id=clinic_id, is_system=True, **cat_data)
+            category = TreatmentCategory(
+                clinic_id=clinic_id,
+                is_system=True,
+                **category_data,
+            )
             db.add(category)
             await db.flush()
             categories_created += 1
-        category_map[cat_data["key"]] = category.id
+        category_map[category_data["key"]] = category.id
 
     for category_key, treatments in TREATMENTS.items():
         category_id = category_map.get(category_key)
@@ -2206,7 +2225,12 @@ async def seed_catalog(db: AsyncSession, clinic_id: UUID) -> dict:
             continue
 
         for treatment_raw in treatments:
-            treatment_data = dict(treatment_raw)
+            profiled_treatment = (
+                apply_egypt_treatment_overlay(treatment_raw)
+                if profile == "egypt"
+                else treatment_raw
+            )
+            treatment_data = dict(profiled_treatment)
 
             odontogram_type = treatment_data.pop("odontogram_treatment_type", None)
             viz_rules = treatment_data.pop("visualization_rules", None)

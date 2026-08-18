@@ -9,6 +9,13 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Any
 
+from app.seeds.egypt_catalog_ar import (
+    SESSION_AR_LABELS,
+    TREATMENT_AR_DESCRIPTIONS,
+    TREATMENT_AR_NAMES,
+    VAT_AR_NAMES,
+)
+
 
 CATEGORY_AR: dict[str, tuple[str, str]] = {
     "diagnostico": (
@@ -117,6 +124,21 @@ TREATMENT_OVERRIDES: dict[str, dict[str, Any]] = {
 }
 
 
+def apply_egypt_vat_overlay(source: dict[str, Any]) -> dict[str, Any]:
+    """Return VAT definition with Arabic Egypt display name."""
+    data = deepcopy(source)
+    key = data.get("key")
+    arabic = VAT_AR_NAMES.get(key)
+
+    if arabic:
+        data["names"] = {
+            **data.get("names", {}),
+            "ar": arabic,
+        }
+
+    return data
+
+
 def apply_egypt_category_overlay(source: dict[str, Any]) -> dict[str, Any]:
     """Return a deep-copied category with Arabic Egypt display values."""
     data = deepcopy(source)
@@ -141,9 +163,42 @@ def apply_egypt_category_overlay(source: dict[str, Any]) -> dict[str, Any]:
 
 
 def apply_egypt_treatment_overlay(source: dict[str, Any]) -> dict[str, Any]:
-    """Return treatment with Arabic label and synthetic EGP demo pricing."""
+    """Return treatment localized for the persistent Egypt demo."""
     data = deepcopy(source)
-    override = TREATMENT_OVERRIDES.get(data.get("internal_code"))
+    code = data.get("internal_code")
+
+    # Full Arabic display localization for all catalog items.
+    arabic_name = TREATMENT_AR_NAMES.get(code)
+
+    if arabic_name:
+        data["names"] = {
+            **data.get("names", {}),
+            "ar": arabic_name,
+        }
+
+    arabic_description = TREATMENT_AR_DESCRIPTIONS.get(code)
+
+    if arabic_description:
+        data["descriptions"] = {
+            **data.get("descriptions", {}),
+            "ar": arabic_description,
+        }
+
+    # Localize all multi-session labels without changing their default
+    # commercial/demo prices unless a dedicated pricing override exists.
+    sessions = data.get("sessions") or []
+
+    for index, session in enumerate(sessions, start=1):
+        arabic_label = SESSION_AR_LABELS.get((code, index))
+
+        if arabic_label:
+            session["labels"] = {
+                **session.get("labels", {}),
+                "ar": arabic_label,
+            }
+
+    # Pricing overrides exist only for selected Egypt demo journeys.
+    override = TREATMENT_OVERRIDES.get(code)
 
     if not override:
         return data
@@ -168,8 +223,7 @@ def apply_egypt_treatment_overlay(source: dict[str, Any]) -> dict[str, Any]:
 
         if len(sessions) != len(session_overrides):
             raise ValueError(
-                f"Egypt demo session count mismatch for "
-                f"{data.get('internal_code')}"
+                f"Egypt demo session count mismatch for {code}"
             )
 
         for session, (label_ar, price) in zip(

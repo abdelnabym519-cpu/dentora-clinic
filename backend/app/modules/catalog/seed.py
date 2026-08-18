@@ -26,6 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.seeds.egypt_catalog import (
     apply_egypt_category_overlay,
     apply_egypt_treatment_overlay,
+    apply_egypt_vat_overlay,
 )
 
 from .models import (
@@ -2158,27 +2159,37 @@ TREATMENTS: dict[str, list[dict[str, Any]]] = {
 # ============================================================================
 
 
-async def _ensure_vat_types(db: AsyncSession, clinic_id: UUID) -> dict[str, UUID]:
+async def _ensure_vat_types(
+    db: AsyncSession,
+    clinic_id: UUID,
+    profile: str | None = None,
+) -> dict[str, UUID]:
     vat_type_map: dict[str, UUID] = {}
+
     for vat_data in VAT_TYPES:
+        profiled_vat = (
+            apply_egypt_vat_overlay(vat_data)
+            if profile == "egypt"
+            else vat_data
+        )
         existing = await db.execute(
             select(VatType).where(
                 VatType.clinic_id == clinic_id,
-                VatType.rate == vat_data["rate"],
+                VatType.rate == profiled_vat["rate"],
             )
         )
         vat = existing.scalar_one_or_none()
         if not vat:
             vat = VatType(
                 clinic_id=clinic_id,
-                names=vat_data["names"],
-                rate=vat_data["rate"],
-                is_default=vat_data["is_default"],
+                names=profiled_vat["names"],
+                rate=profiled_vat["rate"],
+                is_default=profiled_vat["is_default"],
                 is_system=True,
             )
             db.add(vat)
             await db.flush()
-        vat_type_map[vat_data["key"]] = vat.id
+        vat_type_map[profiled_vat["key"]] = vat.id
     return vat_type_map
 
 
@@ -2188,7 +2199,11 @@ async def seed_catalog(
     profile: str | None = None,
 ) -> dict:
     """Seed catalog items for a clinic. Idempotent (skips existing internal_codes)."""
-    vat_type_map = await _ensure_vat_types(db, clinic_id)
+    vat_type_map = await _ensure_vat_types(
+        db,
+        clinic_id,
+        profile=profile,
+    )
 
     categories_created = 0
     items_created = 0

@@ -5,7 +5,27 @@
 const { t } = useI18n()
 const { open, toggle, messages, busy, reset } = useCopilot()
 
+const commercialLicense = useState<{
+  enforced: boolean
+  active: boolean
+  features: string[]
+} | null>('commercial-license:status', () => null)
+
+const aiLicensed = computed(() => {
+  const license = commercialLicense.value
+  if (!license || !license.enforced) return true
+
+  return license.active
+    && license.features.some(feature => feature.trim().toLowerCase() === 'ai')
+})
+
+watch(aiLicensed, (allowed) => {
+  if (!allowed) open.value = false
+})
+
 function onKeydown(e: KeyboardEvent) {
+  if (!aiLicensed.value) return
+
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault()
     toggle()
@@ -18,7 +38,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <ClientOnly>
-    <UButton
+    <template v-if="aiLicensed">
+      <UButton
       class="fixed bottom-4 right-4 z-40 rounded-full shadow-lg"
       icon="i-lucide-sparkles"
       size="lg"
@@ -70,5 +91,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         </div>
       </template>
     </USlideover>
+    </template>
   </ClientOnly>
 </template>

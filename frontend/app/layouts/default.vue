@@ -7,6 +7,20 @@ const { init: initDensity } = useDensity()
 const { isTablet } = useBreakpoint()
 const route = useRoute()
 
+const commercialLicense = useState<{
+  enforced: boolean
+  active: boolean
+  features: string[]
+} | null>('commercial-license:status', () => null)
+
+const aiLicensed = computed(() => {
+  const license = commercialLicense.value
+  if (!license || !license.enforced) return true
+
+  return license.active
+    && license.features.some(feature => feature.trim().toLowerCase() === 'ai')
+})
+
 // Pull the backend-driven nav on mount + on every route change, so
 // sidebar reflects module installs/upgrades without a full reload.
 // ensureLoaded enforces a 60s freshness window internally.
@@ -65,7 +79,12 @@ async function handleLogout() {
 }
 
 const settingsItem = computed(() => navigationItems.value.find(i => i.to === '/settings'))
-const mainNavItems = computed(() => navigationItems.value.filter(i => i.to !== '/settings'))
+const mainNavItems = computed(() =>
+  navigationItems.value.filter(item =>
+    item.to !== '/settings'
+    && (item.to !== '/copilot' || aiLicensed.value)
+  )
+)
 
 // Check if nav item is active
 function isActive(to: string): boolean {

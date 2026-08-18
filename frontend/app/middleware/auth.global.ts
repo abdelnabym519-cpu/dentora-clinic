@@ -4,6 +4,12 @@ const SETUP_PATH = '/setup'
 const LICENSE_PATH = '/activate'
 const TRIAL_EXPIRED_PATH = '/trial-expired'
 
+interface CommercialLicenseStatus {
+  enforced: boolean
+  active: boolean
+  features: string[]
+}
+
 let systemInitialized: boolean | null = null
 
 async function isSystemInitialized(): Promise<boolean> {
@@ -22,11 +28,11 @@ async function isSystemInitialized(): Promise<boolean> {
   return systemInitialized
 }
 
-async function getCommercialLicenseStatus(): Promise<{ enforced: boolean, active: boolean } | null> {
+async function getCommercialLicenseStatus(): Promise<CommercialLicenseStatus | null> {
   const config = useRuntimeConfig()
   const baseURL = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
   try {
-    const res = await $fetch<{ data: { enforced: boolean, active: boolean } }>(
+    const res = await $fetch<{ data: CommercialLicenseStatus }>(
       '/api/v1/license/status',
       { baseURL }
     )
@@ -37,13 +43,36 @@ async function getCommercialLicenseStatus(): Promise<{ enforced: boolean, active
 }
 
 export default defineNuxtRouteMiddleware(async (to) => {
+  const commercialLicense = useState<CommercialLicenseStatus | null>(
+    'commercial-license:status',
+    () => null
+  )
+
   // Commercial local installs must activate before the first admin/clinic
   // setup. Hosted/dev deployments return enforced=false and are unchanged.
   const license = await getCommercialLicenseStatus()
+  commercialLicense.value = license
+
   if (license?.enforced && !license.active) {
     return to.path === LICENSE_PATH ? undefined : navigateTo(LICENSE_PATH)
   }
   if (to.path === LICENSE_PATH && license?.active) return navigateTo('/')
+
+  const aiLicensed = !license?.enforced || (
+    license.active
+    && license.features.some(feature => feature.trim().toLowerCase() === 'ai')
+  )
+
+  const isAiRoute = (
+    to.path === '/copilot'
+    || to.path.startsWith('/copilot/')
+    || to.path === '/settings/integrations/copilot'
+    || to.path.startsWith('/settings/integrations/copilot/')
+  )
+
+  if (license?.enforced && license.active && isAiRoute && !aiLicensed) {
+    return navigateTo('/')
+  }
 
   const config = useRuntimeConfig()
   const trial = getTrialStatus(config.public)

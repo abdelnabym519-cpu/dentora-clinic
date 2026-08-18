@@ -8,6 +8,24 @@
  */
 import { registerSettingsPage } from '~~/app/composables/useSettingsRegistry'
 
+interface CommercialLicenseStatus {
+  enforced: boolean
+  active: boolean
+  features: string[]
+}
+
+function isAiLicensed(): boolean {
+  const license = useState<CommercialLicenseStatus | null>(
+    'commercial-license:status',
+    () => null
+  ).value
+
+  if (!license || !license.enforced) return true
+
+  return license.active
+    && license.features.some(feature => feature.trim().toLowerCase() === 'ai')
+}
+
 export default defineNuxtPlugin(() => {
   registerSettingsPage({
     path: 'copilot',
@@ -16,6 +34,7 @@ export default defineNuxtPlugin(() => {
     descriptionKey: 'copilot.settings.description',
     icon: 'i-lucide-sparkles',
     permission: 'copilot.configure',
+    visible: isAiLicensed,
     component: () => import('../components/CopilotSettingsPanel.vue'),
     searchKeywords: ['copilot', 'ia', 'ai', 'briefing', 'digest', 'resumen'],
     order: 30

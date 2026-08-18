@@ -11,6 +11,8 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID, uuid4
 
+from app.seeds.ar_demo_translations import AR_DEMO_TRANSLATIONS
+
 # =============================================================================
 # Language Configuration
 # =============================================================================
@@ -27,6 +29,14 @@ def set_language(lang: SupportedLang) -> None:
 
 def t(translations: dict[str, str]) -> str:
     """Get translated string for current language."""
+    if LANG == "ar":
+        explicit = translations.get("ar")
+        if explicit is not None:
+            return explicit
+
+        english = translations.get("en", "")
+        return AR_DEMO_TRANSLATIONS.get(english, english)
+
     return translations.get(LANG, translations.get("en", ""))
 
 

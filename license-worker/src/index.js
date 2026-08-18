@@ -1,3 +1,5 @@
+import { handleAiChatCompletions } from "./ai-gateway.js";
+
 const PRODUCT = "dentalpin";
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -612,6 +614,8 @@ async function route(request, env) {
     const { pem } = pemBodyFromBase64Pem(env.LICENSE_PUBLIC_KEY_B64);
     return jsonResponse({ algorithm: "Ed25519", public_key_pem: pem });
   }
+
+  if (method === "POST" && path === "/ai/v1/chat/completions") return handleAiChatCompletions(request, env);
 
   if (method === "POST" && path === "/v1/activate") return handleActivate(request, env);
   if (method === "POST" && path === "/v1/refresh") return handleRefresh(request, env);

@@ -6,13 +6,16 @@
   "workers_dev": true,
   "vars": {
     "LICENSE_REFRESH_HOURS": "1",
-    "LICENSE_OFFLINE_GRACE_DAYS": "7"
+    "LICENSE_OFFLINE_GRACE_DAYS": "7",
+    "AI_ALLOWED_MODELS": "gpt-5.4-mini",
+    "AI_MAX_REQUEST_BYTES": "524288"
   },
   "secrets": {
     "required": [
       "LICENSE_ADMIN_API_KEY",
       "LICENSE_SIGNING_PRIVATE_KEY_B64",
-      "LICENSE_PUBLIC_KEY_B64"
+      "LICENSE_PUBLIC_KEY_B64",
+      "OPENAI_API_KEY"
     ]
   },
   "d1_databases": [

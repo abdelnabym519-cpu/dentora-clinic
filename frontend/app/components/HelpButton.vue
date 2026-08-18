@@ -75,7 +75,7 @@ function handleOpen(value: boolean) {
             color="neutral"
             size="sm"
             icon="i-lucide-x"
-            :aria-label="t('actions.close', 'Close')"
+            :aria-label="t('actions.close', 'إغلاق')"
             @click="handleOpen(false)"
           />
         </header>

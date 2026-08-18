@@ -292,6 +292,7 @@ for /f "delims=" %%C in ('docker exec "%DBCONTAINER%" psql -U "%PGUSER%" -d "%PG
 for /f "delims=" %%C in ('docker exec "%DBCONTAINER%" psql -U "%PGUSER%" -d "%PGDB%" -tAc "SELECT COUNT(*) FROM appointments;"') do set "APPOINTMENTS=%%C"
 for /f "delims=" %%C in ('docker exec "%DBCONTAINER%" psql -U "%PGUSER%" -d "%PGDB%" -tAc "SELECT COUNT(*) FROM invoices;"') do set "INVOICES=%%C"
 for /f "delims=" %%C in ('docker exec "%DBCONTAINER%" psql -U "%PGUSER%" -d "%PGDB%" -tAc "SELECT COUNT(*) FROM payments;"') do set "PAYMENTS=%%C"
+for /f "delims=" %%C in ('docker exec "%DBCONTAINER%" psql -U "%PGUSER%" -d "%PGDB%" -tAc "SELECT COUNT(*) FROM booking_settings WHERE enabled = true AND public_slug = 'dentalpin-egypt';"') do set "BOOKING=%%C"
 
 echo PATIENTS_COUNT=!PATIENTS!
 echo CATALOG_COUNT=!CATALOG!
@@ -299,6 +300,7 @@ echo PLANS_COUNT=!PLANS!
 echo APPOINTMENTS_COUNT=!APPOINTMENTS!
 echo INVOICES_COUNT=!INVOICES!
 echo PAYMENTS_COUNT=!PAYMENTS!
+echo BOOKING_SETTINGS_COUNT=!BOOKING!
 
 if not "!PATIENTS!"=="15" exit /b 1
 if not "!CATALOG!"=="129" exit /b 1
@@ -306,8 +308,10 @@ if not "!PLANS!"=="15" exit /b 1
 if not "!APPOINTMENTS!"=="27" exit /b 1
 if not "!INVOICES!"=="7" exit /b 1
 if not "!PAYMENTS!"=="6" exit /b 1
+if not "!BOOKING!"=="1" exit /b 1
 
 echo RESET_DATA_GATE=PASSED
+echo RESET_BOOKING_GATE=PASSED
 
 echo.
 echo [8/8] Verifying permanent owner license survived...
@@ -326,6 +330,7 @@ echo       EGYPT DEMO RESET PASSED
 echo ==========================================
 echo.
 echo URL: http://localhost:8090
+echo Booking: http://localhost:8090/booking/dentalpin-egypt
 echo Login: admin@demo.clinic
 echo Password: demo1234
 echo.

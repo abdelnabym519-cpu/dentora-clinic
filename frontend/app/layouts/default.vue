@@ -237,7 +237,7 @@ function isActive(to: string): boolean {
               color="neutral"
               size="sm"
               icon="i-lucide-x"
-              :aria-label="t('nav.close', 'Cerrar')"
+              :aria-label="t('nav.close', 'إغلاق')"
               @click="mobileNavOpen = false"
             />
           </div>

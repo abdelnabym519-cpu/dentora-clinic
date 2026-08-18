@@ -339,6 +339,34 @@
     },
     "quickActions": {
       "ariaLabel": "إجراءات سريعة للمريض"
+    },
+    "editLegalGuardian": "تعديل بيانات ولي الأمر",
+    "legalGuardian": {
+      "address": "العنوان",
+      "addressPlaceholder": "عنوان ولي الأمر",
+      "dni": "رقم الهوية",
+      "dniPlaceholder": "رقم هوية ولي الأمر",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "البريد الإلكتروني لولي الأمر",
+      "hasGuardian": "يوجد ولي أمر",
+      "name": "الاسم الكامل",
+      "namePlaceholder": "اسم ولي الأمر",
+      "noGuardian": "لا يوجد ولي أمر مسجل",
+      "notes": "ملاحظات",
+      "notesPlaceholder": "ملاحظات اختيارية عن ولي الأمر",
+      "phone": "رقم الهاتف",
+      "phonePlaceholder": "رقم هاتف ولي الأمر",
+      "relationship": "صلة القرابة",
+      "relationshipPlaceholder": "اختر صلة القرابة",
+      "relationships": {
+        "grandparent": "جد أو جدة",
+        "legal_tutor": "وصي قانوني",
+        "other": "أخرى",
+        "parent": "والد أو والدة"
+      },
+      "remove": "إزالة ولي الأمر",
+      "required": "بيانات ولي الأمر مطلوبة",
+      "title": "ولي الأمر"
     }
   },
   "patientDetail": {
@@ -1283,7 +1311,8 @@
     "yesterday": "أمس",
     "copied": "تم النسخ إلى الحافظة",
     "copy": "نسخ",
-    "copyFailed": "تعذر النسخ"
+    "copyFailed": "تعذر النسخ",
+    "default": "افتراضي"
   },
   "cabinet": {
     "toast": {
@@ -2410,7 +2439,12 @@
         "instapay": "إنستا باي",
         "vodafone_cash": "فودافون كاش",
         "fawry": "فوري"
-      }
+      },
+      "add": "إضافة دفعة",
+      "notesPlaceholder": "ملاحظات اختيارية",
+      "referencePlaceholder": "مرجع الدفعة",
+      "voidedAt": "تاريخ الإلغاء",
+      "voidedBy": "أُلغيت بواسطة"
     },
     "creditNote": {
       "title": "إشعار دائن",
@@ -2421,7 +2455,9 @@
       "fullCreditNote": "إشعار دائن كامل (كل البنود)",
       "partialCreditNote": "إشعار دائن جزئي (بنود محددة)",
       "originalInvoice": "الفاتورة الأصلية",
-      "created": "تم إنشاء الإشعار الدائن"
+      "created": "تم إنشاء الإشعار الدائن",
+      "complete": "كامل",
+      "partial": "جزئي"
     },
     "history": {
       "title": "السجل",
@@ -2454,7 +2490,11 @@
       "default": "افتراضي",
       "active": "نشط",
       "invoice": "فاتورة",
-      "credit_note": "إشعار دائن"
+      "credit_note": "إشعار دائن",
+      "types": {
+        "credit_note": "إشعار دائن",
+        "invoice": "فاتورة"
+      }
     },
     "filters": {
       "allStatuses": "الحالة",
@@ -2517,7 +2557,9 @@
       "void": "إلغاء الفاتورة؟",
       "voidDescription": "لا يمكن التراجع عن هذا الإجراء.",
       "delete": "حذف الفاتورة؟",
-      "deleteDescription": "لا يمكن التراجع عن هذا الإجراء."
+      "deleteDescription": "لا يمكن التراجع عن هذا الإجراء.",
+      "voidPayment": "إلغاء الدفعة؟",
+      "voidPaymentDescription": "سيتم إلغاء هذه الدفعة مع الاحتفاظ بسجل العملية."
     },
     "messages": {
       "created": "تم إنشاء الفاتورة",
@@ -2528,7 +2570,10 @@
       "itemAdded": "تمت إضافة البند",
       "itemUpdated": "تم تحديث البند",
       "sentByEmail": "تم إرسال الفاتورة عبر البريد الإلكتروني",
-      "sentManually": "تم تعيين الفاتورة كمرسلة"
+      "sentManually": "تم تعيين الفاتورة كمرسلة",
+      "creditNoteCreated": "تم إنشاء الإشعار الدائن بنجاح",
+      "paymentRecorded": "تم تسجيل الدفعة بنجاح",
+      "paymentVoided": "تم إلغاء الدفعة بنجاح"
     },
     "send": {
       "title": "إرسال الفاتورة",
@@ -2564,7 +2609,16 @@
       "cannotEdit": "يمكن تعديل الفواتير المسودة فقط",
       "billingIncomplete": "لا يمكن إصدار الفاتورة لأن بيانات الفوترة غير مكتملة. الرجاء تعبئة معلومات فوترة المريض للمتابعة."
     },
-    "newItemsPending": "بنود جديدة بانتظار الحفظ"
+    "newItemsPending": "بنود جديدة بانتظار الحفظ",
+    "settings": {
+      "bankAccount": "الحساب البنكي",
+      "bankAccountPlaceholder": "رقم الحساب البنكي أو IBAN",
+      "description": "الإعدادات الافتراضية للفواتير",
+      "footerText": "نص تذييل الفاتورة",
+      "footerTextPlaceholder": "نص يظهر في أسفل الفاتورة",
+      "paymentTermDays": "مهلة السداد بالأيام",
+      "title": "إعدادات الفواتير"
+    }
   },
   "reports": {
     "title": "التقارير",

@@ -706,6 +706,35 @@ async def main(lang: str = "en") -> None:
                     f"Overrides: {stats['overrides']}"
                 )
 
+            # Egypt owner demo always includes public booking.
+            # This seed runs before the FastAPI lifespan reconciles
+            # auto-installed modules into core_module on a fresh DB,
+            # so do not gate this row on _module_is_installed().
+            if lang == "ar":
+                print("\n[opt] Creating Egypt public booking demo...")
+                from app.modules.booking.models import BookingSettings
+
+                booking_slug = (
+                    "dentalpin-egypt"
+                    if lang == "ar"
+                    else "dentalpin-demo"
+                )
+
+                db.add(
+                    BookingSettings(
+                        clinic_id=CLINIC_ID,
+                        public_slug=booking_slug,
+                        enabled=True,
+                        slot_minutes=30,
+                        days_ahead=30,
+                    )
+                )
+                await db.flush()
+
+                print(
+                    f"  Public booking: /booking/{booking_slug}"
+                )
+
             if await _module_is_installed(db, "patient_timeline"):
                 print("\n[opt] Creating patient timeline demo (module installed)...")
                 from app.modules.patient_timeline.seed import seed_timeline_demo

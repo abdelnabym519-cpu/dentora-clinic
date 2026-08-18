@@ -73,6 +73,7 @@ export default defineNuxtConfig({
       // Client-side (browser)
       apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8000',
       demoMode: process.env.NUXT_PUBLIC_DEMO_MODE === 'true',
+      forceLocale: process.env.NUXT_PUBLIC_FORCE_LOCALE || '',
       trialMode: process.env.NUXT_PUBLIC_TRIAL_MODE === 'true',
       trialStartedAt: process.env.NUXT_PUBLIC_TRIAL_STARTED_AT || '',
       trialDays: Number(process.env.NUXT_PUBLIC_TRIAL_DAYS || '3'),

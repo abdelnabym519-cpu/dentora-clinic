@@ -265,6 +265,47 @@ def revoke_activation() -> None:
     print("Server status:", result.get("status") if isinstance(result, dict) else result)
 
 
+
+def set_ai_feature(enabled: bool) -> None:
+    item = choose_license()
+
+    features = {
+        str(value).strip().lower()
+        for value in (item.get("features") or [])
+        if str(value).strip()
+    }
+
+    before = "ai" in features
+
+    if enabled:
+        features.add("ai")
+    else:
+        features.discard("ai")
+
+    result = api(
+        "POST",
+        f"/admin/licenses/{item['id']}/features",
+        {"features": sorted(features)},
+    )
+
+    state = "ENABLED" if enabled else "DISABLED"
+
+    print()
+    print(f"AI feature: {state}")
+    print("Customer:", item.get("customer_name"))
+    print(
+        "Features:",
+        ",".join(result.get("features") or [])
+        if isinstance(result, dict)
+        else ",".join(sorted(features)),
+    )
+
+    if before == enabled:
+        print("No feature change was necessary.")
+    else:
+        print("The client will receive the change on its next license refresh.")
+
+
 def menu() -> None:
     print("DentalPin License Administration")
     print("Server:", worker_url())
@@ -279,6 +320,8 @@ def menu() -> None:
             "5) Resume license\n"
             "6) View activations\n"
             "7) Revoke an installation\n"
+            "8) Enable AI for customer\n"
+            "9) Disable AI for customer\n"
             "0) Exit"
         )
         choice = input("Select: ").strip()
@@ -297,6 +340,10 @@ def menu() -> None:
                 show_activations()
             elif choice == "7":
                 revoke_activation()
+            elif choice == "8":
+                set_ai_feature(True)
+            elif choice == "9":
+                set_ai_feature(False)
             elif choice == "0":
                 return
             else:

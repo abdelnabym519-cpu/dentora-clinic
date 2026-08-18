@@ -481,6 +481,55 @@ async function handleRenewLicense(request, env, licenseId) {
   });
 }
 
+
+async function handleUpdateFeatures(request, env, licenseId) {
+  await requireAdmin(request, env);
+
+  const body = await readJson(request);
+  const features = body.features;
+
+  if (
+    !Array.isArray(features) ||
+    features.some(
+      (item) =>
+        typeof item !== "string" ||
+        item.trim().length < 1 ||
+        item.trim().length > 100
+    )
+  ) {
+    throw new HttpError(422, "features must be an array of non-empty short strings");
+  }
+
+  const normalizedFeatures = [
+    ...new Set(features.map((item) => item.trim().toLowerCase())),
+  ].sort();
+
+  const license = await env.DB.prepare(
+    "SELECT * FROM licenses WHERE id = ? LIMIT 1"
+  ).bind(licenseId).first();
+
+  if (!license) throw new HttpError(404, "License not found");
+
+  const updatedAt = nowIso();
+
+  await env.DB.prepare(
+    "UPDATE licenses SET features_json = ?, updated_at = ? WHERE id = ?"
+  ).bind(
+    JSON.stringify(normalizedFeatures),
+    updatedAt,
+    licenseId,
+  ).run();
+
+  return jsonResponse({
+    id: license.id,
+    customer_name: license.customer_name,
+    plan: license.plan,
+    status: license.status,
+    features: normalizedFeatures,
+    updated_at: updatedAt,
+  });
+}
+
 async function handleListLicenses(request, env) {
   await requireAdmin(request, env);
   const result = await env.DB.prepare(`
@@ -571,6 +620,9 @@ async function route(request, env) {
 
   let match = path.match(/^\/admin\/licenses\/([^/]+)\/renew$/);
   if (method === "POST" && match) return handleRenewLicense(request, env, match[1]);
+
+  match = path.match(/^\/admin\/licenses\/([^/]+)\/features$/);
+  if (method === "POST" && match) return handleUpdateFeatures(request, env, match[1]);
 
   match = path.match(/^\/admin\/licenses\/([^/]+)\/suspend$/);
   if (method === "POST" && match) return updateLicenseStatus(request, env, match[1], "suspended");

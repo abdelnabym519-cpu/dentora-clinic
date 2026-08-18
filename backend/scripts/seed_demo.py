@@ -603,12 +603,13 @@ Examples:
   python scripts/seed_demo.py --lang es    # Spanish
   python scripts/seed_demo.py --lang en    # English (explicit)
   python scripts/seed_demo.py --lang fr    # French
+  python scripts/seed_demo.py --lang ar    # Arabic (Egypt)
         """,
     )
     parser.add_argument(
         "--lang",
         "-l",
-        choices=["en", "es", "fr"],
+        choices=["en", "es", "fr", "ar"],
         default="en",
         help="Language for demo data (default: en)",
     )
@@ -618,7 +619,7 @@ Examples:
 async def main(lang: str = "en") -> None:
     """Seed the full demo clinical workflow."""
     set_language(lang)
-    lang_names = {"en": "English", "es": "Spanish", "fr": "French"}
+    lang_names = {"en": "English", "es": "Spanish", "fr": "French", "ar": "Arabic (Egypt)"}
     lang_name = lang_names.get(lang, lang)
 
     print("\n" + "=" * 60)

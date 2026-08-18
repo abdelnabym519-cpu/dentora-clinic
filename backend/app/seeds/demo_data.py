@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 # Language Configuration
 # =============================================================================
 
-SupportedLang = Literal["es", "en", "fr"]
+SupportedLang = Literal["es", "en", "fr", "ar"]
 LANG: SupportedLang = "en"  # Default language
 
 
@@ -79,6 +79,62 @@ PATIENT_IDS = [
 # Clinic data with translations
 def get_clinic_data() -> dict:
     """Get clinic data in current language."""
+    if LANG == "ar":
+        return {
+            "id": CLINIC_ID,
+            "name": "عيادة دنتال بين التجريبية",
+            "tax_id": "EG-DEMO-0001",
+            "address": {
+                "street": "١٢ شارع التحرير - الدقي",
+                "city": "الجيزة",
+                "postal_code": "12311",
+                "country": "مصر",
+            },
+            "phone": "+20 10 0000 0100",
+            "email": "clinic@dentalpin-demo.example",
+            "currency": "EGP",
+            "timezone": "Africa/Cairo",
+            "settings": {
+                "slot_duration_min": 30,
+                "working_hours": {
+                    "saturday": {
+                        "morning": ["10:00", "14:00"],
+                        "afternoon": ["16:00", "21:00"],
+                    },
+                    "sunday": {
+                        "morning": ["10:00", "14:00"],
+                        "afternoon": ["16:00", "21:00"],
+                    },
+                    "monday": {
+                        "morning": ["10:00", "14:00"],
+                        "afternoon": ["16:00", "21:00"],
+                    },
+                    "tuesday": {
+                        "morning": ["10:00", "14:00"],
+                        "afternoon": ["16:00", "21:00"],
+                    },
+                    "wednesday": {
+                        "morning": ["10:00", "14:00"],
+                        "afternoon": ["16:00", "21:00"],
+                    },
+                    "thursday": {
+                        "morning": ["10:00", "14:00"],
+                        "afternoon": ["16:00", "21:00"],
+                    },
+                },
+            },
+            "cabinets": [
+                {
+                    "name": "غرفة الكشف ١",
+                    "color": "#3B82F6",
+                },
+                {
+                    "name": "غرفة الكشف ٢",
+                    "color": "#10B981",
+                },
+            ],
+        }
+
     return {
         "id": CLINIC_ID,
         "name": t(
@@ -127,26 +183,31 @@ def get_clinic_data() -> dict:
 # User names by language
 USERS_I18N = {
     "admin": {
+        "ar": {"first_name": "مدير", "last_name": "النظام"},
         "es": {"first_name": "Admin", "last_name": "Demo"},
         "en": {"first_name": "Admin", "last_name": "Demo"},
         "fr": {"first_name": "Admin", "last_name": "Démo"},
     },
     "dentist": {
+        "ar": {"first_name": "أحمد", "last_name": "محمود"},
         "es": {"first_name": "María", "last_name": "García López"},
         "en": {"first_name": "Sarah", "last_name": "Johnson"},
         "fr": {"first_name": "Marie", "last_name": "Dubois Laurent"},
     },
     "hygienist": {
+        "ar": {"first_name": "مريم", "last_name": "حسن"},
         "es": {"first_name": "Carlos", "last_name": "López Martínez"},
         "en": {"first_name": "Michael", "last_name": "Williams"},
         "fr": {"first_name": "Thomas", "last_name": "Moreau"},
     },
     "assistant": {
+        "ar": {"first_name": "نور", "last_name": "محمد"},
         "es": {"first_name": "Ana", "last_name": "Martínez Ruiz"},
         "en": {"first_name": "Emily", "last_name": "Davis"},
         "fr": {"first_name": "Camille", "last_name": "Petit"},
     },
     "receptionist": {
+        "ar": {"first_name": "سارة", "last_name": "علي"},
         "es": {"first_name": "Laura", "last_name": "Sánchez Pérez"},
         "en": {"first_name": "Jessica", "last_name": "Brown"},
         "fr": {"first_name": "Julie", "last_name": "Bernard"},
@@ -160,42 +221,42 @@ def get_users_data() -> list[dict]:
         {
             "id": USER_ADMIN_ID,
             "email": "admin@demo.clinic",
-            "first_name": USERS_I18N["admin"][LANG]["first_name"],
-            "last_name": USERS_I18N["admin"][LANG]["last_name"],
+            "first_name": USERS_I18N["admin"].get(LANG, USERS_I18N["admin"]["en"])["first_name"],
+            "last_name": USERS_I18N["admin"].get(LANG, USERS_I18N["admin"]["en"])["last_name"],
             "role": "admin",
             "membership_id": MEMBERSHIP_ADMIN_ID,
         },
         {
             "id": USER_DENTIST_ID,
             "email": "dentist@demo.clinic",
-            "first_name": USERS_I18N["dentist"][LANG]["first_name"],
-            "last_name": USERS_I18N["dentist"][LANG]["last_name"],
-            "professional_id": t({"es": "28/12345", "en": "DDS-12345", "fr": "DF-12345"}),
+            "first_name": USERS_I18N["dentist"].get(LANG, USERS_I18N["dentist"]["en"])["first_name"],
+            "last_name": USERS_I18N["dentist"].get(LANG, USERS_I18N["dentist"]["en"])["last_name"],
+            "professional_id": t({"es": "28/12345", "en": "DDS-12345", "fr": "DF-12345", "ar": "EG-DDS-DEMO-001"}),
             "role": "dentist",
             "membership_id": MEMBERSHIP_DENTIST_ID,
         },
         {
             "id": USER_HYGIENIST_ID,
             "email": "hygienist@demo.clinic",
-            "first_name": USERS_I18N["hygienist"][LANG]["first_name"],
-            "last_name": USERS_I18N["hygienist"][LANG]["last_name"],
-            "professional_id": t({"es": "28/54321", "en": "RDH-54321", "fr": "OEF-54321"}),
+            "first_name": USERS_I18N["hygienist"].get(LANG, USERS_I18N["hygienist"]["en"])["first_name"],
+            "last_name": USERS_I18N["hygienist"].get(LANG, USERS_I18N["hygienist"]["en"])["last_name"],
+            "professional_id": t({"es": "28/54321", "en": "RDH-54321", "fr": "OEF-54321", "ar": "EG-RDH-DEMO-001"}),
             "role": "hygienist",
             "membership_id": MEMBERSHIP_HYGIENIST_ID,
         },
         {
             "id": USER_ASSISTANT_ID,
             "email": "assistant@demo.clinic",
-            "first_name": USERS_I18N["assistant"][LANG]["first_name"],
-            "last_name": USERS_I18N["assistant"][LANG]["last_name"],
+            "first_name": USERS_I18N["assistant"].get(LANG, USERS_I18N["assistant"]["en"])["first_name"],
+            "last_name": USERS_I18N["assistant"].get(LANG, USERS_I18N["assistant"]["en"])["last_name"],
             "role": "assistant",
             "membership_id": MEMBERSHIP_ASSISTANT_ID,
         },
         {
             "id": USER_RECEPTIONIST_ID,
             "email": "receptionist@demo.clinic",
-            "first_name": USERS_I18N["receptionist"][LANG]["first_name"],
-            "last_name": USERS_I18N["receptionist"][LANG]["last_name"],
+            "first_name": USERS_I18N["receptionist"].get(LANG, USERS_I18N["receptionist"]["en"])["first_name"],
+            "last_name": USERS_I18N["receptionist"].get(LANG, USERS_I18N["receptionist"]["en"])["last_name"],
             "role": "receptionist",
             "membership_id": MEMBERSHIP_RECEPTIONIST_ID,
         },
@@ -1102,6 +1163,137 @@ def _translate_medical_history(mh: dict | None) -> dict | None:
     return result
 
 
+
+# =============================================================================
+# Egypt Demo Patient Profile
+# =============================================================================
+#
+# All names, phones, e-mails and contact details below are synthetic demo data.
+# They are not intended to identify real people.
+
+EGYPT_PATIENT_PROFILE = [
+    {
+        "first_name": "عمر",
+        "last_name": "أحمد السيد",
+        "phone": "+20 10 0000 0001",
+        "email": None,
+        "notes": "طفل في زيارة دورية لفحص الأسنان والوقاية من التسوس.",
+        "emergency_contact": {
+            "name": "أحمد السيد",
+            "relationship": "الأب",
+            "phone": "+20 10 0000 1001",
+            "email": "guardian01@dentalpin-demo.example",
+            "is_legal_guardian": True,
+        },
+    },
+    {
+        "first_name": "ليلى",
+        "last_name": "محمد حسن",
+        "phone": "+20 11 0000 0002",
+        "email": None,
+        "notes": "مريضة صغيرة تحتاج متابعة تسوس الأسنان اللبنية.",
+        "emergency_contact": {
+            "name": "محمد حسن",
+            "relationship": "الأب",
+            "phone": "+20 11 0000 1002",
+            "email": "guardian02@dentalpin-demo.example",
+            "is_legal_guardian": True,
+        },
+    },
+    {
+        "first_name": "يوسف",
+        "last_name": "خالد إبراهيم",
+        "phone": "+20 12 0000 0003",
+        "email": "patient03@dentalpin-demo.example",
+        "notes": "متابعة خطة علاج تحفظية مع حشوات متعددة.",
+    },
+    {
+        "first_name": "منة",
+        "last_name": "أشرف محمود",
+        "phone": "+20 15 0000 0004",
+        "email": "patient04@dentalpin-demo.example",
+        "notes": "تشتكي من حساسية بالأسنان وتحتاج متابعة دورية.",
+    },
+    {
+        "first_name": "محمود",
+        "last_name": "عبد الرحمن علي",
+        "phone": "+20 10 0000 0005",
+        "email": "patient05@dentalpin-demo.example",
+        "notes": "خطة علاج تشمل علاج جذور وتركيبة نهائية.",
+    },
+    {
+        "first_name": "أسماء",
+        "last_name": "طارق مصطفى",
+        "phone": "+20 11 0000 0006",
+        "email": "patient06@dentalpin-demo.example",
+        "notes": "متابعة تنظيف الأسنان واللثة والعناية الوقائية.",
+    },
+    {
+        "first_name": "كريم",
+        "last_name": "سامح عبد الله",
+        "phone": "+20 12 0000 0007",
+        "email": "patient07@dentalpin-demo.example",
+        "notes": "يحتاج استكمال علاج ترميمي لعدة أسنان.",
+    },
+    {
+        "first_name": "هبة",
+        "last_name": "محمد صابر",
+        "phone": "+20 15 0000 0008",
+        "email": "patient08@dentalpin-demo.example",
+        "notes": "متابعة دورية بعد علاج سابق مع تقييم صحة اللثة.",
+    },
+    {
+        "first_name": "أحمد",
+        "last_name": "صلاح الدين",
+        "phone": "+20 10 0000 0009",
+        "email": "patient09@dentalpin-demo.example",
+        "notes": "يحتاج تقييم لضرس مؤلم وخطة علاج مناسبة.",
+    },
+    {
+        "first_name": "دينا",
+        "last_name": "وليد حسين",
+        "phone": "+20 11 0000 0010",
+        "email": "patient10@dentalpin-demo.example",
+        "notes": "مهتمة بعلاج تجميلي وتبييض الأسنان.",
+    },
+    {
+        "first_name": "مصطفى",
+        "last_name": "حمدي فتحي",
+        "phone": "+20 12 0000 0011",
+        "email": "patient11@dentalpin-demo.example",
+        "notes": "متابعة علاج لثة مع جلسات تنظيف عميق.",
+    },
+    {
+        "first_name": "آية",
+        "last_name": "إيهاب عبد العزيز",
+        "phone": "+20 15 0000 0012",
+        "email": "patient12@dentalpin-demo.example",
+        "notes": "متابعة حشوات تجميلية وفحص دوري.",
+    },
+    {
+        "first_name": "حسام",
+        "last_name": "ممدوح إبراهيم",
+        "phone": "+20 10 0000 0013",
+        "email": "patient13@dentalpin-demo.example",
+        "notes": "يحتاج تعويض سن مفقود وتقييم خيارات التركيبات.",
+    },
+    {
+        "first_name": "نجلاء",
+        "last_name": "فتحي محمد",
+        "phone": "+20 11 0000 0014",
+        "email": "patient14@dentalpin-demo.example",
+        "notes": "متابعة علاج تحفظي مع مراجعة الأشعة السابقة.",
+    },
+    {
+        "first_name": "زياد",
+        "last_name": "عمرو السيد",
+        "phone": "+20 12 0000 0015",
+        "email": "patient15@dentalpin-demo.example",
+        "notes": "زيارة متابعة لخطة علاج متعددة المراحل.",
+    },
+]
+
+
 def get_patients_data() -> list[dict]:
     """Get patients data in current language."""
     patients = []
@@ -1118,20 +1310,41 @@ def get_patients_data() -> list[dict]:
 
         # Handle emergency_contact: dict with language keys or None
         emergency_contact = p.get("emergency_contact")
-        if isinstance(emergency_contact, dict) and LANG in emergency_contact:
-            emergency_contact = emergency_contact[LANG]
+        if (
+            isinstance(emergency_contact, dict)
+            and any(
+                key in emergency_contact
+                for key in ("en", "es", "fr", "ar")
+            )
+        ):
+            emergency_contact = emergency_contact.get(
+                LANG,
+                emergency_contact.get("en"),
+            )
 
         # Handle medical_history: translate nested fields
         medical_history = _translate_medical_history(p.get("medical_history"))
 
+        identity = p.get(LANG, p["en"])
+
+        if LANG == "ar":
+            egypt = EGYPT_PATIENT_PROFILE[len(patients)]
+            identity = egypt
+            phone = egypt["phone"]
+            email = egypt["email"]
+            emergency_contact = egypt.get(
+                "emergency_contact",
+                emergency_contact,
+            )
+
         patient = {
             "id": p["id"],
-            "first_name": p[LANG]["first_name"],
-            "last_name": p[LANG]["last_name"],
+            "first_name": identity["first_name"],
+            "last_name": identity["last_name"],
             "phone": phone,
             "email": email,
             "date_of_birth": p["date_of_birth"],
-            "notes": p[LANG]["notes"],
+            "notes": identity["notes"],
             # Consumed downstream by seed_demo._seed_patient_clinical to
             # populate the normalized patients_clinical_* tables (B.4).
             "emergency_contact": emergency_contact,

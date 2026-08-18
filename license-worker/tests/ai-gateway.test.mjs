@@ -185,14 +185,22 @@ function makeEnv(publicKeyB64, row) {
     LICENSE_PUBLIC_KEY_B64:
       publicKeyB64,
 
-    OPENAI_API_KEY:
-      "mock-openai-secret",
+    AI_PROVIDER_MODEL:
+      "@cf/zai-org/glm-4.7-flash",
 
     AI_ALLOWED_MODELS:
       "gpt-5.4-mini",
 
     AI_MAX_REQUEST_BYTES:
       "524288",
+
+    AI: {
+      async run() {
+        throw new Error(
+          "Unexpected Workers AI call"
+        );
+      },
+    },
 
     DB: makeDb(row),
   };
@@ -503,7 +511,7 @@ test(
 
 
     await t.test(
-      "valid entitlement proxies stream safely",
+      "valid entitlement streams through Workers AI safely",
       async () => {
         const row = makeRow(
           signed.payload
@@ -514,127 +522,143 @@ test(
           row
         );
 
-        const originalFetch =
-          globalThis.fetch;
+        let capturedModel = null;
+        let capturedBody = null;
 
-        let capturedUrl = null;
-        let capturedOptions = null;
+        env.AI.run =
+          async (model, body) => {
+            capturedModel = model;
 
-        globalThis.fetch =
-          async (url, options) => {
-            capturedUrl = url;
-            capturedOptions =
-              options;
+            capturedBody =
+              structuredClone(body);
 
-            return new Response(
-              'data: {"ok":true}\n\n',
-              {
-                status: 200,
+            const encoder =
+              new TextEncoder();
 
-                headers: {
-                  "content-type":
-                    "text/event-stream",
+            return new ReadableStream({
+              start(controller) {
+                controller.enqueue(
+                  encoder.encode(
+                    'data: {"choices":[{"index":0,"delta":{"content":"ok"}}]}\\n\\n'
+                  )
+                );
 
-                  "x-request-id":
-                    "mock-request-123",
-                },
-              }
-            );
-          };
+                controller.enqueue(
+                  encoder.encode(
+                    'data: [DONE]\\n\\n'
+                  )
+                );
 
-        try {
-          const request =
-            makeRequest({
-              token:
-                signed.token,
-
-              body: {
-                model:
-                  "gpt-5.4-mini",
-
-                stream: true,
-
-                max_completion_tokens:
-                  99999,
-
-                messages: [
-                  {
-                    role: "user",
-                    content:
-                      "safe synthetic test",
-                  },
-                ],
+                controller.close();
               },
             });
+          };
 
-          const response =
-            await handleAiChatCompletions(
-              request,
-              env
-            );
+        const request =
+          makeRequest({
+            token:
+              signed.token,
 
-          assert.equal(
-            response.status,
-            200
+            body: {
+              model:
+                "gpt-5.4-mini",
+
+              stream: true,
+
+              stream_options: {
+                include_usage: true,
+              },
+
+              parallel_tool_calls:
+                false,
+
+              max_completion_tokens:
+                99999,
+
+              messages: [
+                {
+                  role: "user",
+                  content:
+                    "safe synthetic test",
+                },
+              ],
+            },
+          });
+
+        const response =
+          await handleAiChatCompletions(
+            request,
+            env
           );
 
-          assert.equal(
-            capturedUrl,
-            "https://api.openai.com/v1/chat/completions"
-          );
+        assert.equal(
+          response.status,
+          200
+        );
 
-          assert.equal(
-            capturedOptions.headers.authorization,
-            "Bearer mock-openai-secret"
-          );
+        assert.equal(
+          capturedModel,
+          "@cf/zai-org/glm-4.7-flash"
+        );
 
-          assert.notEqual(
-            capturedOptions.headers.authorization,
-            `Bearer ${signed.token}`
-          );
+        assert.equal(
+          capturedBody.model,
+          "@cf/zai-org/glm-4.7-flash"
+        );
 
-          const upstreamBody =
-            JSON.parse(
-              capturedOptions.body
-            );
+        assert.equal(
+          capturedBody
+            .max_completion_tokens,
+          4096
+        );
 
-          assert.equal(
-            upstreamBody
-              .max_completion_tokens,
-            4096
-          );
+        assert.equal(
+          capturedBody.stream,
+          true
+        );
 
-          assert.equal(
-            upstreamBody.stream,
-            true
-          );
+        assert.equal(
+          capturedBody
+            .parallel_tool_calls,
+          false
+        );
 
-          assert.equal(
-            response.headers.get(
-              "content-type"
-            ),
-            "text/event-stream"
-          );
+        assert.deepEqual(
+          capturedBody
+            .stream_options,
+          {
+            include_usage: true,
+          }
+        );
 
-          assert.equal(
-            response.headers.get(
-              "x-request-id"
-            ),
-            "mock-request-123"
-          );
+        assert.equal(
+          JSON.stringify(
+            capturedBody
+          ).includes(
+            signed.token
+          ),
+          false
+        );
 
-          const streamed =
-            await response.text();
+        assert.equal(
+          response.headers.get(
+            "content-type"
+          ),
+          "text/event-stream"
+        );
 
-          assert.match(
-            streamed,
-            /"ok":true/
-          );
+        const streamed =
+          await response.text();
 
-        } finally {
-          globalThis.fetch =
-            originalFetch;
-        }
+        assert.match(
+          streamed,
+          /"content":"ok"/
+        );
+
+        assert.match(
+          streamed,
+          /\[DONE\]/
+        );
       }
     );
   }

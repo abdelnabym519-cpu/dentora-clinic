@@ -1,6 +1,6 @@
 const PRODUCT = "dentalpin";
-const OPENAI_CHAT_COMPLETIONS_URL =
-  "https://api.openai.com/v1/chat/completions";
+const DEFAULT_WORKERS_AI_MODEL =
+  "@cf/zai-org/glm-4.7-flash";
 
 class GatewayError extends Error {
   constructor(status, detail) {
@@ -354,11 +354,30 @@ function clampOutputTokens(body) {
   }
 }
 
-async function proxyToOpenAi(request, env) {
-  if (!env.OPENAI_API_KEY) {
+function workersAiModel(env) {
+  const model = String(
+    env.AI_PROVIDER_MODEL
+      || DEFAULT_WORKERS_AI_MODEL
+  ).trim();
+
+  if (!model || !model.startsWith("@cf/")) {
+    throw new GatewayError(
+      500,
+      "Workers AI model is not configured"
+    );
+  }
+
+  return model;
+}
+
+async function proxyToWorkersAi(request, env) {
+  if (
+    !env.AI
+    || typeof env.AI.run !== "function"
+  ) {
     throw new GatewayError(
       503,
-      "AI gateway provider is not configured"
+      "Workers AI binding is not configured"
     );
   }
 
@@ -430,11 +449,14 @@ async function proxyToOpenAi(request, env) {
     );
   }
 
+  const requestedModel =
+    body.model.trim();
+
   const models = allowedModels(env);
 
   if (
     models.size === 0
-    || !models.has(body.model)
+    || !models.has(requestedModel)
   ) {
     throw new GatewayError(
       403,
@@ -444,43 +466,53 @@ async function proxyToOpenAi(request, env) {
 
   clampOutputTokens(body);
 
-  const upstream = await fetch(
-    OPENAI_CHAT_COMPLETIONS_URL,
-    {
-      method: "POST",
-      headers: {
-        "authorization":
-          `Bearer ${env.OPENAI_API_KEY}`,
-        "content-type": "application/json",
-        "accept": "text/event-stream",
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const providerModel =
+    workersAiModel(env);
 
-  const headers = new Headers();
+  /*
+   * The DentalPin backend keeps using its
+   * client-facing model alias.
+   *
+   * The owner-controlled gateway maps that alias
+   * to the actual Workers AI model.
+   */
+  body.model = providerModel;
 
-  const contentType =
-    upstream.headers.get("content-type");
+  let stream;
 
-  if (contentType) {
-    headers.set("content-type", contentType);
+  try {
+    stream = await env.AI.run(
+      providerModel,
+      body
+    );
+  } catch {
+    console.error(
+      "Workers AI inference failed"
+    );
+
+    throw new GatewayError(
+      502,
+      "AI provider request failed"
+    );
   }
 
-  const requestId =
-    upstream.headers.get("x-request-id");
-
-  if (requestId) {
-    headers.set("x-request-id", requestId);
+  if (!(stream instanceof ReadableStream)) {
+    throw new GatewayError(
+      502,
+      "AI provider returned an invalid stream"
+    );
   }
-
-  headers.set("cache-control", "no-store");
 
   return new Response(
-    upstream.body,
+    stream,
     {
-      status: upstream.status,
-      headers,
+      status: 200,
+      headers: {
+        "content-type":
+          "text/event-stream",
+        "cache-control":
+          "no-store",
+      },
     }
   );
 }
@@ -492,7 +524,7 @@ export async function handleAiChatCompletions(
   try {
     await authorizeAi(request, env);
 
-    return await proxyToOpenAi(
+    return await proxyToWorkersAi(
       request,
       env
     );

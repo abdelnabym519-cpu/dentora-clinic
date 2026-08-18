@@ -8,14 +8,14 @@
     "LICENSE_REFRESH_HOURS": "1",
     "LICENSE_OFFLINE_GRACE_DAYS": "7",
     "AI_ALLOWED_MODELS": "gpt-5.4-mini",
-    "AI_MAX_REQUEST_BYTES": "524288"
+    "AI_MAX_REQUEST_BYTES": "524288",
+    "AI_PROVIDER_MODEL": "@cf/zai-org/glm-4.7-flash"
   },
   "secrets": {
     "required": [
       "LICENSE_ADMIN_API_KEY",
       "LICENSE_SIGNING_PRIVATE_KEY_B64",
-      "LICENSE_PUBLIC_KEY_B64",
-      "OPENAI_API_KEY"
+      "LICENSE_PUBLIC_KEY_B64"
     ]
   },
   "d1_databases": [
@@ -25,5 +25,8 @@
       "database_id": "a50e357f-3574-44eb-83a1-7c14a8929930",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "ai": {
+    "binding": "AI"
+  }
 }

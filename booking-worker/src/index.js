@@ -2510,6 +2510,523 @@ async function pullBookingRequests(
 }
 
 
+
+function normalizeBookingResult(
+  payload
+) {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    return {
+      ok: false,
+      error: "invalid_payload"
+    };
+  }
+
+  const allowed =
+    new Set([
+      "status",
+      "local_appointment_id",
+      "rejection_code"
+    ]);
+
+  for (
+    const field
+    of Object.keys(payload)
+  ) {
+    if (!allowed.has(field)) {
+      return {
+        ok: false,
+        error: "unexpected_field"
+      };
+    }
+  }
+
+  const status =
+    String(
+      payload.status || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const hasLocalAppointmentId =
+    Object.prototype.hasOwnProperty.call(
+      payload,
+      "local_appointment_id"
+    );
+
+  const hasRejectionCode =
+    Object.prototype.hasOwnProperty.call(
+      payload,
+      "rejection_code"
+    );
+
+  if (status === "accepted") {
+    if (
+      !hasLocalAppointmentId ||
+      hasRejectionCode
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    const localAppointmentId =
+      String(
+        payload.local_appointment_id || ""
+      ).trim();
+
+    if (
+      localAppointmentId.length < 1 ||
+      localAppointmentId.length > 128
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    return {
+      ok: true,
+      value: {
+        status: "accepted",
+        local_appointment_id:
+          localAppointmentId,
+        rejection_code: null
+      }
+    };
+  }
+
+  if (status === "rejected") {
+    if (
+      !hasRejectionCode ||
+      hasLocalAppointmentId
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    const rejectionCode =
+      String(
+        payload.rejection_code || ""
+      )
+        .trim()
+        .toLowerCase();
+
+    if (
+      rejectionCode.length < 1 ||
+      rejectionCode.length > 80 ||
+      !/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(
+        rejectionCode
+      )
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    return {
+      ok: true,
+      value: {
+        status: "rejected",
+        local_appointment_id: null,
+        rejection_code:
+          rejectionCode
+      }
+    };
+  }
+
+  return {
+    ok: false,
+    error: "invalid_result_status"
+  };
+}
+
+
+async function getBookingRequestForResult(
+  env,
+  clinicId,
+  requestId
+) {
+  return env.DB.prepare(
+    `SELECT
+       id,
+       status,
+       local_appointment_id,
+       rejection_code,
+       resolved_at
+     FROM booking_requests
+     WHERE id = ?
+       AND clinic_id = ?
+     LIMIT 1`
+  )
+    .bind(
+      requestId,
+      clinicId
+    )
+    .first();
+}
+
+
+function bookingResultData(
+  row
+) {
+  const data = {
+    request_id:
+      row.id,
+
+    status:
+      row.status,
+
+    resolved_at:
+      row.resolved_at
+  };
+
+  if (
+    row.status === "accepted"
+  ) {
+    data.local_appointment_id =
+      row.local_appointment_id;
+  }
+
+  if (
+    row.status === "rejected"
+  ) {
+    data.rejection_code =
+      row.rejection_code;
+  }
+
+  return data;
+}
+
+
+function sameBookingResult(
+  row,
+  result
+) {
+  if (
+    row.status !== result.status
+  ) {
+    return false;
+  }
+
+  if (
+    result.status === "accepted"
+  ) {
+    return (
+      row.local_appointment_id ===
+        result.local_appointment_id
+    );
+  }
+
+  if (
+    result.status === "rejected"
+  ) {
+    return (
+      row.rejection_code ===
+        result.rejection_code
+    );
+  }
+
+  return false;
+}
+
+
+function terminalBookingResultResponse(
+  row,
+  result
+) {
+  if (
+    row.status === "accepted" ||
+    row.status === "rejected"
+  ) {
+    if (
+      sameBookingResult(
+        row,
+        result
+      )
+    ) {
+      return jsonResponse({
+        ok: true,
+        data:
+          bookingResultData(row)
+      });
+    }
+
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "booking_request_already_resolved"
+      },
+      409
+    );
+  }
+
+  if (
+    row.status === "pending"
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "booking_request_not_delivered"
+      },
+      409
+    );
+  }
+
+  return jsonResponse(
+    {
+      ok: false,
+      error:
+        "booking_request_not_resolvable"
+    },
+    409
+  );
+}
+
+
+async function resolveBookingRequest(
+  request,
+  env,
+  auth,
+  requestId
+) {
+  const clinicId =
+    `license:${auth.licenseId}`;
+
+  /*
+   * Tenant identity comes only from the
+   * authenticated signed commercial lease.
+   */
+  const clinic =
+    await env.DB.prepare(
+      `SELECT
+         id,
+         license_id
+       FROM clinics
+       WHERE id = ?
+         AND license_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId,
+        auth.licenseId
+      )
+      .first();
+
+  if (!clinic) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  /*
+   * The same installation that owns the
+   * clinic sync state must resolve results.
+   */
+  const syncState =
+    await env.DB.prepare(
+      `SELECT
+         installation_id
+       FROM sync_state
+       WHERE clinic_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId
+      )
+      .first();
+
+  if (!syncState) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  if (
+    syncState.installation_id !==
+      auth.installationId
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_installation_mismatch"
+      },
+      403
+    );
+  }
+
+  const body =
+    await readJsonBody(request);
+
+  if (!body.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          body.error
+      },
+      body.error ===
+        "payload_too_large"
+        ? 413
+        : 400
+    );
+  }
+
+  const normalized =
+    normalizeBookingResult(
+      body.value
+    );
+
+  if (!normalized.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          normalized.error
+      },
+      400
+    );
+  }
+
+  const result =
+    normalized.value;
+
+  const existing =
+    await getBookingRequestForResult(
+      env,
+      clinicId,
+      requestId
+    );
+
+  /*
+   * Query is scoped by clinic_id so a
+   * request belonging to another tenant
+   * is indistinguishable from not found.
+   */
+  if (!existing) {
+    return notFound();
+  }
+
+  if (
+    existing.status !== "delivered"
+  ) {
+    return terminalBookingResultResponse(
+      existing,
+      result
+    );
+  }
+
+  const now =
+    new Date().toISOString();
+
+  /*
+   * Only delivered may transition into
+   * an authoritative clinic result.
+   *
+   * The status predicate protects against
+   * concurrent or repeated resolution.
+   */
+  const update =
+    await env.DB.prepare(
+      `UPDATE booking_requests
+       SET
+         status = ?,
+         local_appointment_id = ?,
+         rejection_code = ?,
+         resolved_at = ?,
+         updated_at = ?
+       WHERE id = ?
+         AND clinic_id = ?
+         AND status = 'delivered'`
+    )
+      .bind(
+        result.status,
+        result.local_appointment_id,
+        result.rejection_code,
+        now,
+        now,
+        requestId,
+        clinicId
+      )
+      .run();
+
+  const changes =
+    Number(
+      update?.meta?.changes || 0
+    );
+
+  if (changes === 1) {
+    return jsonResponse({
+      ok: true,
+      data: {
+        request_id:
+          requestId,
+
+        status:
+          result.status,
+
+        resolved_at:
+          now,
+
+        ...(
+          result.status === "accepted"
+            ? {
+                local_appointment_id:
+                  result.local_appointment_id
+              }
+            : {
+                rejection_code:
+                  result.rejection_code
+              }
+        )
+      }
+    });
+  }
+
+  /*
+   * A concurrent resolver may have won
+   * between SELECT and UPDATE. Re-read and
+   * return an idempotent success only when
+   * the exact same result already won.
+   */
+  const current =
+    await getBookingRequestForResult(
+      env,
+      clinicId,
+      requestId
+    );
+
+  if (!current) {
+    return notFound();
+  }
+
+  return terminalBookingResultResponse(
+    current,
+    result
+  );
+}
+
+
 function syncAuthErrorResponse(error) {
   if (
     error instanceof SyncAuthError
@@ -2914,6 +3431,66 @@ export default {
         return await pullBookingRequests(
           env,
           syncAuth
+        );
+      } catch {
+        return jsonResponse(
+          {
+            ok: false,
+            error: "internal_error"
+          },
+          500
+        );
+      }
+    }
+
+
+
+    if (
+      parts.length === 6 &&
+      parts[0] === "api" &&
+      parts[1] === "v1" &&
+      parts[2] === "sync" &&
+      parts[3] === "requests" &&
+      parts[5] === "result"
+    ) {
+      if (
+        request.method !== "POST"
+      ) {
+        return methodNotAllowed();
+      }
+
+      const requestId =
+        String(
+          parts[4] || ""
+        ).trim();
+
+      if (
+        requestId.length < 1 ||
+        requestId.length > 200
+      ) {
+        return notFound();
+      }
+
+      let syncAuth;
+
+      try {
+        syncAuth =
+          await authorizeBookingSync(
+            request,
+            env
+          );
+      } catch (error) {
+        return syncAuthErrorResponse(
+          error
+        );
+      }
+
+      try {
+        return await resolveBookingRequest(
+          request,
+          env,
+          syncAuth,
+          requestId
         );
       } catch {
         return jsonResponse(

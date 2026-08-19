@@ -1,0 +1,5 @@
+# Local development placeholders only.
+# Never commit real secret values.
+
+BOOKING_PII_KEY_B64=
+LICENSE_PUBLIC_KEY_B64=

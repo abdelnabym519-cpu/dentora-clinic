@@ -50,14 +50,9 @@ class RecordingOp:
             *args,
         )
 
-        elements = (
-            tuple(table.columns)
-            + tuple(table.constraints)
-        )
+        elements = tuple(table.columns) + tuple(table.constraints)
 
-        self.created_tables.append(
-            (name, elements, kwargs)
-        )
+        self.created_tables.append((name, elements, kwargs))
 
     def drop_table(self, name: str) -> None:
         self.dropped_tables.append(name)
@@ -71,7 +66,7 @@ def test_bk_0002_migration_exists_and_chains_from_booking_root() -> None:
     assert migration.revision == "bk_0002"
     assert migration.down_revision == "bk_0001"
     assert migration.branch_labels is None
-    assert migration.depends_on is None
+    assert migration.depends_on == "ag_0001"
 
 
 def test_bk_0002_creates_booking_cloud_requests_contract() -> None:
@@ -88,11 +83,7 @@ def test_bk_0002_creates_booking_cloud_requests_contract() -> None:
 
     assert table_name == "booking_cloud_requests"
 
-    columns = {
-        element.name: element
-        for element in elements
-        if isinstance(element, sa.Column)
-    }
+    columns = {element.name: element for element in elements if isinstance(element, sa.Column)}
 
     assert set(columns) == {
         "id",
@@ -149,17 +140,12 @@ def test_bk_0002_has_idempotency_and_result_constraints() -> None:
     assert "ck_booking_cloud_requests_result_shape" in constraint_names
 
     unique_constraints = [
-        element
-        for element in elements
-        if isinstance(element, sa.UniqueConstraint)
+        element for element in elements if isinstance(element, sa.UniqueConstraint)
     ]
 
     assert len(unique_constraints) == 1
 
-    unique_columns = tuple(
-        column.name
-        for column in unique_constraints[0].columns
-    )
+    unique_columns = tuple(column.name for column in unique_constraints[0].columns)
 
     assert unique_columns == (
         "clinic_id",
@@ -176,11 +162,7 @@ def test_bk_0002_references_clinic_and_appointment() -> None:
 
     _, elements, _ = recorder.created_tables[0]
 
-    foreign_keys = [
-        element
-        for element in elements
-        if isinstance(element, sa.ForeignKeyConstraint)
-    ]
+    foreign_keys = [element for element in elements if isinstance(element, sa.ForeignKeyConstraint)]
 
     targets = {
         (

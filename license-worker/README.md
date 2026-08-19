@@ -33,4 +33,4 @@ This is the production replacement for the local FastAPI/PostgreSQL proof-of-con
 - `wrangler.jsonc` — Worker/D1 bindings and lease policy.
 - `.dev.vars.example` — local-development secret names only; never commit real values.
 
-See `docs/licensing/CLOUDFLARE_DEPLOY.md` for production deployment.
+See `docs/technical/licensing/CLOUDFLARE_DEPLOY.md` for production deployment.

@@ -37,9 +37,7 @@ class FakeSession:
         return False
 
     async def execute(self, statement):
-        return FakeScalarResult(
-            self.clinic_ids
-        )
+        return FakeScalarResult(self.clinic_ids)
 
 
 class FakeSessionFactory:
@@ -49,9 +47,7 @@ class FakeSessionFactory:
 
     def __call__(self):
         self.calls += 1
-        return FakeSession(
-            self.clinic_ids
-        )
+        return FakeSession(self.clinic_ids)
 
 
 class FakeClient:
@@ -101,9 +97,7 @@ class RecordingProcessor:
         )
 
         if request_id == self.failure_on_request:
-            raise RuntimeError(
-                "SYNTHETIC_PRIVATE_VALUE"
-            )
+            raise RuntimeError("SYNTHETIC_PRIVATE_VALUE")
 
         return {
             "status": "accepted",
@@ -140,9 +134,7 @@ async def test_sync_is_disabled_without_cloud_url(
     )
 
     def should_not_run():
-        raise AssertionError(
-            "disabled cloud sync touched dependencies"
-        )
+        raise AssertionError("disabled cloud sync touched dependencies")
 
     await sync_cloud_booking_requests(
         client_factory=should_not_run,
@@ -200,9 +192,7 @@ async def test_sync_pulls_and_processes_each_request(
 
     clinic_id = uuid4()
 
-    sessions = FakeSessionFactory(
-        [clinic_id]
-    )
+    sessions = FakeSessionFactory([clinic_id])
 
     client = FakeClient(
         [
@@ -261,9 +251,7 @@ async def test_one_request_failure_does_not_block_next_or_log_private_value(
 
     clinic_id = uuid4()
 
-    sessions = FakeSessionFactory(
-        [clinic_id]
-    )
+    sessions = FakeSessionFactory([clinic_id])
 
     client = FakeClient(
         [
@@ -316,15 +304,9 @@ async def test_cloud_pull_failure_is_retryable_and_not_logged_verbatim(
 
     clinic_id = uuid4()
 
-    sessions = FakeSessionFactory(
-        [clinic_id]
-    )
+    sessions = FakeSessionFactory([clinic_id])
 
-    client = FakeClient(
-        failure=BookingCloudTransientError(
-            "SYNTHETIC_REMOTE_PRIVATE_VALUE"
-        )
-    )
+    client = FakeClient(failure=BookingCloudTransientError("SYNTHETIC_REMOTE_PRIVATE_VALUE"))
 
     with caplog.at_level(
         logging.WARNING,

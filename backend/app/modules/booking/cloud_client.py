@@ -91,43 +91,29 @@ class BookingCloudClient:
                     json=json_body,
                 )
         except httpx.RequestError as exc:
-            raise BookingCloudTransientError(
-                "Booking cloud request failed temporarily"
-            ) from exc
+            raise BookingCloudTransientError("Booking cloud request failed temporarily") from exc
 
         if response.status_code in {401, 403}:
-            raise BookingCloudAuthError(
-                "Booking cloud rejected the synchronization credential"
-            )
+            raise BookingCloudAuthError("Booking cloud rejected the synchronization credential")
 
         if 500 <= response.status_code <= 599:
-            raise BookingCloudTransientError(
-                "Booking cloud is temporarily unavailable"
-            )
+            raise BookingCloudTransientError("Booking cloud is temporarily unavailable")
 
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            raise BookingCloudError(
-                "Booking cloud rejected the synchronization request"
-            ) from exc
+            raise BookingCloudError("Booking cloud rejected the synchronization request") from exc
 
         try:
             payload = response.json()
         except ValueError as exc:
-            raise BookingCloudProtocolError(
-                "Booking cloud returned invalid JSON"
-            ) from exc
+            raise BookingCloudProtocolError("Booking cloud returned invalid JSON") from exc
 
         if not isinstance(payload, dict):
-            raise BookingCloudProtocolError(
-                "Booking cloud returned an invalid response"
-            )
+            raise BookingCloudProtocolError("Booking cloud returned an invalid response")
 
         if payload.get("ok") is not True:
-            raise BookingCloudProtocolError(
-                "Booking cloud returned an unsuccessful response"
-            )
+            raise BookingCloudProtocolError("Booking cloud returned an unsuccessful response")
 
         return payload
 
@@ -142,21 +128,15 @@ class BookingCloudClient:
         data = payload.get("data")
 
         if not isinstance(data, dict):
-            raise BookingCloudProtocolError(
-                "Booking cloud response has no data object"
-            )
+            raise BookingCloudProtocolError("Booking cloud response has no data object")
 
         requests = data.get("requests")
 
         if not isinstance(requests, list):
-            raise BookingCloudProtocolError(
-                "Booking cloud response has no requests list"
-            )
+            raise BookingCloudProtocolError("Booking cloud response has no requests list")
 
         if not all(isinstance(item, dict) for item in requests):
-            raise BookingCloudProtocolError(
-                "Booking cloud returned an invalid booking request"
-            )
+            raise BookingCloudProtocolError("Booking cloud returned an invalid booking request")
 
         return requests
 
@@ -174,19 +154,14 @@ class BookingCloudClient:
 
         payload = await self._request(
             "POST",
-            (
-                "/api/v1/sync/requests/"
-                f"{quote(normalized_request_id, safe='')}/result"
-            ),
+            (f"/api/v1/sync/requests/{quote(normalized_request_id, safe='')}/result"),
             json_body=result,
         )
 
         data = payload.get("data")
 
         if not isinstance(data, dict):
-            raise BookingCloudProtocolError(
-                "Booking cloud response has no data object"
-            )
+            raise BookingCloudProtocolError("Booking cloud response has no data object")
 
         return data
 
@@ -200,16 +175,12 @@ def build_booking_cloud_client(
     base_url = settings.BOOKING_CLOUD_BASE_URL.strip()
 
     if not base_url:
-        raise BookingCloudError(
-            "Booking cloud base URL is not configured"
-        )
+        raise BookingCloudError("Booking cloud base URL is not configured")
 
     timeout_seconds = settings.BOOKING_SYNC_HTTP_TIMEOUT_SECONDS
 
     if timeout_seconds <= 0:
-        raise BookingCloudError(
-            "Booking cloud HTTP timeout must be positive"
-        )
+        raise BookingCloudError("Booking cloud HTTP timeout must be positive")
 
     return BookingCloudClient(
         base_url=base_url,

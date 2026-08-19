@@ -73,9 +73,7 @@ async def test_booking_cloud_factory_uses_fresh_license_credential(
         return next(credentials)
 
     def handler(request: httpx.Request) -> httpx.Response:
-        seen_authorization.append(
-            request.headers.get("Authorization")
-        )
+        seen_authorization.append(request.headers.get("Authorization"))
 
         return httpx.Response(
             200,

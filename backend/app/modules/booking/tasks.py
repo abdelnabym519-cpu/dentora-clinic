@@ -28,13 +28,9 @@ async def _resolve_local_booking_clinic(
 ) -> UUID | None:
     """Return the unambiguous local clinic used by this installation."""
 
-    result = await db.execute(
-        select(BookingSettings.clinic_id).limit(2)
-    )
+    result = await db.execute(select(BookingSettings.clinic_id).limit(2))
 
-    clinic_ids = list(
-        dict.fromkeys(result.scalars().all())
-    )
+    clinic_ids = list(dict.fromkeys(result.scalars().all()))
 
     if len(clinic_ids) != 1:
         return None
@@ -63,15 +59,11 @@ async def sync_cloud_booking_requests(
     except Exception:
         # Do not include exception details: database errors can contain
         # values that should not enter booking synchronization logs.
-        logger.error(
-            "Booking cloud sync local clinic lookup failed; will retry"
-        )
+        logger.error("Booking cloud sync local clinic lookup failed; will retry")
         return
 
     if clinic_id is None:
-        logger.warning(
-            "Booking cloud sync requires exactly one local booking clinic"
-        )
+        logger.warning("Booking cloud sync requires exactly one local booking clinic")
         return
 
     try:
@@ -79,9 +71,7 @@ async def sync_cloud_booking_requests(
         requests = await client.pull_requests()
     except (LicenseError, BookingCloudError, ValueError):
         # Never log lease credentials or remote response bodies here.
-        logger.warning(
-            "Booking cloud pull unavailable; will retry"
-        )
+        logger.warning("Booking cloud pull unavailable; will retry")
         return
 
     if not requests:
@@ -105,13 +95,9 @@ async def sync_cloud_booking_requests(
         except (LicenseError, BookingCloudError):
             # The processor commits terminal local state before result sync.
             # A later pull safely replays that durable result.
-            logger.warning(
-                "Booking cloud result synchronization failed; will retry"
-            )
+            logger.warning("Booking cloud result synchronization failed; will retry")
 
         except Exception:
             # Unexpected local/database failures remain retryable and must
             # never be translated into a false patient rejection.
-            logger.error(
-                "Booking cloud request processing failed; will retry"
-            )
+            logger.error("Booking cloud request processing failed; will retry")

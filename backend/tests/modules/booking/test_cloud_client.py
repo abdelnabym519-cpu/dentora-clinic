@@ -222,7 +222,6 @@ async def test_client_resolves_fresh_credential_for_each_request(
     assert credential_resolver.calls["count"] == 2
 
 
-
 @pytest.mark.asyncio
 async def test_cloud_client_classifies_transport_failure_as_transient(
     credential_resolver,

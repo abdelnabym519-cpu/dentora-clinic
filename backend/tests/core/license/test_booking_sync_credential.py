@@ -142,7 +142,6 @@ async def test_booking_sync_credential_requires_active_license(
         await manager.get_booking_sync_credential()
 
 
-
 @pytest.mark.asyncio
 async def test_booking_sync_credential_requires_license_enforcement(
     monkeypatch: pytest.MonkeyPatch,

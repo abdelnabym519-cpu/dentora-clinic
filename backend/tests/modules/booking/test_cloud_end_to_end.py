@@ -62,21 +62,15 @@ class FakeSession:
         statement_text = str(statement)
 
         if "booking_settings.clinic_id" in statement_text:
-            return ScalarListResult(
-                [self.clinic_id]
-            )
+            return ScalarListResult([self.clinic_id])
 
         if "pg_advisory_xact_lock" in statement_text:
             return ScalarOneResult(None)
 
         if "booking_cloud_requests" in statement_text:
-            return ScalarOneResult(
-                self.store.receipt
-            )
+            return ScalarOneResult(self.store.receipt)
 
-        raise AssertionError(
-            "Unexpected SQL statement in synthetic E2E session"
-        )
+        raise AssertionError("Unexpected SQL statement in synthetic E2E session")
 
     def add(self, instance):
         self.store.receipt = instance
@@ -159,36 +153,24 @@ async def test_cloud_sync_end_to_end_retries_result_without_duplicate_booking(
     ) -> httpx.Response:
         nonlocal result_attempts
 
-        authorization_headers.append(
-            request.headers.get("Authorization")
-        )
+        authorization_headers.append(request.headers.get("Authorization"))
 
-        if (
-            request.method == "GET"
-            and request.url.path == "/api/v1/sync/requests"
-        ):
+        if request.method == "GET" and request.url.path == "/api/v1/sync/requests":
             return httpx.Response(
                 200,
                 json={
                     "ok": True,
-                    "data": {
-                        "requests": [
-                            cloud_request
-                        ]
-                    },
+                    "data": {"requests": [cloud_request]},
                 },
             )
 
         if (
             request.method == "POST"
-            and request.url.path
-            == f"/api/v1/sync/requests/{request_id}/result"
+            and request.url.path == f"/api/v1/sync/requests/{request_id}/result"
         ):
             result_attempts += 1
 
-            payload = json.loads(
-                request.content.decode("utf-8")
-            )
+            payload = json.loads(request.content.decode("utf-8"))
 
             posted_results.append(payload)
 
@@ -214,16 +196,12 @@ async def test_cloud_sync_end_to_end_retries_result_without_duplicate_booking(
                 },
             )
 
-        raise AssertionError(
-            "Unexpected cloud request in synthetic E2E test"
-        )
+        raise AssertionError("Unexpected cloud request in synthetic E2E test")
 
     client = BookingCloudClient(
         base_url="https://booking.example.com",
         credential_resolver=credential_resolver,
-        transport=httpx.MockTransport(
-            cloud_handler
-        ),
+        transport=httpx.MockTransport(cloud_handler),
         timeout_seconds=5.0,
     )
 
@@ -308,9 +286,7 @@ async def test_cloud_sync_end_to_end_retries_result_without_duplicate_booking(
 
     expected_result = {
         "status": "accepted",
-        "local_appointment_id": str(
-            appointment_id
-        ),
+        "local_appointment_id": str(appointment_id),
     }
 
     assert posted_results == [

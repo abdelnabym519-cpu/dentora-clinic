@@ -111,11 +111,7 @@ class BookingCloudProcessor:
         if "clinic" in message:
             return "clinic_unavailable"
 
-        if (
-            "slot" in message
-            or "future" in message
-            or "booking window" in message
-        ):
+        if "slot" in message or "future" in message or "booking window" in message:
             return "slot_unavailable"
 
         return "booking_unavailable"

@@ -350,14 +350,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.COPILOT_SESSION_ENDED`
 - **Publishers:**
-  - `copilot` — `backend/app/modules/copilot/router.py:194`
+  - `copilot` — `backend/app/modules/copilot/router.py:197`
 - **Subscribers:** —
 
 ### `copilot.session.started`
 
 - **Constant:** `EventType.COPILOT_SESSION_STARTED`
 - **Publishers:**
-  - `copilot` — `backend/app/modules/copilot/router.py:134`
+  - `copilot` — `backend/app/modules/copilot/router.py:137`
 - **Subscribers:** —
 
 ### `copilot.tool.invoked`

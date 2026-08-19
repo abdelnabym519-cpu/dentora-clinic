@@ -120,9 +120,7 @@ async def commercial_license_middleware(request: Request, call_next):
     to false. The activation endpoints remain reachable while locked.
     """
     if settings.LICENSE_ENFORCEMENT and request.url.path.startswith("/api/v1"):
-        allowed_prefixes = (
-            "/api/v1/license/",
-        )
+        allowed_prefixes = ("/api/v1/license/",)
         if not request.url.path.startswith(allowed_prefixes):
             license_status = await license_manager.get_status(allow_refresh=True)
             if not license_status.get("active"):

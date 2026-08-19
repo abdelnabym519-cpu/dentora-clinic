@@ -220,9 +220,7 @@ async def test_booking_unavailable_becomes_stable_rejection():
         )
 
     async def booking_creator(db, settings, data):
-        raise BookingUnavailableError(
-            "Selected slot is no longer available"
-        )
+        raise BookingUnavailableError("Selected slot is no longer available")
 
     processor = BookingCloudProcessor(
         cloud_client=cloud,
@@ -327,11 +325,7 @@ async def test_cloud_failure_happens_after_local_result_is_committed():
     appointment_id = uuid4()
     session = FakeSession()
 
-    cloud = FakeCloudClient(
-        failure=BookingCloudTransientError(
-            "synthetic cloud unavailable"
-        )
-    )
+    cloud = FakeCloudClient(failure=BookingCloudTransientError("synthetic cloud unavailable"))
 
     async def settings_resolver(db, wanted_clinic_id):
         return SimpleNamespace(

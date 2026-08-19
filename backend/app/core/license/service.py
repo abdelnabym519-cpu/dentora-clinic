@@ -184,7 +184,11 @@ class LicenseManager:
         if license_expires_at and now >= license_expires_at:
             return {**common, "state": "expired", "reason": "License subscription has expired"}
         if now >= valid_until:
-            return {**common, "state": "lease_expired", "reason": "License lease needs online refresh"}
+            return {
+                **common,
+                "state": "lease_expired",
+                "reason": "License lease needs online refresh",
+            }
         return {**common, "active": True, "state": "active"}
 
     def _refresh_attempt_due(self, state: dict) -> bool:
@@ -304,13 +308,10 @@ class LicenseManager:
                 return self._status_from_state(self._load_state())
         return status
 
-
     async def get_booking_sync_credential(self) -> str:
         """Return the current signed lease for authenticated booking sync."""
         if not settings.LICENSE_ENFORCEMENT:
-            raise LicenseError(
-                "Booking sync credential is only available for licensed clients"
-            )
+            raise LicenseError("Booking sync credential is only available for licensed clients")
 
         status = await self.get_status(allow_refresh=True)
 
@@ -348,14 +349,10 @@ class LicenseManager:
 
         return token
 
-
-
     async def get_ai_gateway_credential(self) -> str:
         """Return the current signed lease for internal AI gateway auth only."""
         if not settings.LICENSE_ENFORCEMENT:
-            raise LicenseError(
-                "AI gateway credential is only available for licensed clients"
-            )
+            raise LicenseError("AI gateway credential is only available for licensed clients")
 
         status = await self.get_status(allow_refresh=True)
 
@@ -392,5 +389,6 @@ class LicenseManager:
             raise LicenseError("License machine mismatch")
 
         return token
+
 
 license_manager = LicenseManager()

@@ -19,31 +19,33 @@ const activating = ref(false)
 const errorMessage = ref('')
 
 const ar = computed(() => locale.value === 'ar')
-const text = computed(() => ar.value ? {
-  title: 'تفعيل DentalPin',
-  subtitle: 'أدخل مفتاح الترخيص الخاص بالعيادة قبل إنشاء حساب المسؤول.',
-  key: 'مفتاح الترخيص',
-  placeholder: 'DP-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
-  activate: 'تفعيل النظام',
-  activating: 'جاري التفعيل...',
-  installation: 'معرّف التثبيت',
-  help: 'إذا لم يكن لديك مفتاح ترخيص، تواصل مع مزود DentalPin.',
-  loadError: 'تعذر الاتصال بخدمة DentalPin المحلية.',
-  required: 'أدخل مفتاح الترخيص أولًا.',
-  failed: 'تعذر تفعيل مفتاح الترخيص.'
-} : {
-  title: 'Activate DentalPin',
-  subtitle: 'Enter this clinic\'s license key before creating the administrator account.',
-  key: 'License key',
-  placeholder: 'DP-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
-  activate: 'Activate system',
-  activating: 'Activating...',
-  installation: 'Installation ID',
-  help: 'If you do not have a license key, contact your DentalPin provider.',
-  loadError: 'Could not reach the local DentalPin service.',
-  required: 'Enter the license key first.',
-  failed: 'Could not activate this license key.'
-})
+const text = computed(() => ar.value
+  ? {
+      title: 'تفعيل DentalPin',
+      subtitle: 'أدخل مفتاح الترخيص الخاص بالعيادة قبل إنشاء حساب المسؤول.',
+      key: 'مفتاح الترخيص',
+      placeholder: 'DP-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
+      activate: 'تفعيل النظام',
+      activating: 'جاري التفعيل...',
+      installation: 'معرّف التثبيت',
+      help: 'إذا لم يكن لديك مفتاح ترخيص، تواصل مع مزود DentalPin.',
+      loadError: 'تعذر الاتصال بخدمة DentalPin المحلية.',
+      required: 'أدخل مفتاح الترخيص أولًا.',
+      failed: 'تعذر تفعيل مفتاح الترخيص.'
+    }
+  : {
+      title: 'Activate DentalPin',
+      subtitle: 'Enter this clinic\'s license key before creating the administrator account.',
+      key: 'License key',
+      placeholder: 'DP-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
+      activate: 'Activate system',
+      activating: 'Activating...',
+      installation: 'Installation ID',
+      help: 'If you do not have a license key, contact your DentalPin provider.',
+      loadError: 'Could not reach the local DentalPin service.',
+      required: 'Enter the license key first.',
+      failed: 'Could not activate this license key.'
+    })
 
 const baseURL = computed(() => import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl)
 
@@ -91,33 +93,76 @@ onMounted(loadStatus)
 <template>
   <div class="w-full max-w-[480px] p-6">
     <div class="text-center mb-6">
-      <img src="/logo-icon.svg" alt="DentalPin" width="64" height="64" class="mx-auto mb-3">
-      <h1 class="text-h1 text-default">{{ text.title }}</h1>
-      <p class="text-caption text-muted mt-1">{{ text.subtitle }}</p>
+      <img
+        src="/logo-icon.svg"
+        alt="DentalPin"
+        width="64"
+        height="64"
+        class="mx-auto mb-3"
+      >
+      <h1 class="text-h1 text-default">
+        {{ text.title }}
+      </h1>
+      <p class="text-caption text-muted mt-1">
+        {{ text.subtitle }}
+      </p>
     </div>
 
     <UCard>
-      <div v-if="errorMessage" class="alert-surface-danger rounded-token-md px-3 py-2 mb-4" role="alert">
+      <div
+        v-if="errorMessage"
+        class="alert-surface-danger rounded-token-md px-3 py-2 mb-4"
+        role="alert"
+      >
         {{ errorMessage }}
       </div>
 
-      <div v-if="loading" class="py-8 text-center text-muted">
-        <UIcon name="i-lucide-loader-circle" class="w-6 h-6 animate-spin mx-auto" />
+      <div
+        v-if="loading"
+        class="py-8 text-center text-muted"
+      >
+        <UIcon
+          name="i-lucide-loader-circle"
+          class="w-6 h-6 animate-spin mx-auto"
+        />
       </div>
 
-      <form v-else class="space-y-4" @submit.prevent="activate">
+      <form
+        v-else
+        class="space-y-4"
+        @submit.prevent="activate"
+      >
         <UFormField :label="text.key">
-          <UInput v-model="licenseKey" class="w-full" :placeholder="text.placeholder" autocomplete="off" spellcheck="false" :disabled="activating" />
+          <UInput
+            v-model="licenseKey"
+            class="w-full"
+            :placeholder="text.placeholder"
+            autocomplete="off"
+            spellcheck="false"
+            :disabled="activating"
+          />
         </UFormField>
 
-        <div v-if="statusData?.installation_id" class="rounded-token-md bg-muted px-3 py-2">
-          <div class="text-caption text-muted">{{ text.installation }}</div>
+        <div
+          v-if="statusData?.installation_id"
+          class="rounded-token-md bg-muted px-3 py-2"
+        >
+          <div class="text-caption text-muted">
+            {{ text.installation }}
+          </div>
           <code class="text-xs break-all select-all">{{ statusData.installation_id }}</code>
         </div>
 
-        <p class="text-caption text-muted">{{ text.help }}</p>
+        <p class="text-caption text-muted">
+          {{ text.help }}
+        </p>
 
-        <UButton type="submit" block :loading="activating" :disabled="activating">
+        <UButton
+          type="submit"
+          block
+          :loading="activating"
+          :disabled="activating"
+        >
           {{ activating ? text.activating : text.activate }}
         </UButton>
       </form>

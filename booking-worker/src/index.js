@@ -124,6 +124,131 @@ async function encryptPatientPayload(env, payload) {
 }
 
 
+
+async function decryptPatientPayload(
+  env,
+  row
+) {
+  const keyVersion =
+    Number(
+      row.patient_key_version
+    );
+
+  if (keyVersion !== 1) {
+    throw new Error(
+      "booking_key_version_unsupported"
+    );
+  }
+
+  const key =
+    await importBookingKey(env);
+
+  let iv;
+
+  try {
+    iv =
+      base64ToBytes(
+        row.patient_iv
+      );
+  } catch {
+    throw new Error(
+      "booking_payload_decryption_failed"
+    );
+  }
+
+  if (
+    iv.byteLength !== 12
+  ) {
+    throw new Error(
+      "booking_payload_decryption_failed"
+    );
+  }
+
+  let ciphertext;
+
+  try {
+    ciphertext =
+      base64ToBytes(
+        row.patient_ciphertext
+      );
+  } catch {
+    throw new Error(
+      "booking_payload_decryption_failed"
+    );
+  }
+
+  let plaintext;
+
+  try {
+    plaintext =
+      await crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv
+        },
+        key,
+        ciphertext
+      );
+  } catch {
+    throw new Error(
+      "booking_payload_decryption_failed"
+    );
+  }
+
+  let payload;
+
+  try {
+    payload =
+      JSON.parse(
+        new TextDecoder()
+          .decode(plaintext)
+      );
+  } catch {
+    throw new Error(
+      "booking_payload_decryption_failed"
+    );
+  }
+
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    throw new Error(
+      "booking_payload_decryption_failed"
+    );
+  }
+
+  return {
+    first_name:
+      String(
+        payload.first_name || ""
+      ),
+
+    last_name:
+      String(
+        payload.last_name || ""
+      ),
+
+    phone:
+      String(
+        payload.phone || ""
+      ),
+
+    date_of_birth:
+      String(
+        payload.date_of_birth || ""
+      ),
+
+    email:
+      payload.email === null ||
+      payload.email === undefined
+        ? null
+        : String(payload.email)
+  };
+}
+
+
 function validSlug(value) {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(
     value
@@ -1996,6 +2121,395 @@ async function syncAvailability(
 }
 
 
+
+async function listPullableBookingRequests(
+  env,
+  clinicId
+) {
+  const result =
+    await env.DB.prepare(
+      `SELECT
+         br.id,
+         br.start_time,
+         br.end_time,
+         br.patient_ciphertext,
+         br.patient_iv,
+         br.patient_key_version,
+         br.status,
+         br.created_at,
+         br.delivered_at,
+         p.local_professional_id,
+         p.public_slug AS professional_slug,
+         p.display_name AS professional_name
+       FROM booking_requests br
+       JOIN professionals p
+         ON p.id = br.professional_id
+        AND p.clinic_id = br.clinic_id
+       WHERE br.clinic_id = ?
+         AND br.status IN (
+           'pending',
+           'delivered'
+         )
+       ORDER BY
+         br.created_at ASC,
+         br.id ASC
+       LIMIT 100`
+    )
+      .bind(
+        clinicId
+      )
+      .all();
+
+  return (
+    result.results || []
+  );
+}
+
+
+async function listDeliveredBookingRequests(
+  env,
+  clinicId
+) {
+  const result =
+    await env.DB.prepare(
+      `SELECT
+         br.id,
+         br.start_time,
+         br.end_time,
+         br.patient_ciphertext,
+         br.patient_iv,
+         br.patient_key_version,
+         br.status,
+         br.created_at,
+         br.delivered_at,
+         p.local_professional_id,
+         p.public_slug AS professional_slug,
+         p.display_name AS professional_name
+       FROM booking_requests br
+       JOIN professionals p
+         ON p.id = br.professional_id
+        AND p.clinic_id = br.clinic_id
+       WHERE br.clinic_id = ?
+         AND br.status = 'delivered'
+       ORDER BY
+         br.created_at ASC,
+         br.id ASC
+       LIMIT 100`
+    )
+      .bind(
+        clinicId
+      )
+      .all();
+
+  return (
+    result.results || []
+  );
+}
+
+
+function bookingPayloadErrorResponse(
+  error
+) {
+  if (
+    error?.message ===
+      "booking_key_missing" ||
+    error?.message ===
+      "booking_key_invalid" ||
+    error?.message ===
+      "booking_key_version_unsupported"
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "service_configuration_error"
+      },
+      503
+    );
+  }
+
+  if (
+    error?.message ===
+      "booking_payload_decryption_failed"
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "booking_payload_unavailable"
+      },
+      500
+    );
+  }
+
+  throw error;
+}
+
+
+async function pullBookingRequests(
+  env,
+  auth
+) {
+  /*
+   * Tenant identity is never accepted
+   * from the caller. It is derived from
+   * the authenticated commercial lease.
+   */
+  const clinicId =
+    `license:${auth.licenseId}`;
+
+  const clinic =
+    await env.DB.prepare(
+      `SELECT
+         id,
+         license_id
+       FROM clinics
+       WHERE id = ?
+         AND license_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId,
+        auth.licenseId
+      )
+      .first();
+
+  if (!clinic) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  /*
+   * Only the installation that owns
+   * this clinic sync state may pull
+   * patient booking requests.
+   */
+  const syncState =
+    await env.DB.prepare(
+      `SELECT
+         installation_id
+       FROM sync_state
+       WHERE clinic_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId
+      )
+      .first();
+
+  if (!syncState) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  if (
+    syncState.installation_id !==
+      auth.installationId
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_installation_mismatch"
+      },
+      403
+    );
+  }
+
+  /*
+   * Preflight decryption before changing
+   * pending -> delivered.
+   *
+   * This prevents a missing/wrong cloud
+   * encryption key from marking requests
+   * delivered when no patient identity
+   * could actually be delivered.
+   */
+  const candidates =
+    await listPullableBookingRequests(
+      env,
+      clinicId
+    );
+
+  try {
+    for (
+      const row
+      of candidates
+    ) {
+      await decryptPatientPayload(
+        env,
+        row
+      );
+    }
+  } catch (error) {
+    return bookingPayloadErrorResponse(
+      error
+    );
+  }
+
+  const now =
+    new Date().toISOString();
+
+  /*
+   * At-least-once delivery:
+   *
+   * pending   -> delivered
+   * delivered -> remains delivered and
+   *              stays pullable
+   *
+   * A future result endpoint will move a
+   * delivered request to accepted/rejected.
+   * The guarded UPDATE must never overwrite
+   * a request that is no longer pending.
+   */
+  const statements = [];
+
+  for (
+    const row
+    of candidates
+  ) {
+    if (
+      row.status !== "pending"
+    ) {
+      continue;
+    }
+
+    statements.push(
+      env.DB.prepare(
+        `UPDATE booking_requests
+         SET
+           status = 'delivered',
+           delivered_at =
+             COALESCE(
+               delivered_at,
+               ?
+             ),
+           updated_at = ?
+         WHERE id = ?
+           AND clinic_id = ?
+           AND status = 'pending'`
+      )
+        .bind(
+          now,
+          now,
+          row.id,
+          clinicId
+        )
+    );
+  }
+
+  statements.push(
+    env.DB.prepare(
+      `UPDATE sync_state
+       SET
+         last_booking_pull_at = ?,
+         updated_at = ?
+       WHERE clinic_id = ?
+         AND installation_id = ?`
+    )
+      .bind(
+        now,
+        now,
+        clinicId,
+        auth.installationId
+      )
+  );
+
+  await env.DB.batch(
+    statements
+  );
+
+  /*
+   * Re-read only delivered rows after
+   * the guarded transition. This avoids
+   * returning accepted/rejected/cancelled
+   * requests if their state changed.
+   */
+  const delivered =
+    await listDeliveredBookingRequests(
+      env,
+      clinicId
+    );
+
+  const requests = [];
+
+  try {
+    for (
+      const row
+      of delivered
+    ) {
+      const patient =
+        await decryptPatientPayload(
+          env,
+          row
+        );
+
+      requests.push({
+        request_id:
+          row.id,
+
+        status:
+          "delivered",
+
+        local_professional_id:
+          row.local_professional_id,
+
+        professional_slug:
+          row.professional_slug,
+
+        professional_name:
+          row.professional_name,
+
+        start_time:
+          row.start_time,
+
+        end_time:
+          row.end_time,
+
+        patient,
+
+        created_at:
+          row.created_at,
+
+        delivered_at:
+          row.delivered_at ||
+          now
+      });
+    }
+  } catch (error) {
+    return bookingPayloadErrorResponse(
+      error
+    );
+  }
+
+  return jsonResponse({
+    ok: true,
+
+    data: {
+      requests,
+
+      count:
+        requests.length,
+
+      pulled_at:
+        now
+    }
+  });
+}
+
+
 function syncAuthErrorResponse(error) {
   if (
     error instanceof SyncAuthError
@@ -2367,6 +2881,51 @@ export default {
         );
       }
     }
+
+
+    if (
+      parts.length === 4 &&
+      parts[0] === "api" &&
+      parts[1] === "v1" &&
+      parts[2] === "sync" &&
+      parts[3] === "requests"
+    ) {
+      if (
+        request.method !== "GET"
+      ) {
+        return methodNotAllowed();
+      }
+
+      let syncAuth;
+
+      try {
+        syncAuth =
+          await authorizeBookingSync(
+            request,
+            env
+          );
+      } catch (error) {
+        return syncAuthErrorResponse(
+          error
+        );
+      }
+
+      try {
+        return await pullBookingRequests(
+          env,
+          syncAuth
+        );
+      } catch {
+        return jsonResponse(
+          {
+            ok: false,
+            error: "internal_error"
+          },
+          500
+        );
+      }
+    }
+
 
     if (
       parts.length < 4 ||

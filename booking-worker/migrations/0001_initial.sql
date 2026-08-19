@@ -36,6 +36,7 @@ CREATE TABLE professionals (
     id TEXT PRIMARY KEY,
 
     clinic_id TEXT NOT NULL,
+    local_professional_id TEXT NOT NULL,
 
     public_slug TEXT NOT NULL,
     display_name TEXT NOT NULL,
@@ -50,11 +51,19 @@ CREATE TABLE professionals (
         REFERENCES clinics(id)
         ON DELETE CASCADE,
 
-    UNIQUE (clinic_id, public_slug)
+    UNIQUE (clinic_id, public_slug),
+    UNIQUE (clinic_id, local_professional_id)
 );
 
 CREATE INDEX idx_professionals_public
     ON professionals(clinic_id, active);
+
+
+CREATE INDEX idx_professionals_local
+    ON professionals(
+        clinic_id,
+        local_professional_id
+    );
 
 
 CREATE TABLE availability_slots (
@@ -65,6 +74,8 @@ CREATE TABLE availability_slots (
 
     start_time TEXT NOT NULL,
     end_time TEXT NOT NULL,
+
+    local_day TEXT NOT NULL,
 
     available INTEGER NOT NULL DEFAULT 1
         CHECK (available IN (0, 1)),
@@ -87,8 +98,9 @@ CREATE INDEX idx_slots_lookup
     ON availability_slots(
         clinic_id,
         professional_id,
-        start_time,
-        available
+        local_day,
+        available,
+        start_time
     );
 
 
@@ -173,6 +185,8 @@ CREATE TABLE sync_state (
     last_profile_sync_at TEXT,
     last_professionals_sync_at TEXT,
     last_availability_sync_at TEXT,
+    last_availability_snapshot_version INTEGER NOT NULL DEFAULT 0,
+    last_availability_sync_token TEXT,
     last_booking_pull_at TEXT,
 
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

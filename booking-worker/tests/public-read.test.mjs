@@ -41,6 +41,7 @@ const availabilitySlots = [
     professional_id: "professional-1",
     start_time: "2026-08-20T10:00:00+03:00",
     end_time: "2026-08-20T10:30:00+03:00",
+    local_day: "2026-08-20",
     available: 1
   },
   {
@@ -48,6 +49,7 @@ const availabilitySlots = [
     professional_id: "professional-1",
     start_time: "2026-08-20T11:00:00+03:00",
     end_time: "2026-08-20T11:30:00+03:00",
+    local_day: "2026-08-20",
     available: 1
   },
   {
@@ -55,6 +57,7 @@ const availabilitySlots = [
     professional_id: "professional-1",
     start_time: "2026-08-20T12:00:00+03:00",
     end_time: "2026-08-20T12:30:00+03:00",
+    local_day: "2026-08-20",
     available: 0
   },
   {
@@ -62,8 +65,17 @@ const availabilitySlots = [
     professional_id: "professional-2",
     start_time: "2026-08-20T13:00:00+03:00",
     end_time: "2026-08-20T13:30:00+03:00",
+    local_day: "2026-08-20",
     available: 1
-  }
+  },
+  {
+    clinic_id: "clinic-1",
+    professional_id: "professional-1",
+    start_time: "2026-08-20T22:30:00Z",
+    end_time: "2026-08-20T23:00:00Z",
+    local_day: "2026-08-21",
+    available: 1
+  },
 ];
 
 
@@ -126,8 +138,7 @@ class FakeStatement {
       const [
         clinicId,
         professionalId,
-        dayStart,
-        dayEnd
+        localDay
       ] = this.params;
 
       return {
@@ -137,8 +148,7 @@ class FakeStatement {
               item.clinic_id === clinicId &&
               item.professional_id === professionalId &&
               item.available === 1 &&
-              item.start_time >= dayStart &&
-              item.start_time <= dayEnd
+              item.local_day === localDay
           )
           .sort(
             (a, b) =>
@@ -418,3 +428,54 @@ test("unknown doctor slots return 404", async () => {
 
   assert.equal(response.status, 404);
 });
+
+
+test(
+  "GET slots uses clinic local day across UTC boundary",
+  async () => {
+    const response = await worker.fetch(
+      new Request(
+        "https://book.dentalpin.app/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=2026-08-21"
+      ),
+      env
+    );
+
+    assert.equal(
+      response.status,
+      200
+    );
+
+    const body =
+      await readJson(response);
+
+    assert.equal(
+      body.ok,
+      true
+    );
+
+    assert.deepEqual(
+      body.data,
+      [
+        {
+          start_time:
+            "2026-08-20T22:30:00Z",
+
+          end_time:
+            "2026-08-20T23:00:00Z"
+        }
+      ]
+    );
+
+    /*
+     * local_day is internal indexing
+     * metadata and must not be exposed.
+     */
+    assert.equal(
+      Object.hasOwn(
+        body.data[0],
+        "local_day"
+      ),
+      false
+    );
+  }
+);

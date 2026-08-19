@@ -1,3 +1,8 @@
+import {
+  authorizeBookingSync,
+  SyncAuthError
+} from "./sync-auth.js";
+
 function jsonResponse(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -256,14 +261,14 @@ function normalizeBookingPayload(payload) {
 }
 
 
-async function readJsonBody(request) {
+async function readJsonBody(request, maxBytes = 16384) {
   const declaredLength = Number(
     request.headers.get("content-length") || "0"
   );
 
   if (
     Number.isFinite(declaredLength) &&
-    declaredLength > 16384
+    declaredLength > maxBytes
   ) {
     return {
       ok: false,
@@ -273,7 +278,7 @@ async function readJsonBody(request) {
 
   const text = await request.text();
 
-  if (text.length > 16384) {
+  if (text.length > maxBytes) {
     return {
       ok: false,
       error: "payload_too_large"
@@ -370,12 +375,6 @@ async function listAvailableSlots(
   professionalId,
   day
 ) {
-  const dayStart =
-    `${day}T00:00:00`;
-
-  const dayEnd =
-    `${day}T23:59:59`;
-
   const result = await env.DB.prepare(
     `SELECT
        start_time,
@@ -383,16 +382,22 @@ async function listAvailableSlots(
      FROM availability_slots
      WHERE clinic_id = ?
        AND professional_id = ?
+       AND local_day = ?
        AND available = 1
-       AND start_time >= ?
-       AND start_time <= ?
+       AND EXISTS (
+         SELECT 1
+         FROM sync_state s
+         WHERE s.clinic_id =
+           availability_slots.clinic_id
+           AND s.last_availability_snapshot_version =
+             availability_slots.snapshot_version
+       )
      ORDER BY start_time ASC`
   )
     .bind(
       clinicId,
       professionalId,
-      dayStart,
-      dayEnd
+      day
     )
     .all();
 
@@ -415,6 +420,14 @@ async function getAvailableSlot(
        AND professional_id = ?
        AND start_time = ?
        AND available = 1
+       AND EXISTS (
+         SELECT 1
+         FROM sync_state s
+         WHERE s.clinic_id =
+           availability_slots.clinic_id
+           AND s.last_availability_snapshot_version =
+             availability_slots.snapshot_version
+       )
      LIMIT 1`
   )
     .bind(
@@ -642,6 +655,1552 @@ async function createBookingRequest(
 }
 
 
+
+function validTimeZone(value) {
+  try {
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        timeZone: value
+      }
+    );
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
+function normalizeSyncProfile(payload) {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    return {
+      ok: false,
+      error: "invalid_payload"
+    };
+  }
+
+  const allowed = new Set([
+    "public_slug",
+    "display_name",
+    "phone",
+    "email",
+    "timezone",
+    "currency",
+    "enabled",
+    "slot_minutes",
+    "days_ahead"
+  ]);
+
+  for (const field of Object.keys(payload)) {
+    if (!allowed.has(field)) {
+      return {
+        ok: false,
+        error: "unexpected_field"
+      };
+    }
+  }
+
+  const publicSlug =
+    String(
+      payload.public_slug || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const displayName =
+    String(
+      payload.display_name || ""
+    ).trim();
+
+  const phone =
+    payload.phone === null ||
+    payload.phone === undefined
+      ? null
+      : String(
+          payload.phone
+        ).trim();
+
+  const email =
+    payload.email === null ||
+    payload.email === undefined
+      ? null
+      : String(
+          payload.email
+        ).trim();
+
+  const timezone =
+    String(
+      payload.timezone || ""
+    ).trim();
+
+  const currency =
+    String(
+      payload.currency || ""
+    )
+      .trim()
+      .toUpperCase();
+
+  const enabled =
+    payload.enabled;
+
+  const slotMinutes =
+    payload.slot_minutes;
+
+  const daysAhead =
+    payload.days_ahead;
+
+  if (
+    !validSlug(publicSlug) ||
+    displayName.length < 1 ||
+    displayName.length > 160
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    phone !== null &&
+    phone.length > 50
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    email !== null &&
+    email.length > 255
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    !timezone ||
+    timezone.length > 100 ||
+    !validTimeZone(timezone)
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    !/^[A-Z]{3}$/.test(currency)
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    typeof enabled !== "boolean"
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    !Number.isInteger(slotMinutes) ||
+    slotMinutes < 5 ||
+    slotMinutes > 240
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    !Number.isInteger(daysAhead) ||
+    daysAhead < 1 ||
+    daysAhead > 365
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  return {
+    ok: true,
+    value: {
+      public_slug:
+        publicSlug,
+
+      display_name:
+        displayName,
+
+      phone:
+        phone || null,
+
+      email:
+        email || null,
+
+      timezone,
+
+      currency,
+
+      enabled,
+
+      slot_minutes:
+        slotMinutes,
+
+      days_ahead:
+        daysAhead
+    }
+  };
+}
+
+
+
+function normalizeSyncProfessionals(payload) {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    return {
+      ok: false,
+      error: "invalid_payload"
+    };
+  }
+
+  const topFields =
+    Object.keys(payload);
+
+  if (
+    topFields.length !== 1 ||
+    topFields[0] !== "professionals"
+  ) {
+    return {
+      ok: false,
+      error: "unexpected_field"
+    };
+  }
+
+  if (
+    !Array.isArray(
+      payload.professionals
+    )
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    payload.professionals.length > 100
+  ) {
+    return {
+      ok: false,
+      error: "too_many_professionals"
+    };
+  }
+
+  const allowed = new Set([
+    "local_professional_id",
+    "public_slug",
+    "display_name",
+    "active"
+  ]);
+
+  const localIds =
+    new Set();
+
+  const publicSlugs =
+    new Set();
+
+  const professionals = [];
+
+  for (
+    const item
+    of payload.professionals
+  ) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      Array.isArray(item)
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    for (
+      const field
+      of Object.keys(item)
+    ) {
+      if (!allowed.has(field)) {
+        return {
+          ok: false,
+          error: "unexpected_field"
+        };
+      }
+    }
+
+    const localProfessionalId =
+      String(
+        item.local_professional_id || ""
+      ).trim();
+
+    const publicSlug =
+      String(
+        item.public_slug || ""
+      )
+        .trim()
+        .toLowerCase();
+
+    const displayName =
+      String(
+        item.display_name || ""
+      ).trim();
+
+    const active =
+      item.active;
+
+    if (
+      localProfessionalId.length < 1 ||
+      localProfessionalId.length > 128 ||
+      !validSlug(publicSlug) ||
+      displayName.length < 1 ||
+      displayName.length > 160 ||
+      typeof active !== "boolean"
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    if (
+      localIds.has(
+        localProfessionalId
+      )
+    ) {
+      return {
+        ok: false,
+        error:
+          "duplicate_local_professional_id"
+      };
+    }
+
+    if (
+      publicSlugs.has(
+        publicSlug
+      )
+    ) {
+      return {
+        ok: false,
+        error:
+          "duplicate_professional_slug"
+      };
+    }
+
+    localIds.add(
+      localProfessionalId
+    );
+
+    publicSlugs.add(
+      publicSlug
+    );
+
+    professionals.push({
+      local_professional_id:
+        localProfessionalId,
+
+      public_slug:
+        publicSlug,
+
+      display_name:
+        displayName,
+
+      active
+    });
+  }
+
+  return {
+    ok: true,
+    value: professionals
+  };
+}
+
+
+async function syncProfessionals(
+  request,
+  env,
+  auth
+) {
+  const clinicId =
+    `license:${auth.licenseId}`;
+
+  /*
+   * A professionals snapshot is only
+   * accepted after the authenticated
+   * installation has published its
+   * clinic profile.
+   */
+  const clinic =
+    await env.DB.prepare(
+      `SELECT
+         id,
+         license_id
+       FROM clinics
+       WHERE id = ?
+         AND license_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId,
+        auth.licenseId
+      )
+      .first();
+
+  if (!clinic) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  /*
+   * The same installation that owns
+   * the clinic sync state must publish
+   * its professionals.
+   */
+  const syncState =
+    await env.DB.prepare(
+      `SELECT
+         installation_id
+       FROM sync_state
+       WHERE clinic_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId
+      )
+      .first();
+
+  if (!syncState) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  if (
+    syncState.installation_id !==
+      auth.installationId
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_installation_mismatch"
+      },
+      403
+    );
+  }
+
+  const body =
+    await readJsonBody(
+      request
+    );
+
+  if (!body.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: body.error
+      },
+      body.error ===
+        "payload_too_large"
+        ? 413
+        : 400
+    );
+  }
+
+  const normalized =
+    normalizeSyncProfessionals(
+      body.value
+    );
+
+  if (!normalized.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          normalized.error
+      },
+      normalized.error ===
+        "too_many_professionals"
+        ? 413
+        : 400
+    );
+  }
+
+  const professionals =
+    normalized.value;
+
+  const now =
+    new Date().toISOString();
+
+  /*
+   * Snapshot semantics:
+   *
+   * 1. Existing cloud professionals
+   *    become inactive.
+   * 2. Incoming local professionals
+   *    are upserted.
+   * 3. Sync timestamp is advanced.
+   *
+   * D1 batch keeps this one atomic
+   * database operation.
+   */
+  const statements = [
+    env.DB.prepare(
+      `UPDATE professionals
+       SET
+         active = 0,
+         updated_at = ?
+       WHERE clinic_id = ?`
+    )
+      .bind(
+        now,
+        clinicId
+      )
+  ];
+
+  for (
+    const professional
+    of professionals
+  ) {
+    const cloudProfessionalId =
+      `professional:${crypto.randomUUID()}`;
+
+    statements.push(
+      env.DB.prepare(
+        `INSERT INTO professionals (
+           id,
+           clinic_id,
+           local_professional_id,
+           public_slug,
+           display_name,
+           active,
+           updated_at
+         )
+         VALUES (
+           ?, ?, ?, ?, ?, ?, ?
+         )
+         ON CONFLICT(
+           clinic_id,
+           local_professional_id
+         )
+         DO UPDATE SET
+           public_slug =
+             excluded.public_slug,
+           display_name =
+             excluded.display_name,
+           active =
+             excluded.active,
+           updated_at =
+             excluded.updated_at`
+      )
+        .bind(
+          cloudProfessionalId,
+          clinicId,
+          professional
+            .local_professional_id,
+          professional
+            .public_slug,
+          professional
+            .display_name,
+          professional.active
+            ? 1
+            : 0,
+          now
+        )
+    );
+  }
+
+  statements.push(
+    env.DB.prepare(
+      `UPDATE sync_state
+       SET
+         last_professionals_sync_at = ?,
+         updated_at = ?
+       WHERE clinic_id = ?
+         AND installation_id = ?`
+    )
+      .bind(
+        now,
+        now,
+        clinicId,
+        auth.installationId
+      )
+  );
+
+  try {
+    await env.DB.batch(
+      statements
+    );
+  } catch (error) {
+    const message =
+      String(
+        error?.message || ""
+      );
+
+    if (
+      message.includes(
+        "UNIQUE"
+      ) ||
+      message.includes(
+        "constraint"
+      )
+    ) {
+      return jsonResponse(
+        {
+          ok: false,
+          error:
+            "professional_identity_conflict"
+        },
+        409
+      );
+    }
+
+    throw error;
+  }
+
+  return jsonResponse({
+    ok: true,
+    data: {
+      synced:
+        professionals.length,
+
+      active:
+        professionals.filter(
+          item =>
+            item.active
+        ).length,
+
+      last_synced_at:
+        now
+    }
+  });
+}
+
+
+
+function parseExplicitInstant(value) {
+  const text =
+    String(value || "").trim();
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(
+      text
+    )
+  ) {
+    return null;
+  }
+
+  const timestamp =
+    Date.parse(text);
+
+  if (
+    !Number.isFinite(timestamp)
+  ) {
+    return null;
+  }
+
+  return {
+    timestamp,
+
+    iso:
+      new Date(
+        timestamp
+      ).toISOString()
+  };
+}
+
+
+function localDayForInstant(
+  iso,
+  timezone
+) {
+  try {
+    const parts =
+      new Intl.DateTimeFormat(
+        "en-US",
+        {
+          timeZone:
+            timezone,
+
+          year:
+            "numeric",
+
+          month:
+            "2-digit",
+
+          day:
+            "2-digit"
+        }
+      )
+        .formatToParts(
+          new Date(iso)
+        );
+
+    const values = {};
+
+    for (const part of parts) {
+      if (
+        part.type === "year" ||
+        part.type === "month" ||
+        part.type === "day"
+      ) {
+        values[part.type] =
+          part.value;
+      }
+    }
+
+    if (
+      !values.year ||
+      !values.month ||
+      !values.day
+    ) {
+      return null;
+    }
+
+    return (
+      values.year
+      + "-"
+      + values.month
+      + "-"
+      + values.day
+    );
+  } catch {
+    return null;
+  }
+}
+
+
+function normalizeSyncAvailability(
+  payload,
+  clinic,
+  professionalMap
+) {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload)
+  ) {
+    return {
+      ok: false,
+      error: "invalid_payload"
+    };
+  }
+
+  const allowedTop =
+    new Set([
+      "snapshot_version",
+      "slots"
+    ]);
+
+  for (
+    const field
+    of Object.keys(payload)
+  ) {
+    if (
+      !allowedTop.has(field)
+    ) {
+      return {
+        ok: false,
+        error: "unexpected_field"
+      };
+    }
+  }
+
+  const snapshotVersion =
+    payload.snapshot_version;
+
+  if (
+    !Number.isInteger(
+      snapshotVersion
+    ) ||
+    snapshotVersion < 1 ||
+    snapshotVersion > 2147483647
+  ) {
+    return {
+      ok: false,
+      error: "invalid_snapshot_version"
+    };
+  }
+
+  if (
+    !Array.isArray(
+      payload.slots
+    )
+  ) {
+    return {
+      ok: false,
+      error: "validation_error"
+    };
+  }
+
+  if (
+    payload.slots.length > 2000
+  ) {
+    return {
+      ok: false,
+      error: "too_many_slots"
+    };
+  }
+
+  const allowedSlotFields =
+    new Set([
+      "local_professional_id",
+      "start_time",
+      "end_time",
+      "available"
+    ]);
+
+  const identities =
+    new Set();
+
+  const rows = [];
+
+  for (
+    const item
+    of payload.slots
+  ) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      Array.isArray(item)
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    for (
+      const field
+      of Object.keys(item)
+    ) {
+      if (
+        !allowedSlotFields.has(
+          field
+        )
+      ) {
+        return {
+          ok: false,
+          error: "unexpected_field"
+        };
+      }
+    }
+
+    const localProfessionalId =
+      String(
+        item.local_professional_id || ""
+      ).trim();
+
+    const professional =
+      professionalMap.get(
+        localProfessionalId
+      );
+
+    if (
+      !professional ||
+      professional.active !== 1
+    ) {
+      return {
+        ok: false,
+        error:
+          "unknown_or_inactive_professional"
+      };
+    }
+
+    if (
+      typeof item.available !==
+        "boolean"
+    ) {
+      return {
+        ok: false,
+        error: "validation_error"
+      };
+    }
+
+    const start =
+      parseExplicitInstant(
+        item.start_time
+      );
+
+    const end =
+      parseExplicitInstant(
+        item.end_time
+      );
+
+    if (
+      !start ||
+      !end ||
+      end.timestamp <=
+        start.timestamp
+    ) {
+      return {
+        ok: false,
+        error:
+          "invalid_slot_time"
+      };
+    }
+
+    const expectedDuration =
+      clinic.slot_minutes *
+      60 *
+      1000;
+
+    if (
+      end.timestamp -
+        start.timestamp !==
+      expectedDuration
+    ) {
+      return {
+        ok: false,
+        error:
+          "invalid_slot_duration"
+      };
+    }
+
+    const localDay =
+      localDayForInstant(
+        start.iso,
+        clinic.timezone
+      );
+
+    if (!localDay) {
+      return {
+        ok: false,
+        error:
+          "invalid_clinic_timezone"
+      };
+    }
+
+    const identity =
+      professional.id
+      + "|"
+      + start.iso;
+
+    if (
+      identities.has(
+        identity
+      )
+    ) {
+      return {
+        ok: false,
+        error:
+          "duplicate_availability_slot"
+      };
+    }
+
+    identities.add(
+      identity
+    );
+
+    rows.push({
+      id:
+        `slot:${crypto.randomUUID()}`,
+
+      professional_id:
+        professional.id,
+
+      start_time:
+        start.iso,
+
+      end_time:
+        end.iso,
+
+      local_day:
+        localDay,
+
+      available:
+        item.available
+          ? 1
+          : 0,
+
+      snapshot_version:
+        snapshotVersion
+    });
+  }
+
+  return {
+    ok: true,
+
+    value: {
+      snapshot_version:
+        snapshotVersion,
+
+      rows
+    }
+  };
+}
+
+
+async function syncAvailability(
+  request,
+  env,
+  auth
+) {
+  const clinicId =
+    `license:${auth.licenseId}`;
+
+  const clinic =
+    await env.DB.prepare(
+      `SELECT
+         id,
+         license_id,
+         timezone,
+         slot_minutes
+       FROM clinics
+       WHERE id = ?
+         AND license_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId,
+        auth.licenseId
+      )
+      .first();
+
+  if (!clinic) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  const syncState =
+    await env.DB.prepare(
+      `SELECT
+         installation_id,
+         last_availability_snapshot_version
+       FROM sync_state
+       WHERE clinic_id = ?
+       LIMIT 1`
+    )
+      .bind(
+        clinicId
+      )
+      .first();
+
+  if (!syncState) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_profile_not_synced"
+      },
+      409
+    );
+  }
+
+  if (
+    syncState.installation_id !==
+      auth.installationId
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "clinic_installation_mismatch"
+      },
+      403
+    );
+  }
+
+  const body =
+    await readJsonBody(
+      request,
+      524288
+    );
+
+  if (!body.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: body.error
+      },
+      body.error ===
+        "payload_too_large"
+        ? 413
+        : 400
+    );
+  }
+
+  const professionalsResult =
+    await env.DB.prepare(
+      `SELECT
+         id,
+         local_professional_id,
+         active
+       FROM professionals
+       WHERE clinic_id = ?`
+    )
+      .bind(
+        clinicId
+      )
+      .all();
+
+  const professionalMap =
+    new Map();
+
+  for (
+    const row
+    of professionalsResult.results || []
+  ) {
+    professionalMap.set(
+      row.local_professional_id,
+      row
+    );
+  }
+
+  const normalized =
+    normalizeSyncAvailability(
+      body.value,
+      clinic,
+      professionalMap
+    );
+
+  if (!normalized.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          normalized.error
+      },
+      normalized.error ===
+        "too_many_slots"
+        ? 413
+        : 400
+    );
+  }
+
+  const {
+    snapshot_version:
+      snapshotVersion,
+
+    rows
+  } = normalized.value;
+
+  const currentVersion =
+    Number(
+      syncState
+        .last_availability_snapshot_version ||
+      0
+    );
+
+  if (
+    snapshotVersion <=
+      currentVersion
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "stale_availability_snapshot"
+      },
+      409
+    );
+  }
+
+  const now =
+    new Date().toISOString();
+
+  const syncToken =
+    crypto.randomUUID();
+
+  /*
+   * Three-statement atomic snapshot:
+   *
+   * 1. Claim the newer snapshot version.
+   * 2. Remove the prior clinic snapshot,
+   *    only if this write still owns the token.
+   * 3. Insert the complete new snapshot from
+   *    one JSON parameter via json_each().
+   *
+   * A stale concurrent request cannot delete
+   * or insert rows because its token will not
+   * match sync_state.
+   */
+  const statements = [
+    env.DB.prepare(
+      `UPDATE sync_state
+       SET
+         last_availability_snapshot_version = ?,
+         last_availability_sync_token = ?,
+         last_availability_sync_at = ?,
+         updated_at = ?
+       WHERE clinic_id = ?
+         AND installation_id = ?
+         AND last_availability_snapshot_version < ?`
+    )
+      .bind(
+        snapshotVersion,
+        syncToken,
+        now,
+        now,
+        clinicId,
+        auth.installationId,
+        snapshotVersion
+      ),
+
+    env.DB.prepare(
+      `DELETE FROM availability_slots
+       WHERE clinic_id = ?
+         AND EXISTS (
+           SELECT 1
+           FROM sync_state s
+           WHERE s.clinic_id = ?
+             AND s.installation_id = ?
+             AND s.last_availability_sync_token = ?
+             AND s.last_availability_snapshot_version = ?
+         )`
+    )
+      .bind(
+        clinicId,
+        clinicId,
+        auth.installationId,
+        syncToken,
+        snapshotVersion
+      ),
+
+    env.DB.prepare(
+      `INSERT INTO availability_slots (
+         id,
+         clinic_id,
+         professional_id,
+         start_time,
+         end_time,
+         local_day,
+         available,
+         snapshot_version,
+         synced_at
+       )
+       SELECT
+         json_extract(value, '$.id'),
+         ?,
+         json_extract(value, '$.professional_id'),
+         json_extract(value, '$.start_time'),
+         json_extract(value, '$.end_time'),
+         json_extract(value, '$.local_day'),
+         CAST(
+           json_extract(value, '$.available')
+           AS INTEGER
+         ),
+         CAST(
+           json_extract(value, '$.snapshot_version')
+           AS INTEGER
+         ),
+         ?
+       FROM json_each(?)
+       WHERE EXISTS (
+         SELECT 1
+         FROM sync_state s
+         WHERE s.clinic_id = ?
+           AND s.installation_id = ?
+           AND s.last_availability_sync_token = ?
+           AND s.last_availability_snapshot_version = ?
+       )`
+    )
+      .bind(
+        clinicId,
+        now,
+        JSON.stringify(rows),
+        clinicId,
+        auth.installationId,
+        syncToken,
+        snapshotVersion
+      )
+  ];
+
+  const results =
+    await env.DB.batch(
+      statements
+    );
+
+  const versionChanges =
+    Number(
+      results?.[0]?.meta?.changes ||
+      0
+    );
+
+  if (
+    versionChanges !== 1
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          "stale_availability_snapshot"
+      },
+      409
+    );
+  }
+
+  return jsonResponse({
+    ok: true,
+
+    data: {
+      snapshot_version:
+        snapshotVersion,
+
+      slots_received:
+        rows.length,
+
+      available:
+        rows.filter(
+          row =>
+            row.available === 1
+        ).length,
+
+      last_synced_at:
+        now
+    }
+  });
+}
+
+
+function syncAuthErrorResponse(error) {
+  if (
+    error instanceof SyncAuthError
+  ) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: error.code
+      },
+      error.status
+    );
+  }
+
+  throw error;
+}
+
+
+async function syncClinicProfile(
+  request,
+  env,
+  auth
+) {
+  const body =
+    await readJsonBody(request);
+
+  if (!body.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: body.error
+      },
+      body.error ===
+        "payload_too_large"
+        ? 413
+        : 400
+    );
+  }
+
+  const normalized =
+    normalizeSyncProfile(
+      body.value
+    );
+
+  if (!normalized.ok) {
+    return jsonResponse(
+      {
+        ok: false,
+        error:
+          normalized.error
+      },
+      400
+    );
+  }
+
+  const profile =
+    normalized.value;
+
+  /*
+   * Cloud clinic identity is derived
+   * from the authenticated commercial
+   * license. The client cannot choose
+   * another internal clinic id.
+   */
+  const clinicId =
+    `license:${auth.licenseId}`;
+
+  const now =
+    new Date().toISOString();
+
+  try {
+    await env.DB.prepare(
+      `INSERT INTO clinics (
+         id,
+         license_id,
+         public_slug,
+         display_name,
+         phone,
+         email,
+         timezone,
+         currency,
+         enabled,
+         slot_minutes,
+         days_ahead,
+         last_synced_at,
+         updated_at
+       )
+       VALUES (
+         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+       )
+       ON CONFLICT(id)
+       DO UPDATE SET
+         public_slug =
+           excluded.public_slug,
+         display_name =
+           excluded.display_name,
+         phone =
+           excluded.phone,
+         email =
+           excluded.email,
+         timezone =
+           excluded.timezone,
+         currency =
+           excluded.currency,
+         enabled =
+           excluded.enabled,
+         slot_minutes =
+           excluded.slot_minutes,
+         days_ahead =
+           excluded.days_ahead,
+         last_synced_at =
+           excluded.last_synced_at,
+         updated_at =
+           excluded.updated_at
+       WHERE clinics.license_id =
+         excluded.license_id`
+    )
+      .bind(
+        clinicId,
+        auth.licenseId,
+        profile.public_slug,
+        profile.display_name,
+        profile.phone,
+        profile.email,
+        profile.timezone,
+        profile.currency,
+        profile.enabled
+          ? 1
+          : 0,
+        profile.slot_minutes,
+        profile.days_ahead,
+        now,
+        now
+      )
+      .run();
+  } catch (error) {
+    const message =
+      String(
+        error?.message || ""
+      );
+
+    if (
+      message.includes(
+        "UNIQUE"
+      ) &&
+      message.includes(
+        "public_slug"
+      )
+    ) {
+      return jsonResponse(
+        {
+          ok: false,
+          error:
+            "public_slug_unavailable"
+        },
+        409
+      );
+    }
+
+    throw error;
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO sync_state (
+       clinic_id,
+       installation_id,
+       last_profile_sync_at,
+       updated_at
+     )
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(clinic_id)
+     DO UPDATE SET
+       installation_id =
+         excluded.installation_id,
+       last_profile_sync_at =
+         excluded.last_profile_sync_at,
+       updated_at =
+         excluded.updated_at`
+  )
+    .bind(
+      clinicId,
+      auth.installationId,
+      now,
+      now
+    )
+    .run();
+
+  return jsonResponse({
+    ok: true,
+    data: {
+      public_slug:
+        profile.public_slug,
+
+      display_name:
+        profile.display_name,
+
+      enabled:
+        profile.enabled,
+
+      last_synced_at:
+        now
+    }
+  });
+}
+
+
 export default {
   async fetch(request, env) {
     const url =
@@ -674,6 +2233,140 @@ export default {
       url.pathname
         .split("/")
         .filter(Boolean);
+
+    if (
+      parts.length === 4 &&
+      parts[0] === "api" &&
+      parts[1] === "v1" &&
+      parts[2] === "sync" &&
+      parts[3] === "profile"
+    ) {
+      if (
+        request.method !== "PUT"
+      ) {
+        return methodNotAllowed();
+      }
+
+      let syncAuth;
+
+      try {
+        syncAuth =
+          await authorizeBookingSync(
+            request,
+            env
+          );
+      } catch (error) {
+        return syncAuthErrorResponse(
+          error
+        );
+      }
+
+      try {
+        return await syncClinicProfile(
+          request,
+          env,
+          syncAuth
+        );
+      } catch {
+        return jsonResponse(
+          {
+            ok: false,
+            error: "internal_error"
+          },
+          500
+        );
+      }
+    }
+
+
+    if (
+      parts.length === 4 &&
+      parts[0] === "api" &&
+      parts[1] === "v1" &&
+      parts[2] === "sync" &&
+      parts[3] === "professionals"
+    ) {
+      if (
+        request.method !== "PUT"
+      ) {
+        return methodNotAllowed();
+      }
+
+      let syncAuth;
+
+      try {
+        syncAuth =
+          await authorizeBookingSync(
+            request,
+            env
+          );
+      } catch (error) {
+        return syncAuthErrorResponse(
+          error
+        );
+      }
+
+      try {
+        return await syncProfessionals(
+          request,
+          env,
+          syncAuth
+        );
+      } catch {
+        return jsonResponse(
+          {
+            ok: false,
+            error: "internal_error"
+          },
+          500
+        );
+      }
+    }
+
+
+    if (
+      parts.length === 4 &&
+      parts[0] === "api" &&
+      parts[1] === "v1" &&
+      parts[2] === "sync" &&
+      parts[3] === "availability"
+    ) {
+      if (
+        request.method !== "PUT"
+      ) {
+        return methodNotAllowed();
+      }
+
+      let syncAuth;
+
+      try {
+        syncAuth =
+          await authorizeBookingSync(
+            request,
+            env
+          );
+      } catch (error) {
+        return syncAuthErrorResponse(
+          error
+        );
+      }
+
+      try {
+        return await syncAvailability(
+          request,
+          env,
+          syncAuth
+        );
+      } catch {
+        return jsonResponse(
+          {
+            ok: false,
+            error: "internal_error"
+          },
+          500
+        );
+      }
+    }
 
     if (
       parts.length < 4 ||

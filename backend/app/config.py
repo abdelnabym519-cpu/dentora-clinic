@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     LICENSE_HTTP_TIMEOUT_SECONDS: float = 5.0
     LICENSE_REFRESH_RETRY_MINUTES: int = 60
 
+    # Public booking cloud synchronization. Local DentalPin only makes
+    # outbound HTTPS requests; the cloud never connects inbound to the clinic.
+    BOOKING_CLOUD_BASE_URL: str = ""
+    BOOKING_SYNC_HTTP_TIMEOUT_SECONDS: float = 10.0
+
     # Module system
     DENTALPIN_DEV_MODULE_SCAN: bool = True  # Fallback filesystem scan for dev
     # Host-mounted path where `frontend/modules.json` lives. The backend

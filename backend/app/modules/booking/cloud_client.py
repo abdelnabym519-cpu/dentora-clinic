@@ -8,6 +8,9 @@ from urllib.parse import quote
 
 import httpx
 
+from app.config import settings
+from app.core.license import license_manager
+
 BookingCredentialResolver = Callable[[], Awaitable[str]]
 
 
@@ -186,3 +189,31 @@ class BookingCloudClient:
             )
 
         return data
+
+
+def build_booking_cloud_client(
+    *,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> BookingCloudClient:
+    """Build the licensed outbound booking cloud client."""
+
+    base_url = settings.BOOKING_CLOUD_BASE_URL.strip()
+
+    if not base_url:
+        raise BookingCloudError(
+            "Booking cloud base URL is not configured"
+        )
+
+    timeout_seconds = settings.BOOKING_SYNC_HTTP_TIMEOUT_SECONDS
+
+    if timeout_seconds <= 0:
+        raise BookingCloudError(
+            "Booking cloud HTTP timeout must be positive"
+        )
+
+    return BookingCloudClient(
+        base_url=base_url,
+        credential_resolver=license_manager.get_booking_sync_credential,
+        transport=transport,
+        timeout_seconds=timeout_seconds,
+    )

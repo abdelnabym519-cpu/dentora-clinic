@@ -9,7 +9,7 @@ from fastapi import APIRouter
 
 from app.core.plugins import BaseModule
 
-from .models import BookingSettings
+from .models import BookingCloudRequest, BookingSettings
 from .router import router
 
 
@@ -35,7 +35,7 @@ class BookingModule(BaseModule):
     }
 
     def get_models(self) -> list:
-        return [BookingSettings]
+        return [BookingSettings, BookingCloudRequest]
 
     def get_router(self) -> APIRouter:
         return router

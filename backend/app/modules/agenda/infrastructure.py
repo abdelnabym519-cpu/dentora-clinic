@@ -6,8 +6,12 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .domain import AlreadyInStateError, CabinetRequiredError, InvalidTransitionError
+from .legacy import AlreadyInStateError as LegacyAlreadyInStateError
 from .legacy import AppointmentService as LegacyAppointmentService
+from .legacy import CabinetRequiredError as LegacyCabinetRequiredError
 from .legacy import CabinetService as LegacyCabinetService
+from .legacy import InvalidTransitionError as LegacyInvalidTransitionError
 from .ports import AgendaGateway
 
 CABINET_OPERATIONS = frozenset(
@@ -47,6 +51,8 @@ class SqlAlchemyAgendaGateway(AgendaGateway):
 
     Keeping the proven persistence code in the outer layer preserves the stable
     database/API behavior while callers move through the new application port.
+    Legacy domain exceptions are normalized so existing HTTP handlers keep
+    catching the canonical inner-layer exception types.
     """
 
     def __init__(self, session: AsyncSession) -> None:
@@ -60,4 +66,11 @@ class SqlAlchemyAgendaGateway(AgendaGateway):
         else:
             raise AttributeError(f"Unknown Agenda operation: {operation}")
 
-        return await method(self._session, *args, **kwargs)
+        try:
+            return await method(self._session, *args, **kwargs)
+        except LegacyAlreadyInStateError as exc:
+            raise AlreadyInStateError(str(exc)) from exc
+        except LegacyCabinetRequiredError as exc:
+            raise CabinetRequiredError(str(exc)) from exc
+        except LegacyInvalidTransitionError as exc:
+            raise InvalidTransitionError(str(exc)) from exc

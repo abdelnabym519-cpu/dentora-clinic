@@ -265,7 +265,7 @@ MEDICATIONS = [
 ]
 TREATMENT_CATALOG = [
     # (name, IdTipoOdg, base_price, is_global_mouth)
-    # Per-tooth clinical IdTipoOdg codes — DentalPin doesn't have a 1:1
+    # Per-tooth clinical IdTipoOdg codes — Dentora doesn't have a 1:1
     # match for these in its clinical_type enum, so the importer warns
     # ``applied_treatment.unmapped_tipo_odg`` and falls back to
     # ``migrated``; that's expected behaviour for synthetic fixtures.

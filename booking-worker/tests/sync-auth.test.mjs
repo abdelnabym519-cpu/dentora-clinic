@@ -60,7 +60,7 @@ function base64Url(value) {
 
 function defaultPayload(overrides = {}) {
   return {
-    product: "dentalpin",
+    product: "dentora",
     v: 1,
 
     license_id: "license-1",
@@ -105,7 +105,7 @@ function signLease(payload) {
 
 function bearerRequest(token) {
   return new Request(
-    "https://book.dentalpin.app/api/v1/sync/profile",
+    "https://booking.dentora.example/api/v1/sync/profile",
     {
       method: "PUT",
       headers: {

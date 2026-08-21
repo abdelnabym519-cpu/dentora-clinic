@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# DentalPin admin CLI wrapper.
+# Dentora admin CLI wrapper.
 #
-# Proxies commands to the backend container: `dentalpin modules list`
+# Proxies commands to the backend container: `dentora modules list`
 # becomes `docker compose exec backend python -m app.cli modules list`.
 #
 # Usage:
-#   ./bin/dentalpin modules list
-#   ./bin/dentalpin modules info clinical
-#   ./bin/dentalpin modules doctor
+#   ./bin/dentora modules list
+#   ./bin/dentora modules info clinical
+#   ./bin/dentora modules doctor
 #
 # The wrapper must be run from the repository root (or any directory where
 # `docker-compose.yml` / `compose.yaml` resolves). It picks the first available

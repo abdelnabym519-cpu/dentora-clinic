@@ -287,7 +287,7 @@
       "title": "Productor del SIF",
       "subtitle": "Identificación legal de quien pone el software en producción y firma la declaración responsable.",
       "legalIntroTitle": "Responsabilidad legal",
-      "legalIntro": "RD 1007/2023 art. 13 exige que el productor del Sistema Informático de Facturación firme una declaración responsable. Si DentalPin se ofrece como SaaS gestionado, el productor es la empresa que opera el SaaS. Si una clínica autohospeda el software, ella misma es productora (autodesarrollo). Si lo despliega un integrador, es el integrador.",
+      "legalIntro": "RD 1007/2023 art. 13 exige que el productor del Sistema Informático de Facturación firme una declaración responsable. Si Dentora se ofrece como SaaS gestionado, el productor es la empresa que opera el SaaS. Si una clínica autohospeda el software, ella misma es productora (autodesarrollo). Si lo despliega un integrador, es el integrador.",
       "process": {
         "title": "¿Qué tienes que hacer?",
         "s1": "Identifica quién es el productor del SIF (paso 1) — datos legales que aparecerán en la declaración y en cada registro enviado a la AEAT.",
@@ -324,7 +324,7 @@
         "heading": "Declaración responsable",
         "legalRef": "Sistema Informático de Facturación — Veri*Factu (RD 1007/2023, art. 13)",
         "preamble": "De conformidad con el artículo 13 del Real Decreto 1007/2023 (RRSIF) y la Orden HAC/1177/2024:",
-        "identity": "{name}, con NIF {nif}, en su condición de productor del Sistema Informático de Facturación denominado DentalPin (identificador del sistema {idSistema}, versión {version}), declara responsablemente que:",
+        "identity": "{name}, con NIF {nif}, en su condición de productor del Sistema Informático de Facturación denominado Dentora (identificador del sistema {idSistema}, versión {version}), declara responsablemente que:",
         "item1": "El sistema cumple los requisitos del artículo 29.2.j) de la Ley 58/2003, General Tributaria, y del RRSIF.",
         "item2": "El sistema garantiza la integridad, conservación, accesibilidad, legibilidad, trazabilidad e inalterabilidad de los registros de facturación.",
         "item3": "El sistema implementa el envío continuo de los registros a la AEAT en modalidad Veri*Factu.",

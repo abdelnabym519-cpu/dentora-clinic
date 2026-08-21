@@ -56,7 +56,7 @@
     },
     "proposals": {
       "title": "Vérifier les associations de catalogue",
-      "subtitle": "Associez chaque traitement Gesdén au catalogue DentalPin avant l'importation.",
+      "subtitle": "Associez chaque traitement Gesdén au catalogue Dentora avant l'importation.",
       "build": "Calculer les propositions",
       "building": "Calcul en cours…",
       "summary": "{total} propositions : {link} liées, {fuzzy} approximatives, {create} à créer",

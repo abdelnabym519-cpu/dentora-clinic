@@ -9,7 +9,7 @@
 
 export type HeatmapTone = 'neutral' | 'success' | 'warning-low' | 'warning-high' | 'error'
 
-// Calm-design pastel mapping — matches DentalPin's status badge tonal
+// Calm-design pastel mapping — matches Dentora's status badge tonal
 // scale (soft fill + accent ring + dark readable text). A site marker
 // should *signal* the pocket-depth bucket without shouting; the saturated
 // 500/600 tones used to dominate the SEPA chart visually.

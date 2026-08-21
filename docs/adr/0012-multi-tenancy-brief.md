@@ -1,4 +1,4 @@
-# Multi-tenancy en Dentalpin core — brief de implementación
+# Multi-tenancy en Dentora core — brief de implementación
 
 > **Audiencia**: agentes Claude Code que vayan a implementar estos cambios.
 > **Estado**: propuesta de arquitectura, pendiente de ejecución por fases.
@@ -8,7 +8,7 @@
 
 ## 1. Contexto
 
-Dentalpin es una plataforma open source de gestión de clínicas dentales construida con **FastAPI + SQLAlchemy (async) + Alembic + PostgreSQL**. Tiene arquitectura modular: cada módulo (`agenda`, `patients`, `billing`, `payments`, `treatment_plan`, etc.) es un paquete Python con su propio manifest, modelos y migraciones Alembic en rama propia.
+Dentora es una plataforma open source de gestión de clínicas dentales construida con **FastAPI + SQLAlchemy (async) + Alembic + PostgreSQL**. Tiene arquitectura modular: cada módulo (`agenda`, `patients`, `billing`, `payments`, `treatment_plan`, etc.) es un paquete Python con su propio manifest, modelos y migraciones Alembic en rama propia.
 
 ### Estado real actual (corregido frente a versión anterior del brief)
 
@@ -29,7 +29,7 @@ Para evitar la trampa de "una clínica = una DB" (rompería multi-clinic-per-use
 
 ### Objetivo del brief
 
-Introducir **costuras** que permitan en el futuro montar un módulo SaaS externo (`dentalpin-saas`) con DB-per-tenant, **sin romper el modo self-hosted actual**. Los self-hosters seguirán configurando una `DATABASE_URL` y todo funcionará idéntico a hoy: un tenant `default` con N clínicas dentro.
+Introducir **costuras** que permitan en el futuro montar un módulo SaaS externo (`dentora-saas`) con DB-per-tenant, **sin romper el modo self-hosted actual**. Los self-hosters seguirán configurando una `DATABASE_URL` y todo funcionará idéntico a hoy: un tenant `default` con N clínicas dentro.
 
 ### Lo que NO se hace en este brief
 
@@ -203,7 +203,7 @@ async def get_tenant(request: Request) -> TenantContext:
     return await resolver.resolve(request)
 ```
 
-Ambos exportados desde `dentalpin/core/deps.py` o equivalente.
+Ambos exportados desde `dentora/core/deps.py` o equivalente.
 
 #### 2.3 Setup en `lifespan` de la app
 
@@ -232,7 +232,7 @@ async def list_pacientes(db: AsyncSession = Depends(get_db)):
 
 Lo único que cambia es que ahora internamente `get_db` resuelve el tenant. En single-tenant, mismo comportamiento.
 
-**Importante**: si hay código que importa una sesión global (algo como `from dentalpin.db import session` y la usa fuera de un endpoint), hay que refactorizarlo. Documentar cada uno y decidir caso por caso. Para jobs background, aceptar `tenant: TenantContext` como argumento y resolver el engine con el pool.
+**Importante**: si hay código que importa una sesión global (algo como `from dentora.db import session` y la usa fuera de un endpoint), hay que refactorizarlo. Documentar cada uno y decidir caso por caso. Para jobs background, aceptar `tenant: TenantContext` como argumento y resolver el engine con el pool.
 
 #### 2.5 Tests
 
@@ -307,7 +307,7 @@ Settings con discriminador:
 class StorageSettings(BaseSettings):
     backend: Literal["local", "s3"] = "local"
     # local
-    path: Path = Path("/var/lib/dentalpin/storage")
+    path: Path = Path("/var/lib/dentora/storage")
     # s3
     bucket: str | None = None
     endpoint_url: str | None = None
@@ -337,7 +337,7 @@ def get_url() -> str:
     x_args = context.get_x_argument(as_dictionary=True)
     if url := x_args.get("db_url"):
         return url
-    return os.environ.get("DENTALPIN_MIGRATION_DB_URL") or settings.DATABASE_URL
+    return os.environ.get("DENTORA_MIGRATION_DB_URL") or settings.DATABASE_URL
 ```
 
 Esto permite ejecutar `alembic upgrade heads -x db_url=postgresql://...` apuntando a cualquier DB. En self-hosted no cambia nada.
@@ -395,7 +395,7 @@ Explicar:
 - El modelo actual: shared-schema multi-clinic-per-DB, un tenant por instancia (`"default"`).
 - Vocabulario tenant vs clinic con ejemplos.
 - Las interfaces `TenantResolver`, `StorageBackend` (extendida), y los `EventType` de tenant lifecycle como puntos de extensión.
-- Cómo un módulo externo (futuro `dentalpin-saas`) las implementa.
+- Cómo un módulo externo (futuro `dentora-saas`) las implementa.
 - Diagrama de qué vive en core vs qué vive en el módulo SaaS.
 
 #### 7.2 Actualizar `CLAUDE.md` (raíz)

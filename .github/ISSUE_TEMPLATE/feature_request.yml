@@ -1,5 +1,5 @@
 name: Feature request
-description: Propose something DentalPin should do
+description: Propose something Dentora should do
 labels: ["enhancement"]
 body:
   - type: textarea
@@ -25,7 +25,7 @@ body:
       label: Which module
       description: |
         Leave blank if unsure. See
-        [docs/modules-catalog.md](https://github.com/martinezsalmeron/dentalpin/blob/main/docs/modules-catalog.md).
+        [docs/modules-catalog.md](https://github.com/abdelnabym519-cpu/dentora-clinic/blob/main/docs/modules-catalog.md).
       placeholder: agenda
 
   - type: input

@@ -13,7 +13,7 @@ export default withNuxt(
   {
     // Mirror `nuxt/disables/routes`: routed components are allowed
     // single-word names (new.vue, index.vue, [id].vue).
-    name: 'dentalpin/module-layers/routes',
+    name: 'dentora/module-layers/routes',
     files: ['module_layers/*/frontend/{pages,layouts}/**/*.{js,ts,jsx,tsx,vue}'],
     rules: {
       'vue/multi-word-component-names': 'off'

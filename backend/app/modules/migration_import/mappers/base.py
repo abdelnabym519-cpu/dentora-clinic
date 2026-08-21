@@ -28,7 +28,7 @@ class MappingResolver:
     """Read / write the ``entity_mappings`` table.
 
     All FK resolution between DPMF entities goes through this object —
-    mappers never use canonical UUIDs directly as DentalPin row IDs.
+    mappers never use canonical UUIDs directly as Dentora row IDs.
 
     Memoisation is per-instance (one resolver per job), bounded by the
     number of distinct entity_type+canonical_uuid pairs in the file.
@@ -54,7 +54,7 @@ class MappingResolver:
         self._cache_warm: bool = False
 
     async def get(self, entity_type: str, canonical_uuid: str) -> UUID | None:
-        """Return the DentalPin row id mapped to ``(entity_type, canonical_uuid)``.
+        """Return the Dentora row id mapped to ``(entity_type, canonical_uuid)``.
 
         Scoped to ``clinic_id`` so two clinics importing the same DPMF
         do not see each other's resolutions.
@@ -69,7 +69,7 @@ class MappingResolver:
             # idempotency checks on a re-run.
             return None
         result = await self._db.execute(
-            select(EntityMapping.dentalpin_id).where(
+            select(EntityMapping.dentora_id).where(
                 EntityMapping.clinic_id == self._clinic_id,
                 EntityMapping.entity_type == entity_type,
                 EntityMapping.source_canonical_uuid == canonical_uuid,
@@ -99,16 +99,16 @@ class MappingResolver:
             select(
                 EntityMapping.entity_type,
                 EntityMapping.source_canonical_uuid,
-                EntityMapping.dentalpin_id,
+                EntityMapping.dentora_id,
             ).where(EntityMapping.clinic_id == self._clinic_id)
         )
         loaded = 0
-        for entity_type, canonical_uuid, dentalpin_id in result.all():
+        for entity_type, canonical_uuid, dentora_id in result.all():
             if entity_type.endswith(_SKIP_SUFFIX):
                 base = entity_type[: -len(_SKIP_SUFFIX)]
                 self._skipped_cache.add((base, canonical_uuid))
             else:
-                self._cache[(entity_type, canonical_uuid)] = dentalpin_id
+                self._cache[(entity_type, canonical_uuid)] = dentora_id
             loaded += 1
         self._cache_warm = True
         return loaded  # type: ignore[return-value]
@@ -118,8 +118,8 @@ class MappingResolver:
         entity_type: str,
         canonical_uuid: str,
         source_system: str,
-        dentalpin_table: str,
-        dentalpin_id: UUID,
+        dentora_table: str,
+        dentora_id: UUID,
     ) -> None:
         """Persist the mapping. Idempotent — second call for the same
         ``(entity_type, canonical_uuid)`` is a no-op (cache hit or
@@ -130,7 +130,7 @@ class MappingResolver:
             return
         if not self._cache_warm:
             existing = await self._db.execute(
-                select(EntityMapping.dentalpin_id).where(
+                select(EntityMapping.dentora_id).where(
                     EntityMapping.clinic_id == self._clinic_id,
                     EntityMapping.entity_type == entity_type,
                     EntityMapping.source_canonical_uuid == canonical_uuid,
@@ -146,14 +146,14 @@ class MappingResolver:
             source_system=source_system,
             entity_type=entity_type,
             source_canonical_uuid=canonical_uuid,
-            dentalpin_table=dentalpin_table,
-            dentalpin_id=dentalpin_id,
+            dentora_table=dentora_table,
+            dentora_id=dentora_id,
         )
         self._db.add(mapping)
-        self._cache[key] = dentalpin_id
+        self._cache[key] = dentora_id
 
     async def mapping_table(self, entity_type: str, canonical_uuid: str) -> str | None:
-        """Return the ``dentalpin_table`` recorded for this mapping.
+        """Return the ``dentora_table`` recorded for this mapping.
 
         Lets a downstream mapper tell apart canonicals that landed as,
         say, ``treatments`` vs ``clinical_notes`` without inventing a
@@ -163,7 +163,7 @@ class MappingResolver:
         Returns ``None`` if the mapping does not exist.
         """
         result = await self._db.execute(
-            select(EntityMapping.dentalpin_table).where(
+            select(EntityMapping.dentora_table).where(
                 EntityMapping.clinic_id == self._clinic_id,
                 EntityMapping.entity_type == entity_type,
                 EntityMapping.source_canonical_uuid == canonical_uuid,
@@ -193,8 +193,8 @@ class MappingResolver:
             source_system=source_system,
             entity_type=f"{entity_type}{_SKIP_SUFFIX}",
             source_canonical_uuid=canonical_uuid,
-            dentalpin_table=_SKIP_SENTINEL_TABLE,
-            dentalpin_id=_SKIP_SENTINEL_ID,
+            dentora_table=_SKIP_SENTINEL_TABLE,
+            dentora_id=_SKIP_SENTINEL_ID,
         )
         self._db.add(mapping)
         self._skipped_cache.add(key)

@@ -1,5 +1,5 @@
-<!-- /autoplan restore point: /Users/ramonmartinez/.gstack/projects/dentalpin/feature-day1-architecture-autoplan-restore-20260330-155517.md -->
-# Plan: DentalPin MVP — Full Implementation
+<!-- /autoplan restore point: /Users/ramonmartinez/.gstack/projects/dentora/feature-day1-architecture-autoplan-restore-20260330-155517.md -->
+# Plan: Dentora MVP — Full Implementation
 
 **Branch:** feature/day1-architecture
 **Goal:** Implement the complete MVP: Agenda + Pacientes with modular architecture
@@ -863,7 +863,7 @@ jobs:
 
 **README.md:**
 ```markdown
-# DentalPin
+# Dentora
 
 Open source dental clinic management software.
 
@@ -955,7 +955,7 @@ Login: admin@demo.clinic / demo1234
 ## Design Specifications (from /autoplan review)
 
 ### First-Time User Experience
-1. Dashboard with empty widgets shows: "Bienvenido a DentalPin. Comienza creando tu primer paciente." with prominent CTA
+1. Dashboard with empty widgets shows: "Bienvenido a Dentora. Comienza creando tu primer paciente." with prominent CTA
 2. Patient list empty state leads to patient creation form
 3. After first patient created, calendar empty state suggests: "Agenda la primera cita de [Patient Name]"
 

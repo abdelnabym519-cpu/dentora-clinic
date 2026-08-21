@@ -1,21 +1,21 @@
 #!/bin/bash
 # Reset demo database and reseed. Daily cron + manual.
-# Usage: /usr/local/bin/dentalpin-reset-demo.sh [es|en]
+# Usage: /usr/local/bin/dentora-reset-demo.sh [es|en]
 #
-# This script lives on the demo host at /usr/local/bin/dentalpin-reset-demo.sh
-# and is invoked by /etc/cron.d/dentalpin-reset-demo every night at 04:00.
-# This file is the source of truth — see scripts/dentalpin-reset-demo.cron
+# This script lives on the demo host at /usr/local/bin/dentora-reset-demo.sh
+# and is invoked by /etc/cron.d/dentora-reset-demo every night at 04:00.
+# This file is the source of truth — see scripts/dentora-reset-demo.cron
 # for the matching crontab. Deploy with:
 #
-#   scp scripts/dentalpin-reset-demo.sh     root@<host>:/usr/local/bin/
-#   scp scripts/dentalpin-reset-demo.cron   root@<host>:/etc/cron.d/dentalpin-reset-demo
-#   ssh root@<host> 'chmod +x /usr/local/bin/dentalpin-reset-demo.sh \
-#                  && chmod 644 /etc/cron.d/dentalpin-reset-demo'
+#   scp scripts/dentora-reset-demo.sh     root@<host>:/usr/local/bin/
+#   scp scripts/dentora-reset-demo.cron   root@<host>:/etc/cron.d/dentora-reset-demo
+#   ssh root@<host> 'chmod +x /usr/local/bin/dentora-reset-demo.sh \
+#                  && chmod 644 /etc/cron.d/dentora-reset-demo'
 set -euo pipefail
 
 COOLIFY_PROJECT="wz49q8rmlqkhh9qun1kwgge8"
 LANG_ARG="${1:-es}"
-LOG_TAG="dentalpin-reset"
+LOG_TAG="dentora-reset"
 log() { logger -t "$LOG_TAG" -- "$*"; echo "[$(date -Is)] $*"; }
 
 find_container() {
@@ -40,7 +40,7 @@ GRANT ALL ON SCHEMA public TO dental;
 GRANT ALL ON SCHEMA public TO public;
 SQL
 
-# `heads` (plural) is required: DentalPin uses one Alembic branch per
+# `heads` (plural) is required: Dentora uses one Alembic branch per
 # module, so `alembic upgrade head` errors out with "Multiple head
 # revisions are present" and — combined with `set -e` — aborts the
 # script before Step 3 can restart the backend, leaving the running

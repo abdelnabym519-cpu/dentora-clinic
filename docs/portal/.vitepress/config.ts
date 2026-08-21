@@ -19,7 +19,7 @@ const VUE_DIR = fileURLToPath(new URL("../node_modules/vue", import.meta.url));
 // existing markdown is rendered without copies. The portal folder itself
 // is excluded so VitePress does not try to render its own scaffolding.
 export default defineConfig({
-  title: "DentalPin Docs",
+  title: "Dentora Docs",
   description:
     "Open-source dental clinic management software — developer reference and user manual.",
   lang: "en-US",
@@ -81,17 +81,17 @@ export default defineConfig({
     socialLinks: [
       {
         icon: "github",
-        link: "https://github.com/martinezsalmeron/dentalpin",
+        link: "https://github.com/abdelnabym519-cpu/dentora-clinic",
       },
     ],
     editLink: {
       pattern:
-        "https://github.com/martinezsalmeron/dentalpin/edit/main/docs/:path",
+        "https://github.com/abdelnabym519-cpu/dentora-clinic/edit/main/docs/:path",
       text: "Edit this page on GitHub",
     },
     footer: {
       message:
-        'Source: <a href="https://github.com/martinezsalmeron/dentalpin">github.com/martinezsalmeron/dentalpin</a>',
+        'Source: <a href="https://github.com/abdelnabym519-cpu/dentora-clinic">github.com/abdelnabym519-cpu/dentora-clinic</a>',
       copyright: "BSL 1.1 (converts to Apache 2.0 after 4 years)",
     },
   },

@@ -1,7 +1,7 @@
 """Build the ``SistemaInformatico`` block — the SIF producer identity.
 
 The producer is the entity legally responsible for the software under
-the RRSIF (Real Decreto 1007/2023). For DentalPin this varies by
+the RRSIF (Real Decreto 1007/2023). For Dentora this varies by
 deployment:
 
 * SaaS hosted by Dentared S.L. → Dentared is the producer.
@@ -47,9 +47,9 @@ def from_settings(settings: VerifactuSettings) -> SistemaInformatico:
 
     * ``TipoUsoPosibleSoloVerifactu`` — ``S`` if the SIF is hard-coded
       to operate exclusively in Veri\\*Factu mode (no XAdES journal).
-      DentalPin's verifactu module only implements Veri*Factu, so ``S``.
+      Dentora's verifactu module only implements Veri*Factu, so ``S``.
     * ``TipoUsoPosibleMultiOT`` — ``S`` if the SIF *can* serve multiple
-      obligados tributarios from one deployment. DentalPin SaaS does
+      obligados tributarios from one deployment. Dentora SaaS does
       (one backend, many clinics), so ``S``.
     * ``IndicadorMultiplesOT`` — declares whether *this concrete
       installation* is currently serving multiple OTs. We instantiate a
@@ -61,9 +61,9 @@ def from_settings(settings: VerifactuSettings) -> SistemaInformatico:
 
     defaults = producer_defaults()
     return SistemaInformatico(
-        nombre_razon=settings.producer_name or defaults["name"] or "DentalPin",
+        nombre_razon=settings.producer_name or defaults["name"] or "Dentora",
         nif=settings.producer_nif or defaults["nif"] or "",
-        nombre_sistema=os.environ.get("VERIFACTU_SOFTWARE_NAME", "DentalPin"),
+        nombre_sistema=os.environ.get("VERIFACTU_SOFTWARE_NAME", "Dentora"),
         id_sistema=settings.producer_id_sistema or defaults["id_sistema"],
         version=settings.producer_version or defaults["version"],
         numero_instalacion=settings.numero_instalacion,

@@ -21,7 +21,7 @@ Page at **Settings → Integrations → WhatsApp (Kapso)** (admins only).
    *Business account ID* of your connected number, and the *webhook secret*.
    Save. Secrets are stored encrypted and never shown again.
 2. **Webhook.** Copy the webhook URL shown on the page and paste it into your
-   Kapso project's webhook settings, so DentalPin receives delivery statuses and
+   Kapso project's webhook settings, so Dentora receives delivery statuses and
    patient replies.
 3. **Templates.** Click *Sync* to fetch your Meta-approved templates, then map
    each notification type (e.g. "appointment reminder") to an approved template.

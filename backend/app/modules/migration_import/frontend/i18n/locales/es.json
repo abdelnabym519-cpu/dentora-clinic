@@ -56,7 +56,7 @@
     },
     "proposals": {
       "title": "Revisar mapeos del catálogo",
-      "subtitle": "Asocia cada tratamiento de Gesdén al catálogo de DentalPin antes de importar.",
+      "subtitle": "Asocia cada tratamiento de Gesdén al catálogo de Dentora antes de importar.",
       "build": "Calcular propuestas",
       "building": "Calculando…",
       "summary": "{total} propuestas: {link} enlazados, {fuzzy} similitud, {create} nuevos",

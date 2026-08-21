@@ -336,6 +336,7 @@ jobs:
       - name: Start Nuxt dev in background
         working-directory: frontend
         env:
+          E2E_LOCALE: en
           NUXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8100
           API_BASE_URL_SERVER: http://127.0.0.1:8100
           NITRO_HOST: 0.0.0.0

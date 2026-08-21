@@ -1,6 +1,6 @@
 # Rediseño UI para apariencia visual, legibilidad y diseño calmado
 
-**Issue de referencia:** [#45 Redesign UI for visual appeal, readability, and calm design](https://github.com/martinezsalmeron/dentalpin/issues/45)
+**Issue de referencia:** [#45 Redesign UI for visual appeal, readability, and calm design](https://github.com/abdelnabym519-cpu/dentora-clinic/issues/45)
 
 **Estado:** Plan técnico — sin cambios de comportamiento ni backend.
 

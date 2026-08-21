@@ -15,7 +15,7 @@ from .service import license_manager
 def require_license_feature(
     feature: str,
 ) -> Callable[[], Coroutine[Any, Any, None]]:
-    """Require a feature from the signed DentalPin license lease."""
+    """Require a feature from the signed Dentora license lease."""
 
     wanted = feature.strip().lower()
 
@@ -31,7 +31,7 @@ def require_license_feature(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail={
                     "code": "license_inactive",
-                    "message": "DentalPin license is not active.",
+                    "message": "Dentora license is not active.",
                 },
             )
 

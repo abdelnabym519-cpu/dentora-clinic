@@ -2,7 +2,7 @@
 
 Field mapping from `CanonicalPatient` (DPMF v0.1):
 
-| DPMF                                | DentalPin                                |
+| DPMF                                | Dentora                                |
 |-------------------------------------|------------------------------------------|
 | given_name                          | first_name (required)                    |
 | family_name                         | last_name  (required)                    |
@@ -17,7 +17,7 @@ Field mapping from `CanonicalPatient` (DPMF v0.1):
 | email                               | ``email`` (patient wins, client fallback)|
 | address_street / address_postal_code| ``address`` (JSONB ``{street, postal}``) |
 | sms_consent                         | augments ``do_not_contact`` when false   |
-| tenant_label                        | _ignored_ — DentalPin's clinic_id wins   |
+| tenant_label                        | _ignored_ — Dentora's clinic_id wins   |
 
 Patient-level contact data shipped from dental-bridge ``0.0.3``+; pre-0.0.3
 DPMFs only carried client-level email, so old files still import (the
@@ -150,7 +150,7 @@ class PatientMapper:
         national_id_type = "nif" if national_id else None
 
         # Lifecycle: Gesdén marks ``Inactivo`` ("S") and ``Exitus``
-        # (deceased). DentalPin's Patient status enum is binary
+        # (deceased). Dentora's Patient status enum is binary
         # (active/archived), so both states collapse to archived; the
         # underlying reason survives in notes so the operator can
         # tell them apart in the chart.
@@ -284,8 +284,8 @@ class PatientMapper:
             entity_type="patient",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="patients",
-            dentalpin_id=patient.id,
+            dentora_table="patients",
+            dentora_id=patient.id,
         )
         return patient.id
 

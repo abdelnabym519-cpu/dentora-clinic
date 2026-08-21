@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "DentalPin",
+    "name": "Dentora",
     "tagline": "Dental clinic management"
   },
   "demo": {
@@ -63,7 +63,7 @@
     "next": "Next",
     "back": "Back",
     "submit": "Create and start",
-    "success": "All set! Welcome to DentalPin",
+    "success": "All set! Welcome to Dentora",
     "firstNameRequired": "Enter the first name",
     "lastNameRequired": "Enter the last name",
     "emailRequired": "Enter the email",
@@ -890,7 +890,7 @@
       "afternoon": "Good afternoon",
       "evening": "Good evening"
     },
-    "welcome": "Welcome to DentalPin",
+    "welcome": "Welcome to Dentora",
     "welcomeMessage": "Start by creating your first patient.",
     "quickActions": {
       "newAppointment": "New appointment",

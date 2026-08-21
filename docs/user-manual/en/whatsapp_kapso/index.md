@@ -5,7 +5,7 @@ last_verified_commit: 0000000
 
 # WhatsApp (Kapso)
 
-This optional module connects the clinic's **WhatsApp number** to DentalPin
+This optional module connects the clinic's **WhatsApp number** to Dentora
 through [Kapso](https://kapso.ai), to send reminders and messages over WhatsApp
 and to **receive and reply** to patients.
 

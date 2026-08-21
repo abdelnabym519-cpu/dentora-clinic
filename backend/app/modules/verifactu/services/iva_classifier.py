@@ -55,7 +55,7 @@ def classify(
     vat_rate: Decimal,
     is_exento_sanitario: bool = False,
 ) -> DesgloseClassification:
-    """Map a DentalPin invoice line to its Veri*Factu classification."""
+    """Map a Dentora invoice line to its Veri*Factu classification."""
 
     if vat_rate not in _VALID_VAT_RATES:
         raise ValueError(f"Unsupported VAT rate {vat_rate}; expected one of {_VALID_VAT_RATES}")
@@ -101,7 +101,7 @@ def determine_tipo_factura(
     billing_tax_id: str | None,
     importe_total: Decimal,
 ) -> str:
-    """Decide ``F1``/``F2``/``R1`` for a DentalPin invoice.
+    """Decide ``F1``/``F2``/``R1`` for a Dentora invoice.
 
     Rules:
 

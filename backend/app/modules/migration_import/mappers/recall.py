@@ -4,7 +4,7 @@ The Gesdén ``Recalls`` table is a flat call-back queue with one row per
 scheduled follow-up. ``IdMotivo`` (reason) and ``IdResultado`` (result)
 are surfaced in the canonical payload as opaque uuid5 references —
 without a master decoder for those uuids we can't map back to the
-DentalPin reason vocabulary. The mapper therefore drops the row into
+Dentora reason vocabulary. The mapper therefore drops the row into
 ``other`` and stores the free-text ``Comentario`` in ``reason_note``
 so the receptionist still has context.
 
@@ -148,8 +148,8 @@ class RecallMapper:
             entity_type="recall",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="recalls",
-            dentalpin_id=recall.id,
+            dentora_table="recalls",
+            dentora_id=recall.id,
         )
         return recall.id
 

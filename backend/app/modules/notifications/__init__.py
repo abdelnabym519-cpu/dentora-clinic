@@ -33,7 +33,7 @@ class NotificationsModule(BaseModule):
         "name": "notifications",
         "version": "0.1.0",
         "summary": "Email templates, preferences, SMTP, event-driven sending.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "agenda", "budget", "billing", "catalog"],

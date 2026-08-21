@@ -1,6 +1,6 @@
 name: Images health
 
-# Uptime Kuma (status.dentalpin.com) already watches every HTTP surface —
+# Uptime Kuma (status.dentora.com) already watches every HTTP surface —
 # demo, site, docs, the raw install files. This covers the one thing it
 # cannot: whether the published images are still anonymously pullable and
 # still carry both architectures.

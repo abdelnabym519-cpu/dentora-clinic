@@ -1,6 +1,6 @@
 """Gesdén-specific lookup tables for catalog mapping.
 
-This module lives inside ``migration_import`` because DentalPin is a
+This module lives inside ``migration_import`` because Dentora is a
 global project and Gesdén is a Spanish PMS: all Gesdén-flavoured
 heuristics must stay isolated to the importer. The destination
 ``catalog`` schema is untouched — no new columns, no aliases stored on
@@ -9,7 +9,7 @@ heuristics must stay isolated to the importer. The destination
 Three signals are reduced into these tables, all keyed by Gesdén's
 ``IdTipoODG`` (the 46-value ``TTipoOdg`` master enum):
 
-1. **Clinical type** — DentalPin ``TreatmentType`` enum (or ``None``
+1. **Clinical type** — Dentora ``TreatmentType`` enum (or ``None``
    when the Gesdén row is a non-tooth entry like Higiene/Panorámica).
 2. **Treatment scope** — ``tooth`` / ``multi_tooth`` / ``global_mouth``
    / ``global_arch``. Drives how the destination catalog item asks
@@ -59,7 +59,7 @@ CATEGORY_MIGRATED: Final[str] = "migrado_gesden"
 
 
 # ---------------------------------------------------------------------------
-# IdTipoODG → DentalPin TreatmentType (clinical_type) string.
+# IdTipoODG → Dentora TreatmentType (clinical_type) string.
 # ``None`` means "no odontogram-visible clinical type" — global treatments,
 # admin entries, tooth-state markers that are pre-existing conditions rather
 # than treatments.
@@ -114,7 +114,7 @@ GESDEN_TIPO_ODG_TO_CLINICAL_TYPE: Final[dict[int, str | None]] = {
 
 
 # ---------------------------------------------------------------------------
-# IdTipoODG → DentalPin treatment_scope. Drives how the destination catalog
+# IdTipoODG → Dentora treatment_scope. Drives how the destination catalog
 # item asks the clinician for tooth selection on the odontogram.
 # ---------------------------------------------------------------------------
 GESDEN_TIPO_ODG_TO_SCOPE: Final[dict[int, str]] = {
@@ -393,7 +393,7 @@ def scope_for_tipo_odg(tipo_odg: int | None) -> str:
 
 
 def clinical_type_for_tipo_odg(tipo_odg: int | None) -> str | None:
-    """Return the DentalPin ``TreatmentType`` value for a Gesdén
+    """Return the Dentora ``TreatmentType`` value for a Gesdén
     ``IdTipoODG``, or ``None`` if the row is non-clinical."""
     if tipo_odg is None:
         return None

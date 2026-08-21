@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seed script to populate DentalPin with demo data.
+"""Seed script to populate Dentora with demo data.
 
 Creates the full clinical narrative for a demo clinic:
     patients → treatment plans → (budgets + appointments) → invoices
@@ -595,7 +595,7 @@ async def seed_invoices(db: AsyncSession, catalog_map: dict, budgets_result: dic
 def parse_args():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Seed DentalPin with demo data",
+        description="Seed Dentora with demo data",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -622,7 +622,7 @@ async def main(lang: str = "en") -> None:
     lang_name = lang_names.get(lang, lang)
 
     print("\n" + "=" * 60)
-    print(f"DentalPin Demo Data Seeder ({lang_name})")
+    print(f"Dentora Demo Data Seeder ({lang_name})")
     print("=" * 60 + "\n")
 
     async with async_session_maker() as db:
@@ -683,7 +683,7 @@ async def main(lang: str = "en") -> None:
             await seed_invoices(db, catalog_map, budgets_result)
 
             # Optional modules — only seed when installed. Looked up by
-            # name in ``core_module`` so a future ``dentalpin modules
+            # name in ``core_module`` so a future ``dentora modules
             # uninstall schedules`` cleanly skips this step.
             if await _module_is_installed(db, "schedules"):
                 print("\n[opt] Creating schedules demo (module installed)...")

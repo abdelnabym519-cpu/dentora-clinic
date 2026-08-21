@@ -60,7 +60,7 @@ async function createSigningMaterial() {
 async function signLease(privateKey, overrides = {}) {
   const payload = {
     v: 1,
-    product: "dentalpin",
+    product: "dentora",
 
     license_id: "license-test-001",
     activation_id: "activation-test-001",
@@ -72,7 +72,7 @@ async function signLease(privateKey, overrides = {}) {
       "fingerprint-test-000000000001",
 
     customer_name:
-      "DentalPin AI Gateway Test",
+      "Dentora AI Gateway Test",
 
     plan: "standard",
 

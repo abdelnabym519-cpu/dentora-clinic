@@ -159,8 +159,8 @@ class BudgetMapper:
             entity_type="budget",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="budgets",
-            dentalpin_id=budget.id,
+            dentora_table="budgets",
+            dentora_id=budget.id,
         )
         return budget.id
 

@@ -6,7 +6,7 @@ last_verified_commit: 0000000
 # WhatsApp (Kapso)
 
 Este módulo opcional conecta el **número de WhatsApp de la clínica** con
-DentalPin a través de [Kapso](https://kapso.ai), para enviar recordatorios y
+Dentora a través de [Kapso](https://kapso.ai), para enviar recordatorios y
 mensajes por WhatsApp y **recibir y responder** a los pacientes.
 
 Es el "cable": la lógica de comunicaciones (canales, consentimiento, cola de

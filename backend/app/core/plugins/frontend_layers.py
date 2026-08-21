@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 MODULES_JSON_SCHEMA_VERSION = 1
-DEFAULT_FRONTEND_ROOT = Path(settings.DENTALPIN_FRONTEND_ROOT)
+DEFAULT_FRONTEND_ROOT = Path(settings.DENTORA_FRONTEND_ROOT)
 
 
 @dataclass
@@ -86,15 +86,15 @@ def resolve_layer_path(module: BaseModule) -> Path | None:
 def _translate_for_frontend(path: Path) -> str:
     """Rewrite a backend-container layer path for the frontend container.
 
-    The backend sees layers at ``{DENTALPIN_MODULE_PKG_ROOT}/<name>/...``;
+    The backend sees layers at ``{DENTORA_MODULE_PKG_ROOT}/<name>/...``;
     the frontend container mounts the same filesystem at
-    ``{DENTALPIN_MODULE_LAYERS_MOUNT}``. When the two paths differ we
+    ``{DENTORA_MODULE_LAYERS_MOUNT}``. When the two paths differ we
     rewrite so ``modules.json`` is usable by whoever reads it. If the
     path doesn't live under the known backend root (e.g. tests,
     community module installed from site-packages) we emit it as-is.
     """
-    pkg_root = Path(settings.DENTALPIN_MODULE_PKG_ROOT)
-    mount = Path(settings.DENTALPIN_MODULE_LAYERS_MOUNT)
+    pkg_root = Path(settings.DENTORA_MODULE_PKG_ROOT)
+    mount = Path(settings.DENTORA_MODULE_LAYERS_MOUNT)
     if pkg_root == mount:
         return str(path)
     try:

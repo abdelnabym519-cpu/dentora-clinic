@@ -1,4 +1,4 @@
-name: dentalpin-client
+name: dentora-client
 
 services:
   db:
@@ -94,7 +94,14 @@ services:
     restart: unless-stopped
 
 volumes:
+  # New installations receive Dentora-only physical volume names. An existing
+  # installation can supply its inspected physical volume names through the
+  # untracked environment and the existing-volumes overlay.
   pgdata:
+    name: ${DENTORA_POSTGRES_VOLUME:-dentora-client-pgdata}
   storage_data:
+    name: ${DENTORA_STORAGE_VOLUME:-dentora-client-storage-data}
   caddy_data:
+    name: ${DENTORA_CADDY_DATA_VOLUME:-dentora-client-caddy-data}
   caddy_config:
+    name: ${DENTORA_CADDY_CONFIG_VOLUME:-dentora-client-caddy-config}

@@ -27,7 +27,7 @@ class VerifactuModule(BaseModule):
         "name": "verifactu",
         "version": "0.1.0",
         "summary": "Cumplimiento Veri*Factu (AEAT) para clínicas en España.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["billing", "catalog"],

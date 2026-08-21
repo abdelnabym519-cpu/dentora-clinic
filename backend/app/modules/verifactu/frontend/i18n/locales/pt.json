@@ -281,7 +281,7 @@
       "title": "Produtor SIF",
       "subtitle": "Identificação legal de quem coloca o software em produção e assina a declaración responsable.",
       "legalIntroTitle": "Responsabilidade legal",
-      "legalIntro": "O art. 13 do RD 1007/2023 exige que o produtor do Sistema Informático de Facturación assine uma declaración responsable. Se o DentalPin for disponibilizado como SaaS gerido, o produtor é o operador do SaaS. Se uma clínica o alojar por conta própria (autodesarrollo), a própria clínica é o produtor. Se for um integrador a instalá-lo, o produtor é o integrador.",
+      "legalIntro": "O art. 13 do RD 1007/2023 exige que o produtor do Sistema Informático de Facturación assine uma declaración responsable. Se o Dentora for disponibilizado como SaaS gerido, o produtor é o operador do SaaS. Se uma clínica o alojar por conta própria (autodesarrollo), a própria clínica é o produtor. Se for um integrador a instalá-lo, o produtor é o integrador.",
       "process": {
         "title": "O que tem de fazer",
         "s1": "Identificar quem é o produtor SIF (passo 1) — dados legais que constam da declaração e de cada registo enviado à AEAT.",
@@ -318,7 +318,7 @@
         "heading": "Declaración responsable",
         "legalRef": "Sistema Informático de Facturación — Veri*Factu (RD 1007/2023, art. 13)",
         "preamble": "Nos termos do artigo 13 do Real Decreto 1007/2023 (RRSIF) e da Ordem HAC/1177/2024:",
-        "identity": "{name}, com NIF {nif}, na qualidade de produtor do Sistema Informático de Facturación denominado DentalPin (identificador de sistema {idSistema}, versão {version}), declara sob sua responsabilidade que:",
+        "identity": "{name}, com NIF {nif}, na qualidade de produtor do Sistema Informático de Facturación denominado Dentora (identificador de sistema {idSistema}, versão {version}), declara sob sua responsabilidade que:",
         "item1": "O sistema cumpre os requisitos do artigo 29.2.j) da Lei 58/2003 (General Tributaria) e do RRSIF.",
         "item2": "O sistema garante a integridade, conservação, acessibilidade, legibilidade, rastreabilidade e inalterabilidade dos registos de faturação.",
         "item3": "O sistema implementa o envio contínuo de registos à AEAT em modo Veri*Factu.",

@@ -53,7 +53,7 @@ def _bootstrap_env() -> None:
     os.environ.setdefault("SECRET_KEY", "scaffold-stub-key-32chars-minimum-12345")
     os.environ.setdefault("ENVIRONMENT", "test")
     os.environ.setdefault("TESTING", "true")
-    os.environ.setdefault("DENTALPIN_DEV_MODULE_SCAN", "true")
+    os.environ.setdefault("DENTORA_DEV_MODULE_SCAN", "true")
 
 
 _bootstrap_env()

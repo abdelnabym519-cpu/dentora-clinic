@@ -108,7 +108,7 @@ class ImportJob(Base, TimestampMixin):
 
 
 class EntityMapping(Base, TimestampMixin):
-    """`(source_system, canonical_uuid, entity_type)` → DentalPin row.
+    """`(source_system, canonical_uuid, entity_type)` → Dentora row.
 
     The idempotency keystone. Every mapper consults this first; if the
     triple is already present for the job's clinic, the mapper returns
@@ -132,8 +132,8 @@ class EntityMapping(Base, TimestampMixin):
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     source_canonical_uuid: Mapped[str] = mapped_column(String(64), nullable=False)
 
-    dentalpin_table: Mapped[str] = mapped_column(String(60), nullable=False)
-    dentalpin_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
+    dentora_table: Mapped[str] = mapped_column(String(60), nullable=False)
+    dentora_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
 
     job: Mapped[ImportJob] = relationship(back_populates="mappings")
 
@@ -301,7 +301,7 @@ class MappingDecision(Base, TimestampMixin):
 class RawEntity(Base, TimestampMixin):
     """Catch-all for DPMF entities without a dedicated mapper today.
 
-    Forward-compat hatch: the day a target module appears in DentalPin
+    Forward-compat hatch: the day a target module appears in Dentora
     we can rehydrate from these rows instead of asking the operator to
     re-import the file.
     """

@@ -1,6 +1,6 @@
 # Glossary
 
-Source of truth for DentalPin terminology. Code is in English; UI strings
+Source of truth for Dentora terminology. Code is in English; UI strings
 are in Spanish (i18n). When the same concept has both forms, list both.
 
 When you introduce a new domain term in code or UI, append it here. Keep
@@ -101,7 +101,7 @@ ADRs) for the full story.
 |---|---|
 | Module | A self-contained feature under `backend/app/modules/<name>/` plus its co-located frontend layer. See `docs/technical/creating-modules.md`. |
 | Manifest | The `manifest` dict on a `BaseModule` subclass. Identity, dependencies, permissions, install policy. Schema in `backend/app/core/plugins/manifest.py`. |
-| Entry point | `pyproject.toml` registration under `[project.entry-points."dentalpin.modules"]` so the loader can discover the module. |
+| Entry point | `pyproject.toml` registration under `[project.entry-points."dentora.modules"]` so the loader can discover the module. |
 | `depends` | Manifest field. List of modules this one needs at load time. Cross-module FKs and direct imports are only allowed against modules listed here. |
 | `installable` / `auto_install` / `removable` | Manifest policy flags. `auto_install=False` means the user activates the module from admin UI. |
 | `branch_labels` | Alembic per-module migration branch label. Each module owns its branch — never thread one module's revisions through another's chain (issue #56). See ADR 0002. |

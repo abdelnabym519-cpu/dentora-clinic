@@ -1,6 +1,6 @@
 # End-to-end testing
 
-DentalPin ships a small [Playwright](https://playwright.dev/) suite
+Dentora ships a small [Playwright](https://playwright.dev/) suite
 under `frontend/tests/e2e/` that drives the live dev stack. It is
 deliberately narrow — **smoke only** — because the bulk of the
 regression safety comes from the backend `pytest` suite. E2E exists

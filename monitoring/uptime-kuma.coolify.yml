@@ -5,7 +5,7 @@ services:
       # Coolify auto-injects FQDN + provisions SSL when this var is set.
       # Service name must match the env var suffix (no dashes), otherwise
       # Coolify does not wire the Traefik labels.
-      # Set KUMA_FQDN in the Coolify UI (e.g. status.dentalpin.com).
+      # Set KUMA_FQDN in the Coolify UI (e.g. status.dentora.example).
       SERVICE_FQDN_UPTIMEKUMA_3001: ${KUMA_FQDN}
     volumes:
       - kuma_data:/app/data

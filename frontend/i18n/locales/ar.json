@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "DentalPin",
+    "name": "Dentora",
     "tagline": "إدارة عيادة الأسنان"
   },
   "demo": {
@@ -63,7 +63,7 @@
     "next": "التالي",
     "back": "رجوع",
     "submit": "إنشاء والبدء",
-    "success": "تم كل شيء! مرحبًا بك في DentalPin",
+    "success": "تم كل شيء! مرحبًا بك في Dentora",
     "firstNameRequired": "أدخل الاسم الأول",
     "lastNameRequired": "أدخل اسم العائلة",
     "emailRequired": "أدخل البريد الإلكتروني",
@@ -890,7 +890,7 @@
       "afternoon": "مساء الخير",
       "evening": "مساء الخير"
     },
-    "welcome": "مرحبًا بك في DentalPin",
+    "welcome": "مرحبًا بك في Dentora",
     "welcomeMessage": "ابدأ بإنشاء أول مريض لك.",
     "quickActions": {
       "newAppointment": "موعد جديد",

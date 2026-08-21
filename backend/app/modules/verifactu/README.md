@@ -1,7 +1,7 @@
 # Verifactu module — Spanish AEAT compliance
 
 Implements the Spanish RRSIF / Veri\*Factu regime (RD 1007/2023, Orden
-HAC/1177/2024, RDL 15/2025) so DentalPin clinics in Spain can comply
+HAC/1177/2024, RDL 15/2025) so Dentora clinics in Spain can comply
 with the mandatory e-invoicing rules:
 
 | Population | Mandatory date |
@@ -31,17 +31,17 @@ Under RD 1007/2023 art. 13, every Sistema Informático de Facturación
 compliance. The producer must sign a *declaración responsable* and is
 exposed to LGT 201 bis sanctions if the software does not comply.
 
-DentalPin is open-source (BSL 1.1 → Apache 2.0 after 4 years). The
+Dentora is open-source (BSL 1.1 → Apache 2.0 after 4 years). The
 producer role depends on **who deploys and operates the software**:
 
 | Deployment model | Producer (productor del SIF) |
 |---|---|
-| Managed SaaS at `dentalpin.com` | The SaaS operator (e.g. Dentared Odontology Services S.L.) |
+| Managed SaaS at `dentora.example` | The SaaS operator (e.g. Dentared Odontology Services S.L.) |
 | Self-hosted by a clinic with its own IT (autodesarrollo) | The clinic itself |
 | Self-hosted via integrator/partner | The integrator |
 | Local development, no real fiscal use | None — Veri\*Factu must stay disabled |
 
-The DentalPin codebase **does not** designate a default producer. The
+The Dentora codebase **does not** designate a default producer. The
 `<SistemaInformatico>` block sent to AEAT is filled per-deployment from
 the wizard at `/settings/verifactu/producer` (or env vars
 `VERIFACTU_VENDOR_NIF` and `VERIFACTU_VENDOR_NAME` as defaults). The
@@ -65,7 +65,7 @@ Per-deployment env vars (used as defaults shown by the wizard):
 ```bash
 VERIFACTU_VENDOR_NIF=                 # Producer NIF (real CIF — leave blank if set per-clinic in wizard)
 VERIFACTU_VENDOR_NAME=                # Producer legal name
-VERIFACTU_SOFTWARE_NAME=DentalPin     # Optional, default DentalPin
+VERIFACTU_SOFTWARE_NAME=Dentora     # Optional, default Dentora
 VERIFACTU_SOFTWARE_ID=DP              # 2-char system ID
 VERIFACTU_SOFTWARE_VERSION=0.1.0      # Software version string
 ```

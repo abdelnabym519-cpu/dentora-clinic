@@ -1,7 +1,7 @@
 """ProfessionalMapper — role and is_active wiring.
 
 Guards against the canonical "doctor" role silently falling through to
-"assistant" (it must map to DentalPin's "dentist") and against
+"assistant" (it must map to Dentora's "dentist") and against
 imported professionals landing inactive in the Users page.
 """
 

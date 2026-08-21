@@ -20,7 +20,7 @@ class AccountingExportModule(BaseModule):
         "name": "accounting_export",
         "version": "0.1.0",
         "summary": "Export invoices and payments for the accountant (gestoría).",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["billing", "payments"],

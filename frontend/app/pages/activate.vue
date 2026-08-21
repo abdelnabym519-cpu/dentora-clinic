@@ -21,28 +21,28 @@ const errorMessage = ref('')
 const ar = computed(() => locale.value === 'ar')
 const text = computed(() => ar.value
   ? {
-      title: 'تفعيل DentalPin',
+      title: 'تفعيل Dentora',
       subtitle: 'أدخل مفتاح الترخيص الخاص بالعيادة قبل إنشاء حساب المسؤول.',
       key: 'مفتاح الترخيص',
       placeholder: 'DP-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
       activate: 'تفعيل النظام',
       activating: 'جاري التفعيل...',
       installation: 'معرّف التثبيت',
-      help: 'إذا لم يكن لديك مفتاح ترخيص، تواصل مع مزود DentalPin.',
-      loadError: 'تعذر الاتصال بخدمة DentalPin المحلية.',
+      help: 'إذا لم يكن لديك مفتاح ترخيص، تواصل مع مزود Dentora.',
+      loadError: 'تعذر الاتصال بخدمة Dentora المحلية.',
       required: 'أدخل مفتاح الترخيص أولًا.',
       failed: 'تعذر تفعيل مفتاح الترخيص.'
     }
   : {
-      title: 'Activate DentalPin',
+      title: 'Activate Dentora',
       subtitle: 'Enter this clinic\'s license key before creating the administrator account.',
       key: 'License key',
       placeholder: 'DP-XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
       activate: 'Activate system',
       activating: 'Activating...',
       installation: 'Installation ID',
-      help: 'If you do not have a license key, contact your DentalPin provider.',
-      loadError: 'Could not reach the local DentalPin service.',
+      help: 'If you do not have a license key, contact your Dentora provider.',
+      loadError: 'Could not reach the local Dentora service.',
       required: 'Enter the license key first.',
       failed: 'Could not activate this license key.'
     })
@@ -95,7 +95,7 @@ onMounted(loadStatus)
     <div class="text-center mb-6">
       <img
         src="/logo-icon.svg"
-        alt="DentalPin"
+        alt="Dentora"
         width="64"
         height="64"
         class="mx-auto mb-3"

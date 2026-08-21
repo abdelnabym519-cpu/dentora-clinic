@@ -1,6 +1,6 @@
 # Railway hosted 3-day trial
 
-This runbook deploys the merged DentalPin trial from this repository. The client receives only public URLs and credentials; the trial clock stays under deployment control.
+This runbook deploys the merged Dentora trial from this repository. The client receives only public URLs and credentials; the trial clock stays under deployment control.
 
 ## Railway services
 
@@ -42,7 +42,7 @@ RAILWAY_RUN_UID=0
 
 `DATABASE_URL` is constructed with the `postgresql+asyncpg` SQLAlchemy driver required by this backend. Keep the two signing secrets different.
 
-Attach a Railway volume to `backend` mounted at `/app/storage` so uploaded media survives redeploys. `RAILWAY_RUN_UID=0` is required for this trial deployment because Railway mounts the volume as root while the normal DentalPin image runs as a non-root user.
+Attach a Railway volume to `backend` mounted at `/app/storage` so uploaded media survives redeploys. `RAILWAY_RUN_UID=0` is required for this trial deployment because Railway mounts the volume as root while the normal Dentora image runs as a non-root user.
 
 ## Frontend variables
 
@@ -55,7 +55,7 @@ API_BASE_URL_SERVER=http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:8000
 NUXT_PUBLIC_TRIAL_MODE=false
 NUXT_PUBLIC_TRIAL_STARTED_AT=
 NUXT_PUBLIC_TRIAL_DAYS=3
-NUXT_PUBLIC_DOCS_URL=https://docs.dentalpin.com
+NUXT_PUBLIC_DOCS_URL=https://docs.dentora.example
 ```
 
 ## Deploy and smoke-test before starting the clock

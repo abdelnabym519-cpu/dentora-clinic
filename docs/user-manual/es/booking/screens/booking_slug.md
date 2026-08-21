@@ -17,7 +17,7 @@ last_verified_commit: fa7de66
 
 # Reserva de cita online
 
-Esta es la página pública que usan los pacientes para reservar una cita sin iniciar sesión en DentalPin. La clínica comparte una URL que contiene su slug público de reservas y la página guía al paciente para elegir profesional, día y hueco disponible, introducir sus datos y confirmar la cita.
+Esta es la página pública que usan los pacientes para reservar una cita sin iniciar sesión en Dentora. La clínica comparte una URL que contiene su slug público de reservas y la página guía al paciente para elegir profesional, día y hueco disponible, introducir sus datos y confirmar la cita.
 
 La reserva se registra directamente en Agenda como una cita con estado `scheduled`. No existe un estado intermedio de confirmación pendiente.
 
@@ -37,11 +37,11 @@ Si el hueco seleccionado ya no está disponible, se pide al paciente que elija o
 
 ## Coincidencia de pacientes
 
-DentalPin intenta reutilizar un paciente existente cuando los datos aportados permiten una coincidencia fiable. Si la coincidencia es ambigua, el flujo de reserva prefiere crear un registro de paciente separado antes que asociar la cita a la persona equivocada.
+Dentora intenta reutilizar un paciente existente cuando los datos aportados permiten una coincidencia fiable. Si la coincidencia es ambigua, el flujo de reserva prefiere crear un registro de paciente separado antes que asociar la cita a la persona equivocada.
 
 ## Acceso público y límites de uso
 
-Esta pantalla es pública y no requiere una sesión del personal de DentalPin ni permisos internos. Los endpoints públicos de metadatos, profesionales, huecos y creación de reservas tienen límites de uso para reducir abusos.
+Esta pantalla es pública y no requiere una sesión del personal de Dentora ni permisos internos. Los endpoints públicos de metadatos, profesionales, huecos y creación de reservas tienen límites de uso para reducir abusos.
 
 ## Resolución de problemas
 

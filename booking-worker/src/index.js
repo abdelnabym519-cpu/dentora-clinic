@@ -3246,7 +3246,7 @@ export default {
 
       return jsonResponse({
         ok: true,
-        service: "dentalpin-booking"
+        service: "dentora-booking"
       });
     }
 

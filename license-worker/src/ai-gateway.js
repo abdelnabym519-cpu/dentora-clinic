@@ -1,4 +1,4 @@
-const PRODUCT = "dentalpin";
+const PRODUCT = "dentora";
 const DEFAULT_WORKERS_AI_MODEL =
   "@cf/zai-org/glm-4.7-flash";
 
@@ -499,7 +499,7 @@ async function proxyToWorkersAi(request, env) {
     workersAiModel(env);
 
   /*
-   * The DentalPin backend keeps using its
+   * The Dentora backend keeps using its
    * client-facing model alias.
    *
    * The owner-controlled gateway maps that alias

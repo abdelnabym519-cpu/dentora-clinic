@@ -1,6 +1,6 @@
-# Multi-tenancy en DentalPin
+# Multi-tenancy en Dentora
 
-Documento de arquitectura. Define el modelo de aislamiento actual (self-hosted) y las costuras que permitirán un módulo externo `dentalpin-saas` con DB-per-tenant sin tocar core.
+Documento de arquitectura. Define el modelo de aislamiento actual (self-hosted) y las costuras que permitirán un módulo externo `dentora-saas` con DB-per-tenant sin tocar core.
 
 **Estado**: diseño aprobado, Fase 1 pendiente de ejecución. Las fases 2–7 se ejecutarán cuando exista un segundo cliente real que justifique el SaaS.
 
@@ -10,7 +10,7 @@ Documento de arquitectura. Define el modelo de aislamiento actual (self-hosted) 
 
 ## 1. Modelo de aislamiento
 
-DentalPin usa **dos capas de aislamiento** complementarias:
+Dentora usa **dos capas de aislamiento** complementarias:
 
 | Capa | Unidad | Aislamiento | Vive en |
 |------|--------|-------------|---------|
@@ -110,7 +110,7 @@ En Fase 1 solo se **declara** `TENANT_RESOLVED` como constante; no se publica ha
 
 ## 4. Punto de extensión SaaS
 
-Un futuro módulo `dentalpin-saas` no toca core. Implementa:
+Un futuro módulo `dentora-saas` no toca core. Implementa:
 
 1. **`SaasTenantResolver(TenantResolver)`**: resuelve por host/header/JWT, consulta su control plane (DB propia con tenants y planes), devuelve `TenantContext` con `db_url` y `modules_enabled` por suscripción.
 2. **Hook en lifespan**: sustituye `app.state.tenant_resolver` por el suyo.

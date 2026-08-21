@@ -59,7 +59,7 @@ function leasePayload(
   overrides = {}
 ) {
   return {
-    product: "dentalpin",
+    product: "dentora",
     v: 1,
 
     license_id:
@@ -1004,7 +1004,7 @@ async function putAvailability(
 ) {
   return worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/sync/availability",
+      "https://booking.dentora.example/api/v1/sync/availability",
       {
         method: "PUT",
 
@@ -1203,7 +1203,7 @@ test(
     const publicResponse =
       await worker.fetch(
         new Request(
-          "https://book.dentalpin.app/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=2026-08-21"
+          "https://booking.dentora.example/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=2026-08-21"
         ),
         env
       );

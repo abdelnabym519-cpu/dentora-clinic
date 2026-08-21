@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(
-    title="DentalPin API",
+    title="Dentora API",
     description="Open source dental clinic management software",
     version="2.0.0",
     lifespan=lifespan,
@@ -124,7 +124,7 @@ async def commercial_license_middleware(request: Request, call_next):
         if not request.url.path.startswith(allowed_prefixes):
             license_status = await license_manager.get_status(allow_refresh=True)
             if not license_status.get("active"):
-                message = license_status.get("reason") or "DentalPin license activation required"
+                message = license_status.get("reason") or "Dentora license activation required"
                 error_response = ErrorResponse(message=message, errors=[message])
                 return JSONResponse(
                     status_code=402,
@@ -223,7 +223,7 @@ async def readiness_check(
 async def api_root() -> dict:
     """API root endpoint."""
     return {
-        "message": "DentalPin API",
+        "message": "Dentora API",
         "version": "2.0.0",
         "docs": "/docs" if settings.ENVIRONMENT == "development" else None,
     }

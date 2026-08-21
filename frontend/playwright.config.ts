@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * Playwright config for DentalPin browser E2E.
+ * Playwright config for Dentora browser E2E.
  *
  * Tests drive the live dev stack (Nuxt at :3000, FastAPI at :8000,
  * Postgres seeded via `./scripts/seed-demo.sh`). The suite is

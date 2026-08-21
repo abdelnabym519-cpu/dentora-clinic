@@ -125,14 +125,14 @@ async def _resolve_patient_for_staging(db: AsyncSession, *, staging: FileStaging
 
     Today only ``patient_document`` parents resolve through the
     document mapper, which writes the entity mapping with
-    ``dentalpin_table='patients'`` (and ``dentalpin_id=<patient.id>``).
+    ``dentora_table='patients'`` (and ``dentora_id=<patient.id>``).
     Other parent entity types (consent, prescription, ...) need their
     own mappers + this resolver branch.
     """
     if staging.parent_entity_type != DOCUMENT_ENTITY_TYPE:
         return None
     result = await db.execute(
-        select(EntityMapping.dentalpin_id).where(
+        select(EntityMapping.dentora_id).where(
             EntityMapping.clinic_id == staging.clinic_id,
             EntityMapping.entity_type == DOCUMENT_ENTITY_TYPE,
             EntityMapping.source_canonical_uuid == staging.parent_canonical_uuid,

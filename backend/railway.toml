@@ -4,7 +4,7 @@ dockerfilePath = "Dockerfile"
 
 [deploy]
 # Railway overrides a Docker image ENTRYPOINT when startCommand is set, so
-# explicitly invoke DentalPin's entrypoint to keep migrations + optional demo
+# explicitly invoke Dentora's entrypoint to keep migrations + optional demo
 # seeding before Uvicorn starts.
 startCommand = "sh -c '/app/docker-entrypoint.sh uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*'"
 healthcheckPath = "/health"

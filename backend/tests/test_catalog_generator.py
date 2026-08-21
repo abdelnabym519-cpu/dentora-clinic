@@ -25,8 +25,8 @@ def _load_generator():
     # the container). Pin the roots to the actual ``app`` package so the
     # source scan works regardless of layout.
     backend_root = Path(app.__file__).resolve().parents[1]
-    os.environ["DENTALPIN_BACKEND_ROOT"] = str(backend_root)
-    os.environ["DENTALPIN_REPO_ROOT"] = str(backend_root.parent)
+    os.environ["DENTORA_BACKEND_ROOT"] = str(backend_root)
+    os.environ["DENTORA_REPO_ROOT"] = str(backend_root.parent)
     spec = importlib.util.spec_from_file_location("_gen_catalogs", _SCRIPT)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)

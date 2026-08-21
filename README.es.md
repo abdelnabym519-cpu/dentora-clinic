@@ -1,4 +1,4 @@
-# DentalPin
+# Dentora
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
 [![es](https://img.shields.io/badge/lang-es-yellow.svg)](./README.es.md)
@@ -8,22 +8,22 @@
 agenda, planes de tratamiento, facturación y un copiloto de IA integrado — modular,
 self-hosted y API-first.
 
-### ▶ [**Prueba la demo en vivo**](https://demo.dentalpin.com)
+### ▶ [**Prueba la demo en vivo**](https://demo.dentora.example)
 
 Entra con `admin@demo.clinic` / `demo1234` — acceso completo de administrador a una
 clínica de ejemplo. Se reinicia cada noche, así que trastea sin miedo.
 
-[![DentalPin — ficha de paciente con odontograma](docs/screenshots/patients.png)](https://demo.dentalpin.com)
+[![Dentora — ficha de paciente con odontograma](docs/screenshots/patients.png)](https://demo.dentora.example)
 
-<sub>[Web](https://www.dentalpin.com) · [Documentación](https://docs.dentalpin.com) · [Telegram](https://t.me/dentalpin) · [Más capturas ↓](#capturas-de-pantalla)</sub>
+<sub>[Web](https://www.dentora.example) · [Documentación](https://docs.dentora.example) · [Telegram](https://support.dentora.example) · [Más capturas ↓](#capturas-de-pantalla)</sub>
 
-## ¿Por qué DentalPin?
+## ¿Por qué Dentora?
 
 Las clínicas dentales de todo el mundo comparten las mismas necesidades fundamentales: gestionar pacientes, programar citas, hacer seguimiento de tratamientos y dirigir su práctica de manera eficiente. Sin embargo, el panorama del software está fragmentado en docenas de soluciones localizadas y de código cerrado que encierran a las clínicas en contratos costosos y tecnología obsoleta.
 
 **Creemos que es hora de cambiar.**
 
-DentalPin se construye sobre una premisa simple: **una plataforma abierta para clínicas dentales en todas partes**. No otra solución regional, sino una base global que cualquier clínica pueda adoptar, cualquier desarrollador pueda extender y cualquier comunidad pueda localizar.
+Dentora se construye sobre una premisa simple: **una plataforma abierta para clínicas dentales en todas partes**. No otra solución regional, sino una base global que cualquier clínica pueda adoptar, cualquier desarrollador pueda extender y cualquier comunidad pueda localizar.
 
 ### ¿Por qué ahora?
 
@@ -41,11 +41,11 @@ La IA ha cambiado fundamentalmente lo que los equipos pequeños pueden construir
 
 No solo estamos construyendo software — estamos construyendo la base de un ecosistema. Una plataforma donde los desarrolladores contribuyen módulos, las clínicas comparten mejoras y toda la comunidad dental se beneficia de la innovación colectiva.
 
-Las clínicas merecen algo mejor que software cerrado y costoso de la década pasada. DentalPin es la alternativa abierta.
+Las clínicas merecen algo mejor que software cerrado y costoso de la década pasada. Dentora es la alternativa abierta.
 
 ## ✨ Copiloto IA
 
-DentalPin incluye un **asistente IA agentic integrado** que convierte toda la clínica en algo con lo que simplemente puede conversar. Pídale encontrar un paciente, liberar un espacio, perseguir un presupuesto sin respuesta, o informarle sobre el día por delante — en español o inglés — y actúa sobre sus datos reales.
+Dentora incluye un **asistente IA agentic integrado** que convierte toda la clínica en algo con lo que simplemente puede conversar. Pídale encontrar un paciente, liberar un espacio, perseguir un presupuesto sin respuesta, o informarle sobre el día por delante — en español o inglés — y actúa sobre sus datos reales.
 
 ![AI Copilot](docs/screenshots/ia.png)
 
@@ -63,11 +63,11 @@ Agnóstico al proveedor en las capas internas (abstracción del proveedor LLM), 
 
 ## Sitio web
 
-Visite [**dentalpin.com**](https://www.dentalpin.com) para información del producto, características y detalles comerciales.
+Visite [**dentora.example**](https://www.dentora.example) para información del producto, características y detalles comerciales.
 
 ## Comunidad
 
-Únase a nuestro [**canal de Telegram**](https://t.me/dentalpin) para soporte, ayuda con la instalación y preguntas.
+Únase a nuestro [**canal de Telegram**](https://support.dentora.example) para soporte, ayuda con la instalación y preguntas.
 
 ## Capturas de pantalla
 
@@ -252,7 +252,7 @@ Runbook completo + referencia de fixtures: [docs/technical/e2e-testing.md](docs/
 
 ## Arquitectura
 
-DentalPin utiliza una arquitectura modular tipo plugin. Cada funcionalidad es un módulo autónomo que:
+Dentora utiliza una arquitectura modular tipo plugin. Cada funcionalidad es un módulo autónomo que:
 - Declara sus modelos SQLAlchemy
 - Proporciona un router FastAPI
 - Puede suscribirse a eventos de otros módulos
@@ -263,7 +263,7 @@ Consulte [docs/architecture.md](docs/architecture.md) para más detalles.
 
 Business Source License 1.1 (BSL 1.1)
 
-**Limitación de uso:** No puede ofrecer DentalPin como un SaaS comercial para la gestión de clínicas dentales.
+**Limitación de uso:** No puede ofrecer Dentora como un SaaS comercial para la gestión de clínicas dentales.
 
 **Fecha de cambio:** 4 años desde el lanzamiento
 

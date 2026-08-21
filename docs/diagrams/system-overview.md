@@ -1,6 +1,6 @@
 # System Overview
 
-High-level architecture of DentalPin.
+High-level architecture of Dentora.
 
 ## Architecture
 

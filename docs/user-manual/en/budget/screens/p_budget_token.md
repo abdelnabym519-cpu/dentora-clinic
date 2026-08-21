@@ -70,7 +70,7 @@ the link is forwarded to them.
 
 ## Permissions
 
-This is a public screen: no DentalPin permissions are tied to it.
+This is a public screen: no Dentora permissions are tied to it.
 The clinic-side actions that support it require `budget.write` in
 the clinic (send, resend, set/change code, unlock).
 

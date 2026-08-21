@@ -1,0 +1,18 @@
+# Use only for a controlled upgrade of an existing installation. Before using
+# this overlay, inspect and record each existing volume, database row count,
+# media count, installation ID, and license state. Supply the physical volume
+# names through an untracked .env.client. This file never creates or deletes a
+# volume and deliberately requires every persisted volume to exist.
+volumes:
+  pgdata:
+    external: true
+    name: ${DENTORA_POSTGRES_VOLUME:?Set DENTORA_POSTGRES_VOLUME to the inspected source volume}
+  storage_data:
+    external: true
+    name: ${DENTORA_STORAGE_VOLUME:?Set DENTORA_STORAGE_VOLUME to the inspected source volume}
+  caddy_data:
+    external: true
+    name: ${DENTORA_CADDY_DATA_VOLUME:?Set DENTORA_CADDY_DATA_VOLUME to the inspected source volume}
+  caddy_config:
+    external: true
+    name: ${DENTORA_CADDY_CONFIG_VOLUME:?Set DENTORA_CADDY_CONFIG_VOLUME to the inspected source volume}

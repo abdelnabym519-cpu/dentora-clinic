@@ -1,4 +1,4 @@
-"""Outbound HTTPS client for DentalPin public booking cloud sync."""
+"""Outbound HTTPS client for Dentora public booking cloud sync."""
 
 from __future__ import annotations
 

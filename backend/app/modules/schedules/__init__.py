@@ -41,7 +41,7 @@ class SchedulesModule(BaseModule):
             "Clinic + professional operating hours, overrides, availability, "
             "and occupancy analytics."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["agenda"],

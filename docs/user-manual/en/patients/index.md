@@ -7,7 +7,7 @@ last_verified_commit: 0e9a0ac
 
 The patients module manages identity records for the people your clinic
 treats: name, contact details, demographics, and lifecycle status.
-Almost every other module in DentalPin links back to a patient row.
+Almost every other module in Dentora links back to a patient row.
 
 ## Screens
 

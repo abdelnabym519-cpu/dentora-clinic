@@ -19,7 +19,7 @@ codebase have no deterministic way to know *which* markdown file to update after
 a code change.
 
 The product also needs documentation that is **accessible publicly** (linkable
-from the commercial site at `dentalpin.com`) and **available in-app** as
+from the commercial site at `dentora.example`) and **available in-app** as
 contextual help on every screen — without duplicating content between the
 two surfaces.
 
@@ -32,7 +32,7 @@ markdown without duplication. Six pillars:
 
 1. **Renderer**: VitePress, deployed as a Docker container under Coolify on
    the existing Hetzner host (same infrastructure as backend). The portal
-   serves at `docs.dentalpin.com`, public, no auth. TLS via Coolify's
+   serves at `docs.dentora.example`, public, no auth. TLS via Coolify's
    automatic Let's Encrypt.
 
 2. **Single source of truth**: `/docs/**` markdown is canonical. The portal
@@ -64,7 +64,7 @@ markdown without duplication. Six pillars:
 6. **In-app help is a thin client of the portal**:
    - Build script generates `dist/help/<route-slug>.html` per screen file.
    - Frontend adds `<HelpButton />` in the app shell. Drawer fetches the
-     pre-rendered HTML over CORS from `docs.dentalpin.com`.
+     pre-rendered HTML over CORS from `docs.dentora.example`.
    - **Zero markdown rendering on the FastAPI backend.** App and docs deploys
      are independent.
    - The "Open full manual" link on the drawer goes to the same content on
@@ -101,7 +101,7 @@ developer-facing and CLAUDE.md already establishes that convention.
 - CI catches drift mechanically; the stale badge surfaces drift even when
   CI passes (e.g., a code change that doesn't add new artifacts but invalidates
   prose).
-- Portal is public, so the commercial site (`dentalpin.com`) and the in-app
+- Portal is public, so the commercial site (`dentora.example`) and the in-app
   help button link to the same URLs.
 
 ### Bad / accepted trade-offs

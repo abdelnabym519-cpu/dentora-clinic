@@ -63,7 +63,7 @@ function defaultLeasePayload(
   overrides = {}
 ) {
   return {
-    product: "dentalpin",
+    product: "dentora",
     v: 1,
 
     license_id:
@@ -578,7 +578,7 @@ async function putProfile(
 
   return worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/sync/profile",
+      "https://booking.dentora.example/api/v1/sync/profile",
       {
         method: "PUT",
         headers,
@@ -960,7 +960,7 @@ test(
     const publicResponse =
       await worker.fetch(
         new Request(
-          "https://book.dentalpin.app/api/v1/public/dental"
+          "https://booking.dentora.example/api/v1/public/dental"
         ),
         env
       );

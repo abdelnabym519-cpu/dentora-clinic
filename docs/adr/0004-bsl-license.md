@@ -6,7 +6,7 @@
 
 ## Context
 
-DentalPin is open source and intends to grow a community. We also fund
+Dentora is open source and intends to grow a community. We also fund
 development through a managed SaaS deployment and partner integrators.
 A permissive license alone (Apache 2.0, MIT) lets a competing SaaS take
 the codebase and operate it without contributing back, undermining the
@@ -20,14 +20,14 @@ after a fixed number of years.
 
 ## Decision
 
-DentalPin is licensed under **BSL 1.1**. Per-version conversion: each
+Dentora is licensed under **BSL 1.1**. Per-version conversion: each
 released version becomes **Apache 2.0** four years after its release
 date.
 
 Use restriction (BSL "Additional Use Grant"): non-production use is
 unrestricted; production use is permitted **except** for offering a
 commercial managed dental clinic management service to third parties
-that is substantially similar to DentalPin's own SaaS.
+that is substantially similar to Dentora's own SaaS.
 
 The Veri\*Factu module (and any other compliance module) inherits the
 same license terms.

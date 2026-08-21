@@ -154,7 +154,7 @@ function renderDeclarationHtml(f: ProducerInfoUpdate, s: VerifactuSettings | nul
 
 <p>De conformidad con el artículo 13 del Real Decreto 1007/2023, de 5 de diciembre, por el que se aprueba el Reglamento de los Sistemas Informáticos de Facturación (RRSIF), y la Orden HAC/1177/2024:</p>
 
-<p><strong>${escapeHtml(f.producer_name)}</strong>, con NIF <strong>${escapeHtml(f.producer_nif)}</strong>, en su condición de <strong>productor del Sistema Informático de Facturación</strong> denominado <strong>DentalPin</strong> (identificador del sistema <strong>${escapeHtml(f.producer_id_sistema)}</strong>, versión <strong>${escapeHtml(f.producer_version)}</strong>), declara responsablemente que:</p>
+<p><strong>${escapeHtml(f.producer_name)}</strong>, con NIF <strong>${escapeHtml(f.producer_nif)}</strong>, en su condición de <strong>productor del Sistema Informático de Facturación</strong> denominado <strong>Dentora</strong> (identificador del sistema <strong>${escapeHtml(f.producer_id_sistema)}</strong>, versión <strong>${escapeHtml(f.producer_version)}</strong>), declara responsablemente que:</p>
 
 <ol>
 <li>El sistema cumple los requisitos establecidos en el artículo 29.2.j) de la Ley 58/2003, General Tributaria, y en el RRSIF.</li>
@@ -166,7 +166,7 @@ function renderDeclarationHtml(f: ProducerInfoUpdate, s: VerifactuSettings | nul
 <div class="meta">
   Lugar y fecha del documento: ${today}<br>
   Productor: ${escapeHtml(f.producer_name)} (NIF ${escapeHtml(f.producer_nif)})<br>
-  Sistema: DentalPin · ID ${escapeHtml(f.producer_id_sistema)} · v${escapeHtml(f.producer_version)}
+  Sistema: Dentora · ID ${escapeHtml(f.producer_id_sistema)} · v${escapeHtml(f.producer_version)}
 </div>
 
 <div class="sig">

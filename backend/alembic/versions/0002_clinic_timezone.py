@@ -1,6 +1,6 @@
 """core — add clinics.timezone column.
 
-DentalPin is global software and clinic-local times (opening hours,
+Dentora is global software and clinic-local times (opening hours,
 appointment slots, billing date windows) need a timezone anchor that
 modules can rely on. Previously the schedules module stored this under
 ``clinics.settings.timezone`` (JSONB), coupling a core concern to one

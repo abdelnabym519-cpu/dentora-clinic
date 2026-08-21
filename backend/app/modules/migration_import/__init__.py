@@ -2,7 +2,7 @@
 
 Optional, installable/removable module that consumes a Dental Practice
 Migration Format (DPMF v0.1) file produced by `dental-bridge` and
-hydrates DentalPin's core modules with the extracted data.
+hydrates Dentora's core modules with the extracted data.
 
 Issue #78. The on-disk format is frozen and documented in
 https://github.com/dentaltix/dental-bridge/blob/main/spec/dpmf-v0.1.md
@@ -17,7 +17,7 @@ Key invariants:
   Portuguese / French clinics must be able to import without it. The
   fiscal-document mapper detects verifactu at runtime via the module
   registry and gates legal-hash preservation behind operator opt-in.
-- Idempotent: every persisted DentalPin row is recorded in
+- Idempotent: every persisted Dentora row is recorded in
   ``entity_mappings`` keyed by ``(clinic_id, source_system,
   canonical_uuid, entity_type)`` so re-running a job is a no-op.
 """
@@ -47,7 +47,7 @@ class MigrationImportModule(BaseModule):
             "Importa datos de pacientes, citas, presupuestos, pagos y "
             "documentos desde un archivo DPMF generado por dental-bridge."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         # Hard module deps — every mapper below calls a service in one

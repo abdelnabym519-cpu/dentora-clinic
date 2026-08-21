@@ -44,7 +44,7 @@ class TreatmentPlanModule(BaseModule):
         "name": "treatment_plan",
         "version": "0.1.0",
         "summary": "Patient treatment plans with budget + odontogram sync.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "agenda", "odontogram", "catalog", "budget", "media"],

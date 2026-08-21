@@ -1,6 +1,6 @@
 # Email & Notifications Module
 
-Documentation for the email and notifications system in DentalPin.
+Documentation for the email and notifications system in Dentora.
 
 ## Overview
 
@@ -205,7 +205,7 @@ from app.core.email.providers.base import EmailMessage
 async def send_report_email(db, clinic_id, to_email, report_html):
     message = EmailMessage(
         to_email=to_email,
-        subject="Monthly Report - DentalPin",
+        subject="Monthly Report - Dentora",
         body_html=report_html,
         body_text="Please view this email in an HTML-capable client.",
     )
@@ -566,5 +566,5 @@ EMAIL_SMTP_USER=user@example.com
 EMAIL_SMTP_PASSWORD=password
 EMAIL_SMTP_TLS=true
 EMAIL_FROM_ADDRESS=noreply@example.com
-EMAIL_FROM_NAME=DentalPin
+EMAIL_FROM_NAME=Dentora
 ```

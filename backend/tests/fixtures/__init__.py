@@ -1,4 +1,4 @@
-"""Test fixtures for the DentalPin module system.
+"""Test fixtures for the Dentora module system.
 
 Each subpackage is a self-contained sample module used by integration
 tests. They are NOT registered as entry points — the tests import them

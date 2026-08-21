@@ -83,7 +83,7 @@ class NotificationHandlers:
                     "appointment_date": appointment.start_time.strftime("%d/%m/%Y"),
                     "appointment_time": appointment.start_time.strftime("%H:%M"),
                     "professional_name": professional_name,
-                    "clinic_name": clinic.name if clinic else "DentalPin",
+                    "clinic_name": clinic.name if clinic else "Dentora",
                     "clinic_phone": clinic.phone if clinic else None,
                     "clinic_address": clinic.address if clinic else None,
                 }
@@ -164,7 +164,7 @@ class NotificationHandlers:
                     "appointment_time": appointment.start_time.strftime("%H:%M"),
                     "professional_name": professional_name,
                     "cancellation_reason": cancellation_reason,
-                    "clinic_name": clinic.name if clinic else "DentalPin",
+                    "clinic_name": clinic.name if clinic else "Dentora",
                     "clinic_phone": clinic.phone if clinic else None,
                 }
 
@@ -215,7 +215,7 @@ class NotificationHandlers:
                 # Build context
                 context = {
                     "patient_name": f"{patient.first_name} {patient.last_name}",
-                    "clinic_name": clinic.name if clinic else "DentalPin",
+                    "clinic_name": clinic.name if clinic else "Dentora",
                     "clinic_phone": clinic.phone if clinic else None,
                     "clinic_address": clinic.address if clinic else None,
                 }
@@ -325,7 +325,7 @@ class NotificationHandlers:
                     else None,
                     "notes": budget.patient_notes,
                     "custom_message": data.get("custom_message"),
-                    "clinic_name": clinic.name if clinic else "DentalPin",
+                    "clinic_name": clinic.name if clinic else "Dentora",
                     "clinic_phone": clinic.phone if clinic else None,
                 }
 
@@ -428,7 +428,7 @@ class NotificationHandlers:
                     "balance_due": float(invoice.balance_due),
                     "billing_name": invoice.billing_name,
                     "custom_message": data.get("custom_message"),
-                    "clinic_name": clinic.name if clinic else "DentalPin",
+                    "clinic_name": clinic.name if clinic else "Dentora",
                     "clinic_phone": clinic.phone if clinic else None,
                     "clinic_address": clinic.address if clinic else None,
                 }
@@ -491,7 +491,7 @@ class NotificationHandlers:
                     "accepted_date": budget.updated_at.strftime("%d/%m/%Y"),
                     "total": float(budget.total),
                     "notes": budget.patient_notes,
-                    "clinic_name": clinic.name if clinic else "DentalPin",
+                    "clinic_name": clinic.name if clinic else "Dentora",
                     "clinic_phone": clinic.phone if clinic else None,
                 }
 

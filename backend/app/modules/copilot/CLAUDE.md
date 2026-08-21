@@ -1,6 +1,6 @@
 # Copilot module
 
-Conversational AI agent over DentalPin (issue #81). A thin **surface**
+Conversational AI agent over Dentora (issue #81). A thin **surface**
 over the core agentic engine (`app/core/agents` + `app/core/llm`): it
 persists conversations, streams chat over SSE, and gates writes with
 inline confirmation. RBAC parity is the whole point — the agent can

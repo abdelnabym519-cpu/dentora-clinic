@@ -1,4 +1,4 @@
-# Operating a DentalPin instance
+# Operating a Dentora instance
 
 Guide for admins and self-hosters: install and remove modules, trigger
 restarts, take backups, recover from errors. Covers the commands an
@@ -13,7 +13,7 @@ operator runs — not the Python internals.
 ## 1. Prerequisites
 
 - Docker + Docker Compose on the host.
-- Cloned DentalPin repo (or equivalent deploy artefacts).
+- Cloned Dentora repo (or equivalent deploy artefacts).
 - `.env` filled in with `POSTGRES_PASSWORD`, `SECRET_KEY`, etc.
 - A running stack: `docker compose up -d`.
 
@@ -31,7 +31,7 @@ curl -s http://localhost:8000/health
 ### Listing modules
 
 ```bash
-./bin/dentalpin modules list
+./bin/dentora modules list
 ```
 
 Output (trimmed):
@@ -43,12 +43,12 @@ budget          0.1.0    installed   official  clinical,catalog
 clinical        0.1.0    installed   official  -
 ```
 
-JSON variant: `./bin/dentalpin modules list --json`.
+JSON variant: `./bin/dentora modules list --json`.
 
 ### Inspecting one module
 
 ```bash
-./bin/dentalpin modules info billing
+./bin/dentora modules info billing
 ```
 
 Shows version, state, applied revision, last state change, errors.
@@ -57,7 +57,7 @@ JSON form: same command with `--json`.
 ### Status summary
 
 ```bash
-./bin/dentalpin modules status
+./bin/dentora modules status
 ```
 
 Counts by state plus pending + errored lists.
@@ -65,7 +65,7 @@ Counts by state plus pending + errored lists.
 ### Health check
 
 ```bash
-./bin/dentalpin modules doctor
+./bin/dentora modules doctor
 ```
 
 Surfaces:
@@ -84,22 +84,22 @@ monitoring scripts.
 
 ### Official modules
 
-Bundled with every DentalPin release. They auto-install on the first
+Bundled with every Dentora release. They auto-install on the first
 boot of a fresh database. Reinstall if they ended up in `uninstalled`:
 
 ```bash
-./bin/dentalpin modules install billing
-./bin/dentalpin modules restart
+./bin/dentora modules install billing
+./bin/dentora modules restart
 ```
 
 ### Community modules
 
 ```bash
 # 1. Install the Python package on the backend container
-docker compose exec backend pip install dentalpin-my-module
+docker compose exec backend pip install dentora-my-module
 
 # 2. Schedule the install
-./bin/dentalpin modules install my_module
+./bin/dentora modules install my_module
 
 # 3. Restart the backend — applies migrations + seed + lifecycle
 docker compose restart backend
@@ -125,8 +125,8 @@ Bump the module's package (`pip install -U ...`) so the new version
 appears on disk, then:
 
 ```bash
-./bin/dentalpin modules upgrade my_module
-./bin/dentalpin modules restart
+./bin/dentora modules upgrade my_module
+./bin/dentora modules restart
 ```
 
 The restart runs the new migrations, re-applies seeds, and calls the
@@ -140,7 +140,7 @@ If the disk and DB versions already match, the command exits with
 ## 5. Uninstalling a module
 
 ```bash
-./bin/dentalpin modules uninstall my_module
+./bin/dentora modules uninstall my_module
 docker compose restart backend
 ```
 
@@ -173,7 +173,7 @@ Three ways, identical effect (SIGTERM the backend, let Docker respawn):
 
 | Channel | Command |
 |---------|---------|
-| CLI hint | `./bin/dentalpin modules restart` prints next step |
+| CLI hint | `./bin/dentora modules restart` prints next step |
 | REST | `POST /api/v1/modules/-/restart` (admin token) |
 | Host | `docker compose restart backend` |
 
@@ -200,7 +200,7 @@ If the frontend starts but a module doesn't appear:
 
 1. Inspect `frontend/modules.json` — it should list the module's layer
    path.
-2. Run `./bin/dentalpin modules sync-frontend` to regenerate the file.
+2. Run `./bin/dentora modules sync-frontend` to regenerate the file.
 3. Confirm the user has the permission listed in `navigation[].permission`.
 
 ---
@@ -234,11 +234,11 @@ point-in-time restore, etc.) — the module system does not replace it.
 
 ### A failed install
 
-`dentalpin modules doctor` lists the module with its error. Options:
+`dentora modules doctor` lists the module with its error. Options:
 
 1. Fix the root cause (usually a migration or seed bug), then
-   `dentalpin modules install <name>` + restart to retry.
-2. Give up: `dentalpin modules orphan <name>` (marks uninstalled
+   `dentora modules install <name>` + restart to retry.
+2. Give up: `dentora modules orphan <name>` (marks uninstalled
    without running the uninstall flow). Only do this when the module
    wasn't actually present on disk.
 
@@ -266,11 +266,11 @@ Orphan modules (in DB, missing from disk):
 
 Options:
 
-- Restore the package (`pip install dentalpin-ghost`).
+- Restore the package (`pip install dentora-ghost`).
 - Mark uninstalled:
 
   ```bash
-  ./bin/dentalpin modules orphan ghost
+  ./bin/dentora modules orphan ghost
   ```
 
 The orphan path **does not** run the uninstall steps (migrations are
@@ -324,7 +324,7 @@ DELETE FROM alembic_version;
 | Module stuck in `to_install` | Crash mid-step | Inspect `core_module_operation_log`, restart backend |
 | `403 Permission denied: billing.read` | Role lacks the permission | Check `ROLE_PERMISSIONS`, confirm cached `/me` |
 | Frontend sidebar empty | `/api/v1/modules/-/active` failed (bad token?) | Check browser console, re-login |
-| Community module page 404 | `modules.json` missing the layer path | `./bin/dentalpin modules sync-frontend` + frontend rebuild |
+| Community module page 404 | `modules.json` missing the layer path | `./bin/dentora modules sync-frontend` + frontend rebuild |
 | Uninstall blocked: "no Alembic branch" | Fase A legacy module | Not supported; wait for Fase B |
 | Uninstall blocked: "required by ..." | Reverse dependency exists | Uninstall dependents first, or `--force` |
 
@@ -332,12 +332,12 @@ DELETE FROM alembic_version;
 
 ## 12. Where to file bugs
 
-GitHub: https://github.com/dentalpin/dentalpin/issues — include the
+GitHub: https://github.com/abdelnabym519-cpu/dentora-clinic/issues — include the
 output of:
 
 ```bash
-./bin/dentalpin modules doctor --json
-./bin/dentalpin modules info <affected-module> --json
+./bin/dentora modules doctor --json
+./bin/dentora modules info <affected-module> --json
 docker compose logs backend --tail 100
 ```
 

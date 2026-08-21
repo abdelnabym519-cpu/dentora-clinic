@@ -1,7 +1,7 @@
-# DentalPin documentation portal
+# Dentora documentation portal
 
 VitePress site that renders `/docs` as a public documentation portal at
-`docs.dentalpin.com`.
+`docs.dentora.example`.
 
 The markdown source under `/docs` is the single source of truth — this folder
 only contains the build pipeline (config, theme, Dockerfile). Authors edit
@@ -36,7 +36,7 @@ The `Dockerfile` is a multi-stage build:
    drawer (added in fase 5).
 
 Coolify on the existing Hetzner host pulls the image and exposes it at
-`docs.dentalpin.com`. TLS is handled by Coolify (Let's Encrypt). No data,
+`docs.dentora.example`. TLS is handled by Coolify (Let's Encrypt). No data,
 no auth — purely static.
 
 ## Project layout

@@ -122,7 +122,7 @@
   a privacy trust line under the composer. Frontend-only; no backend or
   contract changes.
 
-- feat(copilot): initial backend — conversational agent over DentalPin
+- feat(copilot): initial backend — conversational agent over Dentora
   (issue #81 Layer C). Tables `copilot_conversations`, `copilot_messages`,
   `copilot_settings` on the `copilot` Alembic branch. SSE chat
   (`/sessions/{id}/messages`) driving the core orchestrator, inline

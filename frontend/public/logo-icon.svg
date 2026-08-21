@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="DentalPin">
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none" role="img" aria-label="Dentora">
   <!-- Soft pastel rounded square backdrop (calm, not saturated) -->
   <rect x="2" y="2" width="60" height="60" rx="14" fill="#E0F2FE"/>
   <rect x="2" y="2" width="60" height="60" rx="14" stroke="#0EA5E9" stroke-opacity="0.18" stroke-width="1"/>
@@ -23,7 +23,7 @@
         stroke-linejoin="round"
         stroke-linecap="round"/>
 
-  <!-- Pin dot: the "Pin" in DentalPin. Saturated accent (small, allowed) -->
+  <!-- Pin dot: the "Pin" in Dentora. Saturated accent (small, allowed) -->
   <circle cx="32" cy="27" r="3.25" fill="#0EA5E9"/>
   <circle cx="32" cy="27" r="1.1" fill="#FFFFFF"/>
 </svg>

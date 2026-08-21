@@ -4,7 +4,7 @@ Usage (inside the backend container):
 
     python scripts/dryrun_gesden_catalog.py /app/clinica-tto.dpm
 
-Bootstraps a throwaway clinic, seeds the DentalPin catalog into it,
+Bootstraps a throwaway clinic, seeds the Dentora catalog into it,
 iterates every ``treatment_catalog_item`` row in the DPMF, runs the
 new ``CatalogItemMapper.apply`` against each one, and prints a
 breakdown of where each Gesdén ``Tratamientos`` row landed: linked to
@@ -49,7 +49,7 @@ async def run(dpmf_path: Path, passphrase: str | None = None) -> None:
         db.add_all([clinic, admin])
         await db.flush()
 
-        # Seed the DentalPin catalog (the enriched one).
+        # Seed the Dentora catalog (the enriched one).
         summary = await seed_catalog(db, clinic.id)
         await db.flush()
         print(f"[seed] {summary}", flush=True)
@@ -92,7 +92,7 @@ async def run(dpmf_path: Path, passphrase: str | None = None) -> None:
             print(f"[dpmf] treatment_catalog_item rows: {total}", flush=True)
             print("-" * 110, flush=True)
             print(
-                f"{'Codigo':<10} {'DescripMed (Gesdén)':<48} {'IdTipoODG':<10} {'→':<3} {'outcome':<8} {'DentalPin':<30}",
+                f"{'Codigo':<10} {'DescripMed (Gesdén)':<48} {'IdTipoODG':<10} {'→':<3} {'outcome':<8} {'Dentora':<30}",
                 flush=True,
             )
             print("-" * 110, flush=True)

@@ -1,4 +1,4 @@
-# DentalPin License & Activation Architecture
+# Dentora License & Activation Architecture
 
 ## Goal
 
@@ -9,7 +9,7 @@ Protect the reusable local Windows package from casual unlimited copying while k
 Production licensing uses Cloudflare Workers + D1:
 
 ```text
-DentalPin clinic PC
+Dentora clinic PC
     |
     | HTTPS
     v
@@ -41,11 +41,11 @@ This is a commercial-control layer, not unbreakable DRM. If application source i
 
 ## Client flow
 
-1. `START_DENTALPIN.bat` creates per-install secrets and a machine fingerprint on first run.
+1. `START_DENTORA.bat` creates per-install secrets and a machine fingerprint on first run.
 2. Backend starts with `LICENSE_ENFORCEMENT=true` for commercial local packages.
 3. Frontend checks `/api/v1/license/status` before setup/login.
 4. If unlicensed or blocked, users are redirected to `/activate`.
-5. `/activate` sends the entered license key to the local DentalPin backend.
+5. `/activate` sends the entered license key to the local Dentora backend.
 6. The backend sends the key, installation ID, and fingerprint to the remote license service.
 7. The remote service validates license status, expiry, activation limits, and returns an Ed25519-signed lease.
 8. The backend persists only the signed lease and non-secret activation metadata under the persistent storage volume.
@@ -136,4 +136,4 @@ Everything else under `/api/v1` is blocked when commercial license enforcement i
 
 ## Deployment boundary
 
-Neither `license-server/` nor `license-worker/` nor `.license-dev/` may ever be exported into `DentalPin_Generic_Client.zip`. The client package contains only the remote service URL, Ed25519 public key, activation UI, and client-side lease verification logic.
+Neither `license-server/` nor `license-worker/` nor `.license-dev/` may ever be exported into `Dentora_Client.zip`. The client package contains only the remote service URL, Ed25519 public key, activation UI, and client-side lease verification logic.

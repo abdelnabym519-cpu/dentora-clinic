@@ -165,7 +165,7 @@ jobs:
           fi
           # These three are pulled from main, not from $TAG: a backfilled
           # release predates them, and they are operational files whose
-          # latest version is the one you want. DENTALPIN_VERSION in .env
+          # latest version is the one you want. DENTORA_VERSION in .env
           # is what pins the release you actually run.
           RAW="https://raw.githubusercontent.com/${{ github.repository }}/main"
           {
@@ -177,7 +177,7 @@ jobs:
             echo "curl -O $RAW/Caddyfile"
             echo "curl -o .env $RAW/.env.prod.example"
             echo "# set PUBLIC_URL, POSTGRES_PASSWORD, SECRET_KEY"
-            echo "# and DENTALPIN_VERSION=$VERSION to pin this release, then:"
+            echo "# and DENTORA_VERSION=$VERSION to pin this release, then:"
             echo "docker compose -f docker-compose.prod.yml up -d"
             echo '```'
             echo ""

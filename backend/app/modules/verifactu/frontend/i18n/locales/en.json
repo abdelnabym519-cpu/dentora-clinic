@@ -281,7 +281,7 @@
       "title": "SIF producer",
       "subtitle": "Legal identification of whoever puts the software in production and signs the declaración responsable.",
       "legalIntroTitle": "Legal responsibility",
-      "legalIntro": "RD 1007/2023 art. 13 requires the producer of the Sistema Informático de Facturación to sign a declaración responsable. If DentalPin is offered as managed SaaS, the producer is the SaaS operator. If a clinic self-hosts (autodesarrollo), the clinic itself is the producer. If an integrator deploys it, the integrator is the producer.",
+      "legalIntro": "RD 1007/2023 art. 13 requires the producer of the Sistema Informático de Facturación to sign a declaración responsable. If Dentora is offered as managed SaaS, the producer is the SaaS operator. If a clinic self-hosts (autodesarrollo), the clinic itself is the producer. If an integrator deploys it, the integrator is the producer.",
       "process": {
         "title": "What you need to do",
         "s1": "Identify who the SIF producer is (step 1) — legal data that appears in the declaration and in every record sent to AEAT.",
@@ -318,7 +318,7 @@
         "heading": "Declaración responsable",
         "legalRef": "Sistema Informático de Facturación — Veri*Factu (RD 1007/2023, art. 13)",
         "preamble": "Pursuant to article 13 of Royal Decree 1007/2023 (RRSIF) and Order HAC/1177/2024:",
-        "identity": "{name}, with NIF {nif}, acting as producer of the Sistema Informático de Facturación named DentalPin (system identifier {idSistema}, version {version}), responsibly declares that:",
+        "identity": "{name}, with NIF {nif}, acting as producer of the Sistema Informático de Facturación named Dentora (system identifier {idSistema}, version {version}), responsibly declares that:",
         "item1": "The system meets the requirements of article 29.2.j) of Law 58/2003 (General Tributaria) and the RRSIF.",
         "item2": "The system guarantees the integrity, retention, accessibility, legibility, traceability and inalterability of invoicing records.",
         "item3": "The system implements continuous submission of records to AEAT under Veri*Factu mode.",

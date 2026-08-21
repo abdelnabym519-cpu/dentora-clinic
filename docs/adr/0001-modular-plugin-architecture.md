@@ -6,7 +6,7 @@
 
 ## Context
 
-DentalPin serves a wide spectrum of dental clinics: solo practices, group
+Dentora serves a wide spectrum of dental clinics: solo practices, group
 clinics, multi-specialty centers, and country-specific compliance regimes
 (e.g. Veri\*Factu in Spain). A monolithic codebase forces every clinic to
 carry every feature, makes country-specific compliance code mix with
@@ -20,7 +20,7 @@ for plugging in features without forking the core.
 
 Build the system as **independent modules** under
 `backend/app/modules/<name>/`, discovered via `pyproject.toml` entry
-points (`dentalpin.modules`), each owning its router, models, migrations,
+points (`dentora.modules`), each owning its router, models, migrations,
 events, permissions, and frontend layer. Inter-module communication is
 contract-driven:
 

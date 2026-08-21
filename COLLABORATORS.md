@@ -1,4 +1,4 @@
-# DentalPin Collaborators Policy
+# Dentora Collaborators Policy
 
 > Version 1.0 — April 2026
 > Author: Dentared Odontology Services S.L. (hereinafter, **Dentaltix**, the project maintainer)
@@ -9,9 +9,9 @@
 
 ## 🇬🇧 English
 
-DentalPin aims to become the open standard for dental clinic management: the operating system that connects clinics, professionals, suppliers, software and services across the ecosystem. For that standard to be credible and durable, its core must be **open, neutral and independent**.
+Dentora aims to become the open standard for dental clinic management: the operating system that connects clinics, professionals, suppliers, software and services across the ecosystem. For that standard to be credible and durable, its core must be **open, neutral and independent**.
 
-If you're reading this, you probably want to build something on top of DentalPin. **Welcome.** We're glad you're here. This document exists so that you understand, with no fine print, what we offer you, what we ask from you, and why some things will not move. We believe honesty from day one is what makes collaborations last for years.
+If you're reading this, you probably want to build something on top of Dentora. **Welcome.** We're glad you're here. This document exists so that you understand, with no fine print, what we offer you, what we ask from you, and why some things will not move. We believe honesty from day one is what makes collaborations last for years.
 
 If you decide to join the ecosystem, you accept the principles set out below.
 
@@ -19,7 +19,7 @@ If you decide to join the ecosystem, you accept the principles set out below.
 
 ### 1. Vision
 
-- **Open standard.** DentalPin exists so that any clinic, in any country, can run its operation with software that is free, audited and portable.
+- **Open standard.** Dentora exists so that any clinic, in any country, can run its operation with software that is free, audited and portable.
 - **Multilateral ecosystem.** The project's value grows when others build on top of it: clinical modules, lab integrations, digital orthodontics, radiology, billing, AI, automation, marketplaces, etc.
 - **Free official SaaS on top of the core.** Dentaltix will operate a SaaS where core usage is free for clinics. Clinics only pay for the paid modules and integrations they choose to activate.
 - **Sustainability without capture.** Collaborators monetize their modules. Dentaltix monetizes the SaaS operation and a marketplace commission. The core itself is never monetized.
@@ -30,9 +30,9 @@ If you decide to join the ecosystem, you accept the principles set out below.
 
 We start here because these are the pillars that allow us to offer everything else. They are not negotiated with anyone — and precisely because they are not negotiated with anyone, they also protect you: nobody will be able to use the project against you tomorrow.
 
-1. **Single core maintainer.** Dentared Odontology Services S.L. is the only entity that maintains, directs and publishes the DentalPin core. There is no co-ownership, no shared governance, and no reserved seats for collaborators in core technical decisions.
+1. **Single core maintainer.** Dentared Odontology Services S.L. is the only entity that maintains, directs and publishes the Dentora core. There is no co-ownership, no shared governance, and no reserved seats for collaborators in core technical decisions.
 2. **License and conversion.** The core is distributed under BSL 1.1, automatically converting to Apache 2.0 four years after each release. The license will not be downgraded to the detriment of the community.
-3. **Protected trademark.** "DentalPin" and the associated logos are trademarks of Dentared Odontology Services S.L. Collaborators may indicate compatibility ("Compatible with DentalPin", "Module for DentalPin") according to the brand guidelines, but may not use the trademark as their own, nor in their company name, domain or product.
+3. **Protected trademark.** "Dentora" and the associated logos are trademarks of Dentared Odontology Services S.L. Collaborators may indicate compatibility ("Compatible with Dentora", "Module for Dentora") according to the brand guidelines, but may not use the trademark as their own, nor in their company name, domain or product.
 4. **Mandatory CLA.** Every contribution to the core repository requires signing a Contributor License Agreement that grants Dentaltix the rights necessary to maintain, relicense (within OSI-approved licenses) and defend the project. The CLA does not transfer authorship: the contributor remains the holder of their work.
 5. **Strict technical boundary.** Core and modules are separated by explicit contracts: module manifests, declared dependencies, event bus, and versioned public APIs. No module may modify the core for its own benefit. Extensions go through public APIs or through an open proposal (RFC).
 6. **Competitive neutrality.** The core does not favor any collaborator. If Dentaltix builds a module in a category where collaborators already exist, it does so using exactly the same APIs and marketplace rules as any third party, and discloses itself as such.
@@ -42,21 +42,21 @@ We start here because these are the pillars that allow us to offer everything el
 
 ### 3. Ecosystem model
 
-DentalPin is an **open core with marketplace**. Three layers:
+Dentora is an **open core with marketplace**. Three layers:
 
 | Layer | Maintainer | Distribution |
 |------|-------------------|--------------------|
 | **Core** | Dentaltix exclusively | Open source (BSL 1.1 → Apache 2.0) |
 | **Official modules** | Dentaltix, open | Open source, part of the main repository |
-| **Third-party modules** | Any collaborator | DentalPin marketplace; can be open source or proprietary |
+| **Third-party modules** | Any collaborator | Dentora marketplace; can be open source or proprietary |
 
-The official SaaS operated by Dentaltix is the default distribution channel, but the project remains self-hostable. Any clinic or technical partner may deploy DentalPin on their own.
+The official SaaS operated by Dentaltix is the default distribution channel, but the project remains self-hostable. Any clinic or technical partner may deploy Dentora on their own.
 
 ---
 
 ### 4. What we offer collaborators
 
-In exchange for building on DentalPin with quality and respect for these principles, collaborators receive concrete value:
+In exchange for building on Dentora with quality and respect for these principles, collaborators receive concrete value:
 
 - **Distribution.** Access to the marketplace integrated in the official SaaS, with exposure to every active clinic.
 - **Stable, documented APIs.** Semantic versioning commitment for public APIs, minimum 12-month deprecation window, and a published catalog of events.
@@ -97,7 +97,7 @@ Betting on a young ecosystem with little adoption is not free. We know that. **F
 
 To avoid misunderstandings: being a Founding Partner does not imply co-ownership, exclusivity, binding vote on the core, or perpetual full-fee waiver. It is a "first wave" agreement, generous and time-bound, designed to make starting alongside you worthwhile — it is not a concession over the project.
 
-The program contemplates **a maximum of 5 Founding Partners per country** (not 5 worldwide). Each country DentalPin enters operates its own Founding Partner cohort, with its own slots, opening date and category map. There is no rush to fill them: the slots are deliberately few, because we want to choose carefully who we start this with in each market. Within a given country, each slot is reserved for a different category of the ecosystem (automated agenda, patient communication, clinical AI, lab integrations, etc.); no more than one slot per category per country.
+The program contemplates **a maximum of 5 Founding Partners per country** (not 5 worldwide). Each country Dentora enters operates its own Founding Partner cohort, with its own slots, opening date and category map. There is no rush to fill them: the slots are deliberately few, because we want to choose carefully who we start this with in each market. Within a given country, each slot is reserved for a different category of the ecosystem (automated agenda, patient communication, clinical AI, lab integrations, etc.); no more than one slot per category per country.
 
 ---
 
@@ -125,7 +125,7 @@ With the same care with which we say yes to many things, there are others to whi
 - **Exclusivity by category.** No functional or territorial exclusivity is granted. If you join as an agenda-automation module, others can also join in agenda automation. That same rule prevents another player from blocking you tomorrow.
 - **Custom changes to the core.** The core is not modified to favor a particular collaborator's business case. If an API does not exist, it is proposed via RFC and evaluated on its general value, not on who is asking for it.
 - **Favorite forks.** No fork of the core is recognized, recommended, or supported, except for legitimate self-hosted deployments by clinics or technical partners.
-- **Equity, IP or shared branding.** A technical or commercial collaboration generates no rights over Dentared Odontology Services S.L., over the core code, or over the DentalPin trademark.
+- **Equity, IP or shared branding.** A technical or commercial collaboration generates no rights over Dentared Odontology Services S.L., over the core code, or over the Dentora trademark.
 - **Privileged access to clinic data.** Clinical data belongs to the clinics. No collaborator accesses aggregated or disaggregated data without the explicit consent of the owning clinic.
 
 > **Why these limits also protect you.** If today we sold exclusivity or co-governance to the first arrival, tomorrow you would have to negotiate against someone with bigger muscle. The symmetric rule — the same for everyone — is the only one that holds long-term, and that's why it's also the best guarantee we can give you.
@@ -147,10 +147,10 @@ Tier promotions are at Dentaltix's discretion and based on published objective c
 
 ### 9. Collaborator commitments
 
-In turn, anyone publishing a module or integration in the DentalPin ecosystem assumes these commitments — the same you would expect from any provider entering a clinic:
+In turn, anyone publishing a module or integration in the Dentora ecosystem assumes these commitments — the same you would expect from any provider entering a clinic:
 
 1. **Technical quality.** Comply with the module-creation guide (`docs/technical/creating-modules.md`), pass review and tests.
-2. **Support.** Publish channel and SLA. Keep the module compatible with the supported DentalPin versions.
+2. **Support.** Publish channel and SLA. Keep the module compatible with the supported Dentora versions.
 3. **Legal compliance.** Respect GDPR and the applicable clinical-data regulations in each jurisdiction where it operates. Data processor agreement duly formalized when applicable.
 4. **Transparency with the clinic.** Clear pricing, clear cancellation terms, module data export always available to the clinic.
 5. **No hostile fork.** Do not promote, distribute or recommend competitive forks of the core while part of the official ecosystem.
@@ -201,7 +201,7 @@ The current policy is always the one published in this file of the official repo
 
 ### 13. Contact
 
-DentalPin is in a very early phase, so for now the channel is direct and personal: **ramon.martinez@dentaltix.com**. I'm Ramón, founder of Dentaltix, and I personally handle every conversation with collaborators. As the team and adoption grow, we will open dedicated channels (`partners@`, `brand@`, partner portal) and announce them here.
+Dentora is in a very early phase, so for now the channel is direct and personal: **ramon.martinez@dentaltix.com**. I'm Ramón, founder of Dentaltix, and I personally handle every conversation with collaborators. As the team and adoption grow, we will open dedicated channels (`partners@`, `brand@`, partner portal) and announce them here.
 
 - Want to explore a collaboration? Write to me and we'll sit down as soon as possible to see if it makes sense.
 - Brand or logo matters? Same email, mention it in the subject.
@@ -209,16 +209,16 @@ DentalPin is in a very early phase, so for now the channel is direct and persona
 
 ---
 
-*DentalPin belongs to the clinics that use it, the developers who contribute, and the dental ecosystem that adopts it. Dentaltix is the steward that makes sure that share-out remains fair — and that includes protecting the bet of those who collaborate from the very beginning.*
+*Dentora belongs to the clinics that use it, the developers who contribute, and the dental ecosystem that adopts it. Dentaltix is the steward that makes sure that share-out remains fair — and that includes protecting the bet of those who collaborate from the very beginning.*
 
 ---
 ---
 
 ## 🇪🇸 Español
 
-DentalPin aspira a convertirse en el estándar abierto para la gestión de clínicas dentales: el sistema operativo que conecta a clínicas, profesionales, proveedores, software y servicios del ecosistema. Para que ese estándar sea creíble y duradero, su núcleo debe ser **abierto, neutral e independiente**.
+Dentora aspira a convertirse en el estándar abierto para la gestión de clínicas dentales: el sistema operativo que conecta a clínicas, profesionales, proveedores, software y servicios del ecosistema. Para que ese estándar sea creíble y duradero, su núcleo debe ser **abierto, neutral e independiente**.
 
-Si estás leyendo esto, probablemente quieras construir algo encima de DentalPin. **Bienvenido.** Nos encanta que estés aquí. Este documento existe para que entiendas, sin letra pequeña, qué te ofrecemos, qué te pedimos y por qué algunas cosas no se mueven. Pensamos que la honestidad desde el primer minuto es lo que hace que las colaboraciones aguanten años.
+Si estás leyendo esto, probablemente quieras construir algo encima de Dentora. **Bienvenido.** Nos encanta que estés aquí. Este documento existe para que entiendas, sin letra pequeña, qué te ofrecemos, qué te pedimos y por qué algunas cosas no se mueven. Pensamos que la honestidad desde el primer minuto es lo que hace que las colaboraciones aguanten años.
 
 Si decides sumarte al ecosistema, das por aceptados los principios que vienen a continuación.
 
@@ -226,7 +226,7 @@ Si decides sumarte al ecosistema, das por aceptados los principios que vienen a 
 
 ### 1. Visión
 
-- **Estándar abierto.** DentalPin existe para que cualquier clínica, en cualquier país, pueda gestionar su operativa con un software libre, auditado y portable.
+- **Estándar abierto.** Dentora existe para que cualquier clínica, en cualquier país, pueda gestionar su operativa con un software libre, auditado y portable.
 - **Ecosistema multilateral.** El valor del proyecto crece cuando otros construyen sobre él: módulos clínicos, integraciones con laboratorios, ortodoncia digital, radiología, facturación, IA, automatización, marketplaces, etc.
 - **SaaS oficial gratuito sobre el core.** Dentaltix operará una versión SaaS cuyo uso del core es gratis para las clínicas. Las clínicas pagan únicamente por los módulos e integraciones de pago que decidan activar.
 - **Sostenibilidad sin captura.** Los colaboradores monetizan sus módulos. Dentaltix monetiza la operación del SaaS y una comisión sobre el marketplace. El core nunca se monetiza por sí mismo.
@@ -237,9 +237,9 @@ Si decides sumarte al ecosistema, das por aceptados los principios que vienen a 
 
 Empezamos por aquí porque son los pilares que nos permiten ofrecer todo lo demás. No se negocian con nadie —y precisamente porque no se negocian con nadie, también te protegen a ti: nadie podrá usar el proyecto en tu contra mañana.
 
-1. **Único mantenedor del core.** Dentared Odontology Services S.L. es la única entidad que mantiene, dirige y publica el core de DentalPin. No hay co-propiedad, ni gobernanza compartida, ni asientos reservados para colaboradores en las decisiones técnicas del core.
+1. **Único mantenedor del core.** Dentared Odontology Services S.L. es la única entidad que mantiene, dirige y publica el core de Dentora. No hay co-propiedad, ni gobernanza compartida, ni asientos reservados para colaboradores en las decisiones técnicas del core.
 2. **Licencia y conversión.** El core se distribuye bajo BSL 1.1, con conversión automática a Apache 2.0 a los 4 años de cada release. La licencia no se modificará a la baja en perjuicio de la comunidad.
-3. **Marca protegida.** "DentalPin" y los logotipos asociados son marca de Dentared Odontology Services S.L. Los colaboradores pueden indicar compatibilidad ("Compatible con DentalPin", "Módulo para DentalPin") según las guías de marca, pero no usar la marca como suya ni en denominación social, dominio o producto.
+3. **Marca protegida.** "Dentora" y los logotipos asociados son marca de Dentared Odontology Services S.L. Los colaboradores pueden indicar compatibilidad ("Compatible con Dentora", "Módulo para Dentora") según las guías de marca, pero no usar la marca como suya ni en denominación social, dominio o producto.
 4. **CLA obligatorio.** Toda contribución al repositorio del core requiere firmar un Contributor License Agreement que otorga a Dentaltix los derechos necesarios para mantener, relicenciar (dentro de licencias OSI-aprobadas) y defender el proyecto. El CLA no transfiere la autoría: el contribuidor sigue siendo titular de su trabajo.
 5. **Frontera técnica estricta.** El core y los módulos están separados por contratos explícitos: manifiestos de módulo, dependencias declaradas, bus de eventos y APIs públicas versionadas. Ningún módulo puede modificar el core para su propio beneficio. Las extensiones pasan por las APIs públicas o por una propuesta abierta (RFC).
 6. **Neutralidad competitiva.** El core no favorece a ningún colaborador. Si Dentaltix construye un módulo en una categoría donde ya existen colaboradores, lo hace usando exactamente las mismas APIs y reglas del marketplace que cualquier tercero, y se declara como tal.
@@ -249,21 +249,21 @@ Empezamos por aquí porque son los pilares que nos permiten ofrecer todo lo dem�
 
 ### 3. Modelo de ecosistema
 
-DentalPin es un **open core con marketplace**. Tres capas:
+Dentora es un **open core con marketplace**. Tres capas:
 
 | Capa | Quién la mantiene | Cómo se distribuye |
 |------|-------------------|--------------------|
 | **Core** | Dentaltix en exclusiva | Open source (BSL 1.1 → Apache 2.0) |
 | **Módulos oficiales** | Dentaltix, abiertos | Open source, parte del repositorio principal |
-| **Módulos de terceros** | Cualquier colaborador | Marketplace de DentalPin; pueden ser open source o propietarios |
+| **Módulos de terceros** | Cualquier colaborador | Marketplace de Dentora; pueden ser open source o propietarios |
 
-El SaaS oficial operado por Dentaltix es la vía de distribución por defecto, pero el proyecto sigue siendo auto-hospedable. Cualquier clínica o partner técnico puede desplegar DentalPin por su cuenta.
+El SaaS oficial operado por Dentaltix es la vía de distribución por defecto, pero el proyecto sigue siendo auto-hospedable. Cualquier clínica o partner técnico puede desplegar Dentora por su cuenta.
 
 ---
 
 ### 4. Qué ofrecemos a los colaboradores
 
-A cambio de construir sobre DentalPin con calidad y respeto a estos principios, los colaboradores reciben valor concreto:
+A cambio de construir sobre Dentora con calidad y respeto a estos principios, los colaboradores reciben valor concreto:
 
 - **Distribución.** Acceso al marketplace integrado en la SaaS oficial, con presencia ante todas las clínicas activas.
 - **APIs estables y documentadas.** Compromiso de versionado semántico para las APIs públicas, ventana mínima de deprecación de 12 meses y catálogo de eventos publicados.
@@ -304,7 +304,7 @@ Apostar por un ecosistema joven, con poca adopción, no es gratis. Lo sabemos. L
 
 Para que no haya malentendidos: ser Founding Partner no implica co-propiedad, exclusividad, voto vinculante sobre el core ni descuento perpetuo. Es un acuerdo de "primera ola", generoso y con fecha, pensado para que arrancar contigo merezca la pena —no es una concesión sobre el proyecto.
 
-El programa contempla **un máximo de 5 Founding Partners por país** (no 5 en total a nivel mundial). Cada país en el que entre DentalPin opera su propia cohorte de Founding Partners, con sus propias plazas, fecha de apertura y mapa de categorías. No hay prisa por llenarlas: las plazas son pocas a propósito, porque queremos elegir bien con quién arrancamos esto en cada mercado. Dentro de un mismo país, cada plaza se reserva para una categoría distinta del ecosistema (agenda automatizada, comunicación con paciente, IA clínica, integraciones de laboratorio, etc.); no se concede más de una plaza por categoría y país.
+El programa contempla **un máximo de 5 Founding Partners por país** (no 5 en total a nivel mundial). Cada país en el que entre Dentora opera su propia cohorte de Founding Partners, con sus propias plazas, fecha de apertura y mapa de categorías. No hay prisa por llenarlas: las plazas son pocas a propósito, porque queremos elegir bien con quién arrancamos esto en cada mercado. Dentro de un mismo país, cada plaza se reserva para una categoría distinta del ecosistema (agenda automatizada, comunicación con paciente, IA clínica, integraciones de laboratorio, etc.); no se concede más de una plaza por categoría y país.
 
 ---
 
@@ -332,7 +332,7 @@ Con el mismo cariño con el que te decimos sí a muchas cosas, hay otras a las q
 - **Exclusividad por categoría.** No se concede exclusividad funcional ni territorial. Si entras como módulo de automatización de agenda, otros pueden entrar también en automatización de agenda. Esa misma regla evita que otro te bloquee mañana a ti.
 - **Cambios al core a medida.** El core no se modifica para favorecer un caso de negocio particular de un colaborador. Si una API no existe, se propone vía RFC y se evalúa por su valor general, no por quién la pide.
 - **Forks favoritos.** No se reconoce, recomienda ni apoya ningún fork del core, salvo despliegues legítimos auto-hospedados por clínicas o partners técnicos.
-- **Equity, IP o branding compartido.** Una colaboración técnica o comercial no genera derechos sobre Dentared Odontology Services S.L., sobre el código del core, ni sobre la marca DentalPin.
+- **Equity, IP o branding compartido.** Una colaboración técnica o comercial no genera derechos sobre Dentared Odontology Services S.L., sobre el código del core, ni sobre la marca Dentora.
 - **Acceso privilegiado a datos de clínicas.** Los datos clínicos son de las clínicas. Ningún colaborador accede a datos agregados o desagregados sin consentimiento explícito de la clínica titular.
 
 > **Por qué estos límites también te protegen a ti.** Si hoy vendiéramos exclusividad o co-gobernanza al primero que llega, mañana te tocaría a ti negociar contra alguien con más músculo. La regla simétrica —la misma para todos— es la única que aguanta a largo plazo, y por eso es también la mejor garantía que podemos darte.
@@ -354,10 +354,10 @@ El paso entre niveles es discrecional de Dentaltix y se basa en criterios objeti
 
 ### 9. Compromisos del colaborador
 
-Por su parte, quien publique un módulo o integración en el ecosistema DentalPin asume estos compromisos —que son los mismos que tú esperarías de cualquier proveedor que entra en una clínica:
+Por su parte, quien publique un módulo o integración en el ecosistema Dentora asume estos compromisos —que son los mismos que tú esperarías de cualquier proveedor que entra en una clínica:
 
 1. **Calidad técnica.** Cumplir la guía de creación de módulos (`docs/technical/creating-modules.md`), pasar revisión y tests.
-2. **Soporte.** Publicar canal y SLA. Mantener el módulo compatible con las versiones de DentalPin soportadas.
+2. **Soporte.** Publicar canal y SLA. Mantener el módulo compatible con las versiones de Dentora soportadas.
 3. **Cumplimiento legal.** Respeto a RGPD y normativa aplicable de datos clínicos en cada jurisdicción donde opere. Encargado de tratamiento debidamente formalizado cuando proceda.
 4. **Transparencia con la clínica.** Pricing claro, condiciones de cancelación claras, exportación de datos del módulo siempre disponible para la clínica.
 5. **No fork hostil.** No promover, distribuir ni recomendar forks competitivos del core mientras se forme parte del ecosistema oficial.
@@ -408,7 +408,7 @@ La política vigente siempre es la publicada en este archivo del repositorio ofi
 
 ### 13. Contacto
 
-DentalPin está en una fase muy temprana, así que de momento el canal es directo y personal: **ramon.martinez@dentaltix.com**. Soy Ramón, fundador de Dentaltix, y llevo personalmente cada conversación con colaboradores. Cuando el equipo y la adopción crezcan, abriremos canales dedicados (`partners@`, `brand@`, portal de partners) y lo anunciaremos aquí.
+Dentora está en una fase muy temprana, así que de momento el canal es directo y personal: **ramon.martinez@dentaltix.com**. Soy Ramón, fundador de Dentaltix, y llevo personalmente cada conversación con colaboradores. Cuando el equipo y la adopción crezcan, abriremos canales dedicados (`partners@`, `brand@`, portal de partners) y lo anunciaremos aquí.
 
 - ¿Quieres explorar una colaboración? Escríbeme y nos sentamos lo antes posible a ver si tiene sentido.
 - ¿Asuntos de marca o uso de logotipo? Mismo email, indícalo en el asunto.
@@ -416,4 +416,4 @@ DentalPin está en una fase muy temprana, así que de momento el canal es direct
 
 ---
 
-*DentalPin pertenece a las clínicas que lo usan, a los desarrolladores que contribuyen y al ecosistema dental que lo adopta. Dentaltix es el guardián que se asegura de que ese reparto siga siendo justo —y eso incluye proteger la apuesta de quien colabora desde el principio.*
+*Dentora pertenece a las clínicas que lo usan, a los desarrolladores que contribuyen y al ecosistema dental que lo adopta. Dentaltix es el guardián que se asegura de que ese reparto siga siendo justo —y eso incluye proteger la apuesta de quien colabora desde el principio.*

@@ -1,4 +1,4 @@
-"""Copilot module — conversational AI agent over DentalPin (issue #81).
+"""Copilot module — conversational AI agent over Dentora (issue #81).
 
 A thin *surface* over the core agentic engine (``app/core/agents`` +
 ``app/core/llm``). Consumes tools through the global registry only;
@@ -23,8 +23,8 @@ class CopilotModule(BaseModule):
     manifest = {
         "name": "copilot",
         "version": "0.1.0",
-        "summary": "Conversational AI agent over DentalPin, scoped to the caller's permissions.",
-        "author": "DentalPin Core Team",
+        "summary": "Conversational AI agent over Dentora, scoped to the caller's permissions.",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": [],

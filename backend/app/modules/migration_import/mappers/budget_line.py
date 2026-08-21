@@ -143,7 +143,7 @@ class BudgetLineMapper:
             discount_type = None
             discount_value = None
 
-        # DPMF lines may resolve to several teeth (e.g. bridges). DentalPin's
+        # DPMF lines may resolve to several teeth (e.g. bridges). Dentora's
         # BudgetItem.tooth_number is scalar, so we record the first decoded
         # FDI here and surface the full list in ``notes`` so the operator
         # can split the line afterwards if needed.
@@ -218,8 +218,8 @@ class BudgetLineMapper:
             entity_type="budget_line",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="budget_items",
-            dentalpin_id=item.id,
+            dentora_table="budget_items",
+            dentora_id=item.id,
         )
         return item.id
 

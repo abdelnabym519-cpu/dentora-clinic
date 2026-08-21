@@ -2,7 +2,7 @@
 
 Gesdén's ``TTratamientos`` row records a drug the patient is taking,
 which dental-bridge exports as ``CanonicalPharmacologicalHistory``.
-DentalPin keeps these on the patient profile under
+Dentora keeps these on the patient profile under
 :class:`patients_clinical.Medication`. Without this mapper the rows
 fell into ``RawEntity`` audit-only — the patient's clinical sidebar
 opened blank even when the source had a full medication list.
@@ -127,8 +127,8 @@ class PharmacologicalHistoryMapper:
             entity_type="pharmacological_history",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="patients_clinical_medication",
-            dentalpin_id=med.id,
+            dentora_table="patients_clinical_medication",
+            dentora_id=med.id,
         )
         return med.id
 

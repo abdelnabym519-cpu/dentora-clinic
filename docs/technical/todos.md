@@ -1,4 +1,4 @@
-# TODOS — DentalPin
+# TODOS — Dentora
 
 > The open standard for dental clinic management.
 
@@ -6,9 +6,9 @@
 
 ## 1. VISION AND PRINCIPLES
 
-### What is DentalPin
+### What is Dentora
 
-DentalPin is open source dental clinic management software designed to be:
+Dentora is open source dental clinic management software designed to be:
 
 - **Modular** — Every feature is a self-contained module
 - **API-First** — Everything is accessible via REST API
@@ -375,7 +375,7 @@ Opportunities for developers, equipment manufacturers, labs, and insurers.
 
 ## 4. OPPORTUNITIES FOR THIRD PARTIES
 
-DentalPin is designed so the **entire dental industry** can build modules.
+Dentora is designed so the **entire dental industry** can build modules.
 
 ### For Dental Equipment Manufacturers
 
@@ -502,7 +502,7 @@ DentalPin is designed so the **entire dental industry** can build modules.
 
 ### Phase 4: Scale 🟢 P3
 
-**Goal:** DentalPin is the industry standard.
+**Goal:** Dentora is the industry standard.
 
 | Component | Key Deliverables |
 |-----------|------------------|
@@ -633,7 +633,7 @@ Small, well-scoped features for new contributors.
 
 | Feature | Description |
 |---------|-------------|
-| Mapping tool | Map source fields → DentalPin |
+| Mapping tool | Map source fields → Dentora |
 | Dry-run | Preview before commit |
 | Validation | Detect errors and conflicts |
 | Rollback | Ability to undo |
@@ -670,7 +670,7 @@ Tracked in issue #42. Phase 1 landed the core contract; Phase 2/3 extend the sys
 - [ ] Per-clinic guardrail configuration UI (admin) — edit rate limits, blocked patterns, require-approval patterns from settings
 - [ ] `AgentMemory` production backends — Redis for short-term session memory, Postgres for long-term
 - [ ] LLM abstraction layer — optional, only if a second provider appears or cost tracking needs a central chokepoint
-- [ ] Distributed rate-limit store — replace in-process counters once DentalPin runs with multiple backend workers
+- [ ] Distributed rate-limit store — replace in-process counters once Dentora runs with multiple backend workers
 - [ ] Token / cost metering per clinic — billing dashboard
 
 **Non-goals (deferred indefinitely)**
@@ -776,7 +776,7 @@ def get_event_handlers(self) -> dict:
 
 ## 11. EXECUTIVE SUMMARY
 
-### What is DentalPin
+### What is Dentora
 
 Open source dental clinic management software:
 - **Free core** generates adoption and ecosystem
@@ -799,6 +799,6 @@ Open source dental clinic management software:
 
 ### How we measure success
 
-**Primary metric:** Active clinics using DentalPin daily.
+**Primary metric:** Active clinics using Dentora daily.
 
 Everything else (stars, contributors, modules) are supporting indicators.

@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to DentalPin are documented here. Format loosely
+All notable changes to Dentora are documented here. Format loosely
 follows [Keep a Changelog](https://keepachangelog.com/) and the project
 uses [Semantic Versioning](https://semver.org/).
 
@@ -95,7 +95,7 @@ narrative version of that work belongs to the next major.
 ### Added
 
 - **Prebuilt images and a one-command install.** Tagging a release now
-  builds and publishes `ghcr.io/martinezsalmeron/dentalpin-backend` and
+  builds and publishes `ghcr.io/abdelnabym519-cpu/dentora-backend` and
   `-frontend`, and publishes the GitHub Release with notes taken from
   this file. `docker-compose.prod.yml` runs the stack straight from those
   images with no clone and no build; a Caddy container fronts both

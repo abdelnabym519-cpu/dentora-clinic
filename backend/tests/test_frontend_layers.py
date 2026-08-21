@@ -25,7 +25,7 @@ class _HeadlessModule(BaseModule):
         "name": "headless_fixture",
         "version": "0.0.1",
         "summary": "Backend-only fixture.",
-        "author": "DentalPin tests",
+        "author": "Dentora tests",
         "license": "MIT",
         "category": "community",
         "depends": [],

@@ -24,7 +24,7 @@ last_verified_commit: da03135
 
 # Copilot (AI assistant)
 
-The copilot is DentalPin's conversational assistant. Open it from any
+The copilot is Dentora's conversational assistant. Open it from any
 screen with the floating button or `Cmd/Ctrl+K`; it also has its own
 page at `/copilot` with the conversation history.
 

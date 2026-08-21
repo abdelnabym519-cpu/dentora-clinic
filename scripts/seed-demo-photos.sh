@@ -13,7 +13,7 @@ EMAIL="${EMAIL:-admin@demo.clinic}"
 PASSWORD="${PASSWORD:-demo1234}"
 
 echo "============================================================"
-echo "DentalPin Demo Photo Seeder (issue #55)"
+echo "Dentora Demo Photo Seeder (issue #55)"
 echo "============================================================"
 
 # 1. Login -----------------------------------------------------------------

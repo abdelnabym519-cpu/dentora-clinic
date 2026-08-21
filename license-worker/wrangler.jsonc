@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "dentalpin-license",
+  "name": "dentora-license",
   "main": "src/index.js",
   "compatibility_date": "2026-08-17",
   "workers_dev": true,
@@ -21,7 +21,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "dentalpin-license",
+      "database_name": "dentora-license",
       "database_id": "a50e357f-3574-44eb-83a1-7c14a8929930",
       "migrations_dir": "migrations"
     }

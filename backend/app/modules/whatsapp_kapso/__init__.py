@@ -35,7 +35,7 @@ class WhatsappKapsoModule(BaseModule):
         "name": "whatsapp_kapso",
         "version": "0.1.0",
         "summary": "WhatsApp para notifications vía Kapso (Meta Cloud API).",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "community",
         "depends": ["notifications", "patients"],

@@ -25,7 +25,7 @@ class PeriodontogramModule(BaseModule):
         "name": "periodontogram",
         "version": "0.1.0",
         "summary": ("SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices."),
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "odontogram"],

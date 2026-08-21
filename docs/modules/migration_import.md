@@ -34,7 +34,7 @@ and hydrates the current clinic with the extracted data. Issue #78.
 
 ## Architecture highlights
 
-- **Idempotent**: every persisted DentalPin row gets an
+- **Idempotent**: every persisted Dentora row gets an
   `entity_mappings` row keyed by
   `(clinic_id, source_system, canonical_uuid, entity_type)`.
   Re-running a job is a no-op.

@@ -9,7 +9,7 @@ locale: es
 El módulo **migration_import** importa la base de datos de una clínica
 extraída por [dental-bridge](https://github.com/dentaltix/dental-bridge)
 — pacientes, citas, presupuestos, pagos, documentos y más — a tu
-clínica de DentalPin.
+clínica de Dentora.
 
 El módulo es opcional. Un administrador lo activa desde
 **Configuración → Módulos**, ejecuta la migración y puede desinstalarlo

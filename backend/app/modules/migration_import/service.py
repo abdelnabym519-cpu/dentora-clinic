@@ -191,7 +191,7 @@ class ImportJobService:
     ) -> PreviewResponse:
         """Read entity counts, sample rows, warnings, _files summary.
 
-        Reads the DPMF in read-only mode; no DentalPin rows are created.
+        Reads the DPMF in read-only mode; no Dentora rows are created.
         """
         if job.status not in {"validated", "previewing", "completed"}:
             raise ValueError(f"job {job.id} cannot be previewed from status {job.status}")
@@ -638,7 +638,7 @@ class ImportJobService:
                 rows = await db.execute(
                     select(
                         EntityMapping.source_canonical_uuid,
-                        EntityMapping.dentalpin_id,
+                        EntityMapping.dentora_id,
                     ).where(
                         EntityMapping.clinic_id == job.clinic_id,
                         EntityMapping.entity_type == "applied_treatment",
@@ -691,7 +691,7 @@ class ImportJobService:
             select(BudgetItem.budget_id)
             .join(
                 EntityMapping,
-                (EntityMapping.dentalpin_id == BudgetItem.id)
+                (EntityMapping.dentora_id == BudgetItem.id)
                 & (EntityMapping.entity_type == "budget_line"),
             )
             .where(
@@ -722,7 +722,7 @@ class ImportJobService:
         Why: Gesdén's ``TColabos.IdTipoColab`` is often blank, and many
         clinics drive the agenda through ``TUsuAgd`` columns whose
         canonical professional rows carry no role hint. dental-bridge
-        therefore emits ``role=other`` for those users, which DentalPin
+        therefore emits ``role=other`` for those users, which Dentora
         maps to ``assistant``. The agenda's ``/professionals`` endpoint
         only returns ``dentist``/``hygienist`` memberships — assistants
         disappear from the dropdown — so the migrated appointments
@@ -744,7 +744,7 @@ class ImportJobService:
 
         # Users mapped by this job.
         user_ids_q = await db.execute(
-            select(EntityMapping.dentalpin_id).where(
+            select(EntityMapping.dentora_id).where(
                 EntityMapping.job_id == job.id,
                 EntityMapping.entity_type.in_(("user", "professional")),
             )

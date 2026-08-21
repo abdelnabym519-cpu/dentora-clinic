@@ -273,7 +273,7 @@ async function postBooking(
 
   return worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/requests",
+      "https://booking.dentora.example/api/v1/public/dental/requests",
       {
         method: "POST",
         headers,

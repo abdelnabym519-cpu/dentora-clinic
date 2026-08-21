@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-DEFAULT_WORKER_URL = "https://dentalpin-license.abdelnaby519.workers.dev"
+DEFAULT_WORKER_URL = ""
 ROOT = Path(__file__).resolve().parents[1]
 SECRET_FILE = ROOT / ".license-dev" / "server.env"
 ARCHIVE_DIR = ROOT / ".license-dev" / "customer-licenses"
@@ -36,7 +36,10 @@ def load_admin_key() -> str:
 
 
 def worker_url() -> str:
-    return os.getenv("DENTALPIN_LICENSE_WORKER_URL", DEFAULT_WORKER_URL).rstrip("/")
+    value = os.getenv("DENTORA_LICENSE_WORKER_URL", DEFAULT_WORKER_URL).strip().rstrip("/")
+    if not value:
+        raise RuntimeError("Set DENTORA_LICENSE_WORKER_URL to the deployed Dentora License Worker URL")
+    return value
 
 
 def api(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
@@ -77,7 +80,7 @@ def api(method: str, path: str, body: dict[str, Any] | None = None) -> Any:
             pass
         raise RuntimeError(f"HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError(f"Could not reach DentalPin License Server: {exc.reason}") from exc
+        raise RuntimeError(f"Could not reach Dentora License Server: {exc.reason}") from exc
 
 
 def format_expiry(value: str | None) -> str:
@@ -307,7 +310,7 @@ def set_ai_feature(enabled: bool) -> None:
 
 
 def menu() -> None:
-    print("DentalPin License Administration")
+    print("Dentora License Administration")
     print("Server:", worker_url())
 
     while True:

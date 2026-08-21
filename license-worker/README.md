@@ -1,6 +1,6 @@
-# DentalPin License Worker
+# Dentora License Worker
 
-Cloudflare Workers + D1 implementation of the DentalPin commercial license service.
+Cloudflare Workers + D1 implementation of the Dentora commercial license service.
 
 This is the production replacement for the local FastAPI/PostgreSQL proof-of-concept in `license-server/`. It preserves the same client contract:
 
@@ -24,7 +24,7 @@ This is the production replacement for the local FastAPI/PostgreSQL proof-of-con
 - `X-Admin-Key` protects owner-only management endpoints.
 - Each license can limit the number of active installations.
 - Signed leases let a clinic continue during a temporary Internet outage until `valid_until`.
-- Explicit server rejection (`suspended`, `revoked`, expired) is treated differently from an unavailable server by the DentalPin client.
+- Explicit server rejection (`suspended`, `revoked`, expired) is treated differently from an unavailable server by the Dentora client.
 
 ## Files
 

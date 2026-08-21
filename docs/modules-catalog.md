@@ -2,7 +2,7 @@
 
 # Modules catalog
 
-Single source of truth for every module loaded into the running DentalPin instance. Generated from module manifests, `get_permissions()`, `get_event_handlers()`, and grep of `event_bus.publish` callsites.
+Single source of truth for every module loaded into the running Dentora instance. Generated from module manifests, `get_permissions()`, `get_event_handlers()`, and grep of `event_bus.publish` callsites.
 
 Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest changes without re-generation.
 
@@ -40,7 +40,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 
 Export invoices and payments for the accountant (gestoría).
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
@@ -57,7 +57,7 @@ Export invoices and payments for the accountant (gestoría).
 
 Appointments, scheduling, cabinets.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -87,7 +87,7 @@ Appointments, scheduling, cabinets.
 
 Invoices, payments, credit notes, PDF billing.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -109,7 +109,7 @@ Invoices, payments, credit notes, PDF billing.
 
 Public online appointment booking for patients.
 
-- **Author:** DentalPin Clinic Custom
+- **Author:** Dentora Clinic Custom
 - **License:** BSL-1.1
 - **Category:** community
 - **Install policy:** installable=True · auto_install=True · removable=True
@@ -126,7 +126,7 @@ Public online appointment booking for patients.
 
 Dental treatment quotes, versioning, signatures.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -159,7 +159,7 @@ Dental treatment quotes, versioning, signatures.
 
 Treatment catalog, categories, VAT types.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -177,7 +177,7 @@ Treatment catalog, categories, VAT types.
 
 Polymorphic clinical notes (administrative, diagnosis, treatment, treatment plan) with author. Attachments delegated to media.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -198,9 +198,9 @@ Polymorphic clinical notes (administrative, diagnosis, treatment, treatment plan
 
 ### `copilot` — v0.1.0
 
-Conversational AI agent over DentalPin, scoped to the caller's permissions.
+Conversational AI agent over Dentora, scoped to the caller's permissions.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
@@ -224,7 +224,7 @@ Conversational AI agent over DentalPin, scoped to the caller's permissions.
 
 Patient documents, photos, X-rays + polymorphic attachments.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -251,7 +251,7 @@ Patient documents, photos, X-rays + polymorphic attachments.
 
 Importa datos de pacientes, citas, presupuestos, pagos y documentos desde un archivo DPMF generado por dental-bridge.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
@@ -275,7 +275,7 @@ Importa datos de pacientes, citas, presupuestos, pagos y documentos desde un arc
 
 Email templates, preferences, SMTP, event-driven sending.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -311,7 +311,7 @@ Email templates, preferences, SMTP, event-driven sending.
 
 Dental charting, tooth state, clinical treatments.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -337,7 +337,7 @@ Dental charting, tooth state, clinical treatments.
 
 Patient timeline — unified activity log.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -388,7 +388,7 @@ Patient timeline — unified activity log.
 
 Patient identity: name, contact, demographics, status.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -408,7 +408,7 @@ Patient identity: name, contact, demographics, status.
 
 Normalized medical history, allergies, medications, emergency contacts.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -428,7 +428,7 @@ Normalized medical history, allergies, medications, emergency contacts.
 
 Patient-centric collections, allocations to budgets / on-account, refunds, patient ledger, and dental payment reports.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -452,7 +452,7 @@ Patient-centric collections, allocations to budgets / on-account, refunds, patie
 
 SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
@@ -472,7 +472,7 @@ SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices.
 
 Patient recalls: schedule call-backs, work the monthly call list, log attempts, auto-link booked appointments.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
@@ -499,7 +499,7 @@ Patient recalls: schedule call-backs, work the monthly call list, log attempts, 
 
 Cross-module reporting: billing, budgets, scheduling.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -517,7 +517,7 @@ Cross-module reporting: billing, budgets, scheduling.
 
 Clinic + professional operating hours, overrides, availability, and occupancy analytics.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=True
@@ -543,7 +543,7 @@ Clinic + professional operating hours, overrides, availability, and occupancy an
 
 Patient treatment plans with budget + odontogram sync.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=True · removable=False
@@ -582,7 +582,7 @@ Patient treatment plans with budget + odontogram sync.
 
 Cumplimiento Veri*Factu (AEAT) para clínicas en España.
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=True
@@ -604,7 +604,7 @@ Cumplimiento Veri*Factu (AEAT) para clínicas en España.
 
 WhatsApp para notifications vía Kapso (Meta Cloud API).
 
-- **Author:** DentalPin Core Team
+- **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** community
 - **Install policy:** installable=True · auto_install=False · removable=True

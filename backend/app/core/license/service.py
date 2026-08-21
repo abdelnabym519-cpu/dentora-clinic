@@ -115,7 +115,7 @@ class LicenseManager:
             payload = json.loads(raw)
         except (ValueError, InvalidSignature, json.JSONDecodeError) as exc:
             raise LicenseError("License lease signature is invalid") from exc
-        if payload.get("product") != "dentalpin" or payload.get("v") != 1:
+        if payload.get("product") != "dentora" or payload.get("v") != 1:
             raise LicenseError("License lease is for another product or version")
         return payload
 

@@ -1,8 +1,8 @@
-"""Lookup tables for Gesdén ``IdTipoODG`` → DentalPin signals.
+"""Lookup tables for Gesdén ``IdTipoODG`` → Dentora signals.
 
 Locks in the contract: every documented IdTipoODG resolves, the
 infer-on-create signals (clinical_type, scope, surfaces) point at real
-DentalPin enums, and the alias expansion handles the most common
+Dentora enums, and the alias expansion handles the most common
 Gesdén abbreviations the importer sees in the field.
 """
 

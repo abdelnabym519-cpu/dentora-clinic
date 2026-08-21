@@ -5,7 +5,7 @@ patient via the DPMF's `patient_uuid` (resolved through the mapping
 table) and optionally carries `method` + `amount` + `paid_at`.
 
 The DPMF debt / debt_payment_application graph is significantly richer
-than DentalPin's flat Payment model — allocations land in `RawEntity`
+than Dentora's flat Payment model — allocations land in `RawEntity`
 today via the catch-all path. This MVP creates the Payment row only,
 which is enough to keep the patient ledger balanced for the historical
 data.
@@ -37,7 +37,7 @@ _METHOD_MAP: dict[str, str] = {
     "other": "other",
 }
 
-# Gesdén ``DCobros.Tipo`` numeric code → DentalPin payment method
+# Gesdén ``DCobros.Tipo`` numeric code → Dentora payment method
 # enum. Based on the dominant values in the source database (Tipo=1 is
 # the by-far most common, payment is cash/in-clinic; the others map to
 # typical Spanish clinic patterns). Unknown codes fall back to
@@ -237,8 +237,8 @@ class PaymentMapper:
             entity_type="payment",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="payments",
-            dentalpin_id=first_payment_id,
+            dentora_table="payments",
+            dentora_id=first_payment_id,
         )
         return first_payment_id
 
@@ -263,7 +263,7 @@ class PaymentMapper:
         Each level resolves through ``EntityMapping`` so the
         ``Refund → Payment → patient_id`` chain stays correct.
         Returns ``None`` when no signal yields a Payment that landed
-        in DentalPin; the caller emits
+        in Dentora; the caller emits
         ``payment.refund_unmappable``.
         """
         related = payload.get("related_payment_uuid")
@@ -369,7 +369,7 @@ class PaymentMapper:
         amount: Decimal,
     ) -> UUID | None:
         """Import a negative ``PagoCli`` as a ``Refund`` row tied to a
-        DentalPin ``Payment``. Target resolution lives in
+        Dentora ``Payment``. Target resolution lives in
         :meth:`_resolve_refund_target` — direct ``IdPagoCliRelacionado``
         chain first, ``applied_treatment_uuid`` fallback second.
 
@@ -421,8 +421,8 @@ class PaymentMapper:
             entity_type="payment",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="refunds",
-            dentalpin_id=refund.id,
+            dentora_table="refunds",
+            dentora_id=refund.id,
         )
         return refund.id
 

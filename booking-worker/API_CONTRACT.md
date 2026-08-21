@@ -1,23 +1,23 @@
-# DentalPin Public Booking Cloud
+# Dentora Public Booking Cloud
 ## API Contract v1
 
 ## Public booking URLs
 
 Clinic:
 
-https://book.dentalpin.app/{clinic_slug}
+https://booking.dentora.example/{clinic_slug}
 
 Example:
 
-https://book.dentalpin.app/dental
+https://booking.dentora.example/dental
 
 Doctor:
 
-https://book.dentalpin.app/{clinic_slug}/{doctor_slug}
+https://booking.dentora.example/{clinic_slug}/{doctor_slug}
 
 Example:
 
-https://book.dentalpin.app/dental/dr-ahmed-mahmoud
+https://booking.dentora.example/dental/dr-ahmed-mahmoud
 
 Rules:
 
@@ -92,7 +92,7 @@ Example:
 
 ## Clinic Sync API
 
-All clinic synchronization is initiated OUTBOUND by the DentalPin
+All clinic synchronization is initiated OUTBOUND by the Dentora
 installation over HTTPS.
 
 The clinic does not expose PostgreSQL, FastAPI, Docker, or Windows
@@ -129,7 +129,7 @@ Publishes only public booking professionals:
 
 PUT /api/v1/sync/availability
 
-Publishes bookable time slots calculated by the local DentalPin
+Publishes bookable time slots calculated by the local Dentora
 installation.
 
 The local clinic database remains authoritative.
@@ -171,7 +171,7 @@ It becomes:
 
 accepted
 
-only after the local DentalPin installation validates the slot and
+only after the local Dentora installation validates the slot and
 creates the appointment in local PostgreSQL.
 
 The public cloud must never create the final authoritative clinic
@@ -179,7 +179,7 @@ appointment by itself.
 
 ### Authentication
 
-Sync endpoints require authenticated DentalPin commercial installation
+Sync endpoints require authenticated Dentora commercial installation
 identity.
 
 Public patient endpoints must never be allowed to call sync endpoints.

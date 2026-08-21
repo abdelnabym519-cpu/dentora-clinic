@@ -1,6 +1,6 @@
 # Architecture Diagrams
 
-Visual documentation for DentalPin system architecture.
+Visual documentation for Dentora system architecture.
 
 All diagrams use [Mermaid.js](https://mermaid.js.org/) and render directly in GitHub.
 
@@ -18,7 +18,7 @@ All diagrams use [Mermaid.js](https://mermaid.js.org/) and render directly in Gi
 
 ```mermaid
 graph LR
-    subgraph "DentalPin"
+    subgraph "Dentora"
         FE[Frontend<br/>Nuxt 3] --> API[Backend<br/>FastAPI]
         API --> DB[(PostgreSQL)]
     end

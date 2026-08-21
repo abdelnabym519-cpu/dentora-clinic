@@ -356,7 +356,7 @@ class PeriodontogramModule(BaseModule):
         "name": "periodontogram",
         "version": "0.1.0",
         "summary": "Periodontogram SEPA — diagnóstico y seguimiento periodontal.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "odontogram"],
@@ -890,7 +890,7 @@ Cada PR debe pasar:
 | Drafts huérfanos > 30 días | Job de housekeeping (fase 2). |
 | Errores de validación API | Log warning con clinic_id + patient_id. |
 
-No instrumentamos métricas Prometheus en MVP — DentalPin aún no tiene infra. Documentar en `events.md` como TODO.
+No instrumentamos métricas Prometheus en MVP — Dentora aún no tiene infra. Documentar en `events.md` como TODO.
 
 ---
 

@@ -56,7 +56,7 @@
     },
     "proposals": {
       "title": "Rever as correspondências do catálogo",
-      "subtitle": "Associe cada tratamento do Gesdén ao catálogo do DentalPin antes de importar.",
+      "subtitle": "Associe cada tratamento do Gesdén ao catálogo do Dentora antes de importar.",
       "build": "Calcular propostas",
       "building": "A calcular…",
       "summary": "{total} propostas: {link} associadas, {fuzzy} aproximadas, {create} a criar",

@@ -44,7 +44,7 @@ class ClinicalNotesModule(BaseModule):
             "Polymorphic clinical notes (administrative, diagnosis, treatment, "
             "treatment plan) with author. Attachments delegated to media."
         ),
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "odontogram", "treatment_plan", "media", "agenda"],

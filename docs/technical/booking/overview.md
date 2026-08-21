@@ -5,7 +5,7 @@ last_verified_commit: a9774dd
 
 # Booking — technical overview
 
-Public patient self-booking for DentalPin. The module exposes a clinic-specific public booking page and API, reuses schedule availability, resolves patient identity, and creates appointments directly in Agenda.
+Public patient self-booking for Dentora. The module exposes a clinic-specific public booking page and API, reuses schedule availability, resolves patient identity, and creates appointments directly in Agenda.
 
 ## What this module owns
 

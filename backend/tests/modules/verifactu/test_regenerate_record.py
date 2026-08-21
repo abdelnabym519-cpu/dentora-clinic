@@ -77,7 +77,7 @@ async def _seed_settings(db: AsyncSession, clinic: Clinic) -> VerifactuSettings:
         environment="test",
         numero_instalacion=str(uuid4()),
         producer_nif="B98765431",
-        producer_name="DentalPin Producer",
+        producer_name="Dentora Producer",
         producer_id_sistema="DP",
         producer_version="0.1.0",
         declaracion_responsable_signed_at=datetime.now(UTC),

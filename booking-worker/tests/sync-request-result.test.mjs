@@ -73,7 +73,7 @@ function leasePayload(
 ) {
   return {
     product:
-      "dentalpin",
+      "dentora",
 
     v: 1,
 
@@ -587,7 +587,7 @@ async function postResult(
 
   return worker.fetch(
     new Request(
-      `https://book.dentalpin.app/api/v1/sync/requests/${requestId}/result`,
+      `https://booking.dentora.example/api/v1/sync/requests/${requestId}/result`,
       {
         method:
           "POST",
@@ -620,7 +620,7 @@ test(
     const response =
       await worker.fetch(
         new Request(
-          "https://book.dentalpin.app/api/v1/sync/requests/request-1/result",
+          "https://booking.dentora.example/api/v1/sync/requests/request-1/result",
           {
             method:
               "POST",

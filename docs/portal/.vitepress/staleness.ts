@@ -24,7 +24,7 @@ const HERE = fileURLToPath(new URL(".", import.meta.url));
 // docs/portal/.vitepress/ → repo root is two levels above docs/.
 const REPO_ROOT = resolve(HERE, "..", "..", "..");
 
-const GH_REPO = "https://github.com/martinezsalmeron/dentalpin";
+const GH_REPO = "https://github.com/abdelnabym519-cpu/dentora-clinic";
 
 const GIT_LOG_CACHE = new Map<string, string[]>();
 

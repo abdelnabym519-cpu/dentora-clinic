@@ -1,8 +1,8 @@
 {
-  "name": "dentalpin-booking-worker",
+  "name": "dentora-booking-worker",
   "version": "0.1.0",
   "private": true,
-  "description": "DentalPin Public Booking Cloud on Cloudflare Workers + D1",
+  "description": "Dentora Public Booking Cloud on Cloudflare Workers + D1",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

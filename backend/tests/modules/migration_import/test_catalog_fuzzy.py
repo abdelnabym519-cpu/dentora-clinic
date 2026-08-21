@@ -33,7 +33,7 @@ def test_normalise_empty_and_none_safe() -> None:
 
 def test_fuzzy_accepts_gesden_abbreviations() -> None:
     """Common Gesdén-side abbreviations must clear the threshold against
-    the canonical DentalPin seed labels."""
+    the canonical Dentora seed labels."""
     pairs_that_must_match = [
         ("obtur composite", "obturacion composite"),
         ("endodoncia uni", "endodoncia unirradicular"),

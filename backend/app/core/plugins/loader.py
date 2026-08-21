@@ -3,14 +3,14 @@
 Discovery happens in two stages:
 
 1. **Entry points** — the primary mechanism. Modules (internal or
-   third-party) declare an entry point in the ``dentalpin.modules``
+   third-party) declare an entry point in the ``dentora.modules``
    group. This is how published PyPI packages plug in without any
    filesystem layout assumptions.
 
 2. **Filesystem scan** — a dev-mode fallback that walks
    ``backend/app/modules/`` and imports any package containing a
    ``BaseModule`` subclass. Controlled by
-   ``settings.DENTALPIN_DEV_MODULE_SCAN``. The fallback skips modules
+   ``settings.DENTORA_DEV_MODULE_SCAN``. The fallback skips modules
    that an entry point already provided, so entry points win when both
    are present.
 
@@ -37,7 +37,7 @@ from .topology import topological_sort
 
 logger = logging.getLogger(__name__)
 
-ENTRY_POINT_GROUP = "dentalpin.modules"
+ENTRY_POINT_GROUP = "dentora.modules"
 
 
 def _resolve_load_order(modules: list[BaseModule]) -> list[BaseModule]:
@@ -60,7 +60,7 @@ def _instantiate_module_class(cls: type) -> BaseModule | None:
 
 
 def _discover_entry_points() -> list[BaseModule]:
-    """Discover modules registered as ``dentalpin.modules`` entry points."""
+    """Discover modules registered as ``dentora.modules`` entry points."""
     modules: list[BaseModule] = []
 
     try:
@@ -131,10 +131,10 @@ def discover_modules() -> list[BaseModule]:
     modules = _discover_entry_points()
     seen = {m.name for m in modules}
 
-    if settings.DENTALPIN_DEV_MODULE_SCAN:
+    if settings.DENTORA_DEV_MODULE_SCAN:
         modules.extend(_discover_filesystem(seen))
     else:
-        logger.info("DENTALPIN_DEV_MODULE_SCAN disabled; skipping filesystem discovery")
+        logger.info("DENTORA_DEV_MODULE_SCAN disabled; skipping filesystem discovery")
 
     return modules
 

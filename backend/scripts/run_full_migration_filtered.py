@@ -1,4 +1,4 @@
-"""Run a Gesdén → DentalPin import with the new professional filters.
+"""Run a Gesdén → Dentora import with the new professional filters.
 
 Mirrors ``run_full_migration.py`` but threads ``execute_options`` so the
 operator-tunable professional filter sliders are honoured. Defaults

@@ -85,8 +85,8 @@ async def _apply(ctx, *, patient_id, raw, payload, source_id="1", canonical=None
         entity_type="patient",
         canonical_uuid=str(patient_id),
         source_system="gesden",
-        dentalpin_table="patients",
-        dentalpin_id=patient_id,
+        dentora_table="patients",
+        dentora_id=patient_id,
     )
     payload.setdefault("patient_uuid", str(patient_id))
     await AppliedTreatmentMapper().apply(
@@ -300,8 +300,8 @@ async def test_professional_uuid_becomes_note_author(db_session) -> None:
         entity_type="professional",
         canonical_uuid=prof_canonical,
         source_system="gesden",
-        dentalpin_table="users",
-        dentalpin_id=dentist.id,
+        dentora_table="users",
+        dentora_id=dentist.id,
     )
 
     await _apply(

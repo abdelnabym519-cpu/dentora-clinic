@@ -36,9 +36,9 @@ from collections import defaultdict
 from pathlib import Path
 
 _default_repo_root = Path(__file__).resolve().parents[2]
-_env_repo_root = os.environ.get("DENTALPIN_REPO_ROOT")
+_env_repo_root = os.environ.get("DENTORA_REPO_ROOT")
 REPO_ROOT = Path(_env_repo_root).resolve() if _env_repo_root else _default_repo_root
-_env_backend_root = os.environ.get("DENTALPIN_BACKEND_ROOT")
+_env_backend_root = os.environ.get("DENTORA_BACKEND_ROOT")
 BACKEND_ROOT = Path(_env_backend_root).resolve() if _env_backend_root else REPO_ROOT / "backend"
 MODULES_ROOT = BACKEND_ROOT / "app" / "modules"
 DOCS_ROOT = REPO_ROOT / "docs"
@@ -66,7 +66,7 @@ def _bootstrap_env() -> None:
     os.environ.setdefault("SECRET_KEY", "catalog-generator-stub-key-32chars-minimum")
     os.environ.setdefault("ENVIRONMENT", "test")
     os.environ.setdefault("TESTING", "true")
-    os.environ.setdefault("DENTALPIN_DEV_MODULE_SCAN", "true")
+    os.environ.setdefault("DENTORA_DEV_MODULE_SCAN", "true")
     sys.path.insert(0, str(BACKEND_ROOT))
 
 
@@ -225,7 +225,7 @@ def _render_modules_catalog(modules, publishers) -> str:
         GENERATED_HEADER,
         "# Modules catalog\n",
         "Single source of truth for every module loaded into the running "
-        "DentalPin instance. Generated from module manifests, "
+        "Dentora instance. Generated from module manifests, "
         "`get_permissions()`, `get_event_handlers()`, and grep of "
         "`event_bus.publish` callsites.\n",
         "Maintained by `backend/scripts/generate_catalogs.py`. CI fails "

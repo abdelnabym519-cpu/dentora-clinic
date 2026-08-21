@@ -19,7 +19,7 @@ from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, UniqueConstr
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-PRODUCT = "dentalpin"
+PRODUCT = "dentora"
 ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
@@ -233,7 +233,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="DentalPin License Server",
+    title="Dentora License Server",
     version="0.1.0",
     docs_url=None,
     redoc_url=None,
@@ -243,7 +243,7 @@ app = FastAPI(
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "healthy", "service": "dentalpin-license"}
+    return {"status": "healthy", "service": "dentora-license"}
 
 
 @app.get("/v1/public-key")

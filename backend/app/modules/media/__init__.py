@@ -24,7 +24,7 @@ class MediaModule(BaseModule):
         "name": "media",
         "version": "0.2.0",
         "summary": "Patient documents, photos, X-rays + polymorphic attachments.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients"],

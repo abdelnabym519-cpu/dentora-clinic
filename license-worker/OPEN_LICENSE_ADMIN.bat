@@ -3,7 +3,7 @@ setlocal EnableExtensions
 cd /d "%~dp0"
 
 echo ==========================================
-echo   DentalPin License Administration
+echo   Dentora License Administration
  echo ==========================================
 
 where python >nul 2>&1

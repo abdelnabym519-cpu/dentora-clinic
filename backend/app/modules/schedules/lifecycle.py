@@ -3,7 +3,7 @@
 The 24/7 default seed runs in the Alembic migration itself (data
 migration step inside ``sch_0001_initial.py``) so the behavior is the
 same whether the module is discovered on a fresh database or installed
-later via ``dentalpin modules install schedules``.
+later via ``dentora modules install schedules``.
 """
 
 from __future__ import annotations

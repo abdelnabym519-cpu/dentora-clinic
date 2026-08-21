@@ -222,8 +222,8 @@ class DebtMapper:
             entity_type="debt",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="patient_earned_entries",
-            dentalpin_id=entry.id,
+            dentora_table="patient_earned_entries",
+            dentora_id=entry.id,
         )
         return entry.id
 

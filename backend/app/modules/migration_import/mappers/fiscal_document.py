@@ -71,7 +71,7 @@ class FiscalDocumentMapper:
         from app.modules.billing.models import Invoice
 
         # The source's ``series`` is a free-text legal series ("F", "FR",
-        # "A"…) that DentalPin models as a UUID FK to ``InvoiceSeries``.
+        # "A"…) that Dentora models as a UUID FK to ``InvoiceSeries``.
         # Building the InvoiceSeries catalog from a historical import is
         # out of scope, so we stamp the source series into
         # ``invoice_number`` (prefix preserves the legal chain visually)
@@ -112,8 +112,8 @@ class FiscalDocumentMapper:
             entity_type="fiscal_document",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="invoices",
-            dentalpin_id=invoice.id,
+            dentora_table="invoices",
+            dentora_id=invoice.id,
         )
         return invoice.id
 

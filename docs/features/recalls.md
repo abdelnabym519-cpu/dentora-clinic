@@ -226,7 +226,7 @@ HTTP routes; do-not-contact and archived patients stay excluded. See
 
 ## Related
 
-- Issue: <https://github.com/martinezsalmeron/dentalpin/issues/62>
+- Issue: <https://github.com/abdelnabym519-cpu/dentora-clinic/issues/62>
 - ADRs: `docs/adr/0001-modular-plugin-architecture.md`,
   `docs/adr/0003-event-bus-over-direct-imports.md`,
   `docs/adr/0005-relative-permissions.md`.

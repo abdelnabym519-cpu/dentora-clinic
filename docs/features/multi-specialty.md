@@ -1,6 +1,6 @@
 # Fase C — Multi-especialidad: desinstalar odontograma limpiamente
 
-Documento de diseño para abrir DentalPin más allá del dental: permitir
+Documento de diseño para abrir Dentora más allá del dental: permitir
 que clínicas de fisioterapia, estética, veterinaria, medicina general,
 etc. usen el mismo software desinstalando el módulo `odontogram` y
 dejando operativos el resto de flujos (agenda, pacientes, planes de
@@ -22,10 +22,10 @@ catálogo (sin odontograma por medio).
 
 ## 1. Objetivo
 
-Dado un DentalPin recién instalado, ejecutar
+Dado un Dentora recién instalado, ejecutar
 
 ```bash
-./bin/dentalpin modules uninstall odontogram
+./bin/dentora modules uninstall odontogram
 ```
 
 y que tras reiniciar:

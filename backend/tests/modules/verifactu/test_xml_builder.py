@@ -27,7 +27,7 @@ def _well_formed(s: str) -> etree._Element:
 
 def _make_payload(*, tipo_factura: str = "F1", with_destinatario: bool = True):
     si = xml_builder.SistemaInformatico(
-        nombre_razon="DentalPin S.L.",
+        nombre_razon="Dentora S.L.",
         nif="B00000000",
         numero_instalacion="abc-123",
     )
@@ -92,7 +92,7 @@ def test_alta_includes_sistema_informatico():
     root = _well_formed(xml_str)
     assert root.xpath(
         ".//*[local-name()='SistemaInformatico']/*[local-name()='NombreSistemaInformatico']/text()"
-    ) == ["DentalPin"]
+    ) == ["Dentora"]
     assert root.xpath(
         ".//*[local-name()='SistemaInformatico']/*[local-name()='NumeroInstalacion']/text()"
     ) == ["abc-123"]

@@ -1,4 +1,4 @@
-# Sistema de módulos DentalPin — Arquitectura v1
+# Sistema de módulos Dentora — Arquitectura v1
 
 Documento de diseño para refactorizar el sistema modular actual hacia una arquitectura tipo Odoo moderna, preparada para un ecosistema open source sano (oficial + community) y sostenible a 5 años.
 
@@ -6,7 +6,7 @@ Documento de diseño para refactorizar el sistema modular actual hacia una arqui
 
 **Fecha original**: 2026-04-19
 
-**Contexto**: el core de DentalPin está casi listo. Antes de construir módulos opcionales (facturación, odontograma, presupuestos, planes de tratamiento, etc.) se refactoriza la plataforma modular para que módulos oficiales y comunitarios funcionen bajo el mismo contrato, con instalación/desinstalación limpia y reinicio explícito.
+**Contexto**: el core de Dentora está casi listo. Antes de construir módulos opcionales (facturación, odontograma, presupuestos, planes de tratamiento, etc.) se refactoriza la plataforma modular para que módulos oficiales y comunitarios funcionen bajo el mismo contrato, con instalación/desinstalación limpia y reinicio explícito.
 
 **Scope v1 (Fase A) — completado**: toda la infraestructura modular (backend + frontend slots + Nuxt layers + CLI) entregada; los 9 módulos officiales originales se migraron al contrato nuevo.
 
@@ -84,21 +84,21 @@ Nota: algunos de estos (`catalog`, `budget`, `billing`, `notifications`, `treatm
 
 **Razón para diferir**: mover modelos, API paths, permisos y componentes frontend de clinical son ~10-14 días de refactor con riesgo de regresiones en flujos funcionando (citas, pacientes, odontograma). La infraestructura modular no lo necesita. Cuando se aborde Fase B, el split es mecánico (mover archivos + migraciones de datos + actualizar manifest), no rediseño.
 
-**Razón futura para Patient-en-core**: es raíz universal de 100% de módulos dentales. Si fuera módulo, cada módulo declararía `depends: ["patients"]` — ruido permanente. Laboratorio dental usando DentalPin con entidad "cliente" en vez de "paciente" es caso <1% que no justifica la fricción diaria del 99%. GDPR se resuelve con el módulo `patients_clinical` separado que contiene los datos sensibles reales.
+**Razón futura para Patient-en-core**: es raíz universal de 100% de módulos dentales. Si fuera módulo, cada módulo declararía `depends: ["patients"]` — ruido permanente. Laboratorio dental usando Dentora con entidad "cliente" en vez de "paciente" es caso <1% que no justifica la fricción diaria del 99%. GDPR se resuelve con el módulo `patients_clinical` separado que contiene los datos sensibles reales.
 
 ### 2.2 Distribución: entry points fase 1, workspace fase 2 (Q2)
 
 **Fase 1 (este plan)**:
 - Un único `backend/pyproject.toml` que declara entry points Python para todos los módulos internos.
 - Módulos oficiales viven como subpackages: `backend/app/modules/<name>/` con su `manifest.py`.
-- Discovery principal: `importlib.metadata.entry_points(group="dentalpin.modules")`.
+- Discovery principal: `importlib.metadata.entry_points(group="dentora.modules")`.
 - Discovery secundario (modo dev): escaneo de `backend/app/modules/` para módulos no registrados como entry point pero con manifest válido. Útil mientras se desarrolla un módulo nuevo.
-- Comunidad publica su módulo como paquete en PyPI con su propio `pyproject.toml` declarando entry point `dentalpin.modules`.
+- Comunidad publica su módulo como paquete en PyPI con su propio `pyproject.toml` declarando entry point `dentora.modules`.
 
 **Fase 2 (futuro, no en este plan)**:
 - Split cada módulo oficial en su propio `pyproject.toml` dentro del monorepo.
 - Workspace gestionado con `uv`.
-- Meta-paquete `dentalpin-standard` agrupa core + módulos oficiales para instalación single-command.
+- Meta-paquete `dentora-standard` agrupa core + módulos oficiales para instalación single-command.
 - Refactor build system + Docker + CI aislado, no mezclado con este trabajo.
 
 **Razón**: el mecanismo de discovery correcto desde el principio es innegociable. El build system en workspace es refactor opcional que no cambia contratos.
@@ -135,7 +135,7 @@ Piedra angular del ecosistema open source.
 
 **Mecánica**:
 - Cada módulo (oficial o comunitario) incluye una carpeta `frontend/` dentro de su paquete Python, estructurada como Nuxt Layer: `pages/`, `components/`, `composables/`, `i18n/`, `nuxt.config.ts` propio.
-- CLI `dentalpin modules install <name>` hace:
+- CLI `dentora modules install <name>` hace:
   1. `pip install` del paquete (si es community) o activación (si es interno).
   2. Detecta la carpeta `frontend/` dentro del paquete instalado.
   3. Patchea `nuxt.config.ts` del frontend añadiendo el path al array `extends`.
@@ -171,7 +171,7 @@ Piedra angular del ecosistema open source.
 - Comandos: `list`, `install`, `uninstall`, `upgrade`, `activate`, `deactivate`, `status`, `doctor` (diagnóstico).
 - Vive dentro del contenedor backend. Uso típico: `docker-compose exec backend python -m app.cli modules list`.
 - Lógica en `ModuleService`. CLI y API HTTP consumen el mismo servicio — un único punto de verdad.
-- Entry point `dentalpin-admin` (console script) se añade en fase 2 cuando exista distribución CLI real.
+- Entry point `dentora-admin` (console script) se añade en fase 2 cuando exista distribución CLI real.
 
 ---
 
@@ -180,9 +180,9 @@ Piedra angular del ecosistema open source.
 Contrato estándar, idéntico para oficial y comunitario.
 
 ```
-dentalpin-billing/                         # repo community o directorio interno
-├── pyproject.toml                         # declara entry point "dentalpin.modules"
-├── dentalpin_billing/
+dentora-billing/                         # repo community o directorio interno
+├── pyproject.toml                         # declara entry point "dentora.modules"
+├── dentora_billing/
 │   ├── __init__.py                        # exporta MANIFEST y clase Module
 │   ├── manifest.py                        # metadata declarativa
 │   ├── lifecycle.py                       # install(), uninstall(), post_upgrade()
@@ -211,13 +211,13 @@ dentalpin-billing/                         # repo community o directorio interno
 ### 3.1 Manifest
 
 ```python
-# dentalpin_billing/manifest.py
+# dentora_billing/manifest.py
 MANIFEST = {
     # Identidad
     "name": "billing",
     "version": "1.0.0",
     "summary": "Facturación, recibos y pagos",
-    "author": "DentalPin Core Team",
+    "author": "Dentora Core Team",
     "license": "BSL-1.1",
     "category": "official",                 # "official" | "community"
 
@@ -226,7 +226,7 @@ MANIFEST = {
     "max_core_version": "2.0.0",            # opcional, upper bound
 
     # Dependencias
-    "depends": ["patients_clinical", "catalog"],   # módulos DentalPin
+    "depends": ["patients_clinical", "catalog"],   # módulos Dentora
     "external_dependencies": {
         "python": ["weasyprint>=60"],       # validado en discover
     },
@@ -261,8 +261,8 @@ MANIFEST = {
 ### 3.2 Clase `Module`
 
 ```python
-# dentalpin_billing/__init__.py
-from dentalpin.core.plugins import BaseModule
+# dentora_billing/__init__.py
+from dentora.core.plugins import BaseModule
 from .manifest import MANIFEST
 from .router import router
 from .models import Invoice, InvoiceLine
@@ -297,8 +297,8 @@ class BillingModule(BaseModule):
 ### 3.3 Entry point en `pyproject.toml`
 
 ```toml
-[project.entry-points."dentalpin.modules"]
-billing = "dentalpin_billing:BillingModule"
+[project.entry-points."dentora.modules"]
+billing = "dentora_billing:BillingModule"
 ```
 
 ---
@@ -399,8 +399,8 @@ Al reiniciar:
 
 ### 5.1 Fuentes de discovery
 
-1. **Entry points Python** (principal): `importlib.metadata.entry_points(group="dentalpin.modules")`. Cubre módulos oficiales e instalados desde PyPI.
-2. **Filesystem scan** (modo dev): escaneo de `backend/app/modules/` buscando paquetes con `manifest.py`. Se incluye en discover si no hay entry point equivalente. Controlado por env var `DENTALPIN_DEV_MODULE_SCAN=true`.
+1. **Entry points Python** (principal): `importlib.metadata.entry_points(group="dentora.modules")`. Cubre módulos oficiales e instalados desde PyPI.
+2. **Filesystem scan** (modo dev): escaneo de `backend/app/modules/` buscando paquetes con `manifest.py`. Se incluye en discover si no hay entry point equivalente. Controlado por env var `DENTORA_DEV_MODULE_SCAN=true`.
 
 ### 5.2 Secuencia bootstrap
 
@@ -512,7 +512,7 @@ CREATE INDEX idx_external_id_table ON core_external_id (table_name, record_id);
 YAML declarativo en `data/*.yaml`:
 
 ```yaml
-# dentalpin_billing/data/default_tax_rates.yaml
+# dentora_billing/data/default_tax_rates.yaml
 - xml_id: billing.tax_iva_21
   table: billing_tax
   noupdate: false
@@ -550,7 +550,7 @@ Un xml_id puede referenciar otro: `parent_category: billing.category_services`. 
 Cada módulo lleva una carpeta `frontend/` estructurada como Nuxt Layer autónomo:
 
 ```
-dentalpin_billing/frontend/
+dentora_billing/frontend/
 ├── nuxt.config.ts                         # config del layer
 ├── pages/
 │   ├── billing/
@@ -572,7 +572,7 @@ Cuando el layer se añade a `extends` del `nuxt.config.ts` del frontend principa
 
 ### 8.2 Orquestación del layer por la CLI
 
-Flujo `dentalpin modules install <name>`:
+Flujo `dentora modules install <name>`:
 
 1. Resolver el path de la carpeta `frontend/` dentro del paquete Python instalado (`importlib.resources`).
 2. Editar `frontend/nuxt.config.ts` del contenedor frontend: añadir el path al array `extends`. Persistir en un archivo auxiliar `frontend/modules.json` que el `nuxt.config.ts` lee al iniciar.
@@ -601,7 +601,7 @@ Permite a un módulo inyectar UI dentro de páginas de otros módulos sin tocar 
 **Módulos registran componentes** al slot:
 
 ```ts
-// dentalpin_billing/frontend/slots.ts
+// dentora_billing/frontend/slots.ts
 import { registerSlot } from '~/composables/useSlots'
 
 registerSlot('patient.detail.sidebar', {
@@ -732,7 +732,7 @@ No son opcionales. Son la diferencia entre "funciona" y "funciona en producción
 
 ### End-to-end
 
-15. **Install community module simulado**: crear paquete de prueba `dentalpin-foo` en fixture, `pip install -e`, `cli modules install foo`, reinicio, verificar router montado, migración aplicada, nav item presente.
+15. **Install community module simulado**: crear paquete de prueba `dentora-foo` en fixture, `pip install -e`, `cli modules install foo`, reinicio, verificar router montado, migración aplicada, nav item presente.
 
 ---
 
@@ -808,7 +808,7 @@ Nota: ahorro vs plan original ~2-4 días porque no se toca clinical (split Patie
 ### Etapa 7 — Hardening y documentación (3-4 días)
 - Test end-to-end con módulo community simulado.
 - Documentar Core API pública con ejemplos.
-- Guía "tu primer módulo DentalPin" en `docs/technical/creating-modules.md` (refactor del actual).
+- Guía "tu primer módulo Dentora" en `docs/technical/creating-modules.md` (refactor del actual).
 - CI: test del sistema modular con y sin módulos no-legacy instalados. Clinical siempre instalado (es legacy, no removible).
 - CI: validador de manifiestos + FKs cross-module.
 
@@ -872,7 +872,7 @@ Todo esto es costoso (10-14 días) pero mecánico cuando la infraestructura de F
 ### 13.4 Implicaciones de governance
 
 - **PRs de módulos comunitarios no se aceptan en el repo principal**. Cada community contributor mantiene su propio repo + publica en PyPI. Se mantiene un registro mínimo (v1 = sección en docs) con enlaces a módulos conocidos.
-- **Módulos oficiales viven en el monorepo DentalPin** y son mantenidos por el core team.
+- **Módulos oficiales viven en el monorepo Dentora** y son mantenidos por el core team.
 - El core team marca un módulo como "official" solo si lo va a mantener. El ecosistema comunitario es responsable de sus propios módulos.
 
 ---
@@ -888,7 +888,7 @@ Para evitar scope creep y mantener foco.
 - **SaaS multi-tenant con módulos por cliente sin rebuild**: fuera. Patrón pre-bundle + toggle por tenant descrito, implementación cuando haya cliente SaaS real.
 - **Hot-install sin reinicio**: fuera. Reevaluable v2 con tests muy sólidos.
 - **Versionado SemVer formal de Core API**: se documenta CHANGELOG + deprecation discipline, sin release cycle formal.
-- **CLI como `dentalpin-admin` console script global**: fuera, `python -m app.cli` suficiente.
+- **CLI como `dentora-admin` console script global**: fuera, `python -m app.cli` suficiente.
 - **Workspace monorepo con `uv`**: fuera, un `pyproject.toml` único con entry points.
 - **i18n del sistema de módulos**: mensajes de error en inglés/español ya soportados; no se amplía.
 - **Backup incremental o diferencial**: uninstall hace dump completo por simplicidad.
@@ -927,7 +927,7 @@ Para resolver al redactar el plan técnico detallado tras aprobar este documento
 - Slim manifest v1 → sin Tool Registry, sin permisos declarativos, sin marketplace, sin firma. Foco en lo que crea valor inmediato.
 
 **Resultado esperado tras Fase A**:
-- Cualquier desarrollador externo puede crear `dentalpin-mi-modulo`, publicarlo en PyPI, y una clínica self-hosted lo instala con un comando.
+- Cualquier desarrollador externo puede crear `dentora-mi-modulo`, publicarlo en PyPI, y una clínica self-hosted lo instala con un comando.
 - Nuevos módulos oficiales (quotes, billing v2, odontogram expansion) nacen bien estructurados desde día 1.
 - Módulos existentes refactorizados (catalog/billing/notifications/treatment_plan/budget) conviven con el contrato nuevo.
 - Ningún módulo no-legacy corrompe el core al desinstalarse. Backup automático. DB vuelve al estado anterior.

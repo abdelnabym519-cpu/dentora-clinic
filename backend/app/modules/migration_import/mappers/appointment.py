@@ -2,7 +2,7 @@
 
 Field mapping from `CanonicalAppointment` (DPMF v0.1):
 
-| DPMF                | DentalPin                                |
+| DPMF                | Dentora                                |
 |---------------------|------------------------------------------|
 | patient_uuid        | patient_id (via resolver)                |
 | professional_uuid   | professional_id (via resolver)           |
@@ -147,8 +147,8 @@ class AppointmentMapper:
             entity_type="appointment",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="appointments",
-            dentalpin_id=appointment.id,
+            dentora_table="appointments",
+            dentora_id=appointment.id,
         )
 
         await _maybe_record_appointment_note(
@@ -211,8 +211,8 @@ async def _maybe_record_appointment_note(
         entity_type="appointment_note",
         canonical_uuid=note_canonical,
         source_system=source_system,
-        dentalpin_table="clinical_notes",
-        dentalpin_id=note.id,
+        dentora_table="clinical_notes",
+        dentora_id=note.id,
     )
 
 

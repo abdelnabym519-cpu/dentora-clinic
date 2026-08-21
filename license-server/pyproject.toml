@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dentalpin-license-server"
+name = "dentora-license-server"
 version = "0.1.0"
-description = "DentalPin commercial license and activation service"
+description = "Dentora commercial license and activation service"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115",

@@ -1,6 +1,6 @@
 # User manual
 
-End-user and administrator guides — how to *use* and *operate* DentalPin.
+End-user and administrator guides — how to *use* and *operate* Dentora.
 Audience: clinic staff, self-hosters, on-call admins.
 
 This folder is **bilingual** (Spanish + English). Every screen-level guide

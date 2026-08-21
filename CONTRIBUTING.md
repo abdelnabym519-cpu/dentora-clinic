@@ -1,6 +1,6 @@
-# Contributing to DentalPin
+# Contributing to Dentora
 
-Thank you for your interest in contributing to DentalPin! This document will help you understand how to contribute effectively.
+Thank you for your interest in contributing to Dentora! This document will help you understand how to contribute effectively.
 
 ---
 
@@ -21,7 +21,7 @@ Thank you for your interest in contributing to DentalPin! This document will hel
 
 ### Business Model & License
 
-DentalPin uses the **BSL 1.1** license (Business Source License):
+Dentora uses the **BSL 1.1** license (Business Source License):
 
 - **Free to use** for clinics (self-hosted or cloud)
 - **Contributions welcome** and encouraged
@@ -32,7 +32,7 @@ By contributing, you agree that your contributions will be licensed under BSL 1.
 
 ### Architecture Overview
 
-DentalPin follows a layered architecture:
+Dentora follows a layered architecture:
 
 | Layer | Description |
 |-------|-------------|
@@ -70,8 +70,8 @@ DentalPin follows a layered architecture:
 # 1. Fork the repository on GitHub
 
 # 2. Clone your fork
-git clone https://github.com/YOUR_USERNAME/dentalpin.git
-cd dentalpin
+git clone https://github.com/YOUR_USERNAME/dentora-clinic.git
+cd dentora
 
 # 3. Start the development environment
 docker-compose up
@@ -306,7 +306,7 @@ const { can } = usePermissions()
 
 ## Creating Modules
 
-DentalPin has a plugin architecture. See the full guide: [docs/technical/creating-modules.md](docs/technical/creating-modules.md)
+Dentora has a plugin architecture. See the full guide: [docs/technical/creating-modules.md](docs/technical/creating-modules.md)
 
 ### Quick Overview
 
@@ -491,4 +491,4 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Thank You!
 
-Every contribution matters — from fixing typos to adding major features. We appreciate your time and effort in making DentalPin better for the dental community.
+Every contribution matters — from fixing typos to adding major features. We appreciate your time and effort in making Dentora better for the dental community.

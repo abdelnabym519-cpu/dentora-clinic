@@ -1,6 +1,6 @@
 # Patient photo gallery + generalized attachments
 
-> Issue #55 · ships in DentalPin 2026-05 · backend module `media` 0.2.0
+> Issue #55 · ships in Dentora 2026-05 · backend module `media` 0.2.0
 
 ## Why
 

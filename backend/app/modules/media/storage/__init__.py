@@ -34,7 +34,7 @@ def get_storage_backend() -> StorageBackend:
         # Use test path if set, otherwise use configured path
         if settings.TESTING and _test_storage_path is None:
             # Auto-create temp directory for tests
-            path = tempfile.mkdtemp(prefix="dentalpin_test_storage_")
+            path = tempfile.mkdtemp(prefix="dentora_test_storage_")
             return LocalStorageBackend(path)
         path = _test_storage_path or settings.STORAGE_LOCAL_PATH
         return LocalStorageBackend(path)

@@ -230,9 +230,9 @@ matches the app's typography.
 
 | Route | Fragment URL |
 |-------|--------------|
-| `/patients` | `https://docs.dentalpin.com/help/patients.html` |
-| `/patients/[id]` | `https://docs.dentalpin.com/help/patients_[id].html` |
-| `/treatment-plans/new` | `https://docs.dentalpin.com/help/treatment-plans_new.html` |
+| `/patients` | `https://docs.dentora.example/help/patients.html` |
+| `/patients/[id]` | `https://docs.dentora.example/help/patients_[id].html` |
+| `/treatment-plans/new` | `https://docs.dentora.example/help/treatment-plans_new.html` |
 
 The frontend ships a `<HelpButton />` component in the app shell. It reads
 the current route from Vue Router and constructs the fragment URL with the
@@ -241,7 +241,7 @@ user's locale prefix (`/en/help/...` or `/es/help/...`).
 Drawer behaviour:
 
 1. Click `?` → drawer opens.
-2. Frontend `fetch('https://docs.dentalpin.com/<lang>/help/<slug>.html')`.
+2. Frontend `fetch('https://docs.dentora.example/<lang>/help/<slug>.html')`.
 3. On 200, render the HTML inside the drawer (sanitised — content comes
    from our own portal so DOMPurify is belt-and-braces only).
 4. On 404, render fallback "No help available for this screen yet" with
@@ -250,7 +250,7 @@ Drawer behaviour:
    doc on the portal at full-page width.
 
 CORS is set in `nginx.conf` on the `/help/` location — allow GET/OPTIONS
-from `app.dentalpin.com` (tighten from `*` once the production app
+from `app.dentora.example` (tighten from `*` once the production app
 origin is known).
 
 The frontend route → slug helper lives in `frontend/app/composables/
@@ -329,13 +329,13 @@ After the standard module bootstrap in
 | Container | Multi-stage `Dockerfile` (Node builder → `nginx:alpine` runtime). |
 | Build context | Repo root (the portal needs `/docs/**`). The repo-root `.dockerignore` excludes `docs/`, but `docs/portal/Dockerfile.dockerignore` overrides that for BuildKit per-Dockerfile ignore. |
 | Hosting | Coolify on the existing Hetzner host. Same infra as backend. |
-| Domain | `docs.dentalpin.com`. Public, no auth. |
+| Domain | `docs.dentora.example`. Public, no auth. |
 | TLS | Coolify-managed Let's Encrypt. |
 | CI smoke test | `.github/workflows/ci.yml` job `docs-portal-build` runs `npm install && npm run build` on every PR. |
 
 Coolify configuration:
 
-- Repo: `martinezsalmeron/dentalpin`
+- Repo: `abdelnabym519-cpu/dentora-clinic`
 - Build context: `/`
 - Dockerfile path: `docs/portal/Dockerfile`
 - Exposed port: `80`
@@ -370,7 +370,7 @@ These are tempting but rejected; revisit only with a concrete need.
 | 4 | Stale badge from `last_verified_commit` | in this PR |
 | 5 | In-app help drawer, `<HelpButton />`, CORS | next session (frontend integration) |
 | 6 | Backfill remaining modules, flip coverage check to blocking | rolling, one PR per module |
-| 7 | Link `docs.dentalpin.com` from the commercial site | external (out of repo) |
+| 7 | Link `docs.dentora.example` from the commercial site | external (out of repo) |
 
 ---
 

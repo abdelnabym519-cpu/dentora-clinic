@@ -20,7 +20,7 @@ class PatientsModule(BaseModule):
         "name": "patients",
         "version": "0.1.0",
         "summary": "Patient identity: name, contact, demographics, status.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": [],

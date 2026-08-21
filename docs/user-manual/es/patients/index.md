@@ -7,7 +7,7 @@ last_verified_commit: 0e9a0ac
 
 El módulo de pacientes gestiona los registros de identidad de las
 personas que atiende tu clínica: nombre, datos de contacto, demografía
-y estado del ciclo de vida. Casi todos los demás módulos de DentalPin
+y estado del ciclo de vida. Casi todos los demás módulos de Dentora
 enlazan con un paciente.
 
 ## Pantallas

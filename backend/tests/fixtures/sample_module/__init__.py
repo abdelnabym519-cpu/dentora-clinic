@@ -18,7 +18,7 @@ class SampleModule(BaseModule):
         "name": "sample_community",
         "version": "0.1.0",
         "summary": "Community fixture used to exercise the layer pipeline.",
-        "author": "DentalPin tests",
+        "author": "Dentora tests",
         "license": "MIT",
         "category": "community",
         "depends": [],

@@ -8,7 +8,7 @@ saw the consequences after the import finished. This service surfaces
 those decisions ahead of execute so the operator can:
 
 - accept the automatic proposal verbatim (fastest path),
-- re-link the Gesdén row to a different DentalPin catalog item,
+- re-link the Gesdén row to a different Dentora catalog item,
 - force creation of a new row in a specific category, or
 - ignore the row entirely (drop it from the import).
 

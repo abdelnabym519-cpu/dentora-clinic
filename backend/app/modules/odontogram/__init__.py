@@ -19,7 +19,7 @@ class OdontogramModule(BaseModule):
         "name": "odontogram",
         "version": "0.3.0",
         "summary": "Dental charting, tooth state, clinical treatments.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "catalog"],

@@ -54,7 +54,7 @@ async def test_pull_requests_uses_bearer_auth_and_exact_sync_path(
         )
 
     client = BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -105,7 +105,7 @@ async def test_resolve_accepted_request_posts_exact_contract(
         )
 
     client = BookingCloudClient(
-        base_url="https://book.dentalpin.app/",
+        base_url="https://booking.dentora.example/",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -153,7 +153,7 @@ async def test_resolve_rejected_request_posts_exact_contract(
         )
 
     client = BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -204,7 +204,7 @@ async def test_client_resolves_fresh_credential_for_each_request(
         )
 
     client = BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -235,7 +235,7 @@ async def test_cloud_client_classifies_transport_failure_as_transient(
         )
 
     client = cloud_client.BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -262,7 +262,7 @@ async def test_cloud_client_classifies_5xx_as_transient(
         )
 
     client = cloud_client.BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -291,7 +291,7 @@ async def test_cloud_client_classifies_auth_failures(
         )
 
     client = cloud_client.BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -316,7 +316,7 @@ async def test_cloud_client_rejects_invalid_json_as_protocol_error(
         )
 
     client = cloud_client.BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -346,7 +346,7 @@ async def test_cloud_client_rejects_unsuccessful_2xx_contract(
         )
 
     client = cloud_client.BookingCloudClient(
-        base_url="https://book.dentalpin.app",
+        base_url="https://booking.dentora.example",
         credential_resolver=credential_resolver,
         transport=httpx.MockTransport(handler),
     )
@@ -368,6 +368,6 @@ def test_cloud_client_requires_https_base_url(
         match="HTTPS",
     ):
         BookingCloudClient(
-            base_url="http://book.dentalpin.app",
+            base_url="http://booking.dentora.example",
             credential_resolver=credential_resolver,
         )

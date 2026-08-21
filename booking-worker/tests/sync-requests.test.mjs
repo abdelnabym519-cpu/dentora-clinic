@@ -95,7 +95,7 @@ function defaultLeasePayload(
 ) {
   return {
     product:
-      "dentalpin",
+      "dentora",
 
     v: 1,
 
@@ -916,7 +916,7 @@ async function pull(
 
   return worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/sync/requests",
+      "https://booking.dentora.example/api/v1/sync/requests",
       {
         method:
           "GET",
@@ -944,7 +944,7 @@ test(
     const response =
       await worker.fetch(
         new Request(
-          "https://book.dentalpin.app/api/v1/sync/requests",
+          "https://booking.dentora.example/api/v1/sync/requests",
           {
             method:
               "GET"

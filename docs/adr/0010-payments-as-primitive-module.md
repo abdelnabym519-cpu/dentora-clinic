@@ -2,7 +2,7 @@
 
 - **Status:** accepted
 - **Date:** 2026-05-13
-- **Deciders:** Ramón Martínez (DentalPin Core)
+- **Deciders:** Ramón Martínez (Dentora Core)
 - **Tags:** modules, finance, dental-operations
 
 ## Context

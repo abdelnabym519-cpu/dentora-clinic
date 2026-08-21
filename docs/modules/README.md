@@ -1,6 +1,6 @@
 # Module Documentation
 
-This directory contains developer documentation for each DentalPin module.
+This directory contains developer documentation for each Dentora module.
 
 ## Available Modules
 

@@ -1,8 +1,8 @@
-# DentalPin Design System
+# Dentora Design System
 
-This document is the **single source of truth** for visual design in DentalPin. It defines tokens, components and patterns that any contributor (human or agent) must follow when adding or modifying UI.
+This document is the **single source of truth** for visual design in Dentora. It defines tokens, components and patterns that any contributor (human or agent) must follow when adding or modifying UI.
 
-DentalPin is clinical software used by dentists, hygienists, assistants and receptionists for **8+ hour shifts**. The design system optimises for **calm, legibility and clinical safety** in that order. Aesthetics serve those goals — they never override them.
+Dentora is clinical software used by dentists, hygienists, assistants and receptionists for **8+ hour shifts**. The design system optimises for **calm, legibility and clinical safety** in that order. Aesthetics serve those goals — they never override them.
 
 > **Companion docs**
 > - Implementation plan: `docs/technical/ui-redesign-calm.md`
@@ -221,7 +221,7 @@ Two global modes, persisted in `localStorage` as `ui:density = comfortable | com
 
 ## 6. Components
 
-Components in DentalPin are built on **Nuxt UI 4** (Radix Vue under the hood). Customisation happens centrally via `app.config.ts`, not per-call.
+Components in Dentora are built on **Nuxt UI 4** (Radix Vue under the hood). Customisation happens centrally via `app.config.ts`, not per-call.
 
 ### 6.1 Buttons (`UButton`)
 

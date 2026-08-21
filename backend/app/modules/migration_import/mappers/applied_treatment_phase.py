@@ -112,7 +112,7 @@ class AppliedTreatmentPhaseMapper:
         executed_dt = _parse_datetime(payload.get("executed_on"))
 
         # We don't yet split the parent treatment's amount across phases
-        # — DentalPin sessions carry absolute amounts and we lack the
+        # — Dentora sessions carry absolute amounts and we lack the
         # canonical price split. Leave amount at zero and surface the
         # source percent in the label for visibility.
         label_parts: list[str] = []
@@ -153,8 +153,8 @@ class AppliedTreatmentPhaseMapper:
             entity_type="applied_treatment_phase",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="planned_treatment_item_sessions",
-            dentalpin_id=session.id,
+            dentora_table="planned_treatment_item_sessions",
+            dentora_id=session.id,
         )
         return session.id
 

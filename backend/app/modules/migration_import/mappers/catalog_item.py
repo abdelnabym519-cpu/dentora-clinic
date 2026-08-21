@@ -6,10 +6,10 @@ specialties, payment methods, chairs/cabinets, …) as
 templates have their own dedicated entity (``treatment_catalog_item``)
 and mapper; everything else flows through here.
 
-For now only ``kind=chair`` produces real DentalPin rows: Gesdén's
+For now only ``kind=chair`` produces real Dentora rows: Gesdén's
 ``TBoxes`` rows land as :class:`agenda.Cabinet` entries on the clinic
 so imported appointments can resolve their ``chair_uuid``. Other kinds
-fall through to :class:`RawEntity` for forward-compat — when DentalPin
+fall through to :class:`RawEntity` for forward-compat — when Dentora
 grows a payment-methods or specialties master, the importer just adds
 another branch here.
 
@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 # Default cabinet color when Gesdén doesn't carry one. Picked from
-# DentalPin's seeded palette so the migrated cabinets blend in with
+# Dentora's seeded palette so the migrated cabinets blend in with
 # the rest of the agenda board.
 _DEFAULT_CABINET_COLOR = "#3B82F6"
 
@@ -171,7 +171,7 @@ class CatalogItemMapper:
             entity_type="catalog_item",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="cabinets",
-            dentalpin_id=cabinet.id,
+            dentora_table="cabinets",
+            dentora_id=cabinet.id,
         )
         return cabinet.id

@@ -4,19 +4,19 @@ set -euo pipefail
 BRANCH="${1:-feature/license-activation}"
 ROOT="$(git rev-parse --show-toplevel)"
 DIST="$ROOT/dist"
-OUT="$DIST/DentalPin_Generic_Client"
-ZIP="$DIST/DentalPin_Generic_Client.zip"
-LICENSE_SERVER_URL="${DENTALPIN_LICENSE_SERVER_URL:-}"
-LICENSE_PUBLIC_KEY_B64="${DENTALPIN_LICENSE_PUBLIC_KEY_B64:-}"
+OUT="$DIST/Dentora_Client"
+ZIP="$DIST/Dentora_Client.zip"
+LICENSE_SERVER_URL="${DENTORA_LICENSE_SERVER_URL:-}"
+LICENSE_PUBLIC_KEY_B64="${DENTORA_LICENSE_PUBLIC_KEY_B64:-}"
 
-echo "=== DentalPin Licensed Generic Client Package ==="
+echo "=== Dentora Licensed Generic Client Package ==="
 echo "Source branch: $BRANCH"
 
 command -v git >/dev/null || { echo "git is required"; exit 1; }
 
 if [[ -z "$LICENSE_SERVER_URL" || -z "$LICENSE_PUBLIC_KEY_B64" ]]; then
   echo "ERROR: Commercial package build requires the pinned license service configuration."
-  echo "Set DENTALPIN_LICENSE_SERVER_URL and DENTALPIN_LICENSE_PUBLIC_KEY_B64 first."
+  echo "Set DENTORA_LICENSE_SERVER_URL and DENTORA_LICENSE_PUBLIC_KEY_B64 first."
   exit 1
 fi
 
@@ -66,7 +66,7 @@ grep -q '^LICENSE_SERVER_URL=..' "$OUT/.env.client.example"
 grep -q '^LICENSE_PUBLIC_KEY_B64=..' "$OUT/.env.client.example"
 
 printf '%s\n' \
-  "DentalPin Licensed Generic Client local production package" \
+  "Dentora Licensed Generic Client local production package" \
   "Branch: $BRANCH" \
   "Created: $(date -Iseconds)" \
   "Reusable package: yes" \
@@ -94,7 +94,7 @@ echo "[5/5] Verifying licensed generic package..."
 test -f "$OUT/docker-compose.client.yml"
 test -f "$OUT/.env.client.example"
 test ! -e "$OUT/.env.client"
-test -f "$OUT/START_DENTALPIN.bat"
+test -f "$OUT/START_DENTORA.bat"
 test -f "$OUT/CLIENT_INSTALL_AR.md"
 test ! -e "$OUT/SET_CLIENT_PROFILE.bat"
 test ! -e "$OUT/license-server"
@@ -106,4 +106,4 @@ echo
 echo "READY"
 echo "Folder: $OUT"
 echo "ZIP:    $ZIP"
-echo "This reusable ZIP requires a valid DentalPin license key on every new installation."
+echo "This reusable ZIP requires a valid Dentora license key on every new installation."

@@ -21,7 +21,7 @@ Página en **Ajustes → Integraciones → WhatsApp (Kapso)** (solo administrado
    *Business account ID* de tu número conectado, y el *secret del webhook*.
    Guarda. Las claves se almacenan cifradas y nunca se vuelven a mostrar.
 2. **Webhook.** Copia la URL del webhook que muestra la página y pégala en la
-   configuración de webhooks de tu proyecto de Kapso. Así DentalPin recibe los
+   configuración de webhooks de tu proyecto de Kapso. Así Dentora recibe los
    estados de entrega y las respuestas de los pacientes.
 3. **Plantillas.** Pulsa *Sincronizar* para traer tus plantillas aprobadas de
    Meta. Luego asocia cada tipo de notificación (p. ej. "recordatorio de cita")

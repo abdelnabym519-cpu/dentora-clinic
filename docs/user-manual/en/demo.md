@@ -1,6 +1,6 @@
 # Demo Data Documentation
 
-This document describes the demo data created by the seed script for testing and evaluation of DentalPin.
+This document describes the demo data created by the seed script for testing and evaluation of Dentora.
 
 ## Quick Setup
 

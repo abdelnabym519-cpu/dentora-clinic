@@ -3,7 +3,7 @@
 In Gesdén ``DCobros`` (payments) reference a *client* (``IdCli``), not
 the patient directly. Clinics use Clients as payers — the same client
 may pay for several patients (family accounts) or one patient may have
-multiple billing clients (insurance + self-pay). DentalPin's flat
+multiple billing clients (insurance + self-pay). Dentora's flat
 ``Payment.patient_id`` model needs a single patient per payment.
 
 This mapper bridges the M:N. For every ``(patient_uuid, client_uuid)``
@@ -63,8 +63,8 @@ class PatientClientLinkMapper:
             entity_type="patient_client_link",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="patients",
-            dentalpin_id=patient_id,
+            dentora_table="patients",
+            dentora_id=patient_id,
         )
 
         # In-memory M:N index so ``PaymentMapper`` can split a single
@@ -87,8 +87,8 @@ class PatientClientLinkMapper:
                 source_system=source_system,
                 entity_type=_SIDECAR_TYPE,
                 source_canonical_uuid=str(client_uuid),
-                dentalpin_table="patients",
-                dentalpin_id=patient_id,
+                dentora_table="patients",
+                dentora_id=patient_id,
             )
             .on_conflict_do_nothing(
                 index_elements=[
@@ -104,7 +104,7 @@ class PatientClientLinkMapper:
             # The client already has a primary patient registered —
             # check whether this is a different patient (ambiguous).
             row = await ctx.db.execute(
-                select(EntityMapping.dentalpin_id).where(
+                select(EntityMapping.dentora_id).where(
                     EntityMapping.clinic_id == ctx.clinic_id,
                     EntityMapping.entity_type == _SIDECAR_TYPE,
                     EntityMapping.source_canonical_uuid == str(client_uuid),

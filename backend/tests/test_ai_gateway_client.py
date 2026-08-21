@@ -113,7 +113,7 @@ class AiGatewayCredentialTests(unittest.IsolatedAsyncioTestCase):
                     license_manager,
                     "_verify_token",
                     return_value={
-                        "product": "dentalpin",
+                        "product": "dentora",
                         "v": 1,
                         "installation_id": installation_id,
                         "fingerprint": fingerprint,

@@ -49,7 +49,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'DentalPin',
+      title: 'Dentora',
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }
       ]
@@ -78,7 +78,7 @@ export default defineNuxtConfig({
       trialDays: Number(process.env.NUXT_PUBLIC_TRIAL_DAYS || '3'),
       // Documentation portal origin used by the in-app help drawer
       // (Fase 5 of issue #75). Empty disables the help button.
-      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dentalpin.com'
+      docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dentora.example'
     }
   },
   srcDir: 'app',
@@ -123,7 +123,9 @@ export default defineNuxtConfig({
       { code: 'pt', name: 'Português', file: 'pt.json' },
       { code: 'ar', name: 'العربية', file: 'ar.json' }
     ],
-    defaultLocale: 'ar',
+    // E2E supplies `E2E_LOCALE=en` so browser assertions are deterministic.
+    // Production keeps Arabic as the default when that test-only variable is absent.
+    defaultLocale: process.env.E2E_LOCALE === 'en' ? 'en' : 'ar',
     lazy: true,
     langDir: 'locales',
     strategy: 'no_prefix',

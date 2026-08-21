@@ -10,7 +10,7 @@ and polishes the reactive one.
 
 ## 1. Goal
 
-Make the IA the headline feature of DentalPin. Today it is a competent reactive chat in a
+Make the IA the headline feature of Dentora. Today it is a competent reactive chat in a
 480px drawer. The target is a workspace that (a) answers and acts on request, and (b)
 **proactively surfaces the operations that save the most clinic time/money** — slot
 reassignment, budget follow-ups, recalls, cash mismatches — and lets the user approve agent

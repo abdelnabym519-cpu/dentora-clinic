@@ -8,7 +8,7 @@ For deeper rationale on any line, follow the link.
 - [ ] `backend/app/modules/<name>/` created with `__init__.py`, `models.py`, `router.py`, `service.py`, `migrations/versions/`
 - [ ] Module class subclasses `BaseModule` (`backend/app/core/plugins/base.py`)
 - [ ] `manifest = {...}` set as class attribute (see `Manifest` in `backend/app/core/plugins/manifest.py` for the full schema)
-- [ ] Entry point registered in `backend/pyproject.toml` under `[project.entry-points."dentalpin.modules"]`
+- [ ] Entry point registered in `backend/pyproject.toml` under `[project.entry-points."dentora.modules"]`
 - [ ] `get_models()`, `get_router()`, `get_tools()` implemented (the last is mandatory even if empty — see `BaseModule`)
 
 ## Manifest fields

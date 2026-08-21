@@ -24,7 +24,7 @@ last_verified_commit: da03135
 
 # Copiloto (asistente de IA)
 
-El copiloto es el asistente conversacional de DentalPin. Se abre desde
+El copiloto es el asistente conversacional de Dentora. Se abre desde
 cualquier pantalla con el botón flotante o con `Cmd/Ctrl+K`, y tiene una
 página propia en `/copilot` con el historial de conversaciones.
 

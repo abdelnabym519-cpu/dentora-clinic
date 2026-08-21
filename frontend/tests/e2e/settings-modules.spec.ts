@@ -18,10 +18,12 @@ test.describe('admin sees module manager', () => {
     ).toBeVisible()
 
     // At least one of the core modules must be listed — they are always
-    // discovered, so this is a deterministic smoke check.
+    // discovered, so this is a deterministic smoke check. The dev server
+    // loads module layers lazily; permit that one-time initialization while
+    // retaining the same assertion.
     await expect(
       loggedIn.getByRole('heading', { level: 3, name: /^patients$/ })
-    ).toBeVisible()
+    ).toBeVisible({ timeout: 15_000 })
   })
 })
 

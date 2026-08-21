@@ -231,8 +231,8 @@ class CatalogItemMapper:
                 entity_type="treatment_catalog_item",
                 canonical_uuid=canonical_uuid,
                 source_system=source_system,
-                dentalpin_table="treatment_catalog_items",
-                dentalpin_id=effective_target_id,
+                dentora_table="treatment_catalog_items",
+                dentora_id=effective_target_id,
             )
             code = (
                 "catalog.fuzzy_matched"
@@ -247,7 +247,7 @@ class CatalogItemMapper:
                     severity="info",
                     code=code,
                     message=(
-                        f"Catálogo Gesdén '{name}' enlazado a DentalPin id={effective_target_id}."
+                        f"Catálogo Gesdén '{name}' enlazado a Dentora id={effective_target_id}."
                     ),
                 )
             )
@@ -421,8 +421,8 @@ class CatalogItemMapper:
             entity_type="treatment_catalog_item",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="treatment_catalog_items",
-            dentalpin_id=item.id,
+            dentora_table="treatment_catalog_items",
+            dentora_id=item.id,
         )
         return item.id
 
@@ -476,14 +476,14 @@ class CatalogItemMapper:
         category_filter: str | None,
     ) -> tuple[UUID, str, bool] | None:
         """Return ``(id, matched_es_name, was_fuzzy)`` for the best
-        DentalPin catalog item match, or ``None`` when no acceptable
+        Dentora catalog item match, or ``None`` when no acceptable
         candidate exists.
 
         Matching strategy:
         1. Normalise (accents stripped, lower-case, punctuation →
            whitespace, whitespace collapsed).
         2. If ``category_filter`` is supplied (Gesdén ``IdTipoODG``
-           resolved to a seeded DentalPin category), restrict the
+           resolved to a seeded Dentora category), restrict the
            candidate set to that category. A 0.7 hit inside the right
            bucket beats a 0.85 cross-category hit, so we apply the
            looser ``_FUZZY_MATCH_THRESHOLD_WITH_CATEGORY`` here.

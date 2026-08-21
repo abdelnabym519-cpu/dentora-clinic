@@ -1,4 +1,4 @@
-"""Commercial license activation client for local DentalPin installs."""
+"""Commercial license activation client for local Dentora installs."""
 
 from .service import license_manager
 

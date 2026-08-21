@@ -36,7 +36,7 @@ _env = Environment(
 class SistemaInformatico:
     nombre_razon: str
     nif: str
-    nombre_sistema: str = "DentalPin"
+    nombre_sistema: str = "Dentora"
     id_sistema: str = "DP"
     version: str = "0.1.0"
     numero_instalacion: str = ""

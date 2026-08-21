@@ -1,13 +1,13 @@
 # Security policy
 
-DentalPin holds patient health data. Treat anything that touches
+Dentora holds patient health data. Treat anything that touches
 authentication, tenant isolation or clinical records as high severity by
 default.
 
 ## Reporting a vulnerability
 
 Report privately through
-[GitHub Security Advisories](https://github.com/martinezsalmeron/dentalpin/security/advisories/new).
+[GitHub Security Advisories](https://github.com/abdelnabym519-cpu/dentora-clinic/security/advisories/new).
 Never open a public issue for a vulnerability.
 
 Expect an acknowledgement within 72 hours. We will tell you what we found,
@@ -17,7 +17,7 @@ ask us not to.
 ## Supported versions
 
 The latest release on `main`. There are no long-term support branches yet;
-if you run a pinned `DENTALPIN_VERSION`, upgrading is the fix path.
+if you run a pinned `DENTORA_VERSION`, upgrading is the fix path.
 
 ## What we consider a vulnerability
 
@@ -35,6 +35,6 @@ if you run a pinned `DENTALPIN_VERSION`, upgrading is the fix path.
 
 ## Out of scope
 
-Findings against `demo.dentalpin.com` that only affect seeded demo data,
+Findings against `demo.dentora.example` that only affect seeded demo data,
 missing hardening headers with no demonstrated impact, rate-limit tuning,
 and reports from automated scanners with no working proof of concept.

@@ -21,7 +21,7 @@ class AgendaModule(BaseModule):
         "name": "agenda",
         "version": "0.4.0",
         "summary": "Appointments, scheduling, cabinets.",
-        "author": "DentalPin Core Team",
+        "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
         "depends": ["patients", "catalog", "odontogram"],

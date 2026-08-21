@@ -1,6 +1,6 @@
 # Plan: Flujo Unificado de Trabajo del Paciente
 
-> **Issue relacionada:** [#38 - Link budgets, appointments, and treatment plans](https://github.com/martinezsalmeron/dentalpin/issues/38)
+> **Issue relacionada:** [#38 - Link budgets, appointments, and treatment plans](https://github.com/abdelnabym519-cpu/dentora-clinic/issues/38)
 >
 > **Estado:** ✅ Validado - Decisiones tomadas
 >

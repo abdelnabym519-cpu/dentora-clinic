@@ -56,7 +56,7 @@
     },
     "proposals": {
       "title": "Review catalog mappings",
-      "subtitle": "Link each Gesdén treatment to the DentalPin catalog before importing.",
+      "subtitle": "Link each Gesdén treatment to the Dentora catalog before importing.",
       "build": "Compute proposals",
       "building": "Computing…",
       "summary": "{total} proposals: {link} linked, {fuzzy} fuzzy, {create} to create",

@@ -1,4 +1,4 @@
-"""Tests for the ``dentalpin modules`` CLI commands.
+"""Tests for the ``dentora modules`` CLI commands.
 
 Exercises the command handlers directly with the test ``db_session``
 fixture, avoiding ``asyncio.run`` re-entrance inside the pytest event

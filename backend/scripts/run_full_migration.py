@@ -1,4 +1,4 @@
-"""Run a real Gesdén → DentalPin migration end-to-end.
+"""Run a real Gesdén → Dentora migration end-to-end.
 
 Pipeline:
   1. Pick the demo clinic + an admin user already present in the DB

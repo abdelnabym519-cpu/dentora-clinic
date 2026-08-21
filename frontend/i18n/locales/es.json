@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "DentalPin",
+    "name": "Dentora",
     "tagline": "Gestión de clínica dental"
   },
   "demo": {
@@ -63,7 +63,7 @@
     "next": "Siguiente",
     "back": "Atrás",
     "submit": "Crear y empezar",
-    "success": "¡Todo listo! Bienvenido a DentalPin",
+    "success": "¡Todo listo! Bienvenido a Dentora",
     "firstNameRequired": "Introduce el nombre",
     "lastNameRequired": "Introduce los apellidos",
     "emailRequired": "Introduce el correo electrónico",
@@ -911,7 +911,7 @@
       "afternoon": "Buenas tardes",
       "evening": "Buenas noches"
     },
-    "welcome": "Bienvenido a DentalPin",
+    "welcome": "Bienvenido a Dentora",
     "welcomeMessage": "Comienza creando tu primer paciente.",
     "quickActions": {
       "newAppointment": "Nueva cita",

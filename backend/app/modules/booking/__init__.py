@@ -19,7 +19,7 @@ class BookingModule(BaseModule):
         "name": "booking",
         "version": "0.1.0",
         "summary": "Public online appointment booking for patients.",
-        "author": "DentalPin Clinic Custom",
+        "author": "Dentora Clinic Custom",
         "license": "BSL-1.1",
         "category": "community",
         "depends": ["patients", "agenda", "schedules"],

@@ -59,7 +59,7 @@ function leasePayload(
   overrides = {}
 ) {
   return {
-    product: "dentalpin",
+    product: "dentora",
     v: 1,
 
     license_id:
@@ -768,7 +768,7 @@ async function putProfessionals(
 ) {
   return worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/sync/professionals",
+      "https://booking.dentora.example/api/v1/sync/professionals",
       {
         method: "PUT",
 
@@ -855,7 +855,7 @@ test(
     const publicResponse =
       await worker.fetch(
         new Request(
-          "https://book.dentalpin.app/api/v1/public/dental/professionals"
+          "https://booking.dentora.example/api/v1/public/dental/professionals"
         ),
         env
       );
@@ -1054,7 +1054,7 @@ test(
     const publicResponse =
       await worker.fetch(
         new Request(
-          "https://book.dentalpin.app/api/v1/public/dental/professionals"
+          "https://booking.dentora.example/api/v1/public/dental/professionals"
         ),
         env
       );

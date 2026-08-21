@@ -4,7 +4,7 @@ realistic Gesdén ``Tratamientos`` export.
 No DPMF file is required: we feed the mapper the raw row shape that
 ``dental-bridge/src/dental_bridge/adapters/gesden/extractors/treatment_catalog_items.py``
 yields, then assert each row ends up in the right destination — either
-linked to a seeded DentalPin catalog item, created with the inferred
+linked to a seeded Dentora catalog item, created with the inferred
 category, or routed to ``migrado_gesden`` only when that is the
 clinically-correct outcome.
 
@@ -377,7 +377,7 @@ async def test_catalog_dryrun_against_synthetic_gesden_export(db_session) -> Non
     # Pretty-print the summary so the operator can read the result
     # without parsing assertion output.
     print()
-    print(f"{'Gesdén label':<30} {'outcome':<8} {'DentalPin code':<24} {'category':<20}")
+    print(f"{'Gesdén label':<30} {'outcome':<8} {'Dentora code':<24} {'category':<20}")
     print("-" * 88)
     for label, outcome, code, cat in report:
         print(f"{label[:30]:<30} {outcome:<8} {code[:24]:<24} {cat:<20}")

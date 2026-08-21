@@ -8,7 +8,7 @@ last_verified_commit: HEAD
 ## Goal
 
 Import a [DPMF v0.1](https://github.com/dentaltix/dental-bridge/blob/main/spec/dpmf-v0.1.md)
-file produced by `dental-bridge` into the current DentalPin clinic.
+file produced by `dental-bridge` into the current Dentora clinic.
 The DPMF carries 32 canonical entity types (patients, appointments,
 budgets, payments, fiscal documents, etc.) plus a `_files` manifest
 pointing at the binaries (radiographs / PDFs) that travel out of band.
@@ -33,7 +33,7 @@ executing → completed | failed`.
 | Table                              | Purpose                                                                 |
 |------------------------------------|-------------------------------------------------------------------------|
 | `migration_import_jobs`            | One row per upload. Status, progress, _meta snapshot, integrity hashes. |
-| `migration_import_entity_mappings` | Idempotency keystone: `(clinic_id, source_system, entity_type, canonical_uuid)` → DentalPin row. |
+| `migration_import_entity_mappings` | Idempotency keystone: `(clinic_id, source_system, entity_type, canonical_uuid)` → Dentora row. |
 | `migration_import_file_stagings`   | `_files` manifest staging; one row per declared binary.                 |
 | `migration_import_warnings`        | DPMF `_warnings` + warnings raised by the importer.                     |
 | `migration_import_raw_entities`    | Forward-compat catch-all for entity types without a dedicated mapper.   |
@@ -65,7 +65,7 @@ levels per `dental-bridge/docs/migration_order.md`). Each mapper:
 
 1. Consults `MappingResolver.get()` — bails if already mapped.
 2. Resolves cross-entity references via the resolver (never trusts
-   raw canonical UUIDs as DentalPin FKs).
+   raw canonical UUIDs as Dentora FKs).
 3. Calls the target module's service (e.g. `PatientService.create_patient`).
 4. Records the mapping via `MappingResolver.set()`.
 

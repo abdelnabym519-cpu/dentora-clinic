@@ -1,4 +1,4 @@
-# DentalPin
+# Dentora
 
 [![en](https://img.shields.io/badge/lang-en-red.svg)](./README.md)
 [![es](https://img.shields.io/badge/lang-es-yellow.svg)](./README.es.md)
@@ -7,22 +7,22 @@
 **Open source dental clinic management software.** Patients, odontogram, scheduling,
 treatment plans, billing and a built-in AI copilot — modular, self-hosted, API-first.
 
-### ▶ [**Try the live demo**](https://demo.dentalpin.com)
+### ▶ [**Try the live demo**](https://demo.dentora.example)
 
 Sign in with `admin@demo.clinic` / `demo1234` — full admin access to a seeded clinic.
 Reset every night, so poke at anything.
 
-[![DentalPin — patient record with odontogram](docs/screenshots/patients.png)](https://demo.dentalpin.com)
+[![Dentora — patient record with odontogram](docs/screenshots/patients.png)](https://demo.dentora.example)
 
-<sub>[Website](https://www.dentalpin.com) · [Docs](https://docs.dentalpin.com) · [Telegram](https://t.me/dentalpin) · [More screenshots ↓](#screenshots)</sub>
+<sub>[Website](https://www.dentora.example) · [Docs](https://docs.dentora.example) · [Telegram](https://support.dentora.example) · [More screenshots ↓](#screenshots)</sub>
 
-## Why DentalPin?
+## Why Dentora?
 
 Dental clinics around the world share the same fundamental needs: managing patients, scheduling appointments, tracking treatments, and running their practice efficiently. Yet the software landscape is fragmented into dozens of localized, closed-source solutions that lock clinics into expensive contracts and outdated technology.
 
 **We believe it's time for a change.**
 
-DentalPin is built on a simple premise: **one open platform for dental clinics everywhere**. Not another regional solution, but a global foundation that any clinic can adopt, any developer can extend, and any community can localize.
+Dentora is built on a simple premise: **one open platform for dental clinics everywhere**. Not another regional solution, but a global foundation that any clinic can adopt, any developer can extend, and any community can localize.
 
 ### Why now?
 
@@ -40,11 +40,11 @@ AI has fundamentally changed what small teams can build. Features that once requ
 
 We're not just building software—we're building the foundation for an ecosystem. A platform where developers contribute modules, clinics share improvements, and the entire dental community benefits from collective innovation.
 
-Clinics deserve better than closed, expensive software from the last decade. DentalPin is the open alternative.
+Clinics deserve better than closed, expensive software from the last decade. Dentora is the open alternative.
 
 ## ✨ AI Copilot
 
-DentalPin ships with a built-in **agentic AI assistant** that turns the whole clinic into something you can simply talk to. Ask it to find a patient, free up a slot, chase an unanswered budget, or brief you on the day ahead — in plain Spanish or English — and it acts on your real data.
+Dentora ships with a built-in **agentic AI assistant** that turns the whole clinic into something you can simply talk to. Ask it to find a patient, free up a slot, chase an unanswered budget, or brief you on the day ahead — in plain Spanish or English — and it acts on your real data.
 
 ![AI Copilot](docs/screenshots/ia.png)
 
@@ -62,11 +62,11 @@ Vendor-agnostic under the hood (an LLM-provider abstraction), with provider, mod
 
 ## Website
 
-Visit [**dentalpin.com**](https://www.dentalpin.com) for product info, features, and commercial details.
+Visit [**dentora.example**](https://www.dentora.example) for product info, features, and commercial details.
 
 ## Community
 
-Join our [**Telegram channel**](https://t.me/dentalpin) for support, installation help, and questions.
+Join our [**Telegram channel**](https://support.dentora.example) for support, installation help, and questions.
 
 ## Screenshots
 
@@ -93,9 +93,9 @@ Join our [**Telegram channel**](https://t.me/dentalpin) for support, installatio
 Prebuilt images, no clone, no build. On any server with Docker:
 
 ```bash
-curl -O https://raw.githubusercontent.com/martinezsalmeron/dentalpin/main/docker-compose.prod.yml
-curl -O https://raw.githubusercontent.com/martinezsalmeron/dentalpin/main/Caddyfile
-curl -o .env https://raw.githubusercontent.com/martinezsalmeron/dentalpin/main/.env.prod.example
+curl -O https://raw.githubusercontent.com/abdelnabym519-cpu/dentora-clinic/main/docker-compose.prod.yml
+curl -O https://raw.githubusercontent.com/abdelnabym519-cpu/dentora-clinic/main/Caddyfile
+curl -o .env https://raw.githubusercontent.com/abdelnabym519-cpu/dentora-clinic/main/.env.prod.example
 
 # Set PUBLIC_URL, POSTGRES_PASSWORD and SECRET_KEY in .env, then:
 docker compose -f docker-compose.prod.yml up -d
@@ -106,8 +106,8 @@ provisioned on first boot — Caddy fronts both services on a single origin, so
 there is no CORS and no certificate to renew. Set `SEED_ON_STARTUP=1` to load
 the demo clinic and look around before going live.
 
-Images: [`dentalpin-backend`](https://github.com/martinezsalmeron/dentalpin/pkgs/container/dentalpin-backend) ·
-[`dentalpin-frontend`](https://github.com/martinezsalmeron/dentalpin/pkgs/container/dentalpin-frontend)
+Images: [`dentora-backend`](https://github.com/abdelnabym519-cpu/dentora-clinic/pkgs/container/dentora-backend) ·
+[`dentora-frontend`](https://github.com/abdelnabym519-cpu/dentora-clinic/pkgs/container/dentora-frontend)
 
 ## Quick Start (development)
 
@@ -268,7 +268,7 @@ Full runbook + fixture reference: [docs/technical/e2e-testing.md](docs/technical
 
 ## Architecture
 
-DentalPin uses a modular plugin architecture. Each feature is a self-contained module that:
+Dentora uses a modular plugin architecture. Each feature is a self-contained module that:
 - Declares its SQLAlchemy models
 - Provides a FastAPI router
 - Can subscribe to events from other modules
@@ -279,7 +279,7 @@ See [docs/architecture.md](docs/architecture.md) for details.
 
 Business Source License 1.1 (BSL 1.1)
 
-**Additional Use Grant:** You may use DentalPin in production, as long as you do not offer it as a commercial SaaS for dental clinic management.
+**Additional Use Grant:** You may use Dentora in production, as long as you do not offer it as a commercial SaaS for dental clinic management.
 
 **Change Date:** 4 years from release
 

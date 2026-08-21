@@ -1,4 +1,4 @@
-"""``dentalpin modules ...`` subcommands.
+"""``dentora modules ...`` subcommands.
 
 Etapa 1 covers read-only queries: ``list``, ``info``, ``status``,
 ``doctor``, and the recovery command ``orphan``. Install, uninstall
@@ -234,7 +234,7 @@ async def _cmd_install(svc: ModuleService, args: argparse.Namespace) -> int:
     print("Scheduled for install on next restart:")
     for item in scheduled:
         print(f"  - {item}")
-    print("\nRun `dentalpin modules restart` to apply.")
+    print("\nRun `dentora modules restart` to apply.")
     return 0
 
 
@@ -247,7 +247,7 @@ async def _cmd_uninstall(svc: ModuleService, args: argparse.Namespace) -> int:
 
     print(f"Scheduled uninstall for {args.name}.")
     print("A data backup will be taken before Alembic downgrade.")
-    print("Run `dentalpin modules restart` to apply.")
+    print("Run `dentora modules restart` to apply.")
     return 0
 
 
@@ -263,7 +263,7 @@ async def _cmd_upgrade(svc: ModuleService, args: argparse.Namespace) -> int:
         return 0
 
     print(f"Scheduled upgrade for {args.name}.")
-    print("Run `dentalpin modules restart` to apply.")
+    print("Run `dentora modules restart` to apply.")
     return 0
 
 

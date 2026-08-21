@@ -1,6 +1,6 @@
 import { handleAiChatCompletions } from "./ai-gateway.js";
 
-const PRODUCT = "dentalpin";
+const PRODUCT = "dentora";
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 class HttpError extends Error {
@@ -607,7 +607,7 @@ async function route(request, env) {
   const method = request.method.toUpperCase();
 
   if (method === "GET" && path === "/health") {
-    return jsonResponse({ status: "healthy", service: "dentalpin-license" });
+    return jsonResponse({ status: "healthy", service: "dentora-license" });
   }
 
   if (method === "GET" && path === "/v1/public-key") {

@@ -27,7 +27,7 @@ Behaviour:
 - ``is_active`` mirrors the source's ``deactivated`` flag.
 - Always ensure a ``ClinicMembership(role='receptionist')`` exists.
   The receptionist role is the minimum non-clinical role in
-  DentalPin's RBAC matrix (``backend/app/core/auth/permissions.py``);
+  Dentora's RBAC matrix (``backend/app/core/auth/permissions.py``);
   the admin can promote individual users to ``admin`` later from the
   Users page.
 """
@@ -108,7 +108,7 @@ class UserMapper:
             entity_type="user",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="users",
-            dentalpin_id=user.id,
+            dentora_table="users",
+            dentora_id=user.id,
         )
         return user.id

@@ -105,7 +105,7 @@ mappers. Used to bump `ImportJob.processed_entities`.
   Mappers that read `clinic_id` from the file are a tenancy bug.
 - **External IDs are never used as FKs.** Every cross-entity reference
   goes through `MappingResolver`. The `EntityMapping` table is the
-  only source of truth for "this canonical_uuid became this dentalpin
+  only source of truth for "this canonical_uuid became this dentora
   UUID".
 - **Idempotency is per `(clinic_id, source_system, canonical_uuid,
   entity_type)`.** Re-running execute on the same job is safe.

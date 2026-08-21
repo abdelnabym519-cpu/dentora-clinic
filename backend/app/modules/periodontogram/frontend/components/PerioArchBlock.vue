@@ -1067,7 +1067,7 @@ function selectOnFocus(e: FocusEvent) {
 
 /* Calm-design pastel fills — soft background + accent border so the
    marker reads as "on" without shouting. Matches the alert / badge
-   tonal scale used across the rest of DentalPin. */
+   tonal scale used across the rest of Dentora. */
 .perio-cell-toggle--bop.is-on {
   background-color: var(--color-danger-soft);
   border-color: var(--color-danger-accent);

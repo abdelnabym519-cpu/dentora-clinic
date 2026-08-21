@@ -204,7 +204,7 @@ async function readJson(response) {
 
 test("GET /health", async () => {
   const response = await worker.fetch(
-    new Request("https://book.dentalpin.app/health"),
+    new Request("https://booking.dentora.example/health"),
     {}
   );
 
@@ -215,7 +215,7 @@ test("GET /health", async () => {
   assert.equal(body.ok, true);
   assert.equal(
     body.service,
-    "dentalpin-booking"
+    "dentora-booking"
   );
 });
 
@@ -223,7 +223,7 @@ test("GET /health", async () => {
 test("GET public clinic", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental"
+      "https://booking.dentora.example/api/v1/public/dental"
     ),
     env
   );
@@ -249,7 +249,7 @@ test("GET public clinic", async () => {
 test("GET clinic professionals", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/professionals"
+      "https://booking.dentora.example/api/v1/public/dental/professionals"
     ),
     env
   );
@@ -271,7 +271,7 @@ test("GET clinic professionals", async () => {
 test("GET specific professional", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/professionals/dr-ahmed-mahmoud"
+      "https://booking.dentora.example/api/v1/public/dental/professionals/dr-ahmed-mahmoud"
     ),
     env
   );
@@ -297,7 +297,7 @@ test("GET specific professional", async () => {
 test("unknown clinic returns 404", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/unknown"
+      "https://booking.dentora.example/api/v1/public/unknown"
     ),
     env
   );
@@ -314,7 +314,7 @@ test("unknown clinic returns 404", async () => {
 test("unknown professional returns 404", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/professionals/not-found"
+      "https://booking.dentora.example/api/v1/public/dental/professionals/not-found"
     ),
     env
   );
@@ -326,7 +326,7 @@ test("unknown professional returns 404", async () => {
 test("public API without DB returns 503", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental"
+      "https://booking.dentora.example/api/v1/public/dental"
     ),
     {}
   );
@@ -345,7 +345,7 @@ test("public API without DB returns 503", async () => {
 test("GET available slots", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=2026-08-20"
+      "https://booking.dentora.example/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=2026-08-20"
     ),
     env
   );
@@ -388,7 +388,7 @@ test("GET available slots", async () => {
 test("invalid slot day returns 400", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=20-08-2026"
+      "https://booking.dentora.example/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=20-08-2026"
     ),
     env
   );
@@ -405,7 +405,7 @@ test("invalid slot day returns 400", async () => {
 test("missing slot day returns 400", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots"
+      "https://booking.dentora.example/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots"
     ),
     env
   );
@@ -421,7 +421,7 @@ test("missing slot day returns 400", async () => {
 test("unknown doctor slots return 404", async () => {
   const response = await worker.fetch(
     new Request(
-      "https://book.dentalpin.app/api/v1/public/dental/professionals/not-found/slots?day=2026-08-20"
+      "https://booking.dentora.example/api/v1/public/dental/professionals/not-found/slots?day=2026-08-20"
     ),
     env
   );
@@ -435,7 +435,7 @@ test(
   async () => {
     const response = await worker.fetch(
       new Request(
-        "https://book.dentalpin.app/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=2026-08-21"
+        "https://booking.dentora.example/api/v1/public/dental/professionals/dr-ahmed-mahmoud/slots?day=2026-08-21"
       ),
       env
     );

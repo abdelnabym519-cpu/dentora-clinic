@@ -17,7 +17,7 @@ last_verified_commit: fa7de66
 
 # Online appointment booking
 
-This is the public booking page patients use to reserve an appointment without signing in to DentalPin. The clinic shares a URL containing its public booking slug, and the page guides the patient through choosing a professional, choosing a day and free slot, entering patient details, and confirming the appointment.
+This is the public booking page patients use to reserve an appointment without signing in to Dentora. The clinic shares a URL containing its public booking slug, and the page guides the patient through choosing a professional, choosing a day and free slot, entering patient details, and confirming the appointment.
 
 The booking is written directly to Agenda as a scheduled appointment. There is no pending-confirmation state.
 
@@ -37,11 +37,11 @@ If the selected slot is no longer available, the patient is asked to choose anot
 
 ## Patient matching
 
-DentalPin attempts to reuse an existing patient when the supplied identity is a confident match. If the match is ambiguous, the booking flow prefers creating a separate patient record rather than attaching the appointment to the wrong person.
+Dentora attempts to reuse an existing patient when the supplied identity is a confident match. If the match is ambiguous, the booking flow prefers creating a separate patient record rather than attaching the appointment to the wrong person.
 
 ## Public access and rate limits
 
-This screen is public and does not require a DentalPin staff session or staff permission. Public metadata, professional, slot, and booking endpoints are rate-limited to reduce abuse.
+This screen is public and does not require a Dentora staff session or staff permission. Public metadata, professional, slot, and booking endpoints are rate-limited to reduce abuse.
 
 ## Troubleshooting
 

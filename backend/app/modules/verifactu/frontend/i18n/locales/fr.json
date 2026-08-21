@@ -281,7 +281,7 @@
       "title": "Producteur SIF",
       "subtitle": "Identification légale de la personne qui met le logiciel en production et signe la déclaration responsable.",
       "legalIntroTitle": "Responsabilité légale",
-      "legalIntro": "L'art. 13 du RD 1007/2023 exige que le producteur du Sistema Informático de Facturación signe une déclaration responsable. Si DentalPin est proposé en tant que SaaS géré, le producteur est l'opérateur SaaS. Si une clinique s'auto-héberge (autodesarrollo), la clinique elle-même est le producteur. Si un intégrateur le déploie, l'intégrateur est le producteur.",
+      "legalIntro": "L'art. 13 du RD 1007/2023 exige que le producteur du Sistema Informático de Facturación signe une déclaration responsable. Si Dentora est proposé en tant que SaaS géré, le producteur est l'opérateur SaaS. Si une clinique s'auto-héberge (autodesarrollo), la clinique elle-même est le producteur. Si un intégrateur le déploie, l'intégrateur est le producteur.",
       "process": {
         "title": "Ce que vous devez faire",
         "s1": "Identifier qui est le producteur du SIF (étape 1) — données légales qui apparaissent dans la déclaration et dans chaque enregistrement envoyé à l'AEAT.",
@@ -318,7 +318,7 @@
         "heading": "Déclaration responsable",
         "legalRef": "Sistema Informático de Facturación — Veri*Factu (RD 1007/2023, art. 13)",
         "preamble": "En application de l'article 13 du Décret royal 1007/2023 (RRSIF) et de l'ordre HAC/1177/2024 :",
-        "identity": "{name}, avec le NIF {nif}, agissant en qualité de producteur du Sistema Informático de Facturación dénommé DentalPin (identifiant du système {idSistema}, version {version}), déclare responsablement que :",
+        "identity": "{name}, avec le NIF {nif}, agissant en qualité de producteur du Sistema Informático de Facturación dénommé Dentora (identifiant du système {idSistema}, version {version}), déclare responsablement que :",
         "item1": "Le système répond aux exigences de l'article 29.2.j) de la loi 58/2003 (General Tributaria) et du RRSIF.",
         "item2": "Le système garantit l'intégrité, la conservation, l'accessibilité, la lisibilité, la traçabilité et l'inaltérabilité des enregistrements de facturation.",
         "item3": "Le système met en œuvre l'envoi continu des enregistrements à l'AEAT en mode Veri*Factu.",

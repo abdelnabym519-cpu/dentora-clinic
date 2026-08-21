@@ -1,4 +1,4 @@
-const PRODUCT = "dentalpin";
+const PRODUCT = "dentora";
 
 
 export class SyncAuthError extends Error {

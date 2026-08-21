@@ -2,9 +2,9 @@
 
 DPMF carries per-tariff variants of a treatment template
 (``treatment_catalog_variant``) referencing the master template via
-``treatment_uuid``. DentalPin's catalog has a single offering per
+``treatment_uuid``. Dentora's catalog has a single offering per
 treatment (no tariff axis), so we don't create new catalog rows here —
-instead we resolve the variant's canonical UUID to the SAME DentalPin
+instead we resolve the variant's canonical UUID to the SAME Dentora
 ``TreatmentCatalogItem`` that its parent ``treatment_uuid`` already
 maps to.
 
@@ -62,7 +62,7 @@ class CatalogVariantMapper:
             entity_type="treatment_catalog_variant",
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="treatment_catalog_items",
-            dentalpin_id=catalog_item_id,
+            dentora_table="treatment_catalog_items",
+            dentora_id=catalog_item_id,
         )
         return catalog_item_id

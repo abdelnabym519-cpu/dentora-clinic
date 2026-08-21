@@ -48,13 +48,13 @@ class DocumentMapper:
 
         # Store the mapping as (patient_document → patient). The binary
         # ingester reads this to find the patient_id when a sha256 lands.
-        # We point dentalpin_table at "patients" because that is what
-        # the dentalpin_id resolves to.
+        # We point dentora_table at "patients" because that is what
+        # the dentora_id resolves to.
         await ctx.resolver.set(
             entity_type=DOCUMENT_ENTITY_TYPE,
             canonical_uuid=canonical_uuid,
             source_system=source_system,
-            dentalpin_table="patients",
-            dentalpin_id=patient_id,
+            dentora_table="patients",
+            dentora_id=patient_id,
         )
         return patient_id

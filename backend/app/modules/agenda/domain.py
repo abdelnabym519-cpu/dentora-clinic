@@ -1,7 +1,7 @@
 """Pure domain rules for the agenda module.
 
 This module intentionally has no FastAPI, Pydantic, SQLAlchemy, HTTP, or database
-imports.  It owns the appointment state-machine invariants shared by every
+imports. It owns the appointment state-machine invariants shared by every
 adapter that schedules or transitions an appointment.
 """
 
@@ -49,19 +49,20 @@ def validate_transition(
 ) -> TransitionDecision:
     """Validate the canonical appointment state transition.
 
-    ``in_treatment`` requires a cabinet.  Terminal states have no outgoing
-    transitions.  The function performs no I/O and is safe to reuse from API,
-    background-job, booking, and future sync adapters.
+    Error messages deliberately match the legacy public contract because the
+    router surfaces them to existing clients.
     """
     if current_status == to_status:
-        raise AlreadyInStateError(f"Appointment is already in state '{to_status}'")
+        raise AlreadyInStateError(f"Appointment is already in status '{to_status}'")
 
     if to_status not in VALID_TRANSITIONS.get(current_status, frozenset()):
         raise InvalidTransitionError(
-            f"Cannot transition appointment from '{current_status}' to '{to_status}'"
+            f"Cannot transition from '{current_status}' to '{to_status}'"
         )
 
     if to_status == "in_treatment" and not has_cabinet:
-        raise CabinetRequiredError("A cabinet is required before starting treatment")
+        raise CabinetRequiredError(
+            "A cabinet must be assigned before moving to 'in_treatment'"
+        )
 
     return TransitionDecision(from_status=current_status, to_status=to_status)

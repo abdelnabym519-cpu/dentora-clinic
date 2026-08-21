@@ -624,7 +624,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_ARCHIVED`
 - **Publishers:**
-  - `patients` — `backend/app/modules/patients/service.py:289`
+  - `patients` — `backend/app/modules/patients/event_publisher.py:36`
 - **Subscribers:**
   - `media`
   - `periodontogram`
@@ -634,7 +634,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_CREATED`
 - **Publishers:**
-  - `patients` — `backend/app/modules/patients/service.py:256`
+  - `patients` — `backend/app/modules/patients/event_publisher.py:13`
 - **Subscribers:**
   - `notifications`
 
@@ -642,7 +642,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_MEDICAL_UPDATED`
 - **Publishers:**
-  - `patients_clinical` — `backend/app/modules/patients_clinical/router.py:94`
+  - `patients_clinical` — `backend/app/modules/patients_clinical/router.py:100`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -650,7 +650,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_UPDATED`
 - **Publishers:**
-  - `patients` — `backend/app/modules/patients/service.py:274`
+  - `patients` — `backend/app/modules/patients/event_publisher.py:26`
 - **Subscribers:** —
 
 ### `payment.allocated`

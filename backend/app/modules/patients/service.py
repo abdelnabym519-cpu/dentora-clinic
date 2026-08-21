@@ -43,9 +43,7 @@ def _parse_sort(value: str | None) -> PatientSort:
             f"Invalid sort field {field!r}. Allowed: {sorted(_SORT_FIELDS)}"
         )
     if direction not in _SORT_DIRECTIONS:
-        raise InvalidPatientSortError(
-            f"Invalid sort direction {direction!r}. Use 'asc' or 'desc'."
-        )
+        raise InvalidPatientSortError(f"Invalid sort direction {direction!r}. Use 'asc' or 'desc'.")
 
     return PatientSort(
         field=field,

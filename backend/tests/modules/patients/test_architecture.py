@@ -44,9 +44,7 @@ def _imports(path: Path) -> set[str]:
 def test_patient_inner_layers_do_not_import_outer_implementations(path: Path) -> None:
     """Keep DB/framework/provider details out of migrated inner layers."""
     violations = {
-        imported
-        for imported in _imports(path)
-        if imported.startswith(FORBIDDEN_IMPORT_PREFIXES)
+        imported for imported in _imports(path) if imported.startswith(FORBIDDEN_IMPORT_PREFIXES)
     }
 
     assert violations == set()

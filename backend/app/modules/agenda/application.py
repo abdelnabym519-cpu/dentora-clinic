@@ -12,8 +12,8 @@ class AgendaApplication:
     """Coordinate Agenda use cases through an injected outer gateway.
 
     The public HTTP/service contract remains unchanged while the application
-    boundary is made independent from SQLAlchemy and FastAPI.  Domain rules that
-    are safe to evaluate without I/O are enforced here before persistence.
+    boundary is independent from SQLAlchemy and FastAPI. Domain rules that can
+    be evaluated without I/O are enforced here before persistence.
     """
 
     def __init__(self, gateway: AgendaGateway) -> None:
@@ -21,7 +21,7 @@ class AgendaApplication:
 
     async def invoke(self, operation: str, *args: Any, **kwargs: Any) -> Any:
         if operation == "transition":
-            appointment = args[0]
+            appointment = args[0] if args else kwargs["appointment"]
             if len(args) > 1:
                 to_status = args[1]
             else:
@@ -29,20 +29,17 @@ class AgendaApplication:
             validate_transition(
                 appointment.status,
                 to_status,
-                has_cabinet=bool(
-                    getattr(appointment, "cabinet_id", None)
-                    or getattr(appointment, "cabinet", None)
-                ),
+                has_cabinet=getattr(appointment, "cabinet_id", None) is not None,
             )
         elif operation == "cancel_appointment":
-            appointment = args[0]
-            validate_transition(
-                appointment.status,
-                "cancelled",
-                has_cabinet=bool(
-                    getattr(appointment, "cabinet_id", None)
-                    or getattr(appointment, "cabinet", None)
-                ),
-            )
+            appointment = args[0] if args else kwargs["appointment"]
+            # Historical behavior: cancelling an already-cancelled appointment
+            # is an idempotent no-op, not an AlreadyInStateError.
+            if appointment.status != "cancelled":
+                validate_transition(
+                    appointment.status,
+                    "cancelled",
+                    has_cabinet=getattr(appointment, "cabinet_id", None) is not None,
+                )
 
         return await self._gateway.invoke(operation, *args, **kwargs)

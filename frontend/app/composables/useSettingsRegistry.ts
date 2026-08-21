@@ -63,6 +63,11 @@ export interface SettingsPageEntry {
    * unset, the page is visible to all authenticated roles.
    */
   permission?: string | string[]
+  /**
+   * Optional dynamic visibility gate. Useful for commercial features
+   * whose availability depends on the current license.
+   */
+  visible?: () => boolean
   /** Component mounted at ``/settings/<category>/<path>``. */
   component?: () => Promise<Component | { default: Component }>
   /** External link target — overrides ``component`` when set. */
@@ -237,6 +242,7 @@ export function useSettingsRegistry() {
   const dismissed = useDismissedState()
 
   function isPageVisible(page: SettingsPageEntry): boolean {
+    if (page.visible && !page.visible()) return false
     if (!page.permission) return true
     return Array.isArray(page.permission)
       ? canAny(page.permission)

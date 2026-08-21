@@ -22,6 +22,19 @@ def get_provider(name: str, *, api_key: str | None = None) -> Provider:
     if name == "openai":
         from app.core.llm.openai_provider import OpenAIProvider
 
+        if settings.LICENSE_ENFORCEMENT:
+            from app.core.license.service import license_manager
+
+            base_url = settings.ai_gateway_base_url
+
+            if not base_url:
+                raise LLMConfigError("AI gateway is not configured")
+
+            return OpenAIProvider(
+                base_url=base_url,
+                api_key_resolver=license_manager.get_ai_gateway_credential,
+            )
+
         return OpenAIProvider(api_key=api_key or settings.OPENAI_API_KEY)
 
     raise LLMConfigError(

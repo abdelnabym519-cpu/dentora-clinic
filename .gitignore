@@ -2,6 +2,11 @@
 .env
 .env.local
 .env.*.local
+.dev.vars
+.secrets.*
+
+# Local license development material (private signing keys, admin secrets)
+.license-dev/
 
 # Claude Code
 .claude/
@@ -38,6 +43,7 @@ node_modules/
 .nitro/
 .cache/
 dist/
+.wrangler/
 
 # IDE
 .idea/

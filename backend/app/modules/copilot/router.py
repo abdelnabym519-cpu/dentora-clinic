@@ -31,6 +31,7 @@ from app.core.agents.service import AgentService
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.auth.permissions import get_role_permissions, has_permission
 from app.core.events import EventType, event_bus
+from app.core.license.dependencies import require_license_feature
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import async_session_maker, get_db
 
@@ -55,7 +56,9 @@ from .service import (
     PendingService,
 )
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_license_feature("ai"))],
+)
 
 
 # --- SSE helpers --------------------------------------------------------

@@ -1,0 +1,100 @@
+name: dentalpin-client
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dental_clinic}
+      POSTGRES_USER: ${POSTGRES_USER:-dental}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.client}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dental} -d ${POSTGRES_DB:-dental_clinic}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dental}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-dental_clinic}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env.client}
+      BUDGET_PUBLIC_SECRET_KEY: ${BUDGET_PUBLIC_SECRET_KEY:?Set BUDGET_PUBLIC_SECRET_KEY in .env.client}
+      ENVIRONMENT: production
+      ALLOWED_ORIGINS: ${PUBLIC_URL:-http://localhost}
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_PATH: /app/storage
+      SEED_ON_STARTUP: "0"
+      SEED_LANG: ar
+      TRIAL_MODE: "false"
+      TRIAL_STARTED_AT: ""
+      TRIAL_DAYS: "3"
+      LICENSE_ENFORCEMENT: "true"
+      LICENSE_SERVER_URL: ${LICENSE_SERVER_URL:-}
+      AI_GATEWAY_BASE_URL: ${AI_GATEWAY_BASE_URL:-}
+      LICENSE_PUBLIC_KEY_B64: ${LICENSE_PUBLIC_KEY_B64:-}
+      LICENSE_MACHINE_FINGERPRINT: ${LICENSE_MACHINE_FINGERPRINT:-}
+      LICENSE_HTTP_TIMEOUT_SECONDS: "5"
+      LICENSE_REFRESH_RETRY_MINUTES: "5"
+    volumes:
+      - storage_data:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.prod
+      args:
+        API_BASE_URL: ${PUBLIC_URL:-http://localhost}
+    environment:
+      NUXT_PUBLIC_API_BASE_URL: ${PUBLIC_URL:-http://localhost}
+      API_BASE_URL_SERVER: http://backend:8000
+      NUXT_PUBLIC_TRIAL_MODE: "false"
+      NUXT_PUBLIC_TRIAL_STARTED_AT: ""
+      NUXT_PUBLIC_TRIAL_DAYS: "3"
+      NODE_ENV: production
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  storage_data:
+  caddy_data:
+  caddy_config:

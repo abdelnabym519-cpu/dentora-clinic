@@ -76,7 +76,9 @@ async function onSubmit() {
       admin_email: form.email.trim(),
       admin_password: form.password,
       clinic_name: form.clinicName.trim(),
-      clinic_tax_id: form.taxId.trim()
+      clinic_tax_id: form.taxId.trim(),
+      timezone: 'Africa/Cairo',
+      currency: 'EGP'
     }, { skipAuth: true })
 
     // ponytail: re-login con las credenciales recién creadas en vez de
@@ -86,12 +88,13 @@ async function onSubmit() {
     toast.add({ title: t('setup.success'), color: 'success' })
     await navigateTo('/')
   } catch (error: unknown) {
-    const status = (error as { statusCode?: number }).statusCode
+    const apiError = error as { statusCode?: number, data?: { detail?: unknown } }
+    const status = apiError.statusCode
     if (status === 409) {
       errorMessage.value = t('setup.alreadyInitialized')
     } else if (status === 422) {
-      errorMessage.value = t('setup.passwordWeak')
-      step.value = 1
+      const detail = apiError.data?.detail
+      errorMessage.value = typeof detail === 'string' ? detail : t('setup.error')
     } else {
       errorMessage.value = t('setup.error')
     }

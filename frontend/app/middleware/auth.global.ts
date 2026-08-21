@@ -1,10 +1,15 @@
 import { getTrialStatus } from '~/utils/trial'
 
 const SETUP_PATH = '/setup'
+const LICENSE_PATH = '/activate'
 const TRIAL_EXPIRED_PATH = '/trial-expired'
 
-// Module-level cache. The system can only flip from uninitialized → initialized
-// (never back), so once we've seen `true` we stop asking the backend.
+interface CommercialLicenseStatus {
+  enforced: boolean
+  active: boolean
+  features: string[]
+}
+
 let systemInitialized: boolean | null = null
 
 async function isSystemInitialized(): Promise<boolean> {
@@ -18,20 +23,60 @@ async function isSystemInitialized(): Promise<boolean> {
     )
     systemInitialized = res.data.initialized
   } catch {
-    // Backend unreachable: don't trap the user on /setup — assume initialized
-    // so they land on /login and hit the normal error path there.
     systemInitialized = true
   }
   return systemInitialized
 }
 
+async function getCommercialLicenseStatus(): Promise<CommercialLicenseStatus | null> {
+  const config = useRuntimeConfig()
+  const baseURL = import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
+  try {
+    const res = await $fetch<{ data: CommercialLicenseStatus }>(
+      '/api/v1/license/status',
+      { baseURL }
+    )
+    return res.data
+  } catch {
+    return null
+  }
+}
+
 export default defineNuxtRouteMiddleware(async (to) => {
+  const commercialLicense = useState<CommercialLicenseStatus | null>(
+    'commercial-license:status',
+    () => null
+  )
+
+  // Commercial local installs must activate before the first admin/clinic
+  // setup. Hosted/dev deployments return enforced=false and are unchanged.
+  const license = await getCommercialLicenseStatus()
+  commercialLicense.value = license
+
+  if (license?.enforced && !license.active) {
+    return to.path === LICENSE_PATH ? undefined : navigateTo(LICENSE_PATH)
+  }
+  if (to.path === LICENSE_PATH && license?.active) return navigateTo('/')
+
+  const aiLicensed = !license?.enforced || (
+    license.active
+    && license.features.some(feature => feature.trim().toLowerCase() === 'ai')
+  )
+
+  const isAiRoute = (
+    to.path === '/copilot'
+    || to.path.startsWith('/copilot/')
+    || to.path === '/settings/integrations/copilot'
+    || to.path.startsWith('/settings/integrations/copilot/')
+  )
+
+  if (license?.enforced && license.active && isAiRoute && !aiLicensed) {
+    return navigateTo('/')
+  }
+
   const config = useRuntimeConfig()
   const trial = getTrialStatus(config.public)
 
-  // The hosted sales demo is intentionally time-limited. This check happens
-  // before auth/public-route handling so Agenda, login and public booking all
-  // land on the same purchase screen when the three-day window ends.
   if (trial.enabled && trial.expired) {
     return to.path === TRIAL_EXPIRED_PATH ? undefined : navigateTo(TRIAL_EXPIRED_PATH)
   }
@@ -39,26 +84,20 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const auth = useAuth()
 
-  // ``/p/budget/<token>`` is the patient-facing budget view (ADR 0006),
-  // authorized server-side via a token-scoped 2FA cookie; let it render.
-  const publicRoutes = ['/login', SETUP_PATH, '/p/budget', '/booking']
+  const publicRoutes = ['/login', SETUP_PATH, LICENSE_PATH, '/p/budget', '/booking']
   const isPublicRoute = publicRoutes.some(route => to.path === route || to.path.startsWith(route + '/'))
 
-  // Initialize auth state (fetch user if token exists) - works on server and client
   await auth.init()
 
   if (auth.isAuthenticated.value) {
-    // Authenticated users skip both the login page and the first-run wizard.
     if (to.path === '/login' || to.path === SETUP_PATH) return navigateTo('/')
     return
   }
 
-  // Unauthenticated. A fresh system has no account yet → first-run wizard.
   if (!(await isSystemInitialized())) {
     return to.path === SETUP_PATH ? undefined : navigateTo(SETUP_PATH)
   }
 
-  // System already initialized: the wizard is closed.
   if (to.path === SETUP_PATH) return navigateTo('/login')
 
   if (!isPublicRoute) return navigateTo('/login')

@@ -5,7 +5,27 @@
 const { t } = useI18n()
 const { open, toggle, messages, busy, reset } = useCopilot()
 
+const commercialLicense = useState<{
+  enforced: boolean
+  active: boolean
+  features: string[]
+} | null>('commercial-license:status', () => null)
+
+const aiLicensed = computed(() => {
+  const license = commercialLicense.value
+  if (!license || !license.enforced) return true
+
+  return license.active
+    && license.features.some(feature => feature.trim().toLowerCase() === 'ai')
+})
+
+watch(aiLicensed, (allowed) => {
+  if (!allowed) open.value = false
+})
+
 function onKeydown(e: KeyboardEvent) {
+  if (!aiLicensed.value) return
+
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault()
     toggle()
@@ -18,57 +38,59 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 <template>
   <ClientOnly>
-    <UButton
-      class="fixed bottom-4 right-4 z-40 rounded-full shadow-lg"
-      icon="i-lucide-sparkles"
-      size="lg"
-      color="primary"
-      :aria-label="t('copilot.open')"
-      @click="toggle"
-    />
+    <template v-if="aiLicensed">
+      <UButton
+        class="fixed bottom-4 right-4 z-40 rounded-full shadow-lg"
+        icon="i-lucide-sparkles"
+        size="lg"
+        color="primary"
+        :aria-label="t('copilot.open')"
+        @click="toggle"
+      />
 
-    <USlideover
-      :open="open"
-      side="right"
-      :ui="{ content: 'w-full sm:w-[480px] max-w-[95vw]' }"
-      @update:open="(v: boolean) => (open = v)"
-    >
-      <template #content>
-        <div class="flex h-full flex-col">
-          <header class="flex h-14 items-center justify-between border-b border-default px-4">
-            <div class="flex items-center gap-2">
-              <UIcon
-                name="i-lucide-sparkles"
-                class="text-primary"
-              />
-              <span class="font-semibold">{{ t('copilot.title') }}</span>
+      <USlideover
+        :open="open"
+        side="right"
+        :ui="{ content: 'w-full sm:w-[480px] max-w-[95vw]' }"
+        @update:open="(v: boolean) => (open = v)"
+      >
+        <template #content>
+          <div class="flex h-full flex-col">
+            <header class="flex h-14 items-center justify-between border-b border-default px-4">
+              <div class="flex items-center gap-2">
+                <UIcon
+                  name="i-lucide-sparkles"
+                  class="text-primary"
+                />
+                <span class="font-semibold">{{ t('copilot.title') }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <UButton
+                  v-if="messages.length"
+                  icon="i-lucide-plus"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  :disabled="busy"
+                  :aria-label="t('copilot.new')"
+                  @click="reset"
+                />
+                <UButton
+                  icon="i-lucide-x"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  :aria-label="t('copilot.confirm.reject')"
+                  @click="open = false"
+                />
+              </div>
+            </header>
+            <div class="flex-1 overflow-hidden p-3">
+              <CopilotDrawer />
             </div>
-            <div class="flex items-center gap-1">
-              <UButton
-                v-if="messages.length"
-                icon="i-lucide-plus"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :disabled="busy"
-                :aria-label="t('copilot.new')"
-                @click="reset"
-              />
-              <UButton
-                icon="i-lucide-x"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :aria-label="t('copilot.confirm.reject')"
-                @click="open = false"
-              />
-            </div>
-          </header>
-          <div class="flex-1 overflow-hidden p-3">
-            <CopilotDrawer />
           </div>
-        </div>
-      </template>
-    </USlideover>
+        </template>
+      </USlideover>
+    </template>
   </ClientOnly>
 </template>

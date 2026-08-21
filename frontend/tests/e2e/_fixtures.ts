@@ -31,6 +31,12 @@ const API_BASE = process.env.E2E_API_BASE || 'http://127.0.0.1:8000'
 export async function login(page: Page, role: Role): Promise<void> {
   const ctx = page.context()
 
+  // Keep browser E2E assertions deterministic when the product default
+  // locale changes. The locale plugin reads this key before hydration.
+  await page.addInitScript(() => {
+    window.localStorage.setItem('dentalpin:locale', 'en')
+  })
+
   const form = new URLSearchParams({
     username: ROLES[role],
     password: 'demo1234'

@@ -123,7 +123,7 @@ export default defineNuxtConfig({
       { code: 'pt', name: 'Português', file: 'pt.json' },
       { code: 'ar', name: 'العربية', file: 'ar.json' }
     ],
-    defaultLocale: 'en',
+    defaultLocale: 'ar',
     lazy: true,
     langDir: 'locales',
     strategy: 'no_prefix',

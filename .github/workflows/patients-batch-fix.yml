@@ -75,6 +75,7 @@ jobs:
           TESTING: 'true'
         run: |
           python -m pytest backend/tests/modules/patients -q
+          python -m ruff format backend/app/modules/patients backend/app/modules/patients_clinical/router.py backend/tests/modules/patients
           python -m ruff check backend/app/modules/patients backend/app/modules/patients_clinical/router.py backend/tests/modules/patients
           python -m ruff format --check backend/app/modules/patients backend/app/modules/patients_clinical/router.py backend/tests/modules/patients
           python backend/scripts/generate_catalogs.py --check

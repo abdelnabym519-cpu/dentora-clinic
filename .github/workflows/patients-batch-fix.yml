@@ -1,17 +1,16 @@
 name: Patients batch fix
 
 on:
-  push:
-    branches:
-      - refactor/clean-architecture-foundation
-    paths:
-      - .github/workflows/patients-batch-fix.yml
+  pull_request:
+    types: [synchronize, reopened]
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   patch-and-validate:
+    if: github.event.pull_request.head.ref == 'refactor/clean-architecture-foundation'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch

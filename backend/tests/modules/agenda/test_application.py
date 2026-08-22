@@ -46,9 +46,7 @@ async def test_valid_transition_is_delegated_after_domain_validation() -> None:
     result = await app.invoke("transition", appointment, "in_treatment", note="start")
 
     assert result == "updated"
-    assert gateway.calls == [
-        ("transition", (appointment, "in_treatment"), {"note": "start"})
-    ]
+    assert gateway.calls == [("transition", (appointment, "in_treatment"), {"note": "start"})]
 
 
 @pytest.mark.asyncio

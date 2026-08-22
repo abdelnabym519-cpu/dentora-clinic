@@ -16,7 +16,6 @@ from .infrastructure import (
     SERVICE_ASYNC_OPERATIONS,
     SERVICE_CLASS_NAMES,
     SERVICE_OPERATIONS,
-    SERVICE_SYNC_OPERATIONS,
     SqlAlchemyMediaGateway,
 )
 

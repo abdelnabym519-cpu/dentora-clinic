@@ -12,17 +12,34 @@ from typing import Any
 
 from . import legacy as _legacy
 from .application import MediaApplication
-from .infrastructure import SERVICE_CLASS_NAMES, SERVICE_OPERATIONS, SqlAlchemyMediaGateway
+from .infrastructure import (
+    SERVICE_ASYNC_OPERATIONS,
+    SERVICE_CLASS_NAMES,
+    SERVICE_OPERATIONS,
+    SERVICE_SYNC_OPERATIONS,
+    SqlAlchemyMediaGateway,
+)
+
+
+def _application() -> MediaApplication:
+    return MediaApplication(SqlAlchemyMediaGateway())
 
 
 async def _invoke(target: str, operation: str, *args: Any, **kwargs: Any) -> Any:
-    app = MediaApplication(SqlAlchemyMediaGateway())
-    return await app.invoke(target, operation, *args, **kwargs)
+    return await _application().invoke(target, operation, *args, **kwargs)
+
+
+def _invoke_sync(target: str, operation: str, *args: Any, **kwargs: Any) -> Any:
+    return _application().invoke_sync(target, operation, *args, **kwargs)
 
 
 def _compat_method(target: str, operation: str):
-    async def call(*args: Any, **kwargs: Any) -> Any:
-        return await _invoke(target, operation, *args, **kwargs)
+    if operation in SERVICE_ASYNC_OPERATIONS[target]:
+        async def call(*args: Any, **kwargs: Any) -> Any:
+            return await _invoke(target, operation, *args, **kwargs)
+    else:
+        def call(*args: Any, **kwargs: Any) -> Any:
+            return _invoke_sync(target, operation, *args, **kwargs)
 
     call.__name__ = operation
     call.__qualname__ = operation

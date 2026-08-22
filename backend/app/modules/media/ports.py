@@ -15,3 +15,11 @@ class MediaGateway(Protocol):
         *args: Any,
         **kwargs: Any,
     ) -> Any: ...
+
+    def invoke_sync(
+        self,
+        target: str,
+        operation: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any: ...

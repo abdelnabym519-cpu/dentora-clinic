@@ -382,14 +382,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.DOCUMENT_DELETED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:218`
+  - `media` — `backend/app/modules/media/legacy.py:218`
 - **Subscribers:** —
 
 ### `document.uploaded`
 
 - **Constant:** `EventType.DOCUMENT_UPLOADED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:167`
+  - `media` — `backend/app/modules/media/legacy.py:167`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -462,21 +462,21 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.ATTACHMENT_LINKED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:510`
+  - `media` — `backend/app/modules/media/legacy.py:510`
 - **Subscribers:** —
 
 ### `media.attachment_unlinked`
 
 - **Constant:** `EventType.ATTACHMENT_UNLINKED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:546`
+  - `media` — `backend/app/modules/media/legacy.py:546`
 - **Subscribers:** —
 
 ### `media.pair_created`
 
 - **Constant:** `EventType.PAIR_CREATED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:382`
+  - `media` — `backend/app/modules/media/legacy.py:382`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -484,14 +484,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PAIR_REMOVED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:406`
+  - `media` — `backend/app/modules/media/legacy.py:406`
 - **Subscribers:** —
 
 ### `media.photo_uploaded`
 
 - **Constant:** `EventType.PHOTO_UPLOADED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:181`
+  - `media` — `backend/app/modules/media/legacy.py:181`
 - **Subscribers:**
   - `patient_timeline`
 

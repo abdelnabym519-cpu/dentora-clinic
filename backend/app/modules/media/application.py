@@ -21,3 +21,12 @@ class MediaApplication:
         **kwargs: Any,
     ) -> Any:
         return await self._gateway.invoke(target, operation, *args, **kwargs)
+
+    def invoke_sync(
+        self,
+        target: str,
+        operation: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        return self._gateway.invoke_sync(target, operation, *args, **kwargs)

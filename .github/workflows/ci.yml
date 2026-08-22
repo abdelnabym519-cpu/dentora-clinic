@@ -61,6 +61,14 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Ensure pg_dump is available
+        run: |
+          if ! command -v pg_dump >/dev/null 2>&1; then
+            sudo -n apt-get update
+            sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client
+          fi
+          pg_dump --version
+
       - name: Install dependencies
         working-directory: backend
         run: |

@@ -47,7 +47,9 @@ def test_media_application_preserves_sync_contract() -> None:
     gateway = FakeMediaGateway()
     app = MediaApplication(gateway)
 
-    result = app.invoke_sync("DocumentService", "generate_storage_path", "clinic", "patient", "x.pdf")
+    result = app.invoke_sync(
+        "DocumentService", "generate_storage_path", "clinic", "patient", "x.pdf"
+    )
 
     assert result == {"target": "DocumentService", "operation": "generate_storage_path"}
     assert gateway.calls[0][0:2] == ("DocumentService", "generate_storage_path")

@@ -34,9 +34,11 @@ def _invoke_sync(target: str, operation: str, *args: Any, **kwargs: Any) -> Any:
 
 def _compat_method(target: str, operation: str):
     if operation in SERVICE_ASYNC_OPERATIONS[target]:
+
         async def call(*args: Any, **kwargs: Any) -> Any:
             return await _invoke(target, operation, *args, **kwargs)
     else:
+
         def call(*args: Any, **kwargs: Any) -> Any:
             return _invoke_sync(target, operation, *args, **kwargs)
 

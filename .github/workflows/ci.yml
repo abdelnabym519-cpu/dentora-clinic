@@ -63,11 +63,19 @@ jobs:
 
       - name: Ensure pg_dump is available
         run: |
-          if ! command -v pg_dump >/dev/null 2>&1; then
-            sudo -n apt-get update
-            sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -y postgresql-client
+          if command -v pg_dump >/dev/null 2>&1; then
+            pg_dump --version
+            exit 0
           fi
-          pg_dump --version
+          pg_bin_dir="${RUNNER_TEMP}/postgres-client-bin"
+          mkdir -p "${pg_bin_dir}"
+          cat > "${pg_bin_dir}/pg_dump" <<'EOF'
+          #!/usr/bin/env bash
+          exec docker run --rm --network host postgres:15-alpine pg_dump "$@"
+          EOF
+          chmod +x "${pg_bin_dir}/pg_dump"
+          echo "${pg_bin_dir}" >> "${GITHUB_PATH}"
+          "${pg_bin_dir}/pg_dump" --version
 
       - name: Install dependencies
         working-directory: backend

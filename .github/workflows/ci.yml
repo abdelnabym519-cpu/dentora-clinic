@@ -267,6 +267,7 @@ jobs:
       SECRET_KEY: ci-secret-key-for-e2e
       COMPOSE_PROJECT_NAME: dentora_ci_e2e
       POSTGRES_PORT_MAPPING: "5432"
+      BACKEND_PORT_MAPPING: "8000"
 
     steps:
       - uses: actions/checkout@v5
@@ -282,16 +283,28 @@ jobs:
       - name: Boot db + backend
         run: docker compose up -d db backend
 
+      - name: Resolve backend host port
+        run: |
+          backend_endpoint="$(docker compose port backend 8000)"
+          backend_port="${backend_endpoint##*:}"
+          if ! [[ "${backend_port}" =~ ^[0-9]+$ ]]; then
+            echo "could not resolve backend host port from: ${backend_endpoint}"
+            docker compose ps
+            exit 1
+          fi
+          echo "BACKEND_BASE_URL=http://127.0.0.1:${backend_port}" >> "${GITHUB_ENV}"
+          echo "backend published at http://127.0.0.1:${backend_port}"
+
       - name: Wait for backend health
         run: |
           for i in $(seq 1 60); do
-            if curl -sf http://127.0.0.1:8100/health > /dev/null; then
+            if curl -sf "${BACKEND_BASE_URL}/health" > /dev/null; then
               echo "backend ready"
               exit 0
             fi
             sleep 2
           done
-          echo "backend did not become ready on port 8100"
+          echo "backend did not become ready at ${BACKEND_BASE_URL}"
           docker compose ps
           docker compose logs backend
           exit 1
@@ -344,11 +357,11 @@ jobs:
         working-directory: frontend
         env:
           E2E_LOCALE: en
-          NUXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8100
-          API_BASE_URL_SERVER: http://127.0.0.1:8100
           NITRO_HOST: 0.0.0.0
           NITRO_PORT: "3000"
         run: |
+          export NUXT_PUBLIC_API_BASE_URL="${BACKEND_BASE_URL}"
+          export API_BASE_URL_SERVER="${BACKEND_BASE_URL}"
           nohup npm run dev > /tmp/nuxt.log 2>&1 &
           echo $! > /tmp/dentora-nuxt.pid
           echo "nuxt started (pid $!)"
@@ -365,9 +378,9 @@ jobs:
 
       - name: Run E2E
         working-directory: frontend
-        env:
-          E2E_API_BASE: http://127.0.0.1:8100
-        run: npx playwright test --reporter=list
+        run: |
+          export E2E_API_BASE="${BACKEND_BASE_URL}"
+          npx playwright test --reporter=list
 
       - name: Upload Nuxt log on failure
         if: failure()

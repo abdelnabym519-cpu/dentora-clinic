@@ -266,6 +266,7 @@ jobs:
       POSTGRES_PASSWORD: testpass
       SECRET_KEY: ci-secret-key-for-e2e
       COMPOSE_PROJECT_NAME: dentora_ci_e2e
+      POSTGRES_PORT_MAPPING: "5432"
 
     steps:
       - uses: actions/checkout@v5

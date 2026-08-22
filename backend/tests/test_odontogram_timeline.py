@@ -1,6 +1,6 @@
 """Tests for odontogram timeline endpoints."""
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -152,8 +152,10 @@ async def test_get_odontogram_at_date_returns_empty_state(
         json={"general_condition": "caries"},
     )
 
-    # Query for date in the past (before creation)
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    # History timestamps are stored in UTC. Anchor the historical query to
+    # the UTC calendar day so a runner west/east of UTC cannot turn
+    # "yesterday" into the same UTC date as the modification around midnight.
+    yesterday = (datetime.now(UTC).date() - timedelta(days=1)).isoformat()
     response = await client.get(
         f"/api/v1/odontogram/patients/{patient_id}/odontogram/at?date={yesterday}",
         headers=auth_headers,

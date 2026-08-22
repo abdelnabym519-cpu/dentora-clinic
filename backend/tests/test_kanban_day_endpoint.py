@@ -159,7 +159,8 @@ async def test_strip_excludes_appointments_on_other_days(
     db_session: AsyncSession,
 ) -> None:
     world = await _world(db_session)
-    tomorrow = datetime.now(UTC) + timedelta(days=1)
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
 
     apt = await AppointmentService.create_appointment(
         db_session,
@@ -168,8 +169,12 @@ async def test_strip_excludes_appointments_on_other_days(
             "patient_id": world["patient_id"],
             "professional_id": world["dentist_id"],
             "cabinet_id": world["cabinet_id"],
-            "start_time": tomorrow.replace(hour=9, minute=0, second=0, microsecond=0),
-            "end_time": tomorrow.replace(hour=9, minute=30, second=0, microsecond=0),
+            "start_time": datetime(
+                tomorrow.year, tomorrow.month, tomorrow.day, 9, 0, tzinfo=UTC
+            ),
+            "end_time": datetime(
+                tomorrow.year, tomorrow.month, tomorrow.day, 9, 30, tzinfo=UTC
+            ),
         },
     )
     await AppointmentService.transition(db_session, apt, "checked_in")
@@ -178,7 +183,7 @@ async def test_strip_excludes_appointments_on_other_days(
 
     # Snapshot for TODAY must NOT mark the dentist as in_treatment — they
     # have no active appointment today (tomorrow's one doesn't count).
-    snap = await KanbanDayService.snapshot(db_session, world["clinic_id"], date.today())
+    snap = await KanbanDayService.snapshot(db_session, world["clinic_id"], today)
     dentist_pill = next(p for p in snap["professionals"] if p["id"] == str(world["dentist_id"]))
     assert dentist_pill["state"] != "in_treatment"
     assert dentist_pill["current_appointment_id"] is None

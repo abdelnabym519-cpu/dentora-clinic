@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-lint:
     runs-on: [self-hosted, linux, x64, dentora-ci]
@@ -261,6 +265,7 @@ jobs:
     env:
       POSTGRES_PASSWORD: testpass
       SECRET_KEY: ci-secret-key-for-e2e
+      COMPOSE_PROJECT_NAME: dentora_ci_e2e
 
     steps:
       - uses: actions/checkout@v5
@@ -305,7 +310,8 @@ jobs:
         working-directory: frontend
         run: |
           npm install
-          npx playwright install --with-deps chromium
+          # OS dependencies are provisioned once by the dedicated Linux runner bootstrap.
+          npx playwright install chromium
 
       - name: Generate modules.json with host paths
         # The backend writes `modules.json` with `/module_layers/...`
@@ -343,6 +349,7 @@ jobs:
           NITRO_PORT: "3000"
         run: |
           nohup npm run dev > /tmp/nuxt.log 2>&1 &
+          echo $! > /tmp/dentora-nuxt.pid
           echo "nuxt started (pid $!)"
 
       - name: Wait for frontend
@@ -384,3 +391,12 @@ jobs:
           name: playwright-test-results
           path: frontend/test-results
           retention-days: 7
+
+      - name: Clean self-hosted E2E resources
+        if: always()
+        run: |
+          if [ -f /tmp/dentora-nuxt.pid ]; then
+            kill "$(cat /tmp/dentora-nuxt.pid)" 2>/dev/null || true
+            rm -f /tmp/dentora-nuxt.pid
+          fi
+          docker compose down -v --remove-orphans || true

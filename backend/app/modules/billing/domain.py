@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
-
 VALID_TRANSITIONS: dict[str, tuple[str, ...]] = {
     "draft": ("issued", "voided"),
     "issued": ("paid", "partial", "cancelled"),

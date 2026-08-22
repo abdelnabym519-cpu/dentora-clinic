@@ -4,7 +4,6 @@ from pathlib import Path
 
 import app.modules.billing as billing_pkg
 
-
 MODULE_ROOT = Path(billing_pkg.__file__).resolve().parent
 
 FORBIDDEN_INNER_IMPORTS = (

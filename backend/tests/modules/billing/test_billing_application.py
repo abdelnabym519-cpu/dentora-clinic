@@ -30,9 +30,7 @@ async def test_non_domain_operation_delegates_to_gateway() -> None:
     result = await app.invoke("InvoiceService", "get_invoice", "db", "clinic", "invoice")
 
     assert result == "delegated"
-    assert gateway.calls == [
-        ("InvoiceService", "get_invoice", ("db", "clinic", "invoice"), {})
-    ]
+    assert gateway.calls == [("InvoiceService", "get_invoice", ("db", "clinic", "invoice"), {})]
 
 
 @pytest.mark.asyncio

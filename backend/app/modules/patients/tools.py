@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from app.core.agents import AgentContext, Tool, ToolCategory
 
-from .service import PatientService
+from .composition import build_patient_service
 
 
 class SearchPatientsArgs(BaseModel):
@@ -61,14 +61,16 @@ def _summary(patient) -> dict:
 
 
 async def _search_patients(ctx: AgentContext, params: SearchPatientsArgs) -> dict:
-    items, total = await PatientService.list_patients(
-        ctx.db, ctx.clinic_id, search=params.query, page=1, page_size=params.limit
+    service = build_patient_service(ctx.db)
+    items, total = await service.list_patients(
+        ctx.clinic_id, search=params.query, page=1, page_size=params.limit
     )
     return {"total": total, "patients": [_summary(p) for p in items]}
 
 
 async def _get_patient(ctx: AgentContext, params: GetPatientArgs) -> dict:
-    patient = await PatientService.get_patient(ctx.db, ctx.clinic_id, params.patient_id)
+    service = build_patient_service(ctx.db)
+    patient = await service.get_patient(ctx.clinic_id, params.patient_id)
     if patient is None:
         return {"error": "not_found"}
     data = _summary(patient)
@@ -78,21 +80,23 @@ async def _get_patient(ctx: AgentContext, params: GetPatientArgs) -> dict:
 
 
 async def _create_patient(ctx: AgentContext, params: CreatePatientArgs) -> dict:
-    patient = await PatientService.create_patient(
-        ctx.db, ctx.clinic_id, params.model_dump(exclude_none=True)
+    service = build_patient_service(ctx.db)
+    patient = await service.create_patient(
+        ctx.clinic_id, params.model_dump(exclude_none=True)
     )
     return {"id": patient.id, "full_name": f"{patient.first_name} {patient.last_name}"}
 
 
 async def _update_patient(ctx: AgentContext, params: UpdatePatientArgs) -> dict:
-    patient = await PatientService.get_patient(ctx.db, ctx.clinic_id, params.patient_id)
+    service = build_patient_service(ctx.db)
+    patient = await service.get_patient(ctx.clinic_id, params.patient_id)
     if patient is None:
         return {"error": "not_found"}
     data = params.model_dump(exclude_none=True)
     data.pop("patient_id")
     if not data:
         return {"error": "nothing_to_update"}
-    patient = await PatientService.update_patient(ctx.db, patient, data)
+    patient = await service.update_patient(ctx.clinic_id, params.patient_id, data)
     return _summary(patient)
 
 

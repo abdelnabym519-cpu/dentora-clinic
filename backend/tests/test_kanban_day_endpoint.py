@@ -169,12 +169,8 @@ async def test_strip_excludes_appointments_on_other_days(
             "patient_id": world["patient_id"],
             "professional_id": world["dentist_id"],
             "cabinet_id": world["cabinet_id"],
-            "start_time": datetime(
-                tomorrow.year, tomorrow.month, tomorrow.day, 9, 0, tzinfo=UTC
-            ),
-            "end_time": datetime(
-                tomorrow.year, tomorrow.month, tomorrow.day, 9, 30, tzinfo=UTC
-            ),
+            "start_time": datetime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0, tzinfo=UTC),
+            "end_time": datetime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 30, tzinfo=UTC),
         },
     )
     await AppointmentService.transition(db_session, apt, "checked_in")

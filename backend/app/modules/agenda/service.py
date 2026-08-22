@@ -11,19 +11,24 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import domain as _domain
 from .application import AgendaApplication
-from .domain import (
-    AlreadyInStateError,
-    CabinetRequiredError,
-    InvalidTransitionError,
-    VALID_TRANSITIONS as DOMAIN_VALID_TRANSITIONS,
+from .infrastructure import (
+    APPOINTMENT_OPERATIONS,
+    CABINET_OPERATIONS,
+    SqlAlchemyAgendaGateway,
 )
-from .infrastructure import APPOINTMENT_OPERATIONS, CABINET_OPERATIONS, SqlAlchemyAgendaGateway
+
+# Preserve the historical exception import surface used by routers/tools while
+# the canonical exception types live in the pure domain layer.
+AlreadyInStateError = _domain.AlreadyInStateError
+CabinetRequiredError = _domain.CabinetRequiredError
+InvalidTransitionError = _domain.InvalidTransitionError
 
 # Preserve the historical outward value shape (``set`` values) while the
 # canonical immutable graph lives in ``domain.py``.
 VALID_TRANSITIONS: dict[str, set[str]] = {
-    state: set(targets) for state, targets in DOMAIN_VALID_TRANSITIONS.items()
+    state: set(targets) for state, targets in _domain.VALID_TRANSITIONS.items()
 }
 
 

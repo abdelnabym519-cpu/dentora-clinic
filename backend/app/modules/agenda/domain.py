@@ -7,7 +7,6 @@ adapter that schedules or transitions an appointment.
 
 from dataclasses import dataclass
 
-
 VALID_TRANSITIONS: dict[str, frozenset[str]] = {
     "scheduled": frozenset({"confirmed", "checked_in", "cancelled", "no_show"}),
     "confirmed": frozenset({"checked_in", "cancelled", "no_show"}),

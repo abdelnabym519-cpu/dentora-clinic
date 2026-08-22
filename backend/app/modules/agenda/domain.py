@@ -53,13 +53,9 @@ def validate_transition(
         raise AlreadyInStateError(f"Appointment is already in status '{to_status}'")
 
     if to_status not in VALID_TRANSITIONS.get(current_status, frozenset()):
-        raise InvalidTransitionError(
-            f"Cannot transition from '{current_status}' to '{to_status}'"
-        )
+        raise InvalidTransitionError(f"Cannot transition from '{current_status}' to '{to_status}'")
 
     if to_status == "in_treatment" and not has_cabinet:
-        raise CabinetRequiredError(
-            "A cabinet must be assigned before moving to 'in_treatment'"
-        )
+        raise CabinetRequiredError("A cabinet must be assigned before moving to 'in_treatment'")
 
     return TransitionDecision(from_status=current_status, to_status=to_status)

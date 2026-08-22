@@ -81,9 +81,7 @@ async def _get_patient(ctx: AgentContext, params: GetPatientArgs) -> dict:
 
 async def _create_patient(ctx: AgentContext, params: CreatePatientArgs) -> dict:
     service = build_patient_service(ctx.db)
-    patient = await service.create_patient(
-        ctx.clinic_id, params.model_dump(exclude_none=True)
-    )
+    patient = await service.create_patient(ctx.clinic_id, params.model_dump(exclude_none=True))
     return {"id": patient.id, "full_name": f"{patient.first_name} {patient.last_name}"}
 
 

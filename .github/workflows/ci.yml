@@ -288,6 +288,20 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Sanitize self-hosted E2E workspace
+        run: |
+          echo "--- checkout revision ---"
+          git rev-parse HEAD
+          echo "--- stale E2E paths before clean ---"
+          git clean -ndx -- frontend/tests/e2e || true
+          git reset --hard HEAD
+          git clean -ffdx
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Workspace is not clean after checkout sanitization."
+            git status --short
+            exit 1
+          fi
+
       - name: Write .env
         run: |
           cat > .env <<EOF
@@ -391,6 +405,16 @@ jobs:
             sleep 2
           done
           curl -sf -o /dev/null -w "final status: %{http_code}\n" http://localhost:3000/login
+
+      - name: Verify E2E sources are tracked
+        run: |
+          untracked="$(git ls-files --others --exclude-standard -- frontend/tests/e2e)"
+          ignored="$(git ls-files --others --ignored --exclude-standard -- frontend/tests/e2e)"
+          if [ -n "${untracked}${ignored}" ]; then
+            echo "::error::Untracked or ignored E2E source files appeared after checkout."
+            printf '%s\n' "${untracked}" "${ignored}" | sed '/^$/d'
+            exit 1
+          fi
 
       - name: Run E2E
         working-directory: frontend

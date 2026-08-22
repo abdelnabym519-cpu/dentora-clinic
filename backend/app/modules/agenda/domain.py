@@ -5,8 +5,6 @@ imports. It owns the appointment state-machine invariants shared by every
 adapter that schedules or transitions an appointment.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 

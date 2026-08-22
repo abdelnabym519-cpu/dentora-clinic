@@ -3,10 +3,10 @@
 import pytest
 
 from app.modules.agenda.domain import (
+    VALID_TRANSITIONS,
     AlreadyInStateError,
     CabinetRequiredError,
     InvalidTransitionError,
-    VALID_TRANSITIONS,
     validate_transition,
 )
 

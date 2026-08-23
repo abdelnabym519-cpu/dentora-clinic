@@ -39,7 +39,7 @@ class UpdateDescriptor:
     requires_backup: bool
 
     @classmethod
-    def from_dict(cls, value: Any) -> "UpdateDescriptor":
+    def from_dict(cls, value: Any) -> UpdateDescriptor:
         if not isinstance(value, dict) or set(value) != _ALLOWED:
             raise UpdateValidationError("Update descriptor is incomplete or unsupported")
         version = value.get("version")

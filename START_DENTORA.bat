@@ -6,6 +6,13 @@ echo ==========================================
 echo       Dentora - Start Clinic System
 echo ==========================================
 
+if exist ".dentora-restore-journal.json" (
+  echo ERROR: An interrupted Dentora restore requires recovery before startup.
+  echo Run RESTORE_DENTORA.bat --recover as Administrator.
+  pause
+  exit /b 1
+)
+
 where docker >nul 2>&1
 if errorlevel 1 (
   echo ERROR: Docker Desktop is not installed or docker.exe is not in PATH.

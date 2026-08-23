@@ -43,9 +43,7 @@ def _fixture(tmp_path: Path, **overrides: object) -> tuple[Path, Path, str, dict
 
 def test_valid_signed_upgrade_is_accepted(tmp_path: Path) -> None:
     metadata, package, public_key, _ = _fixture(tmp_path)
-    result = validate_update(
-        metadata, package, public_key_b64=public_key, current_version="2.0.0"
-    )
+    result = validate_update(metadata, package, public_key_b64=public_key, current_version="2.0.0")
     assert result.version == "2.1.0"
     assert result.compatible_from == "2.0.0"
     assert result.requires_backup is True

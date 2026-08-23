@@ -17,7 +17,26 @@
       "webglUnavailable": "WebGL غير متاح في هذا المتصفح، لذلك لا يمكن عرض المعاينة ثلاثية الأبعاد.",
       "meshLoading": "جارٍ تحميل المسح…",
       "meshError": "تعذّر تحميل المسح — يتم عرض المعاينة الافتراضية",
-      "meshBadge": "هندسة المسح"
+      "meshBadge": "هندسة المسح",
+      "segmentationOverlay": "تسميات التجزيء"
+    },
+    "segmentation": {
+      "title": "تجزيء الأسنان",
+      "none": "لم يتم التشغيل بعد",
+      "run": "تشغيل التجزيء",
+      "running": "جارٍ التحليل…",
+      "runError": "تعذّر تشغيل التجزيء حاليًا.",
+      "segmented": "{count} مُجزَّأ",
+      "uncertain": "{count} غير مؤكد",
+      "missing": "{count} مفقود",
+      "method": "الطريقة: {method}",
+      "nonClinical": "دعم قرار غير إكلينيكي ويتطلب مراجعة طبيب الأسنان",
+      "uncertainTeeth": "أسنان غير مؤكدة: {teeth}",
+      "reviewPending": "بانتظار مراجعة طبيب الأسنان",
+      "reviewAccepted": "تمت المراجعة — مقبول",
+      "reviewRejected": "تمت المراجعة — مرفوض",
+      "accept": "قبول",
+      "reject": "رفض"
     }
   }
 }

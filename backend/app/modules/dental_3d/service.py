@@ -28,10 +28,18 @@ Scene assembly:
 file (extension + MIME + content sniff, see ``meshfiles.py``) and
 stores it through the **media** module's ``DocumentService`` — the one
 existing storage system; dental_3d never writes files itself.
+
+``DentalSegmentationService`` (Phase 3, ADR 0021) runs the automatic
+tooth-segmentation analysis through the ``ToothSegmentationProvider``
+port and persists it with review state ``pending``; the dentist review
+use case records the decision. Analyses are non-clinical decision
+support: input → analysis → evidence/confidence → dentist review →
+dentist decision, and a review never mutates odontogram records.
 """
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -41,12 +49,20 @@ from app.config import settings
 
 from .meshfiles import MeshUploadError, canonical_mime, detect_mesh_format, mesh_download_url
 from .models import DentalScene as DentalSceneRow
+from .models import DentalSegmentationAnalysis as DentalSegmentationAnalysisRow
 from .schemas import (
     DentalMesh,
     DentalSceneResponse,
     DentalSceneUpdate,
     SegmentationResult,
     Tooth3D,
+)
+from .segmentation import (
+    SegmentationAnalysisResponse,
+    SegmentationRequest,
+    SegmentationReviewUpdate,
+    SegmentedTooth,
+    ToothSegmentationProvider,
 )
 from .sources import DentalGeometrySource, GeometryProvision
 
@@ -82,9 +98,31 @@ def _merge(overrides: list[Tooth3D], defaults: list[Tooth3D]) -> list[Tooth3D]:
     return merged
 
 
-def _segmentation_of(row: DentalSceneRow | None) -> SegmentationResult:
-    """Segmentation is a future capability — Phase 2 always reports N/A."""
-    return SegmentationResult(status="not_available")
+def _segmentation_of(
+    row: DentalSceneRow | None,
+    analysis: DentalSegmentationAnalysisRow | None,
+) -> SegmentationResult:
+    """Scene-level segmentation summary (Phase 3): latest analysis wins.
+
+    No persisted analysis → ``not_available`` (Phases 1–2 behaviour).
+    The summary is a projection of the analysis row — counts, provider,
+    review state — never client-supplied input.
+    """
+    if analysis is None:
+        return SegmentationResult(status="not_available")
+    teeth = [SegmentedTooth.model_validate(t) for t in (analysis.teeth or [])]
+    return SegmentationResult(
+        status="completed",
+        method=analysis.method,
+        teeth_found=sum(1 for t in teeth if t.status == "segmented"),
+        performed_at=analysis.performed_at,
+        analysis_id=analysis.id,
+        provider=analysis.provider,
+        segmented_count=sum(1 for t in teeth if t.status == "segmented"),
+        uncertain_count=sum(1 for t in teeth if t.status == "uncertain"),
+        missing_count=sum(1 for t in teeth if t.status == "missing"),
+        review_status=analysis.review_status,  # type: ignore[arg-type]
+    )
 
 
 async def _provisions(
@@ -133,12 +171,13 @@ class DentalSceneService:
         meshes = [mesh for provision in provisions for mesh in provision.meshes]
 
         row = await DentalSceneService._load_row(db, clinic_id, patient_id)
+        analysis = await DentalSegmentationService._latest_row(db, clinic_id, patient_id)
         if row is None:
             return DentalSceneResponse(
                 patient_id=patient_id,
                 generator="intraoral_scan" if meshes else "synthetic",
                 teeth=defaults,
-                segmentation=_segmentation_of(None),
+                segmentation=_segmentation_of(None, analysis),
                 meshes=meshes,
                 persisted=False,
             )
@@ -151,7 +190,7 @@ class DentalSceneService:
             # the persisted row keeps recording the view-state generator.
             generator="intraoral_scan" if meshes else row.generator,
             teeth=_merge(overrides, defaults),
-            segmentation=_segmentation_of(row),
+            segmentation=_segmentation_of(row, analysis),
             meshes=meshes,
             updated_at=row.updated_at,
             persisted=True,
@@ -241,3 +280,153 @@ class DentalMeshService:
             uploaded_at=document.created_at,
             url=mesh_download_url(document.id),
         )
+
+
+class SegmentationError(Exception):
+    """Application-level segmentation failures (mapped to HTTP by the router)."""
+
+
+class DentalSegmentationService:
+    """Segmentation use cases: run → evidence → dentist review → decision.
+
+    ADR 0021: the service depends on the ``ToothSegmentationProvider``
+    **port** only; the concrete engine (deterministic arch-partition
+    today, a real ML model tomorrow) is injected by the composition
+    root at the infrastructure edge. Results are persisted server-side
+    with review state ``pending`` — no client-supplied analysis ever
+    enters the system, and accepting a review never mutates
+    odontogram records.
+    """
+
+    @staticmethod
+    async def _latest_row(
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID
+    ) -> DentalSegmentationAnalysisRow | None:
+        stmt = (
+            select(DentalSegmentationAnalysisRow)
+            .where(
+                DentalSegmentationAnalysisRow.clinic_id == clinic_id,
+                DentalSegmentationAnalysisRow.patient_id == patient_id,
+            )
+            .order_by(
+                DentalSegmentationAnalysisRow.created_at.desc(),
+                DentalSegmentationAnalysisRow.id.desc(),
+            )
+            .limit(1)
+        )
+        return (await db.execute(stmt)).scalar_one_or_none()
+
+    @staticmethod
+    def _to_response(row: DentalSegmentationAnalysisRow) -> SegmentationAnalysisResponse:
+        teeth = [SegmentedTooth.model_validate(t) for t in (row.teeth or [])]
+        response = SegmentationAnalysisResponse(
+            id=row.id,
+            patient_id=row.patient_id,
+            provider=row.provider,
+            method=row.method,
+            teeth=teeth,
+            performed_at=row.performed_at,
+            created_at=row.created_at,
+            review_status=row.review_status,  # type: ignore[arg-type]
+            reviewed_at=row.reviewed_at,
+            review_note=row.review_note,
+        )
+        response.counts_from_teeth()
+        return response
+
+    @staticmethod
+    async def run_analysis(
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        user_id: UUID | None,
+        provider: ToothSegmentationProvider | None = None,
+        sources: list[DentalGeometrySource] | tuple[DentalGeometrySource, ...] | None = None,
+    ) -> SegmentationAnalysisResponse:
+        """Run the segmentation analysis for the patient's current scene.
+
+        The tooth universe and mesh references come from the same
+        geometry provisions the scene endpoint uses (odontogram-driven
+        + media-discovered) — never from client input. Analysis rows
+        are append-only history; the scene summary reflects the latest.
+        """
+        if provider is None:
+            # Composition root — infrastructure edge, imported lazily.
+            from .infrastructure import default_segmentation_provider
+
+            provider = default_segmentation_provider()
+
+        provisions = await _provisions(db, clinic_id, patient_id, sources)
+        teeth = next((p.teeth for p in provisions if p.teeth), [])
+        meshes = [mesh for provision in provisions for mesh in provision.meshes]
+
+        try:
+            result = await provider.segment(
+                SegmentationRequest(
+                    clinic_id=clinic_id,
+                    patient_id=patient_id,
+                    teeth=teeth,
+                    meshes=meshes,
+                    performed_at=datetime.now(UTC),
+                )
+            )
+        except Exception as exc:  # provider engine failure — surface, never fake
+            raise SegmentationError(f"segmentation provider failed: {exc}") from exc
+
+        row = DentalSegmentationAnalysisRow(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            performed_by=user_id,
+            provider=result.provider,
+            method=result.method,
+            performed_at=result.performed_at,
+            teeth=[t.model_dump(mode="json") for t in result.teeth],
+        )
+        db.add(row)
+        await db.commit()
+        return DentalSegmentationService._to_response(row)
+
+    @staticmethod
+    async def latest_analysis(
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID
+    ) -> SegmentationAnalysisResponse | None:
+        """Latest analysis for the patient, or ``None`` when never run."""
+        row = await DentalSegmentationService._latest_row(db, clinic_id, patient_id)
+        return None if row is None else DentalSegmentationService._to_response(row)
+
+    @staticmethod
+    async def review_analysis(
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        analysis_id: UUID,
+        reviewer_id: UUID | None,
+        payload: SegmentationReviewUpdate,
+    ) -> SegmentationAnalysisResponse:
+        """Record the dentist's review decision on a pending analysis.
+
+        Only pending analyses can be decided (409-mapped conflict on
+        re-review); the decision + optional note are stored on the
+        analysis row itself. Clinical data is never touched — review
+        is an acknowledgement of decision support, not an odontogram
+        edit.
+        """
+        stmt = select(DentalSegmentationAnalysisRow).where(
+            DentalSegmentationAnalysisRow.id == analysis_id,
+            DentalSegmentationAnalysisRow.clinic_id == clinic_id,
+            DentalSegmentationAnalysisRow.patient_id == patient_id,
+        )
+        row = (await db.execute(stmt)).scalar_one_or_none()
+        if row is None:
+            raise KeyError(analysis_id)
+        if row.review_status != "pending":
+            raise SegmentationError("analysis already reviewed")
+
+        row.review_status = payload.decision
+        row.reviewed_by = reviewer_id
+        row.reviewed_at = datetime.now(UTC)
+        row.review_note = payload.note
+        await db.commit()
+        return DentalSegmentationService._to_response(row)

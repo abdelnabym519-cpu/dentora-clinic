@@ -17,7 +17,26 @@
       "webglUnavailable": "WebGL is not available in this browser, so the 3D preview cannot be rendered.",
       "meshLoading": "Loading scan…",
       "meshError": "Scan could not be loaded — showing synthetic preview",
-      "meshBadge": "Scan geometry"
+      "meshBadge": "Scan geometry",
+      "segmentationOverlay": "Segmentation labels"
+    },
+    "segmentation": {
+      "title": "Tooth segmentation",
+      "none": "not run yet",
+      "run": "Run segmentation",
+      "running": "Analysing…",
+      "runError": "Segmentation could not run right now.",
+      "segmented": "{count} segmented",
+      "uncertain": "{count} uncertain",
+      "missing": "{count} missing",
+      "method": "Method: {method}",
+      "nonClinical": "non-clinical decision support, dentist review required",
+      "uncertainTeeth": "Uncertain teeth: {teeth}",
+      "reviewPending": "awaiting dentist review",
+      "reviewAccepted": "reviewed — accepted",
+      "reviewRejected": "reviewed — rejected",
+      "accept": "Accept",
+      "reject": "Reject"
     }
   }
 }

@@ -4,7 +4,10 @@ Dental 3D: 3D preview of a patient's dentition on the patient Summary.
 Phase 1 established the source-agnostic scene contract with synthetic
 demo geometry; Phase 2 adds **real mesh ingestion** — validated STL/OBJ
 files stored through the media module and rendered by the viewer, with
-the synthetic arch kept as the regression-safe fallback.
+the synthetic arch kept as the regression-safe fallback; Phase 3 adds
+the **automatic tooth-segmentation foundation** — a deterministic,
+explicitly non-clinical analysis behind a replaceable provider port,
+with an enforced dentist-review workflow (ADR 0021).
 
 ## Public API
 
@@ -13,6 +16,9 @@ the synthetic arch kept as the regression-safe fallback.
   - `GET    /dental_3d/patients/{patient_id}/scene` — geometry sources + persisted view state; permission `dental_3d.read`
   - `PUT    /dental_3d/patients/{patient_id}/scene` — full-replace per-tooth view state; permission `dental_3d.write`
   - `POST   /dental_3d/patients/{patient_id}/meshes` — ingest one STL/OBJ scan file (multipart); permission `dental_3d.write`
+  - `POST   /dental_3d/patients/{patient_id}/segmentation` — run the segmentation provider server-side; permission `dental_3d.write`
+  - `GET    /dental_3d/patients/{patient_id}/segmentation` — latest analysis (404 when never run); permission `dental_3d.read`
+  - `POST   /dental_3d/patients/{patient_id}/segmentation/{analysis_id}/review` — dentist review decision; permission `dental_3d.write`
 
 ## Dependencies
 
@@ -39,6 +45,11 @@ duplicate ownership (media owns clinic/patient linkage).
   `default_sources` composition root.
 - `meshfiles.py` — pure mesh validation (extension + MIME + content
   sniff; canonical MIME vocabulary drives discovery).
+- `segmentation.py` — the `ToothSegmentationProvider` **port** +
+  request/result/evidence contracts and the review payload
+  (framework-free inner layer, ADR 0021). Safety flags are fixed
+  literal types: results are always `is_clinical=False` and
+  `requires_review=True`.
 - `router.py` / `tools.py` / `frontend/` — presentation.
 
 ## Permissions
@@ -70,10 +81,12 @@ a future optimization, not a correctness need.
 ## Lifecycle
 
 - `installable=True` / `auto_install=False` / `removable=True`.
-- No Phase 2 migration: meshes are media document references, so the
-  `dental_scenes` table (isolated `dental_3d` Alembic branch) is
-  unchanged. Uninstall drops only the dental_3d branch; uploaded scans
-  remain ordinary media documents owned by the media module.
+- Phase 2 added no migration: meshes are media document references.
+  Phase 3 adds `d3d_0002` on the same isolated `dental_3d` branch —
+  the append-only `dental_segmentation_analyses` table (proposals +
+  dentist review state). Uninstall drops only the dental_3d branch;
+  uploaded scans remain ordinary media documents owned by the media
+  module, and analyses are derivable decision support.
 
 ## Gotchas / non-obvious invariants
 
@@ -97,3 +110,14 @@ a future optimization, not a correctness need.
   — future mesh kinds (tooth/nerve/implant) extend `SceneMeshKind`, not
   the viewer architecture. A failed mesh load falls back to the
   synthetic arch + error chip.
+- Segmentation is **non-clinical decision support**: the only write
+  paths are "run the provider" and "record a review decision"; no
+  endpoint accepts a client-supplied analysis, `PUT scene` still
+  rejects `status="completed"`, and a review never mutates odontogram
+  records. `ArchPartitionSegmentationProvider` is a rule-based
+  foundation — never present it as a medical AI model.
+- Segmentation analyses are append-only; latest wins in the scene
+  summary. Re-reviewing a decided analysis is a 409.
+- Viewer FDI labels render on the synthetic arch only — labelling a
+  real scan surface would claim a per-tooth alignment the Phase 3
+  engine does not have.

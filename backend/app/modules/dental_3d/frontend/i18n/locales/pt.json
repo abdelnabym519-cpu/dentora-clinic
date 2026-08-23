@@ -17,7 +17,26 @@
       "webglUnavailable": "O WebGL não está disponível neste navegador, pelo que a pré-visualização 3D não pode ser renderizada.",
       "meshLoading": "Carregando digitalização…",
       "meshError": "Não foi possível carregar a digitalização — a mostrar pré-visualização sintética",
-      "meshBadge": "Geometria de digitalização"
+      "meshBadge": "Geometria de digitalização",
+      "segmentationOverlay": "Rótulos de segmentação"
+    },
+    "segmentation": {
+      "title": "Segmentação dentária",
+      "none": "ainda não executada",
+      "run": "Executar segmentação",
+      "running": "Analisando…",
+      "runError": "A segmentação não pôde ser executada agora.",
+      "segmented": "{count} segmentados",
+      "uncertain": "{count} incertos",
+      "missing": "{count} ausentes",
+      "method": "Método: {method}",
+      "nonClinical": "apoio não clínico à decisão, revisão do dentista obrigatória",
+      "uncertainTeeth": "Dentes incertos: {teeth}",
+      "reviewPending": "aguardando revisão do dentista",
+      "reviewAccepted": "revisada — aceita",
+      "reviewRejected": "revisada — rejeitada",
+      "accept": "Aceitar",
+      "reject": "Rejeitar"
     }
   }
 }

@@ -15,6 +15,12 @@ Adapters:
   **media** module and describes them as scene meshes. No binary ever
   enters the scene payload — meshes are references to media documents,
   downloaded through media's own authorized route.
+- ``ArchPartitionSegmentationProvider`` — Phase 3: the deterministic,
+  rule-based tooth-segmentation engine behind the
+  ``ToothSegmentationProvider`` port (``segmentation.py``). Explicitly
+  **not** a medical AI model; replaceable by a real ML adapter in the
+  composition root (``default_segmentation_provider``) without
+  touching any inner contract.
 """
 
 from __future__ import annotations
@@ -30,6 +36,13 @@ from app.modules.odontogram.models import ToothRecord
 
 from .meshfiles import format_for_mime, mesh_download_url, mesh_mimes
 from .schemas import DentalMesh, Tooth3D
+from .segmentation import (
+    SegmentationAnalysisResult,
+    SegmentationEvidence,
+    SegmentationRequest,
+    SegmentedTooth,
+    ToothSegmentationProvider,
+)
 from .sources import DentalGeometrySource, GeometryProvision
 
 #: Cap on real meshes surfaced per scene — bounds the payload while the
@@ -165,3 +178,137 @@ def default_sources(db: AsyncSession) -> list[DentalGeometrySource]:
     Twin) are appended here and nowhere else.
     """
     return [SyntheticGeometrySource(db), IntraoralScanGeometrySource(db)]
+
+
+# ---------------------------------------------------------------------------
+# Tooth segmentation provider (Phase 3 — deterministic, rule-based)
+# ---------------------------------------------------------------------------
+
+
+def _arch_region(tooth_number: int) -> str:
+    """FDI quadrant + size category, e.g. ``Q1-molar`` (display evidence)."""
+    quadrant, units = divmod(tooth_number, 10)
+    if units <= 2:
+        category = "incisor"
+    elif units == 3:
+        category = "canine"
+    elif units <= 5:
+        category = "premolar"
+    else:
+        category = "molar"
+    return f"Q{quadrant}-{category}"
+
+
+class ArchPartitionSegmentationProvider:
+    """Deterministic arch-partition analysis — the Phase 3 engine.
+
+    **This is not a medical AI model.** It is an explicitly rule-based
+    foundation behind the :class:`ToothSegmentationProvider` port so
+    the full pipeline (contracts, persistence, dentist review, UI) is
+    exercisable end-to-end today; swapping in a real ML adapter later
+    implements the same port and nothing else changes (ADR 0021).
+
+    Rules (fixed, no randomness, no environment reads):
+
+    - ``missing`` — the odontogram records the tooth as absent
+      (``present=False``). Confidence 1.0 in the *status* (the record
+      is the source of truth), basis ``odontogram_record``.
+    - ``segmented`` — tooth present and healthy. Confidence 0.9 when
+      real scan meshes back the scene (basis ``mesh_backed``), 0.75
+      from the odontogram-driven synthetic arch alone (basis
+      ``arch_position``). Deciduous teeth present: 0.7 — mixed
+      dentition geometry is the least constrained case.
+    - ``uncertain`` — tooth present but carries a restoration/finding
+      condition (crown, implant, fracture, …): restorations change the
+      observable geometry, so the proposal is flagged for the dentist.
+      Confidence 0.5, basis ``odontogram_record``.
+
+    Every proposal carries evidence (arch region, backing document
+    ids, rule note). The schema pins ``is_clinical=False`` and
+    ``requires_review=True`` — this provider cannot claim otherwise.
+    """
+
+    name = "arch-partition"
+    input_kind = "scene"  # type: ignore[assignment]  # literal matches the port
+
+    async def segment(self, request: SegmentationRequest) -> SegmentationAnalysisResult:
+        backing = [m.document_id for m in request.meshes if m.document_id is not None]
+        teeth: list[SegmentedTooth] = []
+
+        for tooth in request.teeth:
+            region = _arch_region(tooth.tooth_number)
+            if not tooth.present:
+                teeth.append(
+                    SegmentedTooth(
+                        tooth_number=tooth.tooth_number,
+                        status="missing",
+                        confidence=1.0,
+                        evidence=SegmentationEvidence(
+                            basis="odontogram_record",
+                            arch_region=region,
+                            note="odontogram ToothRecord marks the tooth absent",
+                        ),
+                    )
+                )
+                continue
+
+            deciduous = tooth.tooth_number >= 51
+            if tooth.condition != "healthy":
+                teeth.append(
+                    SegmentedTooth(
+                        tooth_number=tooth.tooth_number,
+                        status="uncertain",
+                        confidence=0.5,
+                        evidence=SegmentationEvidence(
+                            basis="odontogram_record",
+                            arch_region=region,
+                            backing_documents=backing,
+                            note=f"recorded condition '{tooth.condition}' alters geometry",
+                        ),
+                    )
+                )
+            elif backing:
+                teeth.append(
+                    SegmentedTooth(
+                        tooth_number=tooth.tooth_number,
+                        status="segmented",
+                        confidence=0.9,
+                        evidence=SegmentationEvidence(
+                            basis="mesh_backed",
+                            arch_region=region,
+                            backing_documents=backing,
+                            note="arch position backed by real scan geometry",
+                        ),
+                    )
+                )
+            else:
+                teeth.append(
+                    SegmentedTooth(
+                        tooth_number=tooth.tooth_number,
+                        status="segmented",
+                        confidence=0.7 if deciduous else 0.75,
+                        evidence=SegmentationEvidence(
+                            basis="arch_position",
+                            arch_region=region,
+                            note="synthetic arch partition (no scan geometry yet)",
+                        ),
+                    )
+                )
+
+        teeth.sort(key=lambda t: t.tooth_number)
+        return SegmentationAnalysisResult(
+            provider=self.name,
+            method="deterministic-arch-partition-v0",
+            teeth=teeth,
+            performed_at=request.performed_at,
+        )
+
+
+def default_segmentation_provider() -> ToothSegmentationProvider:
+    """Composition root for segmentation — the installed engine.
+
+    Replacing the rule-based analysis with a real ML model means
+    returning a different ``ToothSegmentationProvider`` here (and only
+    here); the service, contracts, persistence and UI are untouched.
+    """
+    return ArchPartitionSegmentationProvider()

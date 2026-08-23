@@ -17,7 +17,26 @@
       "webglUnavailable": "WebGL no está disponible en este navegador, por lo que no se puede renderizar la vista previa 3D.",
       "meshLoading": "Cargando escaneo…",
       "meshError": "No se pudo cargar el escaneo — se muestra la vista sintética",
-      "meshBadge": "Geometría de escaneo"
+      "meshBadge": "Geometría de escaneo",
+      "segmentationOverlay": "Etiquetas de segmentación"
+    },
+    "segmentation": {
+      "title": "Segmentación dental",
+      "none": "aún no ejecutada",
+      "run": "Ejecutar segmentación",
+      "running": "Analizando…",
+      "runError": "La segmentación no pudo ejecutarse ahora.",
+      "segmented": "{count} segmentados",
+      "uncertain": "{count} inciertos",
+      "missing": "{count} ausentes",
+      "method": "Método: {method}",
+      "nonClinical": "apoyo no clínico a decisiones, requiere revisión del dentista",
+      "uncertainTeeth": "Dientes inciertos: {teeth}",
+      "reviewPending": "pendiente de revisión del dentista",
+      "reviewAccepted": "revisada — aceptada",
+      "reviewRejected": "revisada — rechazada",
+      "accept": "Aceptar",
+      "reject": "Rechazar"
     }
   }
 }

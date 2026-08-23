@@ -53,3 +53,4 @@ Triggers (any one):
 | 0006 | [Budget public link two-factor authentication](0006-budget-public-link-2-factor-auth.md) | accepted | 2026-04-28 |
 | 0019 | [Clean Architecture as a mandatory acceptance criterion](0019-clean-architecture-standard.md) | accepted | 2026-08-23 |
 | 0020 | [Real mesh ingestion via geometry-source ports and media storage](0020-real-mesh-ingestion.md) | accepted | 2026-08-23 |
+| 0021 | [Automatic tooth segmentation foundation behind a provider port](0021-tooth-segmentation-foundation.md) | accepted | 2026-08-23 |

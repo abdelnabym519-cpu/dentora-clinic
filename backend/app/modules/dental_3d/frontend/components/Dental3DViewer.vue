@@ -44,12 +44,19 @@ import {
   type SceneMeshRef
 } from '../lib/sceneMeshes'
 import { useDental3DMeshIO } from '../composables/useDental3DScene'
+import {
+  confidenceBand,
+  overlayState,
+  type SegmentationAnalysisView
+} from '../lib/segmentationView'
 
 const props = withDefaults(
   defineProps<{
     teeth: DentalToothView[]
     /** Real mesh references (resolved server-side; may be empty). */
     meshes?: SceneMeshRef[]
+    /** Segmentation analysis overlay (Phase 3; null = none). */
+    segmentation?: SegmentationAnalysisView | null
     /** Upper arch order (host FDI constant) — injectable for tests. */
     upperOrder?: number[]
     /** Lower arch order (host FDI constant) — injectable for tests. */
@@ -58,6 +65,7 @@ const props = withDefaults(
   }>(),
   {
     meshes: () => [],
+    segmentation: null,
     upperOrder: () => [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28],
     lowerOrder: () => [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38],
     height: 240
@@ -85,6 +93,15 @@ const disposables: Array<THREE.BufferGeometry | THREE.Material> = []
 const meshPhase = ref<MeshLoadPhase>('idle')
 const activeMesh = computed(() => pickActiveMesh(props.meshes))
 const overlay = computed(() => meshOverlay(props.meshes, meshPhase.value))
+
+/**
+ * Segmentation overlay (Phase 3): FDI labels over the synthetic arch.
+ * Only meaningful while the synthetic arch renders — per-tooth labels
+ * over a real scan surface would pretend alignment we do not have.
+ */
+const segmentationOverlay = computed(() =>
+  overlayState(props.segmentation, overlay.value.renderSynthetic, renderableTeeth(props.teeth))
+)
 
 /** Target span a real mesh is scaled into (matches the arch framing). */
 const MESH_TARGET_SPAN = 4.2
@@ -141,6 +158,48 @@ function removeDentalObjects(): void {
   }
 }
 
+/**
+ * FDI label sprite for one segmentation proposal (Phase 3 overlay).
+ * Canvas texture: the FDI number + a confidence band dot; colour by
+ * proposal status. Textures/materials join `disposables`; the sprite
+ * joins a `dental3d`-tagged group so `removeDentalObjects` recovers
+ * it on every rebuild and unmount.
+ */
+function buildSegmentationLabel(
+  toothNumber: number,
+  status: 'segmented' | 'uncertain',
+  confidence: number
+): THREE.Sprite {
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 64
+  const ctx = canvas.getContext('2d')
+  const fill = status === 'uncertain' ? '#b45309' : '#1d4ed8'
+  if (ctx) {
+    ctx.fillStyle = fill
+    ctx.beginPath()
+    ctx.roundRect(4, 8, 120, 48, 10)
+    ctx.fill()
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 30px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(String(toothNumber), 64, 32)
+    const band = confidenceBand(confidence)
+    ctx.beginPath()
+    ctx.arc(band === 'high' ? 112 : band === 'medium' ? 100 : 88, 50, 5, 0, Math.PI * 2)
+    ctx.fillStyle = band === 'high' ? '#34d399' : band === 'medium' ? '#fbbf24' : '#f87171'
+    ctx.fill()
+  }
+  const texture = new THREE.CanvasTexture(canvas)
+  const material = new THREE.SpriteMaterial({ map: texture, depthTest: false })
+  disposables.push(texture, material)
+  const sprite = new THREE.Sprite(material)
+  sprite.scale.set(0.42, 0.21, 1)
+  sprite.userData.dental3d = true
+  return sprite
+}
+
 function buildScene(): void {
   if (!scene) return
   removeDentalObjects()
@@ -150,6 +209,10 @@ function buildScene(): void {
 
   const upper = layoutArch(props.upperOrder, 'upper')
   const lower = layoutArch(props.lowerOrder, 'lower')
+
+  const labels = new THREE.Group()
+  labels.userData.dental3d = true
+  const labelStates = segmentationOverlay.value.states
 
   for (const tooth of renderableTeeth(props.teeth)) {
     const placement = upper.get(tooth.tooth_number) ?? lower.get(tooth.tooth_number)
@@ -161,7 +224,22 @@ function buildScene(): void {
     mesh.scale.set(placement.scale.x, placement.scale.y, placement.scale.z)
     mesh.userData.dental3d = true
     scene.add(mesh)
+
+    // Segmentation overlay: one FDI label per proposal, floating above
+    // (upper) / below (lower) its synthetic tooth position.
+    const state = labelStates.get(tooth.tooth_number)
+    if (segmentationOverlay.value.showLabels && state) {
+      const label = buildSegmentationLabel(
+        state.toothNumber,
+        state.status === 'uncertain' ? 'uncertain' : 'segmented',
+        state.confidence
+      )
+      label.position.set(placement.x, placement.y + (placement.y >= 0 ? 0.52 : -0.52), placement.z)
+      labels.add(label)
+    }
   }
+
+  if (labels.children.length > 0) scene.add(labels)
 }
 
 /** Parse + normalize one real surface mesh into the viewer framing. */
@@ -299,6 +377,14 @@ watch(
   { deep: true }
 )
 
+watch(
+  () => props.segmentation,
+  () => {
+    if (overlay.value.renderSynthetic) buildScene()
+  },
+  { deep: true }
+)
+
 watch(activeMesh, () => loadActiveMesh())
 
 watch(isDark, () => {
@@ -373,6 +459,14 @@ onBeforeUnmount(() => {
         :title="activeMesh?.label ?? undefined"
       >
         {{ t('dental_3d.viewer.meshBadge') }} · {{ activeMesh?.format.toUpperCase() }}
+      </span>
+      <span
+        v-if="segmentationOverlay.showLabels"
+        data-testid="dental3d-segmentation-overlay"
+        class="pointer-events-none absolute bottom-1 left-2 rounded bg-elevated/90 px-2 py-1 text-caption text-muted"
+        :title="props.segmentation?.disclaimer"
+      >
+        {{ t('dental_3d.viewer.segmentationOverlay') }}
       </span>
     </div>
   </div>

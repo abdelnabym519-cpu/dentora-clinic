@@ -5,13 +5,23 @@ Phase 1 persists exactly one row per patient: the latest persisted
 are **not** modelled relationally here — the tooth universe (FDI
 notation, conditions, treatments) already belongs to the odontogram
 module and is only read. See ADR 0018 for the trade-off rationale.
+
+Phase 3 adds ``DentalSegmentationAnalysis``: persisted automatic tooth
+segmentation analyses (per-tooth proposals + dentist review state).
+Analyses are *decision support*, never clinical records — review
+acceptance records the dentist's acknowledgement and never mutates
+odontogram data. Uninstalling the module drops this table together
+with the dental_3d Alembic branch (analyses are derivable, not source
+data).
 """
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from sqlalchemy import (
     CheckConstraint,
+    DateTime,
     ForeignKey,
     Index,
     String,
@@ -70,4 +80,57 @@ class DentalScene(Base, TimestampMixin):
     )
 
 
-__all__ = ["DentalScene"]
+class DentalSegmentationAnalysis(Base, TimestampMixin):
+    """One persisted automatic tooth-segmentation analysis (Phase 3).
+
+    ``teeth`` holds a list of
+    :class:`app.modules.dental_3d.segmentation.SegmentedTooth` dicts
+    (validated by Pydantic at the service boundary — including FDI
+    validity and confidence bounds). Rows are append-only history:
+    running a new analysis inserts a new row; ``review_status`` records
+    the dentist's decision on the latest one. ``provider``/``method``
+    identify the engine — today the deterministic arch-partition
+    adapter, tomorrow a real ML model behind the same port — and imply
+    **no clinical claim** (ADR 0021).
+    """
+
+    __tablename__ = "dental_segmentation_analyses"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), index=True)
+    performed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    provider: Mapped[str] = mapped_column(String(50))
+    method: Mapped[str] = mapped_column(String(100))
+    performed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    teeth: Mapped[list] = mapped_column(JSONB, default=list)
+
+    #: Dentist review workflow: pending → accepted | rejected.
+    review_status: Mapped[str] = mapped_column(String(20), default="pending")
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
+    # Relationships
+    clinic: Mapped["Clinic"] = relationship()
+    patient: Mapped["Patient"] = relationship()
+    performer: Mapped["User | None"] = relationship(foreign_keys=[performed_by])
+    reviewer: Mapped["User | None"] = relationship(foreign_keys=[reviewed_by])
+
+    __table_args__ = (
+        CheckConstraint(
+            "review_status IN ('pending', 'accepted', 'rejected')",
+            name="ck_dental_segmentation_review_status",
+        ),
+        Index(
+            "idx_dental_segmentation_latest",
+            "clinic_id",
+            "patient_id",
+            "created_at",
+        ),
+    )
+
+
+__all__ = ["DentalScene", "DentalSegmentationAnalysis"]

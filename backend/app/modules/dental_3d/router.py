@@ -20,7 +20,13 @@ from app.modules.patients.models import Patient
 
 from .meshfiles import MeshUploadError
 from .schemas import DentalMesh, DentalSceneResponse, DentalSceneUpdate
-from .service import DentalMeshService, DentalSceneService
+from .segmentation import SegmentationAnalysisResponse, SegmentationReviewUpdate
+from .service import (
+    DentalMeshService,
+    DentalSceneService,
+    DentalSegmentationService,
+    SegmentationError,
+)
 
 router = APIRouter()
 
@@ -108,3 +114,90 @@ async def upload_patient_mesh(
     except MeshUploadError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return ApiResponse(data=mesh)
+
+
+@router.post(
+    "/patients/{patient_id}/segmentation",
+    response_model=ApiResponse[SegmentationAnalysisResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def run_patient_segmentation(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SegmentationAnalysisResponse]:
+    """Run the automatic tooth-segmentation analysis for the patient's scene.
+
+    The analysis is produced **server-side** by the configured
+    provider (deterministic arch-partition in Phase 3 — not a medical
+    AI model) and persisted with review state ``pending``. There is no
+    endpoint that accepts a client-supplied segmentation result: the
+    dentist-review workflow (input → analysis → evidence → review →
+    decision) is the only path, and a review never alters odontogram
+    records. Results are non-clinical decision support.
+    """
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    try:
+        analysis = await DentalSegmentationService.run_analysis(
+            db, clinic_id=ctx.clinic_id, patient_id=patient_id, user_id=ctx.user_id
+        )
+    except SegmentationError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    return ApiResponse(data=analysis)
+
+
+@router.get(
+    "/patients/{patient_id}/segmentation",
+    response_model=ApiResponse[SegmentationAnalysisResponse],
+)
+async def get_patient_segmentation(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SegmentationAnalysisResponse]:
+    """Return the patient's latest segmentation analysis (404 if never run)."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    analysis = await DentalSegmentationService.latest_analysis(db, ctx.clinic_id, patient_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No segmentation analysis yet"
+        )
+    return ApiResponse(data=analysis)
+
+
+@router.post(
+    "/patients/{patient_id}/segmentation/{analysis_id}/review",
+    response_model=ApiResponse[SegmentationAnalysisResponse],
+)
+async def review_patient_segmentation(
+    patient_id: UUID,
+    analysis_id: UUID,
+    data: SegmentationReviewUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[SegmentationAnalysisResponse]:
+    """Record the dentist's review decision on a pending analysis.
+
+    Accepting records the dentist's acknowledgement of the
+    decision-support output — it never marks anything clinically
+    completed and never writes to the odontogram. Re-reviewing a
+    decided analysis is rejected (409).
+    """
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    try:
+        analysis = await DentalSegmentationService.review_analysis(
+            db,
+            clinic_id=ctx.clinic_id,
+            patient_id=patient_id,
+            analysis_id=analysis_id,
+            reviewer_id=ctx.user_id,
+            payload=data,
+        )
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+    except SegmentationError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return ApiResponse(data=analysis)

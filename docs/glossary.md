@@ -115,4 +115,5 @@ ADRs) for the full story.
 | Dental scene | Per-patient 3D scene contract (`dental_3d` module): FDI-referenced teeth with mesh descriptors + view state. Escena dental 3D. |
 | Synthetic geometry | Procedural demo shapes rendered by the dental_3d viewer. Carries no clinical meaning; the fallback while real geometry (Phase 2: scans; later: segmentation/CBCT) is absent or fails to load. Geometría sintética. |
 | Geometry source | A `DentalGeometrySource` adapter (`dental_3d`): one origin of 3D geometry (synthetic, intraoral scan; future segmentation/CBCT) behind an inner-layer port. Fuente de geometría. |
+| Tooth segmentation | Per-tooth proposals (FDI, status, confidence, evidence) produced by a `ToothSegmentationProvider` behind the dental_3d port. Non-clinical decision support requiring dentist review (ADR 0021). Seguimiento/segmentación dental. |
 | Intraoral scan mesh | A validated STL/OBJ file stored as a media document and surfaced in the dental scene as a reference (never inline binary). Malla de escaneo intraoral. |

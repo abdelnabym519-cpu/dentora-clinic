@@ -9,7 +9,9 @@ level as **references** to media documents (STL / OBJ). The remaining
 sources are reserved for future phases so they can be dropped in
 without touching the API shape:
 
-- ``segmentation`` — automatic tooth-segmentation meshes (future)
+- ``segmentation`` — automatic tooth-segmentation tooth meshes (Phase 3
+  analyses exist at scene level as per-tooth proposals with
+  evidence/confidence; per-tooth *meshes* remain future work)
 - ``cbct`` — CBCT-derived meshes (future)
 - ``face_scan`` — 3D face scans (future)
 - ``digital_twin`` — Dental Digital Twin components (future)
@@ -43,6 +45,9 @@ MeshSource = Literal[
 MeshFormat = Literal["procedural", "stl", "obj", "gltf"]
 
 SegmentationStatus = Literal["not_available", "synthetic", "completed"]
+
+#: Dentist review state of a persisted segmentation analysis.
+SegmentationReviewStatus = Literal["pending", "accepted", "rejected"]
 
 
 def _is_valid_fdi(tooth_number: int) -> bool:
@@ -101,18 +106,32 @@ class Tooth3D(BaseModel):
 
 
 class SegmentationResult(BaseModel):
-    """Placeholder contract for automatic tooth segmentation.
+    """Summary of automatic tooth segmentation for a scene.
 
-    Phase 1 never produces a segmentation. The field exists so a future
-    phase can attach results to the scene without a schema break. While
-    segmentation does not exist the service always reports
-    ``status="not_available"``.
+    Phases 1–2 never produce a segmentation (``status`` stays
+    ``not_available``). Phase 3 persists analyses server-side; this
+    summary mirrors the **latest** analysis for the scene — counts,
+    provider/method, the analysis id for the full per-tooth detail,
+    and the dentist review state. The summary is always server-derived:
+    PUT still rejects ``status="completed"`` payloads, so no
+    client-supplied result can ever present itself as clinically
+    completed (see ``DentalSceneUpdate._no_segmentation_yet``).
     """
 
     status: SegmentationStatus = "not_available"
     method: str | None = None
     teeth_found: int = Field(default=0, ge=0)
     performed_at: datetime | None = None
+    #: Latest analysis (Phase 3) — link to the full per-tooth result.
+    analysis_id: UUID | None = None
+    provider: str | None = Field(default=None, max_length=50)
+    segmented_count: int = Field(default=0, ge=0)
+    uncertain_count: int = Field(default=0, ge=0)
+    missing_count: int = Field(default=0, ge=0)
+    review_status: SegmentationReviewStatus | None = None
+    #: Fixed safety marker — Phase 3 segmentation is decision support,
+    #: never a clinical result (ADR 0021).
+    non_clinical: bool = True
 
 
 class DentalScene(BaseModel):

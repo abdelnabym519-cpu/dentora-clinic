@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+### 0.3.0 — Phase 3: automatic tooth segmentation foundation
+
+- `ToothSegmentationProvider` port (`segmentation.py`, framework-free
+  inner layer): provider identity, `input_kind`, request (scene tooth
+  universe + mesh references + server clock), per-tooth result (FDI,
+  status segmented/uncertain/missing, confidence 0–1, evidence),
+  mandated determinism. Safety flags are fixed literal types — results
+  are always `is_clinical=False`, `requires_review=True`.
+- Deterministic adapter `ArchPartitionSegmentationProvider`
+  (`infrastructure.py`): rule-based
+  arch-partition analysis — **not a medical AI model** — with the
+  composition root `default_segmentation_provider` as the single
+  future ML swap point (ADR 0021).
+- Persistence: append-only `dental_segmentation_analyses` (migration
+  `d3d_0002`, isolated dental_3d branch) with dentist review state
+  (pending → accepted/rejected + reviewer + note). Uninstall drops it
+  with the branch; no second tooth/patient model — FDI identity stays
+  odontogram-owned.
+- API: `POST/GET /patients/{id}/segmentation` and
+  `POST /patients/{id}/segmentation/{analysis_id}/review`; scene
+  summary now mirrors the latest analysis (status/provider/counts/
+  review state/`analysis_id`, `non_clinical=true`). No endpoint
+  accepts client-supplied results; review never mutates odontogram
+  data.
+- Frontend: `lib/segmentationView.ts` (pure projection + FDI join +
+  confidence bands + overlay state), `useDental3DSegmentation`
+  composable, card segmentation section (status, counts, method with
+  non-clinical label, uncertain FDI list, review actions for
+  `dental_3d.write`), viewer FDI label sprites over the synthetic arch
+  only; locales en/es/fr/pt/ar.
+- Tests: `test_segmentation_domain.py` (contracts, determinism, FDI
+  mapping, invalid results, purity), `test_segmentation_service.py`
+  (persistence, review workflow, isolation, provider seam),
+  `test_segmentation_api.py` (RBAC, isolation, HTTP boundary),
+  `segmentationView.test.ts`, `useDental3DSegmentation.test.ts`,
+  `dental3d_segmentation.spec.ts` (e2e workflow + RBAC).
+- Docs: ADR 0021, `docs/technical/dental_3d/segmentation.md`.
+- Module version 0.3.0.
+
+### 0.2.0 — Phase 2: real mesh ingestion (released in 6dbeada)
+
 - Phase 2 — real mesh ingestion: `DentalGeometrySource` port
   (`sources.py`) with `SyntheticGeometrySource` (Phase 1 behaviour
   unchanged) and `IntraoralScanGeometrySource` (discovers mesh

@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+### 0.4.0 — Phase 4: mandibular nerve detection foundation
+
+- `NerveDetectionProvider` port (`nerve.py`, framework-free inner
+  layer): provider identity, `input_kind`, request (scene tooth
+  universe + mesh references + server clock), typed pathway contracts
+  (side left/right, region, polyline points in the canonical arch
+  frame, status detected/uncertain, confidence 0–1, evidence with
+  source `canonical_demo_model`) and per-tooth proximity contracts
+  (FDI, side, distance mm, closest vertex, warning band near/watch/
+  none). Safety flags are fixed literal types — results are always
+  `is_clinical=False`, `requires_review=True`; warnings are display
+  bands for "AI-estimated proximity", never clinical safety verdicts.
+- Deterministic adapter `CanonicalMandibleNerveProvider`
+  (`infrastructure.py`): canonical mandibular-canal model —
+  **AI-assisted / simulated, not a clinically validated detector, not
+  patient-specific anatomy** — with the composition root
+  `default_nerve_provider` as the single future CBCT/ML swap point
+  (ADR 0022).
+- Persistence: append-only `dental_nerve_analyses` (migration
+  `d3d_0003`, isolated dental_3d branch) with dentist review state;
+  persisted because the review boundary must survive reloads. Uninstall
+  drops it with the branch; no second tooth/patient model.
+- API: `POST/GET /patients/{id}/nerve-detection` and
+  `POST /patients/{id}/nerve-detection/{analysis_id}/review`; scene
+  summary mirrors the latest analysis (`nerve_detection`: status/
+  provider/counts/review state, `non_clinical=true`). No endpoint
+  accepts client-supplied results (`PUT scene` rejects
+  `nerve_detection.status="completed"`); reviews never approve an
+  implant/surgical plan or mutate odontogram data.
+- Frontend: `lib/nerveView.ts` (pure projection + FDI join +
+  confidence bands + overlay gating), `useDental3DNerveDetection`
+  composable, nerve tube overlay in `Dental3DViewer` (synthetic arch
+  only, toggleable, disposed with the scene) and a review section in
+  `Dental3DCard` with fixed "AI-assisted / simulated — requires
+  dentist verification" wording; i18n for en/es/fr/pt/ar.
+- ThreeUI evaluated per the phase authorization: not present in the
+  repository; existing Three.js implementation preserved (ADR 0022 §8).
+- Tests: backend domain/service/API suites; frontend nerveView +
+  composable suites; e2e workflow + RBAC spec.
+
+
 ### 0.3.0 — Phase 3: automatic tooth segmentation foundation
 
 - `ToothSegmentationProvider` port (`segmentation.py`, framework-free

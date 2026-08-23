@@ -13,6 +13,12 @@ acceptance records the dentist's acknowledgement and never mutates
 odontogram data. Uninstalling the module drops this table together
 with the dental_3d Alembic branch (analyses are derivable, not source
 data).
+
+Phase 4 adds ``DentalNerveAnalysis``: persisted mandibular nerve-detection
+analyses (canonical-model pathways + per-tooth AI-estimated proximities +
+dentist review state). Same rules as Phase 3 — append-only decision
+support, dropped with the module's Alembic branch on uninstall, never a
+clinical record and never an implant/surgical plan approval (ADR 0022).
 """
 
 from datetime import datetime
@@ -133,4 +139,59 @@ class DentalSegmentationAnalysis(Base, TimestampMixin):
     )
 
 
-__all__ = ["DentalScene", "DentalSegmentationAnalysis"]
+class DentalNerveAnalysis(Base, TimestampMixin):
+    """One persisted mandibular nerve-detection analysis (Phase 4).
+
+    ``pathways`` holds a list of
+    :class:`app.modules.dental_3d.nerve.NervePathway` dicts and
+    ``proximities`` a list of ``ToothNerveProximity`` dicts (both
+    validated by Pydantic at the service boundary). Rows are
+    append-only history; ``review_status`` records the dentist's
+    decision on the latest one. ``provider``/``method`` identify the
+    engine — today the deterministic canonical-mandible adapter,
+    tomorrow a real CBCT/ML detector behind the same port — and imply
+    **no clinical claim**: pathways are AI-assisted / simulated
+    decision support that a dentist must verify (ADR 0022).
+    """
+
+    __tablename__ = "dental_nerve_analyses"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), index=True)
+    performed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    provider: Mapped[str] = mapped_column(String(50))
+    method: Mapped[str] = mapped_column(String(100))
+    performed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    pathways: Mapped[list] = mapped_column(JSONB, default=list)
+    proximities: Mapped[list] = mapped_column(JSONB, default=list)
+
+    #: Dentist review workflow: pending → accepted | rejected.
+    review_status: Mapped[str] = mapped_column(String(20), default="pending")
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
+    # Relationships
+    clinic: Mapped["Clinic"] = relationship()
+    patient: Mapped["Patient"] = relationship()
+    performer: Mapped["User | None"] = relationship(foreign_keys=[performed_by])
+    reviewer: Mapped["User | None"] = relationship(foreign_keys=[reviewed_by])
+
+    __table_args__ = (
+        CheckConstraint(
+            "review_status IN ('pending', 'accepted', 'rejected')",
+            name="ck_dental_nerve_review_status",
+        ),
+        Index(
+            "idx_dental_nerve_latest",
+            "clinic_id",
+            "patient_id",
+            "created_at",
+        ),
+    )
+
+
+__all__ = ["DentalScene", "DentalSegmentationAnalysis", "DentalNerveAnalysis"]

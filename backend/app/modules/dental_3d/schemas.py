@@ -12,6 +12,9 @@ without touching the API shape:
 - ``segmentation`` — automatic tooth-segmentation tooth meshes (Phase 3
   analyses exist at scene level as per-tooth proposals with
   evidence/confidence; per-tooth *meshes* remain future work)
+- ``nerve`` — mandibular nerve pathway geometry (Phase 4, ADR 0022);
+  pathways are analysis output (``nerve.py``), not downloadable mesh
+  documents — the kind reserves the vocabulary for future exporters.
 - ``cbct`` — CBCT-derived meshes (future)
 - ``face_scan`` — 3D face scans (future)
 - ``digital_twin`` — Dental Digital Twin components (future)
@@ -35,6 +38,7 @@ from app.modules.odontogram.constants import ALL_TEETH
 MeshSource = Literal[
     "synthetic",
     "segmentation",
+    "nerve",
     "cbct",
     "intraoral_scan",
     "face_scan",
@@ -134,6 +138,32 @@ class SegmentationResult(BaseModel):
     non_clinical: bool = True
 
 
+class NerveDetectionSummary(BaseModel):
+    """Scene-level nerve-detection summary (mirrors the latest analysis).
+
+    Phase 4 (ADR 0022): like ``SegmentationResult``, this is a
+    server-derived projection of the persisted analysis row — counts,
+    provider/method, the analysis id for the full pathway detail, and
+    the dentist review state. PUT payloads cannot supply it (see
+    ``DentalSceneUpdate._no_nerve_detection_yet``), so no client result
+    can ever present itself as completed.
+    """
+
+    status: Literal["not_available", "completed"] = "not_available"
+    method: str | None = None
+    pathway_count: int = Field(default=0, ge=0)
+    near_count: int = Field(default=0, ge=0)
+    watch_count: int = Field(default=0, ge=0)
+    performed_at: datetime | None = None
+    #: Latest analysis (Phase 4) — link to the full pathway detail.
+    analysis_id: UUID | None = None
+    provider: str | None = Field(default=None, max_length=50)
+    review_status: Literal["pending", "accepted", "rejected"] | None = None
+    #: Fixed safety marker — Phase 4 nerve detection is AI-assisted /
+    #: simulated decision support, never a clinical result (ADR 0022).
+    non_clinical: bool = True
+
+
 class DentalScene(BaseModel):
     """Full scene for one patient — the aggregate root of the contract."""
 
@@ -142,6 +172,7 @@ class DentalScene(BaseModel):
     ] = "synthetic"
     teeth: list[Tooth3D] = Field(default_factory=list, max_length=52)
     segmentation: SegmentationResult = Field(default_factory=SegmentationResult)
+    nerve_detection: NerveDetectionSummary = Field(default_factory=NerveDetectionSummary)
     #: Real surface meshes (Phase 2: intraoral scan references).
     #: Server-derived — never accepted from clients.
     meshes: list[DentalMesh] = Field(default_factory=list, max_length=16)
@@ -155,6 +186,7 @@ class DentalSceneResponse(BaseModel):
     generator: str
     teeth: list[Tooth3D]
     segmentation: SegmentationResult
+    nerve_detection: NerveDetectionSummary = Field(default_factory=NerveDetectionSummary)
     meshes: list[DentalMesh] = Field(default_factory=list)
     updated_at: datetime | None = None
     persisted: bool = False
@@ -173,12 +205,24 @@ class DentalSceneUpdate(BaseModel):
 
     teeth: list[Tooth3D] = Field(max_length=52)
     segmentation: SegmentationResult | None = None
+    nerve_detection: NerveDetectionSummary | None = None
 
     @field_validator("segmentation")
     @classmethod
     def _no_segmentation_yet(cls, value: SegmentationResult | None) -> SegmentationResult | None:
         if value is not None and value.status == "completed":
             raise ValueError("segmentation results cannot be supplied — capability not available")
+        return value
+
+    @field_validator("nerve_detection")
+    @classmethod
+    def _no_nerve_detection_yet(
+        cls, value: NerveDetectionSummary | None
+    ) -> NerveDetectionSummary | None:
+        if value is not None and value.status == "completed":
+            raise ValueError(
+                "nerve detection results cannot be supplied — run the analysis server-side"
+            )
         return value
 
     @field_validator("teeth")

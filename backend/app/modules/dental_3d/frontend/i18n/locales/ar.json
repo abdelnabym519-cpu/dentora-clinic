@@ -18,7 +18,8 @@
       "meshLoading": "جارٍ تحميل المسح…",
       "meshError": "تعذّر تحميل المسح — يتم عرض المعاينة الافتراضية",
       "meshBadge": "هندسة المسح",
-      "segmentationOverlay": "تسميات التجزيء"
+      "segmentationOverlay": "تسميات التجزيء",
+      "nerveOverlay": "مسار العصب (محاكاة)"
     },
     "segmentation": {
       "title": "تجزيء الأسنان",
@@ -37,6 +38,30 @@
       "reviewRejected": "تمت المراجعة — مرفوض",
       "accept": "قبول",
       "reject": "رفض"
+    },
+    "nerve": {
+      "title": "العصب الفكّي",
+      "none": "لم يُشغَّل بعد",
+      "run": "اكتشاف مسار العصب",
+      "running": "جارٍ النمذجة…",
+      "runError": "تعذّر تشغيل اكتشاف العصب الآن.",
+      "pathways": "{count} مسارًا",
+      "near": "{count} قريبة",
+      "watch": "{count} للمراقبة",
+      "method": "الطريقة: {method}",
+      "simulated": "مُساعَد بالذكاء الاصطناعي / محاكاة — يتطلّب تحقق طبيب الأسنان",
+      "confidence": "الثقة {value}",
+      "uncertainModel": "نموذج عام (بدون هندسة المريض)",
+      "detectedModel": "قوس مدعوم بالمسح",
+      "nearTeeth": "أسنان قريبة (تقدير بالذكاء الاصطناعي): {teeth}",
+      "watchTeeth": "أسنان للمراقبة (تقدير بالذكاء الاصطناعي): {teeth}",
+      "estimated": "قُرب مُقدَّر بالذكاء الاصطناعي، وليس حكمًا سريريًا",
+      "reviewPending": "بانتظار تحقق طبيب الأسنان",
+      "reviewAccepted": "تم التحقق — مقبول",
+      "reviewRejected": "تم التحقق — مرفوض",
+      "accept": "قبول",
+      "reject": "رفض",
+      "showPathway": "المسار"
     }
   }
 }

@@ -18,7 +18,8 @@
       "meshLoading": "Loading scan…",
       "meshError": "Scan could not be loaded — showing synthetic preview",
       "meshBadge": "Scan geometry",
-      "segmentationOverlay": "Segmentation labels"
+      "segmentationOverlay": "Segmentation labels",
+      "nerveOverlay": "Nerve pathway (simulated)"
     },
     "segmentation": {
       "title": "Tooth segmentation",
@@ -37,6 +38,30 @@
       "reviewRejected": "reviewed — rejected",
       "accept": "Accept",
       "reject": "Reject"
+    },
+    "nerve": {
+      "title": "Mandibular nerve",
+      "none": "not run yet",
+      "run": "Detect nerve pathway",
+      "running": "Modelling…",
+      "runError": "Nerve detection could not run right now.",
+      "pathways": "{count} pathways",
+      "near": "{count} near",
+      "watch": "{count} watch",
+      "method": "Method: {method}",
+      "simulated": "AI-assisted / simulated — requires dentist verification",
+      "confidence": "Confidence {value}",
+      "uncertainModel": "generic model (no patient geometry)",
+      "detectedModel": "scan-backed arch frame",
+      "nearTeeth": "Near teeth (AI-estimated): {teeth}",
+      "watchTeeth": "Watch teeth (AI-estimated): {teeth}",
+      "estimated": "AI-estimated proximity, not a safety verdict",
+      "reviewPending": "awaiting dentist verification",
+      "reviewAccepted": "verified — accepted",
+      "reviewRejected": "verified — rejected",
+      "accept": "Accept",
+      "reject": "Reject",
+      "showPathway": "Pathway"
     }
   }
 }

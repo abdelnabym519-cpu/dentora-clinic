@@ -15,9 +15,11 @@
  * normalized into the same framing as the synthetic arch. When a real
  * mesh is ready it replaces the synthetic arch; while loading or on
  * error the synthetic arch stays visible (graceful fallback — a failed
- * scan load never breaks the card). Future mesh kinds (segmented
- * tooth, nerve path, implant) extend ``SceneMeshKind``, not this
- * component's architecture.
+ * scan load never breaks the card). Phase 4's nerve pathways are
+ * analysis overlays rendered in the synthetic frame (``nerveView.ts``),
+ * not ``SceneMeshRef`` downloads; future mesh kinds (segmented tooth,
+ * nerve export, implant) extend ``SceneMeshKind``, not this component's
+ * architecture.
  *
  * Owns the full three.js lifecycle: renderer, camera, lights, orbit /
  * zoom / pan controls (OrbitControls), responsive resizing and
@@ -45,6 +47,12 @@ import {
 } from '../lib/sceneMeshes'
 import { useDental3DMeshIO } from '../composables/useDental3DScene'
 import {
+  nerveOverlayState,
+  nerveConfidenceBand,
+  type NerveAnalysisView,
+  type NervePathwayView
+} from '../lib/nerveView'
+import {
   confidenceBand,
   overlayState,
   type SegmentationAnalysisView
@@ -57,6 +65,10 @@ const props = withDefaults(
     meshes?: SceneMeshRef[]
     /** Segmentation analysis overlay (Phase 3; null = none). */
     segmentation?: SegmentationAnalysisView | null
+    /** Nerve-detection analysis overlay (Phase 4; null = none). */
+    nerve?: NerveAnalysisView | null
+    /** Toggle for the nerve overlay (Phase 4). */
+    showNerve?: boolean
     /** Upper arch order (host FDI constant) — injectable for tests. */
     upperOrder?: number[]
     /** Lower arch order (host FDI constant) — injectable for tests. */
@@ -66,6 +78,8 @@ const props = withDefaults(
   {
     meshes: () => [],
     segmentation: null,
+    nerve: null,
+    showNerve: true,
     upperOrder: () => [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28],
     lowerOrder: () => [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38],
     height: 240
@@ -101,6 +115,15 @@ const overlay = computed(() => meshOverlay(props.meshes, meshPhase.value))
  */
 const segmentationOverlay = computed(() =>
   overlayState(props.segmentation, overlay.value.renderSynthetic, renderableTeeth(props.teeth))
+)
+
+/**
+ * Nerve overlay (Phase 4): canonical-model pathways as tubes under the
+ * lower arch. Synthetic arch only — canonical coordinates are not
+ * patient scan alignment (ADR 0022; wording lives in nerveView.ts).
+ */
+const nerveOverlay = computed(() =>
+  nerveOverlayState(props.nerve, overlay.value.renderSynthetic, props.showNerve)
 )
 
 /** Target span a real mesh is scaled into (matches the arch framing). */
@@ -200,6 +223,34 @@ function buildSegmentationLabel(
   return sprite
 }
 
+/**
+ * Nerve pathway tube (Phase 4 overlay). The backend emits polyline
+ * points already in this viewer's arch frame, so the tube is drawn
+ * verbatim — no re-projection. Colour/opacity follow the pathway's
+ * confidence band and detection status; geometry/materials join
+ * `disposables` and the group is `dental3d`-tagged so
+ * `removeDentalObjects` recovers it on every rebuild and unmount.
+ */
+function buildNervePathway(pathway: NervePathwayView): THREE.Object3D {
+  const curve = new THREE.CatmullRomCurve3(
+    pathway.points.map(p => new THREE.Vector3(p.x, p.y, p.z))
+  )
+  const geometry = new THREE.TubeGeometry(curve, 48, 0.035, 8, false)
+  const band = nerveConfidenceBand(pathway.confidence)
+  const material = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(band === 'high' ? '#059669' : band === 'medium' ? '#d97706' : '#dc2626'),
+    transparent: true,
+    opacity: pathway.status === 'uncertain' ? 0.5 : 0.9,
+    roughness: 0.5,
+    metalness: 0.05
+  })
+  disposables.push(geometry, material)
+  const tube = new THREE.Mesh(geometry, material)
+  tube.userData.dental3d = true
+  tube.userData.nerveSide = pathway.side
+  return tube
+}
+
 function buildScene(): void {
   if (!scene) return
   removeDentalObjects()
@@ -240,6 +291,16 @@ function buildScene(): void {
   }
 
   if (labels.children.length > 0) scene.add(labels)
+
+  // Nerve overlay (Phase 4): one tube per pathway under the lower arch.
+  if (nerveOverlay.value.show) {
+    const nerveGroup = new THREE.Group()
+    nerveGroup.userData.dental3d = true
+    for (const pathway of nerveOverlay.value.pathways) {
+      nerveGroup.add(buildNervePathway(pathway))
+    }
+    if (nerveGroup.children.length > 0) scene.add(nerveGroup)
+  }
 }
 
 /** Parse + normalize one real surface mesh into the viewer framing. */
@@ -385,6 +446,14 @@ watch(
   { deep: true }
 )
 
+watch(
+  [() => props.nerve, () => props.showNerve],
+  () => {
+    if (overlay.value.renderSynthetic) buildScene()
+  },
+  { deep: true }
+)
+
 watch(activeMesh, () => loadActiveMesh())
 
 watch(isDark, () => {
@@ -467,6 +536,14 @@ onBeforeUnmount(() => {
         :title="props.segmentation?.disclaimer"
       >
         {{ t('dental_3d.viewer.segmentationOverlay') }}
+      </span>
+      <span
+        v-if="nerveOverlay.show"
+        data-testid="dental3d-nerve-overlay"
+        class="pointer-events-none absolute top-1 right-2 rounded bg-elevated/90 px-2 py-1 text-caption text-warning"
+        :title="props.nerve?.disclaimer"
+      >
+        {{ t('dental_3d.viewer.nerveOverlay') }}
       </span>
     </div>
   </div>

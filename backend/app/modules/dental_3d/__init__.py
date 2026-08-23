@@ -31,7 +31,7 @@ from .router import router
 class Dental3DModule(BaseModule):
     manifest = {
         "name": "dental_3d",
-        "version": "0.3.0",
+        "version": "0.4.0",
         "summary": (
             "Dental 3D — 3D dentition preview on the patient summary with real "
             "mesh ingestion (STL/OBJ via the media module), a synthetic fallback "

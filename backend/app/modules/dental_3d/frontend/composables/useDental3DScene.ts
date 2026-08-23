@@ -13,10 +13,15 @@
  * ``useApi`` wrapper and follow the media module's ``useDocuments``
  * pattern (``$fetch`` + explicit auth header) — same conventions, no
  * new abstraction.
+ *
+ * Phase 4 adds ``useDental3DNerveDetection``: run / load / review the
+ * mandibular nerve-detection analysis (ADR 0022) — same fetch/review
+ * pattern as the Phase 3 segmentation composable.
  */
 import type { ApiResponse } from '~~/app/types'
 import type { DentalToothView } from '../lib/dentalArch'
 import type { DentalMeshPayload, SceneMeshRef } from '../lib/sceneMeshes'
+import type { NerveAnalysisPayload } from '../lib/nerveView'
 
 export interface DentalSceneSegmentation {
   status: 'not_available' | 'synthetic' | 'completed'
@@ -225,6 +230,73 @@ export function useDental3DSegmentation(patientId: () => string) {
       return true
     } catch (error) {
       console.error('Error reviewing segmentation:', error)
+      return false
+    } finally {
+      reviewing.value = false
+    }
+  }
+
+  return { analysis, running, runFailed, reviewing, load, run, review }
+}
+
+/**
+ * Nerve detection (Phase 4, ADR 0022): fetch / run / review the
+ * mandibular nerve-detection analysis for the patient's scene. Same
+ * pattern as ``useDental3DSegmentation`` — server-side analysis only,
+ * review state enforced by the backend.
+ */
+export function useDental3DNerveDetection(patientId: () => string) {
+  const api = useApi()
+
+  const analysis = ref<NerveAnalysisPayload | null>(null)
+  const running = ref(false)
+  const runFailed = ref(false)
+  const reviewing = ref(false)
+
+  function nerveUrl(): string {
+    return `/api/v1/dental_3d/patients/${patientId()}/nerve-detection`
+  }
+
+  /** Load the latest analysis (404 = never run → no analysis). */
+  async function load(): Promise<void> {
+    try {
+      const response = await api.get<ApiResponse<NerveAnalysisPayload>>(nerveUrl())
+      analysis.value = response.data
+    } catch {
+      analysis.value = null
+    }
+  }
+
+  /** Run the nerve-detection analysis server-side (provider-driven). */
+  async function run(): Promise<boolean> {
+    running.value = true
+    runFailed.value = false
+    try {
+      const response = await api.post<ApiResponse<NerveAnalysisPayload>>(nerveUrl())
+      analysis.value = response.data
+      return true
+    } catch (error) {
+      console.error('Error running nerve detection:', error)
+      runFailed.value = true
+      return false
+    } finally {
+      running.value = false
+    }
+  }
+
+  /** Record the dentist's review decision (server enforces pending-only). */
+  async function review(decision: 'accepted' | 'rejected', note?: string): Promise<boolean> {
+    if (!analysis.value) return false
+    reviewing.value = true
+    try {
+      const response = await api.post<ApiResponse<NerveAnalysisPayload>>(
+        `${nerveUrl()}/${analysis.value.id}/review`,
+        { decision, note: note ?? null }
+      )
+      analysis.value = response.data
+      return true
+    } catch (error) {
+      console.error('Error reviewing nerve detection:', error)
       return false
     } finally {
       reviewing.value = false

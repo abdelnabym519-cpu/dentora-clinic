@@ -35,6 +35,13 @@ port and persists it with review state ``pending``; the dentist review
 use case records the decision. Analyses are non-clinical decision
 support: input → analysis → evidence/confidence → dentist review →
 dentist decision, and a review never mutates odontogram records.
+
+``DentalNerveService`` (Phase 4, ADR 0022) mirrors that workflow for
+mandibular nerve detection through the ``NerveDetectionProvider`` port:
+AI-assisted / simulated pathways + AI-estimated proximities on a
+canonical anatomical model, persisted ``pending`` and decided by a
+dentist. A review never approves an implant or surgical plan and never
+mutates odontogram records.
 """
 
 from __future__ import annotations
@@ -48,12 +55,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 
 from .meshfiles import MeshUploadError, canonical_mime, detect_mesh_format, mesh_download_url
+from .models import DentalNerveAnalysis as DentalNerveAnalysisRow
 from .models import DentalScene as DentalSceneRow
 from .models import DentalSegmentationAnalysis as DentalSegmentationAnalysisRow
+from .nerve import (
+    NerveDetectionAnalysisResponse,
+    NerveDetectionProvider,
+    NerveDetectionRequest,
+    NerveDetectionResult,
+    NervePathway,
+    NerveReviewUpdate,
+    ToothNerveProximity,
+)
 from .schemas import (
     DentalMesh,
     DentalSceneResponse,
     DentalSceneUpdate,
+    NerveDetectionSummary,
     SegmentationResult,
     Tooth3D,
 )
@@ -125,6 +143,32 @@ def _segmentation_of(
     )
 
 
+def _nerve_of(
+    row: DentalSceneRow | None,
+    analysis: DentalNerveAnalysisRow | None,
+) -> NerveDetectionSummary:
+    """Scene-level nerve-detection summary (Phase 4): latest analysis wins.
+
+    No persisted analysis → ``not_available`` (Phases 1–3 behaviour).
+    The summary is a projection of the analysis row — counts, provider,
+    review state — never client-supplied input.
+    """
+    if analysis is None:
+        return NerveDetectionSummary(status="not_available")
+    proximities = [ToothNerveProximity.model_validate(p) for p in (analysis.proximities or [])]
+    return NerveDetectionSummary(
+        status="completed",
+        method=analysis.method,
+        pathway_count=len(analysis.pathways or []),
+        near_count=sum(1 for p in proximities if p.warning == "near"),
+        watch_count=sum(1 for p in proximities if p.warning == "watch"),
+        performed_at=analysis.performed_at,
+        analysis_id=analysis.id,
+        provider=analysis.provider,
+        review_status=analysis.review_status,  # type: ignore[arg-type]
+    )
+
+
 async def _provisions(
     db: AsyncSession,
     clinic_id: UUID,
@@ -172,12 +216,14 @@ class DentalSceneService:
 
         row = await DentalSceneService._load_row(db, clinic_id, patient_id)
         analysis = await DentalSegmentationService._latest_row(db, clinic_id, patient_id)
+        nerve = await DentalNerveService._latest_row(db, clinic_id, patient_id)
         if row is None:
             return DentalSceneResponse(
                 patient_id=patient_id,
                 generator="intraoral_scan" if meshes else "synthetic",
                 teeth=defaults,
                 segmentation=_segmentation_of(None, analysis),
+                nerve_detection=_nerve_of(None, nerve),
                 meshes=meshes,
                 persisted=False,
             )
@@ -191,6 +237,7 @@ class DentalSceneService:
             generator="intraoral_scan" if meshes else row.generator,
             teeth=_merge(overrides, defaults),
             segmentation=_segmentation_of(row, analysis),
+            nerve_detection=_nerve_of(row, nerve),
             meshes=meshes,
             updated_at=row.updated_at,
             persisted=True,
@@ -430,3 +477,156 @@ class DentalSegmentationService:
         row.review_note = payload.note
         await db.commit()
         return DentalSegmentationService._to_response(row)
+
+
+class NerveError(Exception):
+    """Application-level nerve-detection failures (mapped to HTTP by the router)."""
+
+
+class DentalNerveService:
+    """Nerve-detection use cases: run → evidence → dentist review → decision.
+
+    ADR 0022: the service depends on the ``NerveDetectionProvider``
+    **port** only; the concrete engine (deterministic canonical-mandible
+    model today, a real CBCT/ML detector tomorrow) is injected by the
+    composition root at the infrastructure edge. Results are persisted
+    server-side with review state ``pending`` — no client-supplied
+    detection ever enters the system, and accepting a review never
+    approves an implant or surgical plan or mutates odontogram records.
+    """
+
+    @staticmethod
+    async def _latest_row(
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID
+    ) -> DentalNerveAnalysisRow | None:
+        stmt = (
+            select(DentalNerveAnalysisRow)
+            .where(
+                DentalNerveAnalysisRow.clinic_id == clinic_id,
+                DentalNerveAnalysisRow.patient_id == patient_id,
+            )
+            .order_by(
+                DentalNerveAnalysisRow.created_at.desc(),
+                DentalNerveAnalysisRow.id.desc(),
+            )
+            .limit(1)
+        )
+        return (await db.execute(stmt)).scalar_one_or_none()
+
+    @staticmethod
+    def _to_response(row: DentalNerveAnalysisRow) -> NerveDetectionAnalysisResponse:
+        pathways = [NervePathway.model_validate(p) for p in (row.pathways or [])]
+        proximities = [ToothNerveProximity.model_validate(p) for p in (row.proximities or [])]
+        response = NerveDetectionAnalysisResponse(
+            id=row.id,
+            patient_id=row.patient_id,
+            provider=row.provider,
+            method=row.method,
+            pathways=pathways,
+            proximities=proximities,
+            performed_at=row.performed_at,
+            created_at=row.created_at,
+            review_status=row.review_status,  # type: ignore[arg-type]
+            reviewed_at=row.reviewed_at,
+            review_note=row.review_note,
+        )
+        response.counts_from_result()
+        return response
+
+    @staticmethod
+    async def run_detection(
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        user_id: UUID | None,
+        provider: NerveDetectionProvider | None = None,
+        sources: list[DentalGeometrySource] | tuple[DentalGeometrySource, ...] | None = None,
+    ) -> NerveDetectionAnalysisResponse:
+        """Run the nerve-detection analysis for the patient's current scene.
+
+        The tooth universe and mesh references come from the same
+        geometry provisions the scene endpoint uses — never from client
+        input. Analysis rows are append-only history; the scene summary
+        reflects the latest.
+        """
+        if provider is None:
+            # Composition root — infrastructure edge, imported lazily.
+            from .infrastructure import default_nerve_provider
+
+            provider = default_nerve_provider()
+
+        provisions = await _provisions(db, clinic_id, patient_id, sources)
+        teeth = next((p.teeth for p in provisions if p.teeth), [])
+        meshes = [mesh for provision in provisions for mesh in provision.meshes]
+
+        try:
+            result: NerveDetectionResult = await provider.detect(
+                NerveDetectionRequest(
+                    clinic_id=clinic_id,
+                    patient_id=patient_id,
+                    teeth=teeth,
+                    meshes=meshes,
+                    performed_at=datetime.now(UTC),
+                )
+            )
+        except Exception as exc:  # provider engine failure — surface, never fake
+            raise NerveError(f"nerve detection provider failed: {exc}") from exc
+
+        row = DentalNerveAnalysisRow(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            performed_by=user_id,
+            provider=result.provider,
+            method=result.method,
+            performed_at=result.performed_at,
+            pathways=[p.model_dump(mode="json") for p in result.pathways],
+            proximities=[p.model_dump(mode="json") for p in result.proximities],
+        )
+        db.add(row)
+        await db.commit()
+        return DentalNerveService._to_response(row)
+
+    @staticmethod
+    async def latest_analysis(
+        db: AsyncSession, clinic_id: UUID, patient_id: UUID
+    ) -> NerveDetectionAnalysisResponse | None:
+        """Latest analysis for the patient, or ``None`` when never run."""
+        row = await DentalNerveService._latest_row(db, clinic_id, patient_id)
+        return None if row is None else DentalNerveService._to_response(row)
+
+    @staticmethod
+    async def review_analysis(
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        analysis_id: UUID,
+        reviewer_id: UUID | None,
+        payload: NerveReviewUpdate,
+    ) -> NerveDetectionAnalysisResponse:
+        """Record the dentist's review decision on a pending analysis.
+
+        Only pending analyses can be decided (409-mapped conflict on
+        re-review); the decision + optional note are stored on the
+        analysis row itself. Clinical data is never touched and no plan
+        is ever approved — review is an acknowledgement of decision
+        support, not an odontogram edit.
+        """
+        stmt = select(DentalNerveAnalysisRow).where(
+            DentalNerveAnalysisRow.id == analysis_id,
+            DentalNerveAnalysisRow.clinic_id == clinic_id,
+            DentalNerveAnalysisRow.patient_id == patient_id,
+        )
+        row = (await db.execute(stmt)).scalar_one_or_none()
+        if row is None:
+            raise KeyError(analysis_id)
+        if row.review_status != "pending":
+            raise NerveError("analysis already reviewed")
+
+        row.review_status = payload.decision
+        row.reviewed_by = reviewer_id
+        row.reviewed_at = datetime.now(UTC)
+        row.review_note = payload.note
+        await db.commit()
+        return DentalNerveService._to_response(row)

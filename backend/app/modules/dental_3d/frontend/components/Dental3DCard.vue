@@ -13,9 +13,10 @@
  */
 import { computed, onMounted, ref } from 'vue'
 import { PERMISSIONS } from '~~/app/config/permissions'
-import { useDental3DMeshIO, useDental3DScene, useDental3DSegmentation, toViewerTeeth, summarizeScene } from '../composables/useDental3DScene'
+import { useDental3DMeshIO, useDental3DScene, useDental3DSegmentation, useDental3DNerveDetection, toViewerTeeth, summarizeScene } from '../composables/useDental3DScene'
 import { toSceneMeshes } from '../lib/sceneMeshes'
 import { toSegmentationView, uncertainTeeth } from '../lib/segmentationView'
+import { toNerveView, nearTeeth, watchTeeth } from '../lib/nerveView'
 import type { DentalToothView } from '../lib/dentalArch'
 
 interface Ctx {
@@ -59,8 +60,33 @@ const uploading = ref(false)
 const uploadFailed = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
+const {
+  analysis: rawNerveAnalysis,
+  running: nerveRunning,
+  runFailed: nerveRunFailed,
+  reviewing: nerveReviewing,
+  load: loadNerve,
+  run: runNerve,
+  review: reviewNerve
+} = useDental3DNerveDetection(() => props.ctx.patient.id)
+
+/** Normalized nerve analysis (Phase 4) — null when not run. */
+const nerve = computed(() => toNerveView(rawNerveAnalysis.value))
+const nerveNearList = computed(() => nearTeeth(nerve.value))
+const nerveWatchList = computed(() => watchTeeth(nerve.value))
+const nerveNearLabel = computed(() =>
+  nerveNearList.value.map(p => p.toothNumber).join(', ')
+)
+const nerveWatchLabel = computed(() =>
+  nerveWatchList.value.map(p => p.toothNumber).join(', ')
+)
+const canRunNerve = computed(() => can(PERMISSIONS.dental3d.write))
+/** Overlay toggle — defaults on once an analysis exists. */
+const showNerve = ref(true)
+
 onMounted(() => {
   void loadSegmentation()
+  void loadNerve()
 })
 
 async function onRunSegmentation(): Promise<void> {
@@ -69,6 +95,15 @@ async function onRunSegmentation(): Promise<void> {
 
 async function onReviewSegmentation(decision: 'accepted' | 'rejected'): Promise<void> {
   await reviewSegmentation(decision)
+}
+
+async function onRunNerve(): Promise<void> {
+  showNerve.value = true
+  await runNerve()
+}
+
+async function onReviewNerve(decision: 'accepted' | 'rejected'): Promise<void> {
+  await reviewNerve(decision)
 }
 
 async function onUploadChange(event: Event): Promise<void> {
@@ -124,6 +159,8 @@ async function onUploadChange(event: Event): Promise<void> {
           :teeth="viewerTeeth"
           :meshes="sceneMeshes"
           :segmentation="segmentation"
+          :nerve="nerve"
+          :show-nerve="showNerve"
           :height="230"
         />
         <template #fallback>
@@ -231,6 +268,139 @@ async function onUploadChange(event: Event): Promise<void> {
           class="text-caption text-warning"
         >
           {{ t('dental_3d.segmentation.runError') }}
+        </p>
+      </div>
+
+      <!-- Phase 4: mandibular nerve detection — AI-assisted / simulated
+           decision support with dentist verification (ADR 0022). -->
+      <div
+        data-testid="dental3d-nerve"
+        class="space-y-1 border-t border-default pt-2"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <span
+            data-testid="dental3d-nerve-status"
+            class="text-caption font-medium text-default"
+          >
+            {{ t('dental_3d.nerve.title') }}:
+            <span v-if="nerve === null">
+              {{ nerveRunning ? t('dental_3d.nerve.running') : t('dental_3d.nerve.none') }}
+            </span>
+            <span v-else-if="nerve.review.status === 'pending'">
+              {{ t('dental_3d.nerve.reviewPending') }}
+            </span>
+            <span v-else-if="nerve.review.status === 'accepted'">
+              {{ t('dental_3d.nerve.reviewAccepted') }}
+            </span>
+            <span v-else>{{ t('dental_3d.nerve.reviewRejected') }}</span>
+          </span>
+          <div class="flex items-center gap-2">
+            <label
+              v-if="nerve !== null"
+              class="inline-flex cursor-pointer items-center gap-1 text-caption text-muted"
+            >
+              <input
+                v-model="showNerve"
+                data-testid="dental3d-nerve-toggle"
+                type="checkbox"
+                class="accent-current"
+              >
+              {{ t('dental_3d.nerve.showPathway') }}
+            </label>
+            <button
+              v-if="canRunNerve"
+              data-testid="dental3d-nerve-run"
+              type="button"
+              class="rounded border border-default px-2 py-0.5 text-caption text-muted hover:bg-elevated disabled:opacity-60"
+              :disabled="nerveRunning"
+              @click="onRunNerve"
+            >
+              {{ nerveRunning ? t('dental_3d.nerve.running') : t('dental_3d.nerve.run') }}
+            </button>
+          </div>
+        </div>
+
+        <template v-if="nerve !== null">
+          <div
+            data-testid="dental3d-nerve-counts"
+            class="flex flex-wrap gap-x-2 text-caption text-muted"
+          >
+            <span>{{ t('dental_3d.nerve.pathways', { count: nerve.counts.pathways }) }}</span>
+            <span>· {{ t('dental_3d.nerve.near', { count: nerve.counts.near }) }}</span>
+            <span>· {{ t('dental_3d.nerve.watch', { count: nerve.counts.watch }) }}</span>
+          </div>
+          <p class="text-subtle text-caption">
+            {{ t('dental_3d.nerve.method', { method: nerve.method }) }}
+            — {{ t('dental_3d.nerve.simulated') }}
+          </p>
+          <p
+            v-if="nerve.pathways.length > 0"
+            class="text-subtle text-caption"
+          >
+            {{ t('dental_3d.nerve.confidence', {
+              value: Math.round(nerve.pathways[0].confidence * 100) / 100
+            }) }}
+            · {{ nerve.pathways[0].status === 'uncertain'
+              ? t('dental_3d.nerve.uncertainModel') : t('dental_3d.nerve.detectedModel') }}
+          </p>
+          <p
+            v-if="nerveNearList.length > 0"
+            data-testid="dental3d-nerve-near"
+            class="text-caption text-warning"
+          >
+            {{ t('dental_3d.nerve.nearTeeth', { teeth: nerveNearLabel }) }}
+            — {{ t('dental_3d.nerve.estimated') }}
+          </p>
+          <p
+            v-if="nerveWatchList.length > 0"
+            data-testid="dental3d-nerve-watch"
+            class="text-caption text-muted"
+          >
+            {{ t('dental_3d.nerve.watchTeeth', { teeth: nerveWatchLabel }) }}
+            — {{ t('dental_3d.nerve.estimated') }}
+          </p>
+          <div
+            v-if="nerve.review.status === 'pending' && canRunNerve"
+            class="flex gap-2"
+          >
+            <button
+              data-testid="dental3d-nerve-accept"
+              type="button"
+              class="rounded border border-default px-2 py-0.5 text-caption text-muted hover:bg-elevated disabled:opacity-60"
+              :disabled="nerveReviewing"
+              @click="onReviewNerve('accepted')"
+            >
+              {{ t('dental_3d.nerve.accept') }}
+            </button>
+            <button
+              data-testid="dental3d-nerve-reject"
+              type="button"
+              class="rounded border border-default px-2 py-0.5 text-caption text-muted hover:bg-elevated disabled:opacity-60"
+              :disabled="nerveReviewing"
+              @click="onReviewNerve('rejected')"
+            >
+              {{ t('dental_3d.nerve.reject') }}
+            </button>
+          </div>
+          <p
+            v-if="nerve.review.status !== 'pending'"
+            data-testid="dental3d-nerve-review-state"
+            class="text-subtle text-caption"
+          >
+            {{ nerve.review.status === 'accepted'
+              ? t('dental_3d.nerve.reviewAccepted')
+              : t('dental_3d.nerve.reviewRejected') }}
+            <template v-if="nerve.review.note">
+              — {{ nerve.review.note }}
+            </template>
+          </p>
+        </template>
+        <p
+          v-if="nerveRunFailed"
+          data-testid="dental3d-nerve-error"
+          class="text-caption text-warning"
+        >
+          {{ t('dental_3d.nerve.runError') }}
         </p>
       </div>
 

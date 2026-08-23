@@ -18,7 +18,8 @@
       "meshLoading": "Cargando escaneo…",
       "meshError": "No se pudo cargar el escaneo — se muestra la vista sintética",
       "meshBadge": "Geometría de escaneo",
-      "segmentationOverlay": "Etiquetas de segmentación"
+      "segmentationOverlay": "Etiquetas de segmentación",
+      "nerveOverlay": "Trayectoria del nervio (simulada)"
     },
     "segmentation": {
       "title": "Segmentación dental",
@@ -37,6 +38,30 @@
       "reviewRejected": "revisada — rechazada",
       "accept": "Aceptar",
       "reject": "Rechazar"
+    },
+    "nerve": {
+      "title": "Nervio mandibular",
+      "none": "aún no ejecutado",
+      "run": "Detectar trayectoria del nervio",
+      "running": "Modelando…",
+      "runError": "La detección del nervio no pudo ejecutarse ahora.",
+      "pathways": "{count} trayectorias",
+      "near": "{count} cercanos",
+      "watch": "{count} a vigilar",
+      "method": "Método: {method}",
+      "simulated": "asistida por IA / simulada — requiere verificación del dentista",
+      "confidence": "Confianza {value}",
+      "uncertainModel": "modelo genérico (sin geometría del paciente)",
+      "detectedModel": "arco respaldado por escaneo",
+      "nearTeeth": "Dientes cercanos (estimado por IA): {teeth}",
+      "watchTeeth": "Dientes a vigilar (estimado por IA): {teeth}",
+      "estimated": "proximidad estimada por IA, no un veredicto de seguridad",
+      "reviewPending": "pendiente de verificación del dentista",
+      "reviewAccepted": "verificado — aceptado",
+      "reviewRejected": "verificado — rechazado",
+      "accept": "Aceptar",
+      "reject": "Rechazar",
+      "showPathway": "Trayectoria"
     }
   }
 }

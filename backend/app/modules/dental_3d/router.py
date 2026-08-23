@@ -19,12 +19,15 @@ from app.database import get_db
 from app.modules.patients.models import Patient
 
 from .meshfiles import MeshUploadError
+from .nerve import NerveDetectionAnalysisResponse, NerveReviewUpdate
 from .schemas import DentalMesh, DentalSceneResponse, DentalSceneUpdate
 from .segmentation import SegmentationAnalysisResponse, SegmentationReviewUpdate
 from .service import (
     DentalMeshService,
+    DentalNerveService,
     DentalSceneService,
     DentalSegmentationService,
+    NerveError,
     SegmentationError,
 )
 
@@ -199,5 +202,93 @@ async def review_patient_segmentation(
     except KeyError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
     except SegmentationError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return ApiResponse(data=analysis)
+
+
+@router.post(
+    "/patients/{patient_id}/nerve-detection",
+    response_model=ApiResponse[NerveDetectionAnalysisResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def run_patient_nerve_detection(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[NerveDetectionAnalysisResponse]:
+    """Run the mandibular nerve-detection analysis for the patient's scene.
+
+    The analysis is produced **server-side** by the configured provider
+    (deterministic canonical-mandible model in Phase 4 — AI-assisted /
+    simulated, **not** a clinically validated detector) and persisted
+    with review state ``pending``. There is no endpoint that accepts a
+    client-supplied detection result: the dentist-review workflow
+    (input → analysis → evidence → review → decision) is the only path,
+    a review never approves an implant or surgical plan, and proximities
+    are AI-estimated planning support — never clinical safety verdicts.
+    """
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    try:
+        analysis = await DentalNerveService.run_detection(
+            db, clinic_id=ctx.clinic_id, patient_id=patient_id, user_id=ctx.user_id
+        )
+    except NerveError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    return ApiResponse(data=analysis)
+
+
+@router.get(
+    "/patients/{patient_id}/nerve-detection",
+    response_model=ApiResponse[NerveDetectionAnalysisResponse],
+)
+async def get_patient_nerve_detection(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[NerveDetectionAnalysisResponse]:
+    """Return the patient's latest nerve-detection analysis (404 if never run)."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    analysis = await DentalNerveService.latest_analysis(db, ctx.clinic_id, patient_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No nerve detection analysis yet"
+        )
+    return ApiResponse(data=analysis)
+
+
+@router.post(
+    "/patients/{patient_id}/nerve-detection/{analysis_id}/review",
+    response_model=ApiResponse[NerveDetectionAnalysisResponse],
+)
+async def review_patient_nerve_detection(
+    patient_id: UUID,
+    analysis_id: UUID,
+    data: NerveReviewUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[NerveDetectionAnalysisResponse]:
+    """Record the dentist's review decision on a pending analysis.
+
+    Accepting records the dentist's acknowledgement of the
+    decision-support output — it never marks anything clinically
+    verified, never approves a plan, and never writes to the
+    odontogram. Re-reviewing a decided analysis is rejected (409).
+    """
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    try:
+        analysis = await DentalNerveService.review_analysis(
+            db,
+            clinic_id=ctx.clinic_id,
+            patient_id=patient_id,
+            analysis_id=analysis_id,
+            reviewer_id=ctx.user_id,
+            payload=data,
+        )
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")
+    except NerveError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ApiResponse(data=analysis)

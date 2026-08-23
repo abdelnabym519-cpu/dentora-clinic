@@ -18,7 +18,8 @@
       "meshLoading": "Chargement du scan…",
       "meshError": "Scan impossible à charger — aperçu synthétique affiché",
       "meshBadge": "Géométrie de scan",
-      "segmentationOverlay": "Repères de segmentation"
+      "segmentationOverlay": "Repères de segmentation",
+      "nerveOverlay": "Trajet du nerf (simulé)"
     },
     "segmentation": {
       "title": "Segmentation dentaire",
@@ -37,6 +38,30 @@
       "reviewRejected": "validée — rejetée",
       "accept": "Accepter",
       "reject": "Rejeter"
+    },
+    "nerve": {
+      "title": "Nerf mandibulaire",
+      "none": "pas encore exécuté",
+      "run": "Détecter le trajet du nerf",
+      "running": "Modélisation…",
+      "runError": "La détection du nerf n'a pas pu être exécutée.",
+      "pathways": "{count} trajets",
+      "near": "{count} proches",
+      "watch": "{count} à surveiller",
+      "method": "Méthode : {method}",
+      "simulated": "assistée par IA / simulée — vérification du dentiste requise",
+      "confidence": "Confiance {value}",
+      "uncertainModel": "modèle générique (sans géométrie patient)",
+      "detectedModel": "arc soutenu par le scan",
+      "nearTeeth": "Dents proches (estimation IA) : {teeth}",
+      "watchTeeth": "Dents à surveiller (estimation IA) : {teeth}",
+      "estimated": "proximité estimée par IA, pas un verdict de sécurité",
+      "reviewPending": "en attente de vérification du dentiste",
+      "reviewAccepted": "vérifié — accepté",
+      "reviewRejected": "vérifié — rejeté",
+      "accept": "Accepter",
+      "reject": "Rejeter",
+      "showPathway": "Trajet"
     }
   }
 }

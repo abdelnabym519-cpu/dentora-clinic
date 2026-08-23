@@ -7,7 +7,10 @@ files stored through the media module and rendered by the viewer, with
 the synthetic arch kept as the regression-safe fallback; Phase 3 adds
 the **automatic tooth-segmentation foundation** — a deterministic,
 explicitly non-clinical analysis behind a replaceable provider port,
-with an enforced dentist-review workflow (ADR 0021).
+with an enforced dentist-review workflow (ADR 0021); Phase 4 adds the
+**mandibular nerve-detection foundation** — AI-assisted / simulated
+canonical-model pathways with AI-estimated tooth proximities behind a
+second replaceable port, same dentist-review boundary (ADR 0022).
 
 ## Public API
 
@@ -19,6 +22,9 @@ with an enforced dentist-review workflow (ADR 0021).
   - `POST   /dental_3d/patients/{patient_id}/segmentation` — run the segmentation provider server-side; permission `dental_3d.write`
   - `GET    /dental_3d/patients/{patient_id}/segmentation` — latest analysis (404 when never run); permission `dental_3d.read`
   - `POST   /dental_3d/patients/{patient_id}/segmentation/{analysis_id}/review` — dentist review decision; permission `dental_3d.write`
+  - `POST   /dental_3d/patients/{patient_id}/nerve-detection` — run the nerve provider server-side (simulated, non-clinical); permission `dental_3d.write`
+  - `GET    /dental_3d/patients/{patient_id}/nerve-detection` — latest nerve analysis (404 when never run); permission `dental_3d.read`
+  - `POST   /dental_3d/patients/{patient_id}/nerve-detection/{analysis_id}/review` — dentist review decision; permission `dental_3d.write`
 
 ## Dependencies
 
@@ -50,6 +56,11 @@ duplicate ownership (media owns clinic/patient linkage).
   (framework-free inner layer, ADR 0021). Safety flags are fixed
   literal types: results are always `is_clinical=False` and
   `requires_review=True`.
+- `nerve.py` — the `NerveDetectionProvider` **port** + pathway /
+  proximity / evidence contracts and the review payload (framework-free
+  inner layer, ADR 0022). Same fixed safety literals; proximity
+  warnings (`near`/`watch`/`none`) are display bands, never clinical
+  verdicts.
 - `router.py` / `tools.py` / `frontend/` — presentation.
 
 ## Permissions
@@ -84,9 +95,12 @@ a future optimization, not a correctness need.
 - Phase 2 added no migration: meshes are media document references.
   Phase 3 adds `d3d_0002` on the same isolated `dental_3d` branch —
   the append-only `dental_segmentation_analyses` table (proposals +
-  dentist review state). Uninstall drops only the dental_3d branch;
-  uploaded scans remain ordinary media documents owned by the media
-  module, and analyses are derivable decision support.
+  dentist review state). Phase 4 adds `d3d_0003` (`dental_nerve_analyses`,
+  same shape: pathways + proximities + review state) — persisted because
+  a review boundary that forgets itself on reload would be a boundary in
+  name only. Uninstall drops only the dental_3d branch; uploaded scans
+  remain ordinary media documents owned by the media module, and
+  analyses are derivable decision support.
 
 ## Gotchas / non-obvious invariants
 
@@ -116,6 +130,17 @@ a future optimization, not a correctness need.
   rejects `status="completed"`, and a review never mutates odontogram
   records. `ArchPartitionSegmentationProvider` is a rule-based
   foundation — never present it as a medical AI model.
+- Nerve detection is **AI-assisted / simulated decision support**: the
+  `CanonicalMandibleNerveProvider` models a canonical mandibular canal
+  (demo anatomy, `source=canonical_demo_model`) — never a clinically
+  validated detector, never patient-specific. Same write rules as
+  segmentation (run + review only; `PUT scene` rejects
+  `nerve_detection.status="completed"`); reviews never approve an
+  implant/surgical plan. Proximity bands near/watch/none are display
+  bands for "AI-estimated proximity", never clinical safety verdicts.
+  The viewer renders pathway tubes on the synthetic arch only (the
+  canonical frame has no patient-scan alignment); ThreeUI was evaluated
+  and does not exist in the repository (ADR 0022 §8).
 - Segmentation analyses are append-only; latest wins in the scene
   summary. Re-reviewing a decided analysis is a 409.
 - Viewer FDI labels render on the synthetic arch only — labelling a

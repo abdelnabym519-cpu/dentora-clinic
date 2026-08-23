@@ -103,6 +103,23 @@ def test_malformed_signed_lease_features_fail_closed(
     assert status["reason"] == "License lease features are invalid"
 
 
+def test_expired_subscription_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    manager: LicenseManager,
+) -> None:
+    install_token_verifier(
+        monkeypatch,
+        manager,
+        lambda token: valid_payload(license_expires_at="2000-01-01T00:00:00+00:00"),
+    )
+
+    status = manager._status_from_state({"lease_token": "signed-lease"})
+
+    assert status["active"] is False
+    assert status["state"] == "expired"
+    assert status["reason"] == "License subscription has expired"
+
+
 @pytest.mark.asyncio
 async def test_activation_does_not_persist_invalid_server_lease(
     monkeypatch: pytest.MonkeyPatch,
@@ -180,4 +197,6 @@ async def test_server_outage_uses_only_still_valid_offline_lease(
 def test_malformed_local_refresh_timestamp_retries_instead_of_crashing(
     manager: LicenseManager,
 ) -> None:
-    assert manager._refresh_attempt_due({"last_refresh_attempt_at": "not-a-date"}) is True
+    assert (
+        manager._refresh_attempt_due({"last_refresh_attempt_at": "not-a-date"}) is True
+    )

@@ -345,6 +345,25 @@ jobs:
       - name: Seed demo data
         run: ./scripts/seed-demo.sh --lang es
 
+      - name: Install Periodontogram for E2E
+        run: |
+          ./bin/dentora modules install periodontogram
+          docker compose restart backend
+          for i in $(seq 1 60); do
+            if curl -sf "${BACKEND_BASE_URL}/health" > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -sf "${BACKEND_BASE_URL}/health" > /dev/null
+          module_state="$(./bin/dentora modules info periodontogram --json | python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])')"
+          if [ "${module_state}" != "installed" ]; then
+            echo "::error::Periodontogram module state is ${module_state}, expected installed."
+            ./bin/dentora modules info periodontogram --json
+            docker compose logs backend
+            exit 1
+          fi
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:

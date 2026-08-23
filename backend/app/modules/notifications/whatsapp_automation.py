@@ -78,9 +78,7 @@ async def _whatsapp_ready(
         return False
 
     clinic_settings = await NotificationService.get_clinic_settings(db, clinic_id)
-    type_settings = (
-        clinic_settings.settings.get(notification_type, {}) if clinic_settings else {}
-    )
+    type_settings = clinic_settings.settings.get(notification_type, {}) if clinic_settings else {}
     if not type_settings.get("enabled", True) or not type_settings.get("auto_send", True):
         return False
     channels = type_settings.get("channels") or ["email"]
@@ -125,9 +123,7 @@ async def _already_enqueued(db: AsyncSession, clinic_id: UUID, dedup_key: str) -
 async def _appointment_context(db: AsyncSession, clinic_id: UUID, appointment: Any, patient: Any):
     from app.core.auth.models import Clinic, User
 
-    clinic = (
-        await db.execute(select(Clinic).where(Clinic.id == clinic_id))
-    ).scalar_one_or_none()
+    clinic = (await db.execute(select(Clinic).where(Clinic.id == clinic_id))).scalar_one_or_none()
 
     professional_name = None
     if appointment.professional_id:
@@ -256,9 +252,7 @@ async def process_due_appointment_messages(
     settings_rows = (await db.execute(select(ClinicNotificationSettings))).scalars().all()
     for clinic_settings in settings_rows:
         reminder_config = clinic_settings.settings.get("appointment_reminder", {})
-        if not reminder_config.get("enabled", True) or not reminder_config.get(
-            "auto_send", True
-        ):
+        if not reminder_config.get("enabled", True) or not reminder_config.get("auto_send", True):
             continue
 
         first_hours = int(reminder_config.get("hours_before", 24))
@@ -273,8 +267,7 @@ async def process_due_appointment_messages(
                             Appointment.clinic_id == clinic_id,
                             Appointment.status == "scheduled",
                             Appointment.start_time > current,
-                            Appointment.start_time
-                            <= current + timedelta(hours=first_hours),
+                            Appointment.start_time <= current + timedelta(hours=first_hours),
                         )
                     )
                 )
@@ -306,9 +299,7 @@ async def process_due_appointment_messages(
             if patient is None:
                 continue
 
-            whatsapp_ready = await _whatsapp_ready(
-                db, clinic_id, patient, "appointment_reminder"
-            )
+            whatsapp_ready = await _whatsapp_ready(db, clinic_id, patient, "appointment_reminder")
             # The final message is WhatsApp-only.  If WhatsApp is unavailable,
             # preserve the historical single email reminder and do nothing here.
             if stage_name == "final" and not whatsapp_ready:

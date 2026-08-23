@@ -197,6 +197,4 @@ async def test_server_outage_uses_only_still_valid_offline_lease(
 def test_malformed_local_refresh_timestamp_retries_instead_of_crashing(
     manager: LicenseManager,
 ) -> None:
-    assert (
-        manager._refresh_attempt_due({"last_refresh_attempt_at": "not-a-date"}) is True
-    )
+    assert manager._refresh_attempt_due({"last_refresh_attempt_at": "not-a-date"}) is True

@@ -11,6 +11,7 @@
 
 # Per-install LAN HTTPS material generated on the clinic Mini PC.
 dentora-lan-ca.crt
+Dentora_Workstation_Kit/
 
 # Claude Code
 .claude/

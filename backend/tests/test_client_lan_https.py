@@ -62,13 +62,15 @@ def test_per_install_secrets_and_ca_export_cannot_be_committed_accidentally() ->
 
     assert ".env.client" in gitignore.splitlines()
     assert "dentora-lan-ca.crt" in gitignore.splitlines()
+    assert "Dentora_Workstation_Kit/" in gitignore.splitlines()
 
 
-def test_install_doc_keeps_workstation_setup_out_of_this_stage() -> None:
+def test_install_doc_hands_off_from_server_https_to_workstation_setup() -> None:
     install_doc = _read("CLIENT_INSTALL_AR.md")
 
     assert "SETUP_LAN_HTTPS.bat 192.168.1.50" in install_doc
     assert "LocalSubnet" in install_doc
     assert "dentora-lan-ca.crt" in install_doc
     assert "Workstation Setup" in install_doc
-    assert "هذه المرحلة تجهز السيرفر والـLAN/HTTPS فقط" in install_doc
+    assert "PREPARE_WORKSTATION_KIT.bat" in install_doc
+    assert "SETUP_DENTORA_WORKSTATION.bat" in install_doc

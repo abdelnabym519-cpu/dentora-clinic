@@ -13,6 +13,13 @@ if exist ".dentora-restore-journal.json" (
   exit /b 1
 )
 
+if exist ".dentora-update-journal.json" (
+  echo ERROR: An interrupted Dentora update requires recovery before startup.
+  echo Run UPDATE_DENTORA.bat --recover as Administrator.
+  pause
+  exit /b 1
+)
+
 where docker >nul 2>&1
 if errorlevel 1 (
   echo ERROR: Docker Desktop is not installed or docker.exe is not in PATH.

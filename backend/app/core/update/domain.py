@@ -6,15 +6,27 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from packaging.version import InvalidVersion, Version
-
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SCHEMA = re.compile(r"^[A-Za-z0-9_-]{4,128}$")
+_VERSION = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
 _ALLOWED = frozenset({"version", "package_url", "sha256", "size", "schema_revision", "requires_backup"})
 
 
 class UpdateValidationError(ValueError):
     """Trusted update metadata failed validation."""
+
+
+def _version_tuple(value: Any, *, installed: bool = False) -> tuple[int, int, int]:
+    if not isinstance(value, str):
+        raise UpdateValidationError(
+            "Installed application version is invalid" if installed else "Update version is invalid"
+        )
+    match = _VERSION.fullmatch(value)
+    if match is None:
+        raise UpdateValidationError(
+            "Installed application version is invalid" if installed else "Update version is invalid"
+        )
+    return tuple(int(part) for part in match.groups())
 
 
 @dataclass(frozen=True)
@@ -36,12 +48,7 @@ class UpdateDescriptor:
         size = value.get("size")
         schema = value.get("schema_revision")
         requires_backup = value.get("requires_backup")
-        try:
-            parsed = Version(version) if isinstance(version, str) else None
-        except InvalidVersion as exc:
-            raise UpdateValidationError("Update version is invalid") from exc
-        if parsed is None or str(parsed) != version:
-            raise UpdateValidationError("Update version is invalid")
+        _version_tuple(version)
         if not isinstance(package_url, str) or not package_url.startswith("https://"):
             raise UpdateValidationError("Update package URL must use HTTPS")
         if not isinstance(sha256, str) or not _SHA256.fullmatch(sha256):
@@ -55,11 +62,8 @@ class UpdateDescriptor:
         return cls(version, package_url, sha256, size, schema, requires_backup)
 
     def assert_upgrade_from(self, current_version: str) -> None:
-        try:
-            current = Version(current_version)
-            target = Version(self.version)
-        except InvalidVersion as exc:
-            raise UpdateValidationError("Installed application version is invalid") from exc
+        current = _version_tuple(current_version, installed=True)
+        target = _version_tuple(self.version)
         if target <= current:
             raise UpdateValidationError("Update must be a strict upgrade; downgrade or reinstall rejected")
 

@@ -1,4 +1,5 @@
 """Application service for validating a Dentora update before mutation."""
+
 from __future__ import annotations
 
 import json

@@ -9,10 +9,11 @@
 # Local license development material (private signing keys, admin secrets)
 .license-dev/
 
-# Per-install LAN HTTPS / workstation / restore runtime material.
+# Per-install LAN HTTPS / workstation / restore/update runtime material.
 dentora-lan-ca.crt
 Dentora_Workstation_Kit/
 .dentora-restore-journal.json
+.dentora-update-journal.json
 backups/
 
 # Claude Code

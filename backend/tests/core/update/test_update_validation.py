@@ -19,6 +19,7 @@ def _fixture(tmp_path: Path, **overrides: object) -> tuple[Path, Path, str, dict
     public = private.public_key().public_bytes_raw()
     descriptor: dict[str, object] = {
         "version": "2.1.0",
+        "compatible_from": "2.0.0",
         "package_url": "https://updates.example.test/dentora-2.1.0.zip",
         "sha256": hashlib.sha256(package.read_bytes()).hexdigest(),
         "size": package.stat().st_size,
@@ -46,6 +47,7 @@ def test_valid_signed_upgrade_is_accepted(tmp_path: Path) -> None:
         metadata, package, public_key_b64=public_key, current_version="2.0.0"
     )
     assert result.version == "2.1.0"
+    assert result.compatible_from == "2.0.0"
     assert result.requires_backup is True
 
 
@@ -74,6 +76,12 @@ def test_same_version_is_rejected(tmp_path: Path) -> None:
 def test_downgrade_is_rejected(tmp_path: Path) -> None:
     metadata, package, public_key, _ = _fixture(tmp_path, version="1.9.9")
     with pytest.raises(UpdateValidationError, match="strict upgrade"):
+        validate_update(metadata, package, public_key_b64=public_key, current_version="2.0.0")
+
+
+def test_incompatible_source_version_is_rejected(tmp_path: Path) -> None:
+    metadata, package, public_key, _ = _fixture(tmp_path, compatible_from="1.9.0")
+    with pytest.raises(UpdateValidationError, match="incompatible"):
         validate_update(metadata, package, public_key_b64=public_key, current_version="2.0.0")
 
 

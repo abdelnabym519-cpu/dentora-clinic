@@ -75,7 +75,10 @@ def test_repeated_validation_is_idempotent(tmp_path: Path) -> None:
 
 def test_checksum_failure_is_fail_closed(tmp_path: Path) -> None:
     root = _artifact(tmp_path)
-    (root / "database.dump").write_bytes(b"tampered")
+    database_dump = root / "database.dump"
+    tampered = bytearray(database_dump.read_bytes())
+    tampered[-1] ^= 0x01
+    database_dump.write_bytes(tampered)
 
     with pytest.raises(BackupValidationError, match="checksum"):
         validate_artifact(root, app_version=APP_VERSION, schema_revision=SCHEMA_REVISION)

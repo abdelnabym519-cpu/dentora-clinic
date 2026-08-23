@@ -1,4 +1,5 @@
 """Infrastructure verification for Dentora update artifacts."""
+
 from __future__ import annotations
 
 import base64
@@ -14,7 +15,9 @@ from .domain import UpdateDescriptor, UpdateValidationError, decode_signature
 
 
 def canonical_payload(value: dict[str, Any]) -> bytes:
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
 
 
 def verify_signed_descriptor(envelope: Any, *, public_key_b64: str) -> UpdateDescriptor:

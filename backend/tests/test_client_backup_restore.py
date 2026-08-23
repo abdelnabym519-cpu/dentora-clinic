@@ -58,7 +58,7 @@ def test_restore_validates_before_mutation_and_creates_safety_backup() -> None:
     validation = script.index('"validate", "--root", "/backup"')
     safety_backup = script.index("Invoke-BackupInternal -PreRestore")
     journal = script.index("Write-RestoreJournal -Journal $journal")
-    database_swap = script.index("ALTER DATABASE $dbName RENAME TO $rollbackDb")
+    database_swap = script.index("RENAME TO $rollbackDb")
     assert validation < safety_backup < journal < database_swap
 
 
@@ -69,15 +69,17 @@ def test_restore_uses_staged_database_and_new_storage_volume() -> None:
     assert "Get-DatabaseSchemaRevision -Database $tempDb" in script
     assert "dentora-restore-storage-$nonce" in script
     assert '"dentora.role=restore-storage"' in script
+    assert '"--user", "0:0"' in script
     assert "tar -xf /backup/storage.tar -C /restore" in script
     assert "cp -a /app/storage/license/. /restore/license/" in script
+    assert "chown -R 1000:1000 /restore" in script
 
 
 def test_restore_has_journaled_rollback_and_fail_closed_health_check() -> None:
     script = _read("scripts/dentora_backup_restore.ps1")
     assert ".dentora-restore-journal.json" in script
     assert "Recover-InterruptedRestore" in script
-    assert "ALTER DATABASE $rollbackDb RENAME TO $liveDb" in script
+    assert "ALTER DATABASE $rollback RENAME TO $live" in script
     assert 'Set-EnvValue -Name "DENTORA_STORAGE_VOLUME" -Value $oldVolume' in script
     assert "Wait-DentoraHealth" in script
     assert "Invoke-WebRequest" in script

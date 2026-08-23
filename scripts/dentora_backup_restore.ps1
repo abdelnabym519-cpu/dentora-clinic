@@ -2,8 +2,6 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet("backup", "restore", "recover")]
     [string]$Action,
-
-    [Parameter(Mandatory = $false)]
     [string]$ArtifactPath
 )
 
@@ -12,7 +10,6 @@ $ErrorActionPreference = "Stop"
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $RepoRoot
-
 $EnvFile = Join-Path $RepoRoot ".env.client"
 $ComposeFile = Join-Path $RepoRoot "docker-compose.client.yml"
 $JournalPath = Join-Path $RepoRoot ".dentora-restore-journal.json"
@@ -20,34 +17,21 @@ $BackupDir = Join-Path $RepoRoot "backups"
 $AppServices = @("backend", "frontend", "caddy")
 
 function Invoke-Docker {
-    param(
-        [Parameter(Mandatory = $true)][string[]]$Arguments,
-        [switch]$Capture
-    )
-
+    param([string[]]$Arguments, [switch]$Capture)
     if ($Capture) {
         $output = & docker @Arguments 2>&1
-        $exitCode = $LASTEXITCODE
-        if ($exitCode -ne 0) {
-            throw "Docker command failed with exit code $exitCode."
-        }
+        $code = $LASTEXITCODE
+        if ($code -ne 0) { throw "Docker command failed with exit code $code." }
         return (($output | Out-String).Trim())
     }
-
     & docker @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Docker command failed with exit code $LASTEXITCODE."
-    }
+    if ($LASTEXITCODE -ne 0) { throw "Docker command failed with exit code $LASTEXITCODE." }
 }
 
 function Invoke-Compose {
-    param(
-        [Parameter(Mandatory = $true)][string[]]$Arguments,
-        [switch]$Capture
-    )
-
-    $prefix = @("compose", "--env-file", $EnvFile, "-f", $ComposeFile)
-    return Invoke-Docker -Arguments ($prefix + $Arguments) -Capture:$Capture
+    param([string[]]$Arguments, [switch]$Capture)
+    $command = @("compose", "--env-file", $EnvFile, "-f", $ComposeFile) + $Arguments
+    return Invoke-Docker -Arguments $command -Capture:$Capture
 }
 
 function Assert-Administrator {
@@ -59,26 +43,17 @@ function Assert-Administrator {
 }
 
 function Assert-Preconditions {
-    if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) {
-        throw ".env.client is missing. Run START_DENTORA.bat first."
-    }
-    if (-not (Test-Path -LiteralPath $ComposeFile -PathType Leaf)) {
-        throw "docker-compose.client.yml is missing."
-    }
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-        throw "Docker Desktop is not installed or docker.exe is not in PATH."
-    }
+    if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) { throw ".env.client is missing." }
+    if (-not (Test-Path -LiteralPath $ComposeFile -PathType Leaf)) { throw "docker-compose.client.yml is missing." }
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw "Docker Desktop is required." }
     Invoke-Docker -Arguments @("info") -Capture | Out-Null
-
-    $composeText = [IO.File]::ReadAllText($ComposeFile)
-    if ($composeText -notmatch '(?m)^\s*STORAGE_BACKEND:\s*local\s*$') {
-        throw "Backup / Restore supports the Dentora client local storage backend only."
+    if ([IO.File]::ReadAllText($ComposeFile) -notmatch '(?m)^\s*STORAGE_BACKEND:\s*local\s*$') {
+        throw "Backup / Restore supports the Dentora local storage deployment only."
     }
 }
 
 function Get-EnvValue {
-    param([Parameter(Mandatory = $true)][string]$Name)
-
+    param([string]$Name)
     foreach ($line in [IO.File]::ReadAllLines($EnvFile)) {
         if ($line.StartsWith("$Name=", [StringComparison]::Ordinal)) {
             return $line.Substring($Name.Length + 1)
@@ -88,11 +63,7 @@ function Get-EnvValue {
 }
 
 function Set-EnvValue {
-    param(
-        [Parameter(Mandatory = $true)][string]$Name,
-        [Parameter(Mandatory = $true)][string]$Value
-    )
-
+    param([string]$Name, [string]$Value)
     $text = [IO.File]::ReadAllText($EnvFile)
     $pattern = '(?m)^' + [Regex]::Escape($Name) + '=.*$'
     $replacement = "$Name=$Value"
@@ -101,56 +72,47 @@ function Set-EnvValue {
     } else {
         $text = $text.TrimEnd("`r", "`n") + [Environment]::NewLine + $replacement + [Environment]::NewLine
     }
-
     $tmp = "$EnvFile.$PID.tmp"
     [IO.File]::WriteAllText($tmp, $text, (New-Object Text.UTF8Encoding($false)))
     Move-Item -LiteralPath $tmp -Destination $EnvFile -Force
 }
 
 function Assert-SafeIdentifier {
-    param(
-        [Parameter(Mandatory = $true)][string]$Value,
-        [Parameter(Mandatory = $true)][string]$Label
-    )
-
-    if ($Value -notmatch '^[A-Za-z0-9_]{1,48}$') {
-        throw "$Label contains unsupported characters."
-    }
+    param([string]$Value, [string]$Label)
+    if ($Value -notmatch '^[A-Za-z0-9_]{1,48}$') { throw "$Label contains unsupported characters." }
 }
 
 function Assert-SafeVolumeName {
-    param([Parameter(Mandatory = $true)][string]$Value)
-    if ($Value -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]{1,127}$') {
-        throw "Docker storage volume name is invalid."
-    }
+    param([string]$Value)
+    if ($Value -notmatch '^[A-Za-z0-9][A-Za-z0-9_.-]{1,127}$') { throw "Docker storage volume name is invalid." }
+}
+
+function Get-DatabaseSettings {
+    $name = Get-EnvValue -Name "POSTGRES_DB"
+    $user = Get-EnvValue -Name "POSTGRES_USER"
+    if ([string]::IsNullOrWhiteSpace($name)) { $name = "dental_clinic" }
+    if ([string]::IsNullOrWhiteSpace($user)) { $user = "dental" }
+    Assert-SafeIdentifier -Value $name -Label "Database name"
+    Assert-SafeIdentifier -Value $user -Label "Database user"
+    return @{ Name = $name; User = $user }
 }
 
 function Get-AppVersion {
-    $path = Join-Path $RepoRoot "backend\pyproject.toml"
-    $match = [Regex]::Match([IO.File]::ReadAllText($path), '(?m)^version\s*=\s*"([^"]+)"\s*$')
-    if (-not $match.Success) {
-        throw "Could not determine the installed Dentora version."
-    }
+    $text = [IO.File]::ReadAllText((Join-Path $RepoRoot "backend\pyproject.toml"))
+    $match = [Regex]::Match($text, '(?m)^version\s*=\s*"([^"]+)"\s*$')
+    if (-not $match.Success) { throw "Could not determine the installed Dentora version." }
     return $match.Groups[1].Value
 }
 
 function Get-ExpectedSchemaRevision {
-    $output = Invoke-Compose -Arguments @(
-        "run", "--rm", "--no-deps", "--entrypoint", "alembic", "backend", "heads"
-    ) -Capture
+    $output = Invoke-Compose -Arguments @("run", "--rm", "--no-deps", "--entrypoint", "alembic", "backend", "heads") -Capture
     $matches = [Regex]::Matches($output, '(?m)^([A-Za-z0-9_-]+)\s+\(head\)\s*$')
-    if ($matches.Count -ne 1) {
-        throw "Dentora must have exactly one Alembic head before Backup / Restore."
-    }
+    if ($matches.Count -ne 1) { throw "Dentora must have exactly one Alembic head." }
     return $matches[0].Groups[1].Value
 }
 
 function Get-DatabaseSchemaRevision {
-    param(
-        [Parameter(Mandatory = $true)][string]$Database,
-        [Parameter(Mandatory = $true)][string]$User
-    )
-
+    param([string]$Database, [string]$User)
     Assert-SafeIdentifier -Value $Database -Label "Database name"
     Assert-SafeIdentifier -Value $User -Label "Database user"
     $output = Invoke-Compose -Arguments @(
@@ -158,86 +120,63 @@ function Get-DatabaseSchemaRevision {
         "-Atc", "SELECT version_num FROM alembic_version;"
     ) -Capture
     $revision = $output.Trim()
-    if ($revision -notmatch '^[A-Za-z0-9_-]{4,128}$') {
-        throw "Database Alembic revision is missing or invalid."
-    }
+    if ($revision -notmatch '^[A-Za-z0-9_-]{4,128}$') { throw "Database Alembic revision is invalid." }
     return $revision
 }
 
 function Get-RunningServices {
     $output = Invoke-Compose -Arguments @("ps", "--status", "running", "--services") -Capture
-    if ([string]::IsNullOrWhiteSpace($output)) {
-        return @()
-    }
+    if ([string]::IsNullOrWhiteSpace($output)) { return @() }
     return @($output -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 }
 
-function Stop-RunningAppServices {
+function Stop-AppServices {
     param([string[]]$RunningServices)
     $targets = @($AppServices | Where-Object { $RunningServices -contains $_ })
-    if ($targets.Count -gt 0) {
-        Invoke-Compose -Arguments (@("stop") + $targets)
-    }
+    if ($targets.Count -gt 0) { Invoke-Compose -Arguments (@("stop") + $targets) }
 }
 
-function Start-PreviouslyRunningAppServices {
-    param([string[]]$RunningServices)
+function Start-AppServices {
+    param([string[]]$RunningServices, [switch]$Recreate)
     $targets = @($AppServices | Where-Object { $RunningServices -contains $_ })
-    if ($targets.Count -gt 0) {
+    if ($targets.Count -eq 0) { return }
+    if ($Recreate) {
+        Invoke-Compose -Arguments (@("up", "-d", "--force-recreate") + $targets)
+    } else {
         Invoke-Compose -Arguments (@("start") + $targets)
     }
 }
 
-function Recreate-PreviouslyRunningAppServices {
-    param([string[]]$RunningServices)
-    $targets = @($AppServices | Where-Object { $RunningServices -contains $_ })
-    if ($targets.Count -gt 0) {
-        Invoke-Compose -Arguments (@("up", "-d", "--force-recreate") + $targets)
-    }
-}
-
 function Get-StorageVolumeName {
-    $configured = Get-EnvValue -Name "DENTORA_STORAGE_VOLUME"
-    if ([string]::IsNullOrWhiteSpace($configured)) {
-        $configured = "dentora-client-storage-data"
-    }
-    Assert-SafeVolumeName -Value $configured
-    return $configured
+    $name = Get-EnvValue -Name "DENTORA_STORAGE_VOLUME"
+    if ([string]::IsNullOrWhiteSpace($name)) { $name = "dentora-client-storage-data" }
+    Assert-SafeVolumeName -Value $name
+    return $name
 }
 
 function Protect-BackupDirectory {
     New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
-    if (-not (Get-Command icacls.exe -ErrorAction SilentlyContinue)) {
-        throw "icacls.exe is required to protect Dentora backup files."
-    }
+    if (-not (Get-Command icacls.exe -ErrorAction SilentlyContinue)) { throw "icacls.exe is required." }
     & icacls.exe $BackupDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not restrict Dentora backup directory permissions."
-    }
+    if ($LASTEXITCODE -ne 0) { throw "Could not restrict Dentora backup directory permissions." }
 }
 
 function New-BackupId {
-    $stamp = [DateTime]::UtcNow.ToString("yyyyMMddTHHmmssZ")
-    $suffix = [Guid]::NewGuid().ToString("N").Substring(0, 8)
-    return "dentora-$stamp-$suffix"
+    return "dentora-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ'))-$([Guid]::NewGuid().ToString('N').Substring(0,8))"
 }
 
 function Invoke-ArtifactCli {
-    param(
-        [Parameter(Mandatory = $true)][string]$Stage,
-        [Parameter(Mandatory = $true)][string[]]$Arguments
-    )
-
+    param([string]$Stage, [string[]]$Arguments)
     $mount = "${Stage}:/backup"
-    Invoke-Compose -Arguments @(
+    $command = @(
         "run", "--rm", "--no-deps", "-v", $mount,
         "--entrypoint", "python", "backend", "-m", "app.cli.backup_artifact"
     ) + $Arguments
+    Invoke-Compose -Arguments $command
 }
 
 function Test-ZipLayout {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
+    param([string]$Path)
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $required = @("manifest.json", "database.dump", "storage.tar")
     $archive = [IO.Compression.ZipFile]::OpenRead($Path)
@@ -245,75 +184,45 @@ function Test-ZipLayout {
         $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::Ordinal)
         foreach ($entry in $archive.Entries) {
             $name = $entry.FullName.Replace('\', '/')
-            if ([string]::IsNullOrWhiteSpace($entry.Name)) {
-                throw "Backup ZIP contains an unexpected directory."
-            }
-            if ($name.StartsWith('/') -or $name.Contains('../') -or $name -eq '..') {
-                throw "Backup ZIP contains an unsafe path."
-            }
-            if ($required -notcontains $name) {
-                throw "Backup ZIP contains an unexpected file."
-            }
-            if (-not $seen.Add($name)) {
-                throw "Backup ZIP contains duplicate files."
-            }
+            if ([string]::IsNullOrWhiteSpace($entry.Name)) { throw "Backup ZIP contains an unexpected directory." }
+            if ($name.StartsWith('/') -or $name.Contains('../') -or $name -eq '..') { throw "Backup ZIP contains an unsafe path." }
+            if ($required -notcontains $name) { throw "Backup ZIP contains an unexpected file." }
+            if (-not $seen.Add($name)) { throw "Backup ZIP contains duplicate files." }
         }
-        if ($seen.Count -ne $required.Count) {
-            throw "Backup ZIP is incomplete."
-        }
-        foreach ($name in $required) {
-            if (-not $seen.Contains($name)) {
-                throw "Backup ZIP is incomplete."
-            }
-        }
+        if ($seen.Count -ne $required.Count) { throw "Backup ZIP is incomplete." }
+        foreach ($name in $required) { if (-not $seen.Contains($name)) { throw "Backup ZIP is incomplete." } }
     } finally {
         $archive.Dispose()
     }
 }
 
 function Expand-ValidatedZip {
-    param(
-        [Parameter(Mandatory = $true)][string]$ZipPath,
-        [Parameter(Mandatory = $true)][string]$Destination
-    )
-
+    param([string]$ZipPath, [string]$Destination)
     Test-ZipLayout -Path $ZipPath
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [IO.Compression.ZipFile]::ExtractToDirectory($ZipPath, $Destination)
 }
 
 function Write-RestoreJournal {
-    param([Parameter(Mandatory = $true)][hashtable]$Journal)
+    param([hashtable]$Journal)
     $tmp = "$JournalPath.$PID.tmp"
-    $json = $Journal | ConvertTo-Json -Depth 5
-    [IO.File]::WriteAllText($tmp, $json + [Environment]::NewLine, (New-Object Text.UTF8Encoding($false)))
+    [IO.File]::WriteAllText($tmp, (($Journal | ConvertTo-Json -Depth 5) + [Environment]::NewLine), (New-Object Text.UTF8Encoding($false)))
     Move-Item -LiteralPath $tmp -Destination $JournalPath -Force
 }
 
 function Read-RestoreJournal {
-    if (-not (Test-Path -LiteralPath $JournalPath -PathType Leaf)) {
-        return $null
-    }
-    try {
-        return Get-Content -LiteralPath $JournalPath -Raw | ConvertFrom-Json
-    } catch {
-        throw "Restore journal is unreadable. Dentora remains fail-closed until it is recovered manually."
-    }
+    if (-not (Test-Path -LiteralPath $JournalPath -PathType Leaf)) { return $null }
+    try { return Get-Content -LiteralPath $JournalPath -Raw | ConvertFrom-Json }
+    catch { throw "Restore journal is unreadable. Dentora remains fail-closed." }
 }
 
 function Invoke-PostgresSql {
-    param(
-        [Parameter(Mandatory = $true)][string]$User,
-        [Parameter(Mandatory = $true)][string]$Sql
-    )
+    param([string]$User, [string]$Sql)
     Invoke-Compose -Arguments @("exec", "-T", "db", "psql", "-v", "ON_ERROR_STOP=1", "-U", $User, "-d", "postgres", "-c", $Sql)
 }
 
 function Test-DatabaseExists {
-    param(
-        [Parameter(Mandatory = $true)][string]$User,
-        [Parameter(Mandatory = $true)][string]$Database
-    )
+    param([string]$User, [string]$Database)
     Assert-SafeIdentifier -Value $Database -Label "Database name"
     $output = Invoke-Compose -Arguments @(
         "exec", "-T", "db", "psql", "-U", $User, "-d", "postgres", "-Atc",
@@ -323,29 +232,20 @@ function Test-DatabaseExists {
 }
 
 function Remove-DatabaseIfExists {
-    param(
-        [Parameter(Mandatory = $true)][string]$User,
-        [Parameter(Mandatory = $true)][string]$Database
-    )
-    Assert-SafeIdentifier -Value $Database -Label "Database name"
-    if (Test-DatabaseExists -User $User -Database $Database) {
-        Invoke-PostgresSql -User $User -Sql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$Database' AND pid <> pg_backend_pid();"
-        Invoke-PostgresSql -User $User -Sql "DROP DATABASE $Database;"
-    }
+    param([string]$User, [string]$Database)
+    if (-not (Test-DatabaseExists -User $User -Database $Database)) { return }
+    Invoke-PostgresSql -User $User -Sql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$Database' AND pid <> pg_backend_pid();"
+    Invoke-PostgresSql -User $User -Sql "DROP DATABASE $Database;"
 }
 
 function Wait-DentoraHealth {
-    param([Parameter(Mandatory = $true)][string]$PublicUrl)
+    param([string]$PublicUrl)
     $healthUrl = $PublicUrl.TrimEnd('/') + "/health"
     for ($attempt = 1; $attempt -le 30; $attempt++) {
         try {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $healthUrl -TimeoutSec 4
-            if ($response.StatusCode -eq 200) {
-                return
-            }
-        } catch {
-            # Retry while services recreate. TLS validation is intentionally not bypassed.
-        }
+            if ($response.StatusCode -eq 200) { return }
+        } catch { }
         Start-Sleep -Seconds 2
     }
     throw "Dentora did not become healthy after restore."
@@ -353,184 +253,123 @@ function Wait-DentoraHealth {
 
 function Invoke-BackupInternal {
     param([switch]$PreRestore)
-
-    if ((Test-Path -LiteralPath $JournalPath) -and -not $PreRestore) {
-        throw "An interrupted restore journal exists. Recover it before creating a backup."
-    }
-
+    if ((Test-Path -LiteralPath $JournalPath) -and -not $PreRestore) { throw "Recover the interrupted restore before backup." }
     Protect-BackupDirectory
     $running = @(Get-RunningServices)
-    if ($running -notcontains "db") {
-        throw "Dentora database is not running. Start Dentora before creating a backup."
-    }
-
-    $dbName = Get-EnvValue -Name "POSTGRES_DB"
-    $dbUser = Get-EnvValue -Name "POSTGRES_USER"
-    if ([string]::IsNullOrWhiteSpace($dbName)) { $dbName = "dental_clinic" }
-    if ([string]::IsNullOrWhiteSpace($dbUser)) { $dbUser = "dental" }
-    Assert-SafeIdentifier -Value $dbName -Label "Database name"
-    Assert-SafeIdentifier -Value $dbUser -Label "Database user"
-
-    $appVersion = Get-AppVersion
-    $expectedSchema = Get-ExpectedSchemaRevision
-    $liveSchema = Get-DatabaseSchemaRevision -Database $dbName -User $dbUser
-    if ($liveSchema -ne $expectedSchema) {
-        throw "Database schema is not at the installed Dentora Alembic head."
-    }
+    if ($running -notcontains "db") { throw "Dentora database is not running." }
+    $db = Get-DatabaseSettings
+    $version = Get-AppVersion
+    $schema = Get-ExpectedSchemaRevision
+    if ((Get-DatabaseSchemaRevision -Database $db.Name -User $db.User) -ne $schema) { throw "Database schema is not at the installed Alembic head." }
 
     $backupId = New-BackupId
     $createdAt = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")
     $stage = Join-Path $env:TEMP "DentoraBackup\$backupId"
     $partial = Join-Path $BackupDir "$backupId.zip.partial"
     $final = Join-Path $BackupDir "$backupId.zip"
-    $dbContainerPath = "/tmp/$backupId.dump"
+    $containerDump = "/tmp/$backupId.dump"
     $stopped = $false
-
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
-    try {
-        Stop-RunningAppServices -RunningServices $running
-        $stopped = $true
 
-        Invoke-Compose -Arguments @(
-            "exec", "-T", "db", "pg_dump", "-U", $dbUser, "-d", $dbName,
-            "-Fc", "-f", $dbContainerPath
-        )
-        Invoke-Compose -Arguments @("exec", "-T", "db", "pg_restore", "--list", $dbContainerPath) -Capture | Out-Null
-        Invoke-Compose -Arguments @("cp", "db:$dbContainerPath", (Join-Path $stage "database.dump"))
-        Invoke-Compose -Arguments @("exec", "-T", "db", "rm", "-f", $dbContainerPath)
+    try {
+        Stop-AppServices -RunningServices $running
+        $stopped = $true
+        Invoke-Compose -Arguments @("exec", "-T", "db", "pg_dump", "-U", $db.User, "-d", $db.Name, "-Fc", "-f", $containerDump)
+        Invoke-Compose -Arguments @("exec", "-T", "db", "pg_restore", "--list", $containerDump) -Capture | Out-Null
+        Invoke-Compose -Arguments @("cp", "db:$containerDump", (Join-Path $stage "database.dump"))
+        Invoke-Compose -Arguments @("exec", "-T", "db", "rm", "-f", $containerDump) -Capture | Out-Null
 
         $mount = "${stage}:/backup"
         Invoke-Compose -Arguments @(
             "run", "--rm", "--no-deps", "-v", $mount, "--entrypoint", "sh", "backend", "-c",
             "set -eu; tar --exclude='./license' --exclude='./license/*' -C /app/storage -cf /backup/storage.tar ."
         )
-
         Invoke-ArtifactCli -Stage $stage -Arguments @(
             "create", "--root", "/backup", "--backup-id", $backupId,
-            "--created-at-utc", $createdAt, "--app-version", $appVersion,
-            "--schema-revision", $expectedSchema
+            "--created-at-utc", $createdAt, "--app-version", $version, "--schema-revision", $schema
         )
         Invoke-ArtifactCli -Stage $stage -Arguments @(
-            "validate", "--root", "/backup", "--app-version", $appVersion,
-            "--schema-revision", $expectedSchema
+            "validate", "--root", "/backup", "--app-version", $version, "--schema-revision", $schema
         )
 
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
-        [IO.Compression.ZipFile]::CreateFromDirectory(
-            $stage,
-            $partial,
-            [IO.Compression.CompressionLevel]::Optimal,
-            $false
-        )
+        [IO.Compression.ZipFile]::CreateFromDirectory($stage, $partial, [IO.Compression.CompressionLevel]::Optimal, $false)
         Test-ZipLayout -Path $partial
-        if (Test-Path -LiteralPath $final) {
-            throw "Backup destination already exists; refusing to overwrite it."
-        }
+        if (Test-Path -LiteralPath $final) { throw "Backup destination already exists; refusing to overwrite it." }
         Move-Item -LiteralPath $partial -Destination $final
         return $final
     } finally {
-        try { Invoke-Compose -Arguments @("exec", "-T", "db", "rm", "-f", $dbContainerPath) -Capture | Out-Null } catch { }
-        if ($stopped) {
-            try { Start-PreviouslyRunningAppServices -RunningServices $running } catch { Write-Warning "Could not restart every service after backup." }
-        }
-        if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue }
-        if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue }
+        try { Invoke-Compose -Arguments @("exec", "-T", "db", "rm", "-f", $containerDump) -Capture | Out-Null } catch { }
+        if ($stopped) { try { Start-AppServices -RunningServices $running } catch { Write-Warning "Could not restart every service after backup." } }
+        Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
 function Recover-InterruptedRestore {
     $journal = Read-RestoreJournal
-    if ($null -eq $journal) {
-        return
-    }
-
-    $dbUser = [string]$journal.db_user
-    $liveDb = [string]$journal.live_db
-    $tempDb = [string]$journal.temp_db
-    $rollbackDb = [string]$journal.rollback_db
+    if ($null -eq $journal) { return }
+    $user = [string]$journal.db_user
+    $live = [string]$journal.live_db
+    $temp = [string]$journal.temp_db
+    $rollback = [string]$journal.rollback_db
     $oldVolume = [string]$journal.old_storage_volume
     $newVolume = [string]$journal.new_storage_volume
     $phase = [string]$journal.phase
     $running = @($journal.running_services | ForEach-Object { [string]$_ })
-
-    Assert-SafeIdentifier -Value $dbUser -Label "Database user"
-    Assert-SafeIdentifier -Value $liveDb -Label "Database name"
-    Assert-SafeIdentifier -Value $tempDb -Label "Temporary database name"
-    Assert-SafeIdentifier -Value $rollbackDb -Label "Rollback database name"
+    foreach ($item in @(@($user, "Database user"), @($live, "Database name"), @($temp, "Temporary database"), @($rollback, "Rollback database"))) {
+        Assert-SafeIdentifier -Value $item[0] -Label $item[1]
+    }
     Assert-SafeVolumeName -Value $oldVolume
     Assert-SafeVolumeName -Value $newVolume
 
     if ($phase -eq "committed") {
-        Remove-DatabaseIfExists -User $dbUser -Database $rollbackDb
+        Remove-DatabaseIfExists -User $user -Database $rollback
         Remove-Item -LiteralPath $JournalPath -Force
         return
     }
 
-    Stop-RunningAppServices -RunningServices @(Get-RunningServices)
+    Stop-AppServices -RunningServices @(Get-RunningServices)
     try { Invoke-Compose -Arguments @("rm", "-f", "backend", "frontend", "caddy") -Capture | Out-Null } catch { }
-
     Set-EnvValue -Name "DENTORA_STORAGE_VOLUME" -Value $oldVolume
-
-    if (Test-DatabaseExists -User $dbUser -Database $rollbackDb) {
-        Invoke-PostgresSql -User $dbUser -Sql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$liveDb' AND pid <> pg_backend_pid();"
-        Remove-DatabaseIfExists -User $dbUser -Database $liveDb
-        Invoke-PostgresSql -User $dbUser -Sql "ALTER DATABASE $rollbackDb RENAME TO $liveDb;"
+    if (Test-DatabaseExists -User $user -Database $rollback) {
+        Invoke-PostgresSql -User $user -Sql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$live' AND pid <> pg_backend_pid();"
+        Remove-DatabaseIfExists -User $user -Database $live
+        Invoke-PostgresSql -User $user -Sql "ALTER DATABASE $rollback RENAME TO $live;"
     }
-    Remove-DatabaseIfExists -User $dbUser -Database $tempDb
-
+    Remove-DatabaseIfExists -User $user -Database $temp
     try { Invoke-Docker -Arguments @("volume", "rm", $newVolume) -Capture | Out-Null } catch { }
-    Recreate-PreviouslyRunningAppServices -RunningServices $running
+    Start-AppServices -RunningServices $running -Recreate
     Remove-Item -LiteralPath $JournalPath -Force
 }
 
 function Invoke-RestoreInternal {
-    param([Parameter(Mandatory = $true)][string]$BackupPath)
-
-    if (-not (Test-Path -LiteralPath $BackupPath -PathType Leaf)) {
-        throw "Backup file does not exist."
-    }
-    $resolvedBackup = (Resolve-Path -LiteralPath $BackupPath).Path
-    if ([IO.Path]::GetExtension($resolvedBackup) -ne ".zip") {
-        throw "Dentora restore accepts only a validated .zip backup artifact."
-    }
-
-    if (Test-Path -LiteralPath $JournalPath) {
-        Recover-InterruptedRestore
-    }
+    param([string]$BackupPath)
+    if (-not (Test-Path -LiteralPath $BackupPath -PathType Leaf)) { throw "Backup file does not exist." }
+    $resolved = (Resolve-Path -LiteralPath $BackupPath).Path
+    if ([IO.Path]::GetExtension($resolved) -ne ".zip") { throw "Restore accepts only a Dentora backup ZIP." }
+    if (Test-Path -LiteralPath $JournalPath) { Recover-InterruptedRestore }
 
     $running = @(Get-RunningServices)
     foreach ($required in @("db", "backend", "frontend", "caddy")) {
-        if ($running -notcontains $required) {
-            throw "Dentora must be fully running before restore so a safety backup can be created."
-        }
+        if ($running -notcontains $required) { throw "Dentora must be fully running before restore." }
     }
-
-    $dbName = Get-EnvValue -Name "POSTGRES_DB"
-    $dbUser = Get-EnvValue -Name "POSTGRES_USER"
-    if ([string]::IsNullOrWhiteSpace($dbName)) { $dbName = "dental_clinic" }
-    if ([string]::IsNullOrWhiteSpace($dbUser)) { $dbUser = "dental" }
-    Assert-SafeIdentifier -Value $dbName -Label "Database name"
-    Assert-SafeIdentifier -Value $dbUser -Label "Database user"
-
-    $appVersion = Get-AppVersion
-    $expectedSchema = Get-ExpectedSchemaRevision
+    $db = Get-DatabaseSettings
+    $version = Get-AppVersion
+    $schema = Get-ExpectedSchemaRevision
     $stageName = "restore-" + [Guid]::NewGuid().ToString("N")
     $stage = Join-Path $env:TEMP "DentoraRestore\$stageName"
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
 
     try {
-        Expand-ValidatedZip -ZipPath $resolvedBackup -Destination $stage
+        Expand-ValidatedZip -ZipPath $resolved -Destination $stage
         Invoke-ArtifactCli -Stage $stage -Arguments @(
-            "validate", "--root", "/backup", "--app-version", $appVersion,
-            "--schema-revision", $expectedSchema
+            "validate", "--root", "/backup", "--app-version", $version, "--schema-revision", $schema
         )
         $manifest = Get-Content -LiteralPath (Join-Path $stage "manifest.json") -Raw | ConvertFrom-Json
         $backupId = [string]$manifest.backup_id
-        if ($backupId -notmatch '^[A-Za-z0-9._-]{8,96}$') {
-            throw "Backup identifier is invalid."
-        }
-
+        if ($backupId -notmatch '^[A-Za-z0-9._-]{8,96}$') { throw "Backup identifier is invalid." }
         $mount = "${stage}:/backup:ro"
         Invoke-Compose -Arguments @(
             "run", "--rm", "--no-deps", "-v", $mount,
@@ -538,9 +377,7 @@ function Invoke-RestoreInternal {
         ) -Capture | Out-Null
 
         $safetyBackup = Invoke-BackupInternal -PreRestore
-        if (-not (Test-Path -LiteralPath $safetyBackup -PathType Leaf)) {
-            throw "Pre-restore safety backup was not created."
-        }
+        if (-not (Test-Path -LiteralPath $safetyBackup -PathType Leaf)) { throw "Pre-restore safety backup failed." }
 
         $nonce = [Guid]::NewGuid().ToString("N").Substring(0, 10)
         $tempDb = "dentora_restore_$nonce"
@@ -548,41 +385,33 @@ function Invoke-RestoreInternal {
         $oldVolume = Get-StorageVolumeName
         $newVolume = "dentora-restore-storage-$nonce"
         Assert-SafeVolumeName -Value $newVolume
+        $existingVolume = Invoke-Docker -Arguments @("volume", "ls", "-q", "--filter", "name=$newVolume") -Capture
+        if (-not [string]::IsNullOrWhiteSpace($existingVolume)) { throw "Restore storage volume already exists; refusing to overwrite it." }
 
         $journal = @{
-            version = 1
-            phase = "prepared"
-            backup_id = $backupId
-            db_user = $dbUser
-            live_db = $dbName
-            temp_db = $tempDb
-            rollback_db = $rollbackDb
-            old_storage_volume = $oldVolume
-            new_storage_volume = $newVolume
-            running_services = $running
+            version = 1; phase = "prepared"; backup_id = $backupId; db_user = $db.User;
+            live_db = $db.Name; temp_db = $tempDb; rollback_db = $rollbackDb;
+            old_storage_volume = $oldVolume; new_storage_volume = $newVolume; running_services = $running
         }
         Write-RestoreJournal -Journal $journal
+        Stop-AppServices -RunningServices $running
 
-        Stop-RunningAppServices -RunningServices $running
-
-        Remove-DatabaseIfExists -User $dbUser -Database $tempDb
-        Remove-DatabaseIfExists -User $dbUser -Database $rollbackDb
-        Invoke-PostgresSql -User $dbUser -Sql "CREATE DATABASE $tempDb;"
-
-        $dbContainerPath = "/tmp/$stageName.dump"
+        Remove-DatabaseIfExists -User $db.User -Database $tempDb
+        Remove-DatabaseIfExists -User $db.User -Database $rollbackDb
+        Invoke-PostgresSql -User $db.User -Sql "CREATE DATABASE $tempDb;"
+        $containerDump = "/tmp/$stageName.dump"
         try {
-            Invoke-Compose -Arguments @("cp", (Join-Path $stage "database.dump"), "db:$dbContainerPath")
+            Invoke-Compose -Arguments @("cp", (Join-Path $stage "database.dump"), "db:$containerDump")
             Invoke-Compose -Arguments @(
-                "exec", "-T", "db", "pg_restore", "-U", $dbUser, "-d", $tempDb,
-                "--no-owner", "--no-privileges", "--exit-on-error", $dbContainerPath
+                "exec", "-T", "db", "pg_restore", "-U", $db.User, "-d", $tempDb,
+                "--no-owner", "--no-privileges", "--exit-on-error", $containerDump
             )
         } finally {
-            try { Invoke-Compose -Arguments @("exec", "-T", "db", "rm", "-f", $dbContainerPath) -Capture | Out-Null } catch { }
+            try { Invoke-Compose -Arguments @("exec", "-T", "db", "rm", "-f", $containerDump) -Capture | Out-Null } catch { }
         }
-
-        $restoredSchema = Get-DatabaseSchemaRevision -Database $tempDb -User $dbUser
-        if ($restoredSchema -ne $expectedSchema -or $restoredSchema -ne [string]$manifest.schema_revision) {
-            throw "Restored database schema does not match the validated backup and installed Dentora schema."
+        $restoredSchema = Get-DatabaseSchemaRevision -Database $tempDb -User $db.User
+        if ($restoredSchema -ne $schema -or $restoredSchema -ne [string]$manifest.schema_revision) {
+            throw "Restored database schema is incompatible."
         }
 
         Invoke-Docker -Arguments @(
@@ -590,50 +419,43 @@ function Invoke-RestoreInternal {
             "--label", "dentora.backup_id=$backupId", $newVolume
         ) -Capture | Out-Null
         Invoke-Compose -Arguments @(
-            "run", "--rm", "--no-deps", "-v", $mount, "-v", "${newVolume}:/restore",
+            "run", "--rm", "--no-deps", "--user", "0:0", "-v", $mount, "-v", "${newVolume}:/restore",
             "--entrypoint", "sh", "backend", "-c",
-            "set -eu; tar -xf /backup/storage.tar -C /restore; if [ -d /app/storage/license ]; then mkdir -p /restore/license; cp -a /app/storage/license/. /restore/license/; fi"
+            "set -eu; tar -xf /backup/storage.tar -C /restore; if [ -d /app/storage/license ]; then mkdir -p /restore/license; cp -a /app/storage/license/. /restore/license/; fi; chown -R 1000:1000 /restore"
         )
 
-        Invoke-PostgresSql -User $dbUser -Sql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$dbName' AND pid <> pg_backend_pid();"
-        Invoke-PostgresSql -User $dbUser -Sql "ALTER DATABASE $dbName RENAME TO $rollbackDb;"
-        Invoke-PostgresSql -User $dbUser -Sql "ALTER DATABASE $tempDb RENAME TO $dbName;"
-        $journal.phase = "database_swapped"
+        Invoke-PostgresSql -User $db.User -Sql "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='$($db.Name)' AND pid <> pg_backend_pid();"
+        Invoke-PostgresSql -User $db.User -Sql "ALTER DATABASE $($db.Name) RENAME TO $rollbackDb;"
+        Invoke-PostgresSql -User $db.User -Sql "ALTER DATABASE $tempDb RENAME TO $($db.Name);"
+        $journal["phase"] = "database_swapped"
         Write-RestoreJournal -Journal $journal
 
         Set-EnvValue -Name "DENTORA_STORAGE_VOLUME" -Value $newVolume
-        $journal.phase = "storage_switched"
+        $journal["phase"] = "storage_switched"
         Write-RestoreJournal -Journal $journal
-
         try { Invoke-Compose -Arguments @("rm", "-f", "backend", "frontend", "caddy") -Capture | Out-Null } catch { }
-        Recreate-PreviouslyRunningAppServices -RunningServices $running
+        Start-AppServices -RunningServices $running -Recreate
         $publicUrl = Get-EnvValue -Name "PUBLIC_URL"
         if ([string]::IsNullOrWhiteSpace($publicUrl)) { $publicUrl = "http://localhost" }
         Wait-DentoraHealth -PublicUrl $publicUrl
 
-        $journal.phase = "committed"
+        $journal["phase"] = "committed"
         Write-RestoreJournal -Journal $journal
-        Remove-DatabaseIfExists -User $dbUser -Database $rollbackDb
+        Remove-DatabaseIfExists -User $db.User -Database $rollbackDb
         Remove-Item -LiteralPath $JournalPath -Force
-
         Write-Host "Restore succeeded."
         Write-Host "Backup ID: $backupId"
         Write-Host "Safety backup: $safetyBackup"
         Write-Host "Previous storage volume retained for manual disaster recovery: $oldVolume"
     } catch {
-        $originalError = $_
+        $original = $_
         if (Test-Path -LiteralPath $JournalPath) {
-            try {
-                Recover-InterruptedRestore
-            } catch {
-                throw "Restore failed and automatic rollback could not complete. Dentora remains fail-closed. Original error: $($originalError.Exception.Message)"
-            }
+            try { Recover-InterruptedRestore }
+            catch { throw "Restore failed and automatic rollback could not complete. Dentora remains fail-closed. Original error: $($original.Exception.Message)" }
         }
-        throw $originalError
+        throw $original
     } finally {
-        if (Test-Path -LiteralPath $stage) {
-            Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
-        }
+        Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
@@ -642,16 +464,10 @@ function New-DentoraMutex {
     try {
         $bytes = [Text.Encoding]::UTF8.GetBytes($RepoRoot.ToLowerInvariant())
         $hash = [BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-', '').Substring(0, 24)
-    } finally {
-        $sha.Dispose()
-    }
+    } finally { $sha.Dispose() }
     $mutex = New-Object Threading.Mutex($false, "DentoraBackupRestore_$hash")
-    $acquired = $false
-    try {
-        $acquired = $mutex.WaitOne(0)
-    } catch [Threading.AbandonedMutexException] {
-        $acquired = $true
-    }
+    try { $acquired = $mutex.WaitOne(0) }
+    catch [Threading.AbandonedMutexException] { $acquired = $true }
     if (-not $acquired) {
         $mutex.Dispose()
         throw "Another Dentora Backup / Restore operation is already running."
@@ -670,18 +486,12 @@ try {
             Write-Host "Artifact: $result"
         }
         "restore" {
-            if ([string]::IsNullOrWhiteSpace($ArtifactPath)) {
-                throw "Restore requires the path to a Dentora backup ZIP."
-            }
+            if ([string]::IsNullOrWhiteSpace($ArtifactPath)) { throw "Restore requires the path to a Dentora backup ZIP." }
             Invoke-RestoreInternal -BackupPath $ArtifactPath
         }
         "recover" {
-            if (-not (Test-Path -LiteralPath $JournalPath)) {
-                Write-Host "No interrupted Dentora restore was found."
-            } else {
-                Recover-InterruptedRestore
-                Write-Host "Interrupted restore was recovered safely."
-            }
+            if (-not (Test-Path -LiteralPath $JournalPath)) { Write-Host "No interrupted Dentora restore was found." }
+            else { Recover-InterruptedRestore; Write-Host "Interrupted restore was recovered safely." }
         }
     }
 } finally {

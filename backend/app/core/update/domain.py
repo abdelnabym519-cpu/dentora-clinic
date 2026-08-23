@@ -1,4 +1,5 @@
 """Pure domain rules for trusted Dentora update metadata."""
+
 from __future__ import annotations
 
 import base64
@@ -78,7 +79,9 @@ class UpdateDescriptor:
         current = _version_tuple(current_version, installed=True)
         target = _version_tuple(self.version)
         if target <= current:
-            raise UpdateValidationError("Update must be a strict upgrade; downgrade or reinstall rejected")
+            raise UpdateValidationError(
+                "Update must be a strict upgrade; downgrade or reinstall rejected"
+            )
         if self.compatible_from != current_version:
             raise UpdateValidationError("Update is incompatible with the installed Dentora version")
 

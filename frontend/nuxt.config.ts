@@ -101,7 +101,8 @@ export default defineNuxtConfig({
         'nprogress',
         '@vueuse/core',
         '@vue/devtools-core',
-        '@vue/devtools-kit'
+        '@vue/devtools-kit',
+        'three'
       ]
     }
   },

@@ -1,0 +1,23 @@
+{
+  "dental_3d": {
+    "card": {
+      "title": "Dentaire 3D",
+      "subtitle": "{count} dents dans l'aperçu 3D",
+      "flagged": "{count} avec constatations",
+      "error": "L'aperçu 3D est indisponible pour le moment.",
+      "disclaimer": "Géométrie synthétique de démonstration — données non cliniques",
+      "meshCount": "{count} maillages de scan",
+      "upload": "Téléverser un scan (.stl / .obj)",
+      "uploading": "Téléversement du scan…",
+      "uploadError": "Le scan n'a pas pu être téléversé. Vérifiez que le fichier est un STL ou OBJ valide.",
+      "scanDisclaimer": "Géométrie de scan à titre de visualisation — pas un outil de diagnostic"
+    },
+    "viewer": {
+      "hint": "Glisser pour pivoter · molette pour zoomer",
+      "webglUnavailable": "WebGL n'est pas disponible dans ce navigateur ; l'aperçu 3D ne peut pas être affiché.",
+      "meshLoading": "Chargement du scan…",
+      "meshError": "Scan impossible à charger — aperçu synthétique affiché",
+      "meshBadge": "Géométrie de scan"
+    }
+  }
+}

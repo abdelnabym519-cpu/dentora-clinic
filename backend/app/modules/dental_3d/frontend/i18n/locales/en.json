@@ -1,0 +1,23 @@
+{
+  "dental_3d": {
+    "card": {
+      "title": "Dental 3D",
+      "subtitle": "{count} teeth in the 3D preview",
+      "flagged": "{count} with findings",
+      "error": "The 3D preview is unavailable right now.",
+      "disclaimer": "Synthetic demo geometry — not clinical data",
+      "meshCount": "{count} scan meshes",
+      "upload": "Upload scan (.stl / .obj)",
+      "uploading": "Uploading scan…",
+      "uploadError": "The scan could not be uploaded. Check the file is a valid STL or OBJ.",
+      "scanDisclaimer": "Scan geometry for visualization — not a diagnostic tool"
+    },
+    "viewer": {
+      "hint": "Drag to rotate · scroll to zoom",
+      "webglUnavailable": "WebGL is not available in this browser, so the 3D preview cannot be rendered.",
+      "meshLoading": "Loading scan…",
+      "meshError": "Scan could not be loaded — showing synthetic preview",
+      "meshBadge": "Scan geometry"
+    }
+  }
+}

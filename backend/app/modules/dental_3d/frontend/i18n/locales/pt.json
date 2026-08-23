@@ -1,0 +1,23 @@
+{
+  "dental_3d": {
+    "card": {
+      "title": "Dental 3D",
+      "subtitle": "{count} dentes na pré-visualização 3D",
+      "flagged": "{count} com achados",
+      "error": "A pré-visualização 3D não está disponível neste momento.",
+      "disclaimer": "Geometria sintética de demonstração — não são dados clínicos",
+      "meshCount": "{count} malhas de digitalização",
+      "upload": "Enviar digitalização (.stl / .obj)",
+      "uploading": "Enviando digitalização…",
+      "uploadError": "Não foi possível enviar a digitalização. Verifique se é um STL ou OBJ válido.",
+      "scanDisclaimer": "Geometria de digitalização para visualização — não é uma ferramenta de diagnóstico"
+    },
+    "viewer": {
+      "hint": "Arraste para rodar · roda para ampliar",
+      "webglUnavailable": "O WebGL não está disponível neste navegador, pelo que a pré-visualização 3D não pode ser renderizada.",
+      "meshLoading": "Carregando digitalização…",
+      "meshError": "Não foi possível carregar a digitalização — a mostrar pré-visualização sintética",
+      "meshBadge": "Geometria de digitalização"
+    }
+  }
+}

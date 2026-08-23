@@ -51,3 +51,5 @@ Triggers (any one):
 | 0004 | [BSL 1.1 license, Apache 2.0 after 4 years](0004-bsl-license.md) | accepted | 2026-04-27 |
 | 0005 | [Relative permissions, registry-prefixed namespacing](0005-relative-permissions.md) | accepted | 2026-04-27 |
 | 0006 | [Budget public link two-factor authentication](0006-budget-public-link-2-factor-auth.md) | accepted | 2026-04-28 |
+| 0019 | [Clean Architecture as a mandatory acceptance criterion](0019-clean-architecture-standard.md) | accepted | 2026-08-23 |
+| 0020 | [Real mesh ingestion via geometry-source ports and media storage](0020-real-mesh-ingestion.md) | accepted | 2026-08-23 |

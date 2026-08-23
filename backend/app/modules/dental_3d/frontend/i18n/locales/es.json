@@ -1,0 +1,23 @@
+{
+  "dental_3d": {
+    "card": {
+      "title": "Dental 3D",
+      "subtitle": "{count} dientes en la vista previa 3D",
+      "flagged": "{count} con hallazgos",
+      "error": "La vista previa 3D no está disponible en este momento.",
+      "disclaimer": "Geometría sintética de demostración — no son datos clínicos",
+      "meshCount": "{count} mallas de escaneo",
+      "upload": "Subir escaneo (.stl / .obj)",
+      "uploading": "Subiendo escaneo…",
+      "uploadError": "No se pudo subir el escaneo. Comprueba que sea un STL u OBJ válido.",
+      "scanDisclaimer": "Geometría de escaneo para visualización — no es una herramienta de diagnóstico"
+    },
+    "viewer": {
+      "hint": "Arrastra para rotar · rueda para acercar",
+      "webglUnavailable": "WebGL no está disponible en este navegador, por lo que no se puede renderizar la vista previa 3D.",
+      "meshLoading": "Cargando escaneo…",
+      "meshError": "No se pudo cargar el escaneo — se muestra la vista sintética",
+      "meshBadge": "Geometría de escaneo"
+    }
+  }
+}

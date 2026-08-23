@@ -124,7 +124,9 @@ class BackupManifest:
         }:
             raise BackupValidationError("Backup source metadata is incompatible")
 
-        if not isinstance(raw_components, list) or len(raw_components) != len(REQUIRED_COMPONENT_NAMES):
+        if not isinstance(raw_components, list) or len(raw_components) != len(
+            REQUIRED_COMPONENT_NAMES
+        ):
             raise BackupValidationError("Backup components are incomplete")
         components = tuple(ComponentDigest.from_dict(item) for item in raw_components)
         names = [component.name for component in components]

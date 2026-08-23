@@ -77,7 +77,9 @@ def validate_artifact(
             raise BackupValidationError(f"Backup component {component.name} size does not match")
         actual_hash = sha256_file(path)
         if actual_hash != component.sha256:
-            raise BackupValidationError(f"Backup component {component.name} checksum does not match")
+            raise BackupValidationError(
+                f"Backup component {component.name} checksum does not match"
+            )
 
     validate_storage_tar(root / STORAGE_FILENAME)
     return manifest

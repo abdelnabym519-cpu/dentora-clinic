@@ -11,7 +11,7 @@ def _read(path: str) -> str:
 
 def test_backup_wrapper_uses_single_hardened_operations_entrypoint() -> None:
     script = _read("BACKUP_DENTORA.bat")
-    assert "dentora_backup_restore.ps1\" backup" in script
+    assert 'dentora_backup_restore.ps1" backup' in script
     assert "pg_dump" not in script
     assert "pause" in script
 
@@ -20,7 +20,7 @@ def test_restore_wrapper_requires_explicit_artifact_and_supports_recovery() -> N
     script = _read("RESTORE_DENTORA.bat")
     assert "ArtifactPath" in script
     assert "--recover" in script
-    assert "dentora_backup_restore.ps1\" restore" in script
+    assert 'dentora_backup_restore.ps1" restore' in script
 
 
 def test_operations_are_admin_locked_and_concurrency_locked() -> None:

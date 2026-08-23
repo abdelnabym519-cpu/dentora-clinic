@@ -48,7 +48,6 @@ def test_update_health_failure_rolls_back_and_start_is_fail_closed() -> None:
     start = _read("START_DENTORA.bat")
     assert "Wait-Health" in script
     assert "Recover" in script
-    assert "restore -ArtifactPath" not in script  # PowerShell parameterized call, no shell command string
     assert "-Action restore -ArtifactPath" in script
     assert ".dentora-update-journal.json" in start
     assert "UPDATE_DENTORA.bat --recover" in start

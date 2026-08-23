@@ -1,4 +1,5 @@
 """Static production contracts for Dentora Auto Update."""
+
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -99,14 +100,17 @@ def test_update_health_failure_rolls_back_and_start_is_fail_closed() -> None:
 def test_success_clears_journal_only_after_health_and_version_validation() -> None:
     script = _read("scripts/dentora_auto_update.ps1")
     health = script.index("        Wait-Health")
-    version = script.index('        if ((Get-Version) -ne [string]$u.Descriptor.version)')
+    version = script.index("        if ((Get-Version) -ne [string]$u.Descriptor.version)")
     clear = script.index("        Remove-Item $Journal -Force")
     assert health < version < clear
 
 
 def test_recovery_is_idempotent_when_no_interruption_exists() -> None:
     script = _read("scripts/dentora_auto_update.ps1")
-    assert 'if (-not (Test-Path $Journal)) { Write-Host "No interrupted update was found."; return }' in script
+    assert (
+        'if (-not (Test-Path $Journal)) { Write-Host "No interrupted update was found."; return }'
+        in script
+    )
 
 
 def test_update_rejects_arbitrary_command_surface() -> None:

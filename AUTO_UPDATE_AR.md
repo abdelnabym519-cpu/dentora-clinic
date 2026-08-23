@@ -8,7 +8,8 @@
 - يجب أن يكون `UPDATE_METADATA_URL` عبر HTTPS فقط.
 - يجب حقن `UPDATE_PUBLIC_KEY_B64` كمفتاح Ed25519 عام مخصص للتحديثات.
 - ملف metadata يحتوي descriptor ثابت الحقول + signature. أي حقل غير معروف يُرفض.
-- يتم التحقق من توقيع الـdescriptor أولًا، ثم رفض downgrade/reinstall، ثم التحقق من حجم حزمة ZIP وSHA-256 الموقعين.
+- الـdescriptor الموقّع يحدد `compatible_from` كنسخة Dentora المصدر الوحيدة المسموح لها بتطبيق الحزمة؛ أي baseline مختلف يُرفض قبل mutation.
+- يتم التحقق من توقيع الـdescriptor أولًا، ثم رفض downgrade/reinstall أو الحزمة غير المتوافقة، ثم التحقق من حجم حزمة ZIP وSHA-256 الموقعين.
 - لا يوجد command أو script field في metadata، لذلك لا يمكن لخادم التحديث تمرير أوامر تشغيل عشوائية.
 
 ## دورة التحديث

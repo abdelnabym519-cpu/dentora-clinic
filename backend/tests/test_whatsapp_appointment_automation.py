@@ -150,9 +150,7 @@ async def test_scheduler_queues_first_then_final_whatsapp_reminder_once(
     await _enable_whatsapp_appointment_messages(db_session, test_patient)
     membership = (
         await db_session.execute(
-            select(ClinicMembership).where(
-                ClinicMembership.clinic_id == test_patient.clinic_id
-            )
+            select(ClinicMembership).where(ClinicMembership.clinic_id == test_patient.clinic_id)
         )
     ).scalar_one()
     now = datetime.now(UTC).replace(microsecond=0)
@@ -232,9 +230,7 @@ async def test_scheduler_preserves_single_email_fallback_without_whatsapp_opt_in
 
     membership = (
         await db_session.execute(
-            select(ClinicMembership).where(
-                ClinicMembership.clinic_id == test_patient.clinic_id
-            )
+            select(ClinicMembership).where(ClinicMembership.clinic_id == test_patient.clinic_id)
         )
     ).scalar_one()
     now = datetime.now(UTC).replace(microsecond=0)
@@ -251,10 +247,13 @@ async def test_scheduler_preserves_single_email_fallback_without_whatsapp_opt_in
     await db_session.commit()
 
     assert await process_due_appointment_messages(db_session, now=now) == 1
-    assert await process_due_appointment_messages(
-        db_session,
-        now=now + timedelta(hours=1, minutes=30),
-    ) == 0
+    assert (
+        await process_due_appointment_messages(
+            db_session,
+            now=now + timedelta(hours=1, minutes=30),
+        )
+        == 0
+    )
 
     messages = list(
         (

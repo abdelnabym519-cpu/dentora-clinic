@@ -1,4 +1,5 @@
 """CLI used by the Windows updater to validate signed release metadata and package bytes."""
+
 from __future__ import annotations
 
 import argparse

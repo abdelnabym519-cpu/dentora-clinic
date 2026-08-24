@@ -75,3 +75,12 @@ proyecto_open_source_dental.docx
 *.dpm
 *.dpmf
 test-results/
+
+# DentalSegmentator model/test artifacts — external medical-model material.
+# Never commit checkpoints, DICOM inputs or derived NIfTI volumes.
+nerve-inference-service/models/
+nerve-inference-service/testdata/
+nerve-inference-service/**/*.pth
+nerve-inference-service/**/*.nii
+nerve-inference-service/**/*.nii.gz
+nerve-inference-service/**/*.dcm

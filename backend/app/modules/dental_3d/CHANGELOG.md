@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Phase 5.2 runtime integration — DentalSegmentator reference service
+
+- Added an optional isolated `nerve-inference-service/` implementing the
+  existing `nerve-detection-v1` HTTP boundary with DentalSegmentator / nnU-Net;
+  the `NerveDetectionProvider`, application service, API and persistence
+  contracts remain unchanged (ADR 0025).
+- Model weights remain external read-only artifacts and are never bundled with
+  Dentora or committed. The default/client/production stacks remain unchanged;
+  local integration is opt-in through `docker-compose.nerve-ai.yml`.
+- The service revalidates Dentora's de-identified DICOM archive, preserves
+  native DICOM-patient geometry, derives label-5 mandibular-canal polylines and
+  returns model-derived but explicitly uncalibrated confidence/uncertainty.
+- Standalone execution of the published Dataset112 checkpoint on the public 3D
+  Slicer `PreDentalSurgery` CBCT sample was verified with native geometry and
+  bilateral label-5 output. This is engineering validation only, not clinical
+  validation or an accuracy claim; the commercial-use gate remains open.
+
 ### 0.5.0 — Phase 5.1: CBCT/DICOM ingestion foundation
 
 - Framework-independent `DicomIngestionPort`, normalized CT instance/series

@@ -10,6 +10,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,6 +19,14 @@ from app.core.schemas import ApiResponse
 from app.database import get_db
 from app.modules.patients.models import Patient
 
+from .cbct import (
+    DicomIngestionError,
+    DicomIngestionErrorCode,
+    DicomIngestionReceipt,
+    DicomIngestionRequest,
+)
+from .cbct_service import CbctIngestionService
+from .infrastructure import default_cbct_ingestion_port
 from .meshfiles import MeshUploadError
 from .nerve import NerveDetectionAnalysisResponse, NerveReviewUpdate
 from .schemas import DentalMesh, DentalSceneResponse, DentalSceneUpdate
@@ -117,6 +126,52 @@ async def upload_patient_mesh(
     except MeshUploadError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return ApiResponse(data=mesh)
+
+
+@router.post(
+    "/patients/{patient_id}/cbct/dicom-instances",
+    response_model=ApiResponse[DicomIngestionReceipt],
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_patient_dicom_instance(
+    patient_id: UUID,
+    file: Annotated[UploadFile, File()],
+    title: Annotated[str | None, Form(max_length=255)] = None,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)] = None,
+    _: Annotated[None, Depends(require_permission("dental_3d.write"))] = None,
+    db: Annotated[AsyncSession, Depends(get_db)] = None,
+) -> ApiResponse[DicomIngestionReceipt]:
+    """Validate/store one CT DICOM instance and return normalized metadata.
+
+    The controller owns HTTP/auth concerns only. Parsing and storage are
+    replaceable infrastructure behind the application port; no pixel decoding
+    or clinical inference occurs in Phase 5.1.
+    """
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    try:
+        request = DicomIngestionRequest(
+            filename=file.filename or "scan",
+            content_type=file.content_type,
+            data=await file.read(),
+            title=title,
+        )
+    except ValidationError as exc:
+        error = DicomIngestionError(
+            code=DicomIngestionErrorCode.INVALID_REQUEST,
+            detail="filename or content metadata is invalid",
+        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error)) from exc
+    service = CbctIngestionService(default_cbct_ingestion_port(db))
+    try:
+        receipt = await service.ingest(
+            clinic_id=ctx.clinic_id,
+            patient_id=patient_id,
+            user_id=ctx.user_id,
+            request=request,
+        )
+    except DicomIngestionError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return ApiResponse(data=receipt)
 
 
 @router.post(

@@ -40,6 +40,10 @@ dependencies = [
     # Image processing for media module: thumbnail generation + EXIF
     # extraction on upload. Drives the photo gallery UX.
     "Pillow>=10.0.0",
+    # dental_3d Phase 5.1: header-only DICOM validation/normalization.
+    # Keep pixel decoding out of the ingestion foundation; pydicom stays
+    # behind the module's infrastructure adapter (ADR 0023).
+    "pydicom>=3.0.2,<4.0",
     # migration_import module: zstd unwrap for DPMF files (.dpm.zst /
     # .dpm.zst.enc). cryptography (already above) handles AES-256-GCM
     # + scrypt for the DPME envelope.

@@ -114,7 +114,9 @@ ADRs) for the full story.
 | Frontend layer | The `frontend/` subdir inside a backend module. Loaded as a Nuxt layer. |
 | Dental scene | Per-patient 3D scene contract (`dental_3d` module): FDI-referenced teeth with mesh descriptors + view state. Escena dental 3D. |
 | Synthetic geometry | Procedural demo shapes rendered by the dental_3d viewer. Carries no clinical meaning; the fallback while real geometry (Phase 2: scans; later: segmentation/CBCT) is absent or fails to load. Geometría sintética. |
-| Geometry source | A `DentalGeometrySource` adapter (`dental_3d`): one origin of 3D geometry (synthetic, intraoral scan; future segmentation/CBCT) behind an inner-layer port. Fuente de geometría. |
+| Geometry source | A `DentalGeometrySource` adapter (`dental_3d`): one origin of geometry or normalized data availability (synthetic, intraoral scan, CBCT) behind an inner-layer port. Fuente de geometría. |
 | Tooth segmentation | Per-tooth proposals (FDI, status, confidence, evidence) produced by a `ToothSegmentationProvider` behind the dental_3d port. Non-clinical decision support requiring dentist review (ADR 0021). Seguimiento/segmentación dental. |
 | Nerve detection | Mandibular-canal pathway proposals (side, polyline, confidence, evidence, per-tooth AI-estimated proximity) produced by a `NerveDetectionProvider` behind the dental_3d port. AI-assisted / simulated decision support requiring dentist verification (ADR 0022). Detección de nervio. |
 | Intraoral scan mesh | A validated STL/OBJ file stored as a media document and surfaced in the dental scene as a reference (never inline binary). Malla de escaneo intraoral. |
+| CBCT series availability | A non-diagnostic group of validated DICOM Part 10 CT media documents, normalized by Study/Series UID and exposed through `DentalGeometrySource`; not a rendered volume or clinical finding. Disponibilidad de serie CBCT. |
+| DICOM instance | One validated Part 10 CT file owned and authorized by the media module. Phase 5.1 reads normalized header metadata only and does not decode Pixel Data. Instancia DICOM. |

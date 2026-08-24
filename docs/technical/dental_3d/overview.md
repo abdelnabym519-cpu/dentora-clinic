@@ -1,17 +1,17 @@
 ---
 module: dental_3d
-last_verified_commit: ec741ed
+last_verified_commit: 66f01c8
 ---
 
 # dental_3d — technical overview
 
-Dental 3D (Phase 2): a 3D preview of the patient's dentition on the
-patient Summary — **real intraoral-scan meshes (STL/OBJ)** ingested
-through the media module when available, with the Phase 1 synthetic,
-non-clinical arch as the regression-safe fallback. The scene contract
-stays source-agnostic so future real-geometry phases (tooth
-segmentation, CBCT, 3D face scans, Digital Twin) plug into the same
-`DentalGeometrySource` port. Optional and removable
+Dental 3D (Phases 1–5.1): a 3D preview of the patient's dentition plus
+source-agnostic geometry/data availability. Real intraoral-scan meshes
+(STL/OBJ) use media storage; Phase 5.1 adds validated CBCT/DICOM Part 10
+CT ingestion and normalized series availability through that same media
+boundary. The synthetic, non-clinical arch remains the regression-safe
+fallback. CBCT availability is not renderable geometry, diagnosis or a
+clinical analysis. Optional and removable
 (`installable=True`, `auto_install=False`, `removable=True`).
 
 Module code lives at `backend/app/modules/dental_3d/`. Scope and
@@ -19,7 +19,9 @@ boundary rationale:
 [`docs/adr/0018-dental-3d-foundation.md`](../../adr/0018-dental-3d-foundation.md)
 (Phase 1) and
 [`docs/adr/0020-real-mesh-ingestion.md`](../../adr/0020-real-mesh-ingestion.md)
-(Phase 2).
+(Phase 2), plus
+[`docs/adr/0023-cbct-dicom-ingestion-foundation.md`](../../adr/0023-cbct-dicom-ingestion-foundation.md)
+(Phase 5.1).
 
 ## Architecture in 30 seconds
 
@@ -39,8 +41,10 @@ boundary rationale:
 ┌──────────────────────────────────────────────────────────────────┐
 │ DentalGeometrySource port (sources.py — inner layer)             │
 │  ├ SyntheticGeometrySource      (Phase 1 behaviour, unchanged)   │
-│  └ IntraoralScanGeometrySource  ── references ──► media documents│
+│  ├ IntraoralScanGeometrySource  ── references ──► media documents│
+│  └ CbctDicomGeometrySource      ── availability ─► media documents│
 │ POST /patients/{id}/meshes = validated STL/OBJ → media storage   │
+│ POST /patients/{id}/cbct/dicom-instances = CT DICOM → media      │
 └──────────────────────────────────────────────────────────────────┘
         ▼
 ┌──────────────────────────────────────────────────────────────────┐
@@ -91,6 +95,35 @@ No Phase 2 schema change: meshes are media document references, so the
 isolated `dental_3d` Alembic branch still has a single revision and
 uninstall leaves uploaded scans as ordinary media documents.
 
+## Phase 5.1 — CBCT/DICOM ingestion foundation
+
+Flow: **DICOM Part 10 CT instance → pydicom adapter → media document →
+normalized series availability**.
+
+1. `POST /api/v1/dental_3d/patients/{id}/cbct/dicom-instances`
+   (`dental_3d.write`) accepts one `.dcm`/`.dicom` instance. The
+   infrastructure adapter validates size, extension, MIME, Part 10 preamble,
+   modality `CT`, required UIDs, dimensions and optional spatial metadata.
+   It reads an explicit header allowlist with `stop_before_pixels=True` and
+   does not decode Pixel Data.
+2. The raw instance is stored through `media.DocumentService` with canonical
+   MIME `application/dicom`, the authenticated clinic/patient ownership and
+   media's storage/download/archive behavior. Normalized non-identifying
+   metadata uses the existing `documents.extra_data.dental_3d_cbct` field;
+   there is no Phase 5.1 table or migration.
+3. `CbctDicomGeometrySource` discovers active clinic+patient-scoped DICOM
+   documents and groups them by Study/Series Instance UID into
+   `CbctSeriesDescriptor` values on scene responses. These descriptors mean
+   `status="available"` and `non_diagnostic=true`; they are not meshes and do
+   not change the viewer/generator.
+4. pydicom `>=3.0.2,<4.0` is isolated in infrastructure. The floor includes
+   the CVE-2026-32711 fix; DICOMDIR is outside scope and rejected explicitly.
+
+Limits: CT Part 10 only, one instance per request, at most 2,048 discovered
+instances and 32 series per patient (`catalog_truncated=true` flags a partial
+catalog). No pixel integrity claim, volumetric
+rendering, diagnosis, patient-specific alignment, detector or planning.
+
 ## Domain contract (deliberately minimal)
 
 | Schema | Role |
@@ -99,6 +132,9 @@ uninstall leaves uploaded scans as ordinary media documents.
 | `Tooth3D` | One tooth: FDI number (validated against the odontogram `ALL_TEETH` universe), `present`, `condition`, `color` override (`#RRGGBB`), `visible`, `mesh`. |
 | `DentalScene` | Aggregate: `generator` + `teeth` (≤52 = FDI universe) + `segmentation` + `meshes` (server-derived real mesh references). |
 | `SegmentationResult` | Placeholder for automatic tooth segmentation. Phase 2 always answers `status="not_available"`; `DentalSceneUpdate` rejects `completed` (future capability, not client-suppliable). |
+| `DicomInstanceMetadata` | Normalized CT header metadata (UIDs, dimensions, spacing/orientation, optional manufacturer); no patient identity and no pixel/clinical output. |
+| `CbctSeriesDescriptor` | Media-owned document ids grouped by Study/Series UID with counts and a fixed `non_diagnostic=true` availability marker. |
+| `DicomIngestionPort` | Inner-boundary ingestion abstraction implemented by `PydicomMediaCbctAdapter`; application code imports no DICOM/storage implementation. |
 
 No parallel tooth/treatment model exists here — FDI identity and
 clinical state belong to the odontogram (ADR 0018). No parallel media
@@ -113,6 +149,7 @@ Routes mounted at `/api/v1/dental_3d/`.
 | GET | `/patients/{patient_id}/scene` | `dental_3d.read` |
 | PUT | `/patients/{patient_id}/scene` | `dental_3d.write` |
 | POST | `/patients/{patient_id}/meshes` | `dental_3d.write` |
+| POST | `/patients/{patient_id}/cbct/dicom-instances` | `dental_3d.write` |
 
 Unknown or cross-clinic patient → 404 (same `_ensure_patient` pattern
 as the odontogram/periodontogram routers). Invalid FDI numbers, a
@@ -149,10 +186,11 @@ oversized) → 400 with a stable code prefix
   refreshes the scene.
 - Locales: en / es / fr / pt / ar under `frontend/i18n/locales/`.
 
-## Scope lock (Phases 1–2)
+## Phase 5.1 scope lock
 
-No AI inference, tooth segmentation, nerve detection, implant
-planning, pathology detection, CBCT/DICOM processing, multimodal
-fusion, face-scan processing, Digital Twin intelligence, diagnosis or
-clinical prediction. The synthetic geometry carries **no clinical
-accuracy claim** and the UI shows that disclaimer permanently.
+CBCT/DICOM work stops at validated ingestion plus normalized data
+availability. There is no pixel decoding/rendering, real nerve detection,
+patient-specific nerve alignment, pathology detection, implant planning,
+surgical planning, treatment recommendation, autonomous clinical decision,
+multimodal fusion, Digital Twin or clinical-accuracy claim. Existing Phase
+1–4 behavior and the synthetic fallback remain intact.

@@ -1,6 +1,6 @@
 ---
 module: dental_3d
-last_verified_commit: ec741ed
+last_verified_commit: 66f01c8
 ---
 
 # dental_3d — permissions
@@ -10,10 +10,10 @@ registry namespaces them as `dental_3d.<name>`).
 
 | Permission | Allows | Required by |
 |------------|--------|-------------|
-| `dental_3d.read` | Fetching a patient's dental 3D scene (geometry sources + persisted view state). | `GET /patients/{id}/scene`, agent tool `get_patient_scene`, the `patient.summary.cards` slot entry. |
-| `dental_3d.write` | Persisting per-tooth 3D view state (visibility, colour override) and ingesting real scan meshes (STL/OBJ). | `PUT /patients/{id}/scene`, `POST /patients/{id}/meshes`, the card's upload control. |
+| `dental_3d.read` | Fetching a patient's dental 3D scene (geometry sources, normalized CBCT series availability + persisted view state). | `GET /patients/{id}/scene`, agent tool `get_patient_scene`, the `patient.summary.cards` slot entry. |
+| `dental_3d.write` | Persisting per-tooth 3D view state and ingesting real scan meshes or validated CT DICOM instances. | `PUT /patients/{id}/scene`, `POST /patients/{id}/meshes`, `POST /patients/{id}/cbct/dicom-instances`, the card's mesh-upload control. |
 
-Mesh **content** downloads ride the media module's own route
+Mesh and DICOM **content** downloads ride the media module's own route
 (`/api/v1/media/documents/{id}/download`, `media.documents.read`) —
 scene mesh `url`s are issued server-side, and every role holding
 `dental_3d.read` today also holds `media.documents.read` (media

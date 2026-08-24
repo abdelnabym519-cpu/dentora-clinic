@@ -23,6 +23,9 @@ Scene assembly:
   least one real mesh exists the scene ``generator`` reports
   ``intraoral_scan``; the synthetic teeth remain in the payload as the
   viewer's fallback.
+- **CBCT series** (Phase 5.1) are aggregated as normalized availability only.
+  They never change the render generator or synthetic fallback and contain no
+  clinical inference.
 
 ``DentalMeshService.ingest`` is the upload use case: validates a mesh
 file (extension + MIME + content sniff, see ``meshfiles.py``) and
@@ -213,6 +216,8 @@ class DentalSceneService:
         defaults: list[Tooth3D] = next((p.teeth for p in provisions if p.teeth), [])
         # Real meshes aggregate from every source (synthetic adds none).
         meshes = [mesh for provision in provisions for mesh in provision.meshes]
+        # CBCT series are normalized availability, not renderable meshes.
+        cbct_series = [series for provision in provisions for series in provision.cbct_series]
 
         row = await DentalSceneService._load_row(db, clinic_id, patient_id)
         analysis = await DentalSegmentationService._latest_row(db, clinic_id, patient_id)
@@ -225,6 +230,7 @@ class DentalSceneService:
                 segmentation=_segmentation_of(None, analysis),
                 nerve_detection=_nerve_of(None, nerve),
                 meshes=meshes,
+                cbct_series=cbct_series,
                 persisted=False,
             )
 
@@ -239,6 +245,7 @@ class DentalSceneService:
             segmentation=_segmentation_of(row, analysis),
             nerve_detection=_nerve_of(row, nerve),
             meshes=meshes,
+            cbct_series=cbct_series,
             updated_at=row.updated_at,
             persisted=True,
         )

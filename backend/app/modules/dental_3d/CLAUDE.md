@@ -10,7 +10,11 @@ explicitly non-clinical analysis behind a replaceable provider port,
 with an enforced dentist-review workflow (ADR 0021); Phase 4 adds the
 **mandibular nerve-detection foundation** — AI-assisted / simulated
 canonical-model pathways with AI-estimated tooth proximities behind a
-second replaceable port, same dentist-review boundary (ADR 0022).
+second replaceable port, same dentist-review boundary (ADR 0022);
+Phase 5.1 adds the **CBCT/DICOM ingestion foundation** — validated CT
+instances stored by media and grouped into normalized, non-diagnostic
+series availability behind ports (ADR 0023). It does not decode pixels,
+render volumes, detect anatomy/pathology or perform planning.
 
 ## Public API
 
@@ -19,6 +23,7 @@ second replaceable port, same dentist-review boundary (ADR 0022).
   - `GET    /dental_3d/patients/{patient_id}/scene` — geometry sources + persisted view state; permission `dental_3d.read`
   - `PUT    /dental_3d/patients/{patient_id}/scene` — full-replace per-tooth view state; permission `dental_3d.write`
   - `POST   /dental_3d/patients/{patient_id}/meshes` — ingest one STL/OBJ scan file (multipart); permission `dental_3d.write`
+  - `POST   /dental_3d/patients/{patient_id}/cbct/dicom-instances` — validate/store one DICOM Part 10 CT instance and return normalized metadata; permission `dental_3d.write`
   - `POST   /dental_3d/patients/{patient_id}/segmentation` — run the segmentation provider server-side; permission `dental_3d.write`
   - `GET    /dental_3d/patients/{patient_id}/segmentation` — latest analysis (404 when never run); permission `dental_3d.read`
   - `POST   /dental_3d/patients/{patient_id}/segmentation/{analysis_id}/review` — dentist review decision; permission `dental_3d.write`
@@ -35,7 +40,9 @@ integration is storage + discovery: uploads go through
 `media.service.DocumentService.create_document` (the single storage
 system), and scene meshes are references to media documents — no
 binary in scene payloads, no second upload/storage abstraction, no
-duplicate ownership (media owns clinic/patient linkage).
+duplicate ownership (media owns clinic/patient linkage). CBCT instances
+use the same path with canonical `application/dicom`; normalized series
+metadata lives in media's existing `extra_data` extensibility field.
 
 ## Clean Architecture (ADR 0019 / ADR 0020)
 
@@ -43,12 +50,19 @@ duplicate ownership (media owns clinic/patient linkage).
   `DentalScene`, `SegmentationResult`) — Pydantic only.
 - `sources.py` — the `DentalGeometrySource` **port** +
   `GeometryProvision` (framework-free inner layer).
+- `cbct.py` — the `DicomIngestionPort`, normalized CT instance/series
+  contracts and stable failure vocabulary (framework-free inner layer,
+  ADR 0023). Identifying DICOM fields are deliberately absent.
+- `cbct_service.py` — application orchestration over the injected DICOM
+  ingestion port; no framework, parser or storage imports.
 - `service.py` — application: scene assembly, merge, ingest use case.
   Depends on the port only; the default composition root
   (`infrastructure.default_sources`) is imported lazily at call time.
 - `infrastructure.py` — adapters: `SyntheticGeometrySource` (Phase 1
   behaviour), `IntraoralScanGeometrySource` (media document discovery),
-  `default_sources` composition root.
+  `PydicomMediaCbctAdapter` (header parsing + media persistence),
+  `CbctDicomGeometrySource` (normalized series discovery), and composition
+  roots. pydicom/SQLAlchemy/media stay here.
 - `meshfiles.py` — pure mesh validation (extension + MIME + content
   sniff; canonical MIME vocabulary drives discovery).
 - `segmentation.py` — the `ToothSegmentationProvider` **port** +
@@ -65,7 +79,8 @@ duplicate ownership (media owns clinic/patient linkage).
 
 ## Permissions
 
-`dental_3d.read`, `dental_3d.write`.
+`dental_3d.read`, `dental_3d.write`. Phase 5.1 adds no permission:
+ingestion reuses write, while series availability rides the scene read.
 
 Roles → permissions live in the manifest (admin/dentist `*`, hygienist
 read+write, assistant read, receptionist none). Mesh **content** is
@@ -84,7 +99,7 @@ None.
 
 ## Events consumed
 
-None directly. Ingested scans trigger media's `DOCUMENT_UPLOADED`
+None directly. Ingested scans and DICOM instances trigger media's `DOCUMENT_UPLOADED`
 (published by `DocumentService.create_document`); dental_3d discovers
 mesh documents by query, not subscription — an event-driven refresh is
 a future optimization, not a correctness need.
@@ -98,8 +113,9 @@ a future optimization, not a correctness need.
   dentist review state). Phase 4 adds `d3d_0003` (`dental_nerve_analyses`,
   same shape: pathways + proximities + review state) — persisted because
   a review boundary that forgets itself on reload would be a boundary in
-  name only. Uninstall drops only the dental_3d branch; uploaded scans
-  remain ordinary media documents owned by the media module, and
+  name only. Phase 5.1 adds no migration. Uninstall drops only the
+  dental_3d branch; uploaded scans/DICOM instances remain ordinary media
+  documents owned by the media module, and
   analyses are derivable decision support.
 
 ## Gotchas / non-obvious invariants
@@ -120,6 +136,14 @@ a future optimization, not a correctness need.
   provenance).
 - `MAX_SCENE_MESHES = 8` caps discovery; raising it changes payload
   size, nothing else.
+- DICOM ingestion accepts Part 10 CT only (`.dcm`/`.dicom`), reads a strict
+  non-identifying header allowlist with `stop_before_pixels=True`, rejects
+  DICOMDIR, and stores canonical MIME `application/dicom`.
+- `cbct_series` means normalized data **availability**, not renderable
+  geometry or a clinical result. It never changes the scene generator;
+  synthetic fallback and existing viewer behavior remain intact.
+- Discovery is bounded by `MAX_CBCT_INSTANCES = 2048` and
+  `MAX_CBCT_SERIES = 32` per patient.
 - Frontend: the viewer renders `SceneMeshRef[]` (`lib/sceneMeshes.ts`)
   — future mesh kinds (tooth/nerve/implant) extend `SceneMeshKind`, not
   the viewer architecture. A failed mesh load falls back to the

@@ -27,12 +27,14 @@ code path may set their sources.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.modules.odontogram.constants import ALL_TEETH
+
+from .cbct import CbctSeriesDescriptor
 
 #: Provenance of the geometry behind a mesh descriptor.
 MeshSource = Literal[
@@ -176,6 +178,9 @@ class DentalScene(BaseModel):
     #: Real surface meshes (Phase 2: intraoral scan references).
     #: Server-derived — never accepted from clients.
     meshes: list[DentalMesh] = Field(default_factory=list, max_length=16)
+    #: Normalized DICOM series availability (Phase 5.1). These descriptors
+    #: are not renderable geometry and contain no clinical interpretation.
+    cbct_series: list[CbctSeriesDescriptor] = Field(default_factory=list, max_length=32)
 
 
 class DentalSceneResponse(BaseModel):
@@ -188,6 +193,7 @@ class DentalSceneResponse(BaseModel):
     segmentation: SegmentationResult
     nerve_detection: NerveDetectionSummary = Field(default_factory=NerveDetectionSummary)
     meshes: list[DentalMesh] = Field(default_factory=list)
+    cbct_series: list[CbctSeriesDescriptor] = Field(default_factory=list)
     updated_at: datetime | None = None
     persisted: bool = False
 
@@ -206,6 +212,13 @@ class DentalSceneUpdate(BaseModel):
     teeth: list[Tooth3D] = Field(max_length=52)
     segmentation: SegmentationResult | None = None
     nerve_detection: NerveDetectionSummary | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _cbct_series_are_server_derived(cls, value: Any) -> Any:
+        if isinstance(value, dict) and "cbct_series" in value:
+            raise ValueError("CBCT series descriptors are server-derived")
+        return value
 
     @field_validator("segmentation")
     @classmethod

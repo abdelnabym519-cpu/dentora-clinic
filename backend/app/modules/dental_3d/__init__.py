@@ -31,12 +31,13 @@ from .router import router
 class Dental3DModule(BaseModule):
     manifest = {
         "name": "dental_3d",
-        "version": "0.4.0",
+        "version": "0.5.0",
         "summary": (
             "Dental 3D — 3D dentition preview on the patient summary with real "
             "mesh ingestion (STL/OBJ via the media module), a synthetic fallback "
             "and a non-clinical automatic tooth-segmentation foundation with "
-            "dentist review."
+            "dentist review, plus a non-diagnostic CBCT/DICOM ingestion "
+            "and normalized data-availability foundation."
         ),
         "author": "Dentora Core Team",
         "license": "BSL-1.1",

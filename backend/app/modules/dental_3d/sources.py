@@ -3,11 +3,10 @@
 ADR 0019 / ADR 0020: whenever a use case needs an external capability it
 must depend on an **interface defined at the inner boundary**, never on
 the concrete infrastructure behind it. Dental geometry is exactly such
-a capability: today it is synthesised from odontogram state
-(:class:`DentalSceneService` default wiring); Phase 2 adds intraoral
-scan meshes discovered from the **media** module; future phases add
-segmentation, CBCT-derived meshes, face scans and Digital Twin
-components. All of them implement the same port:
+a capability: Phase 1 synthesises it from odontogram state; Phase 2 adds
+intraoral scan meshes discovered from the **media** module; Phase 5.1 adds
+normalized CBCT/DICOM series availability without pretending that a volume is
+a renderable mesh. Future geometry adapters implement the same port:
 
     Application use case (service.py)
             ↓ depends on
@@ -29,23 +28,23 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from .cbct import CbctSeriesDescriptor
 from .schemas import DentalMesh, MeshSource, Tooth3D
 
 
 class GeometryProvision(BaseModel):
     """What one geometry source contributes to a patient's scene.
 
-    A provision is intentionally partial: sources describe only what
-    they know. The synthetic source provides ``teeth`` (and no
-    meshes); the intraoral-scan source provides surface ``meshes``
-    (and no teeth — segmentation is a future phase and must stay
-    ``not_available``). The service aggregates provisions; it never
-    asks where the geometry came from.
+    A provision is intentionally partial: the synthetic source provides
+    ``teeth``; intraoral scan provides surface ``meshes``; CBCT provides
+    normalized ``cbct_series`` availability. The service aggregates them and
+    never asks which parser/storage implementation produced the data.
     """
 
     source: MeshSource
     teeth: list[Tooth3D] = Field(default_factory=list, max_length=52)
     meshes: list[DentalMesh] = Field(default_factory=list, max_length=16)
+    cbct_series: list[CbctSeriesDescriptor] = Field(default_factory=list, max_length=32)
 
 
 @runtime_checkable

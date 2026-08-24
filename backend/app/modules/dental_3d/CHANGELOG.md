@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### 0.5.0 — Phase 5.1: CBCT/DICOM ingestion foundation
+
+- Framework-independent `DicomIngestionPort`, normalized CT instance/series
+  contracts, fixed non-diagnostic markers and stable validation errors
+  (`cbct.py`); port-only application orchestration (`cbct_service.py`).
+- Replaceable `PydicomMediaCbctAdapter`: DICOM Part 10 CT header validation
+  with a strict tag allowlist and no Pixel Data decoding. pydicom is pinned to
+  the 3.0.2 security floor and isolated in infrastructure (ADR 0023).
+- Existing media storage only: raw DICOM instances are clinic/patient-owned
+  `Document` rows (`application/dicom`); normalized non-identifying metadata
+  uses the existing `extra_data` field. No new table or migration.
+- `CbctDicomGeometrySource` joins the preserved synthetic/intraoral source
+  composition and exposes grouped `cbct_series` availability in scene reads
+  without treating it as renderable or patient-aligned geometry.
+- Minimal `POST /patients/{id}/cbct/dicom-instances` endpoint behind
+  `dental_3d.write`; clinic isolation, cross-clinic 404 behavior, media
+  download authorization and archival semantics are reused.
+- No frontend, diagnosis, clinical nerve detection, patient-specific nerve
+  alignment, pathology detection, implant or surgical planning was added.
+
 ### 0.4.0 — Phase 4: mandibular nerve detection foundation
 
 - `NerveDetectionProvider` port (`nerve.py`, framework-free inner

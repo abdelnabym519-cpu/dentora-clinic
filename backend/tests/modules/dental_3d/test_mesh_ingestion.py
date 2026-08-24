@@ -200,7 +200,7 @@ class TestGeometrySources:
 
     def test_default_sources_are_port_conformant(self, db_session: AsyncSession) -> None:
         sources = default_sources(db_session)
-        assert [s.name for s in sources] == ["synthetic", "intraoral_scan"]
+        assert [s.name for s in sources] == ["synthetic", "intraoral_scan", "cbct"]
         assert all(isinstance(s, DentalGeometrySource) for s in sources)
 
     @pytest.mark.asyncio

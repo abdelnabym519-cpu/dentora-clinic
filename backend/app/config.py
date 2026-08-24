@@ -1,5 +1,6 @@
 """Application configuration via environment variables."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -82,6 +83,18 @@ class Settings(BaseSettings):
     STORAGE_LOCAL_PATH: str = "/app/storage"
     STORAGE_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
     STORAGE_ALLOWED_MIME_TYPES: str = "application/pdf,image/jpeg,image/png"
+
+    # Dental 3D Phase 5.2 — optional, operator-managed CBCT nerve inference.
+    # Dentora does not bundle medical-model weights. An empty URL is an
+    # explicit, safe "missing_model" state rather than a simulated result.
+    DENTAL_3D_NERVE_INFERENCE_URL: str = ""
+    DENTAL_3D_NERVE_INFERENCE_TOKEN: str = ""
+    DENTAL_3D_NERVE_INFERENCE_TIMEOUT_SECONDS: float = Field(default=120.0, gt=0, le=3600)
+    DENTAL_3D_NERVE_MAX_INSTANCES: int = Field(default=512, ge=1, le=2048)
+    DENTAL_3D_NERVE_MAX_INPUT_BYTES: int = Field(
+        default=256 * 1024 * 1024, ge=1024, le=2 * 1024 * 1024 * 1024
+    )
+    DENTAL_3D_NERVE_LOW_CONFIDENCE_THRESHOLD: float = Field(default=0.6, ge=0, le=1)
 
     @property
     def storage_allowed_mime_types_list(self) -> list[str]:

@@ -56,6 +56,7 @@ def dicom_bytes(
     dataset.StudyInstanceUID = study_uid or generate_uid()
     if include_series_uid:
         dataset.SeriesInstanceUID = series_uid or generate_uid()
+    dataset.FrameOfReferenceUID = generate_uid()
     dataset.Modality = modality
     # These identifiers prove the adapter ignores identifying tags.
     dataset.PatientName = "Protected^Patient"

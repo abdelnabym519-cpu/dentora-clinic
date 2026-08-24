@@ -17,7 +17,43 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.models import Clinic, ClinicMembership, User
 from app.core.auth.service import create_access_token, hash_password
+from app.modules.dental_3d.nerve import (
+    NerveDetectionRequest,
+    NerveDetectionResult,
+    NerveModelProvenance,
+)
 from app.modules.patients.models import Patient
+
+
+class _ReviewableProvider:
+    name = "api-stub"
+    input_kind = "cbct_series"
+
+    async def detect(self, request: NerveDetectionRequest) -> NerveDetectionResult:
+        return NerveDetectionResult(
+            status="no_detection",
+            provider=self.name,
+            method="test-only",
+            input_kind="cbct_series",
+            requires_review=True,
+            provenance=NerveModelProvenance(
+                model_id="stub",
+                model_version="1",
+                adapter="test",
+                input_digest="sha256:" + "a" * 64,
+                study_instance_uid="1.2.3",
+                series_instance_uid="1.2.3.1",
+                frame_of_reference_uid="1.2.3.2",
+            ),
+            performed_at=request.performed_at,
+        )
+
+
+def _reviewable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.modules.dental_3d.infrastructure.default_nerve_provider",
+        lambda _db: _ReviewableProvider(),
+    )
 
 
 def _nerve_url(patient_id) -> str:
@@ -51,20 +87,14 @@ async def test_run_returns_pending_analysis(
     response = await client.post(_nerve_url(test_patient.id), headers=auth_headers)
     assert response.status_code == 201
     body = response.json()["data"]
-    assert body["review_status"] == "pending"
-    assert body["provider"] == "canonical-mandible"
+    assert body["review_status"] == "not_applicable"
+    assert body["provider"] == "cbct-model-service"
+    assert body["status"] == "failed"
     assert body["is_clinical"] is False
-    assert body["requires_review"] is True
-    assert body["pathway_count"] == 2
-    assert body["near_count"] == 4
-    assert body["watch_count"] == 6
-    assert len(body["pathways"]) == 2
-    assert {p["side"] for p in body["pathways"]} == {"left", "right"}
-    assert all(len(p["points"]) == 6 for p in body["pathways"])
-    assert all(p["source"] == "canonical_demo_model" for p in body["pathways"])
-    assert len(body["proximities"]) == 16
-    assert "simulated" in body["disclaimer"].lower()
-    assert "verify" in body["disclaimer"].lower()
+    assert body["requires_review"] is False
+    assert body["pathway_count"] == 0
+    assert body["failure"]["code"] == "invalid_input"
+    assert "verification" in body["disclaimer"].lower()
 
 
 @pytest.mark.asyncio
@@ -80,8 +110,12 @@ async def test_get_latest_after_run_and_404_before(
 
 @pytest.mark.asyncio
 async def test_review_workflow_via_http(
-    client: AsyncClient, auth_headers: dict[str, str], test_patient: Patient
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    test_patient: Patient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reviewable(monkeypatch)
     analysis_id = (await client.post(_nerve_url(test_patient.id), headers=auth_headers)).json()[
         "data"
     ]["id"]
@@ -162,8 +196,12 @@ async def test_review_unknown_analysis_404(
 
 @pytest.mark.asyncio
 async def test_review_invalid_decision_422(
-    client: AsyncClient, auth_headers: dict[str, str], test_patient: Patient
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    test_patient: Patient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    _reviewable(monkeypatch)
     analysis_id = (await client.post(_nerve_url(test_patient.id), headers=auth_headers)).json()[
         "data"
     ]["id"]

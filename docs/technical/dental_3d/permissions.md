@@ -11,7 +11,7 @@ registry namespaces them as `dental_3d.<name>`).
 | Permission | Allows | Required by |
 |------------|--------|-------------|
 | `dental_3d.read` | Fetching a patient's dental 3D scene (geometry sources, normalized CBCT series availability + persisted view state). | `GET /patients/{id}/scene`, agent tool `get_patient_scene`, the `patient.summary.cards` slot entry. |
-| `dental_3d.write` | Persisting per-tooth 3D view state and ingesting real scan meshes or validated CT DICOM instances. | `PUT /patients/{id}/scene`, `POST /patients/{id}/meshes`, `POST /patients/{id}/cbct/dicom-instances`, the card's mesh-upload control. |
+| `dental_3d.write` | Persisting view state, ingesting scans/DICOM, running CBCT nerve inference and recording dentist review. | `PUT /patients/{id}/scene`, mesh/CBCT ingestion, nerve run/review endpoints, card controls. |
 
 Mesh and DICOM **content** downloads ride the media module's own route
 (`/api/v1/media/documents/{id}/download`, `media.documents.read`) —

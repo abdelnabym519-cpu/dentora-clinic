@@ -39,12 +39,11 @@ use case records the decision. Analyses are non-clinical decision
 support: input → analysis → evidence/confidence → dentist review →
 dentist decision, and a review never mutates odontogram records.
 
-``DentalNerveService`` (Phase 4, ADR 0022) mirrors that workflow for
-mandibular nerve detection through the ``NerveDetectionProvider`` port:
-AI-assisted / simulated pathways + AI-estimated proximities on a
-canonical anatomical model, persisted ``pending`` and decided by a
-dentist. A review never approves an implant or surgical plan and never
-mutates odontogram records.
+``DentalNerveService`` (Phase 5.2, ADR 0024) runs the replaceable CBCT
+``NerveDetectionProvider`` and persists detected/no-detection/uncertain/failed
+outcomes, provenance and native DICOM-patient geometry. Non-failed outputs
+require dentist review; operational failures are explicitly non-reviewable.
+No tooth alignment, proximity or surgical/implant planning occurs.
 """
 
 from __future__ import annotations
@@ -62,10 +61,14 @@ from .models import DentalNerveAnalysis as DentalNerveAnalysisRow
 from .models import DentalScene as DentalSceneRow
 from .models import DentalSegmentationAnalysis as DentalSegmentationAnalysisRow
 from .nerve import (
+    NerveConfidenceSummary,
     NerveDetectionAnalysisResponse,
+    NerveDetectionFailure,
+    NerveDetectionFailureCode,
     NerveDetectionProvider,
     NerveDetectionRequest,
     NerveDetectionResult,
+    NerveModelProvenance,
     NervePathway,
     NerveReviewUpdate,
     ToothNerveProximity,
@@ -160,7 +163,10 @@ def _nerve_of(
         return NerveDetectionSummary(status="not_available")
     proximities = [ToothNerveProximity.model_validate(p) for p in (analysis.proximities or [])]
     return NerveDetectionSummary(
-        status="completed",
+        status=analysis.detection_status,  # type: ignore[arg-type]
+        input_kind=analysis.input_kind,  # type: ignore[arg-type]
+        failure_code=analysis.failure_code,
+        requires_review=analysis.review_status != "not_applicable",
         method=analysis.method,
         pathway_count=len(analysis.pathways or []),
         near_count=sum(1 for p in proximities if p.warning == "near"),
@@ -169,6 +175,9 @@ def _nerve_of(
         analysis_id=analysis.id,
         provider=analysis.provider,
         review_status=analysis.review_status,  # type: ignore[arg-type]
+        uncertain_count=sum(
+            1 for pathway in (analysis.pathways or []) if pathway.get("status") == "uncertain"
+        ),
     )
 
 
@@ -493,11 +502,10 @@ class NerveError(Exception):
 class DentalNerveService:
     """Nerve-detection use cases: run → evidence → dentist review → decision.
 
-    ADR 0022: the service depends on the ``NerveDetectionProvider``
-    **port** only; the concrete engine (deterministic canonical-mandible
-    model today, a real CBCT/ML detector tomorrow) is injected by the
+    ADR 0024: the service depends on the ``NerveDetectionProvider``
+    **port** only; the concrete CBCT/model-service adapter is injected by the
     composition root at the infrastructure edge. Results are persisted
-    server-side with review state ``pending`` — no client-supplied
+    server-side with explicit outcome and review state — no client-supplied
     detection ever enters the system, and accepting a review never
     approves an implant or surgical plan or mutates odontogram records.
     """
@@ -524,13 +532,36 @@ class DentalNerveService:
     def _to_response(row: DentalNerveAnalysisRow) -> NerveDetectionAnalysisResponse:
         pathways = [NervePathway.model_validate(p) for p in (row.pathways or [])]
         proximities = [ToothNerveProximity.model_validate(p) for p in (row.proximities or [])]
+        metadata = row.analysis_metadata or {}
         response = NerveDetectionAnalysisResponse(
             id=row.id,
             patient_id=row.patient_id,
+            status=row.detection_status,  # type: ignore[arg-type]
             provider=row.provider,
             method=row.method,
+            input_kind=row.input_kind,  # type: ignore[arg-type]
+            requires_review=row.review_status != "not_applicable",
             pathways=pathways,
             proximities=proximities,
+            failure=(
+                NerveDetectionFailure(
+                    code=row.failure_code,
+                    message=row.failure_message or "Nerve detection failed",
+                )
+                if row.failure_code
+                else None
+            ),
+            provenance=(
+                NerveModelProvenance.model_validate(metadata["provenance"])
+                if metadata.get("provenance")
+                else None
+            ),
+            confidence_summary=(
+                NerveConfidenceSummary.model_validate(metadata["confidence_summary"])
+                if metadata.get("confidence_summary")
+                else None
+            ),
+            inference_duration_ms=metadata.get("inference_duration_ms"),
             performed_at=row.performed_at,
             created_at=row.created_at,
             review_status=row.review_status,  # type: ignore[arg-type]
@@ -548,6 +579,7 @@ class DentalNerveService:
         patient_id: UUID,
         user_id: UUID | None,
         provider: NerveDetectionProvider | None = None,
+        requested_series_instance_uid: str | None = None,
         sources: list[DentalGeometrySource] | tuple[DentalGeometrySource, ...] | None = None,
     ) -> NerveDetectionAnalysisResponse:
         """Run the nerve-detection analysis for the patient's current scene.
@@ -561,11 +593,12 @@ class DentalNerveService:
             # Composition root — infrastructure edge, imported lazily.
             from .infrastructure import default_nerve_provider
 
-            provider = default_nerve_provider()
+            provider = default_nerve_provider(db)
 
         provisions = await _provisions(db, clinic_id, patient_id, sources)
         teeth = next((p.teeth for p in provisions if p.teeth), [])
         meshes = [mesh for provision in provisions for mesh in provision.meshes]
+        cbct_series = [series for provision in provisions for series in provision.cbct_series]
 
         try:
             result: NerveDetectionResult = await provider.detect(
@@ -574,11 +607,24 @@ class DentalNerveService:
                     patient_id=patient_id,
                     teeth=teeth,
                     meshes=meshes,
+                    cbct_series=cbct_series,
+                    requested_series_instance_uid=requested_series_instance_uid,
                     performed_at=datetime.now(UTC),
                 )
             )
-        except Exception as exc:  # provider engine failure — surface, never fake
-            raise NerveError(f"nerve detection provider failed: {exc}") from exc
+        except Exception:  # defense in depth: persist a safe failure, never leak internals
+            result = NerveDetectionResult(
+                status="failed",
+                provider=getattr(provider, "name", "nerve-inference"),
+                method="cbct-model-inference-v1",
+                input_kind=getattr(provider, "input_kind", "cbct_series"),
+                requires_review=False,
+                failure=NerveDetectionFailure(
+                    code=NerveDetectionFailureCode.INFERENCE_FAILED,
+                    message="Nerve inference failed unexpectedly",
+                ),
+                performed_at=datetime.now(UTC),
+            )
 
         row = DentalNerveAnalysisRow(
             clinic_id=clinic_id,
@@ -586,9 +632,25 @@ class DentalNerveService:
             performed_by=user_id,
             provider=result.provider,
             method=result.method,
+            detection_status=result.status,
+            input_kind=result.input_kind,
+            failure_code=result.failure.code.value if result.failure else None,
+            failure_message=result.failure.message if result.failure else None,
+            analysis_metadata={
+                "provenance": (
+                    result.provenance.model_dump(mode="json") if result.provenance else None
+                ),
+                "confidence_summary": (
+                    result.confidence_summary.model_dump(mode="json")
+                    if result.confidence_summary
+                    else None
+                ),
+                "inference_duration_ms": result.inference_duration_ms,
+            },
             performed_at=result.performed_at,
             pathways=[p.model_dump(mode="json") for p in result.pathways],
             proximities=[p.model_dump(mode="json") for p in result.proximities],
+            review_status="pending" if result.requires_review else "not_applicable",
         )
         db.add(row)
         await db.commit()

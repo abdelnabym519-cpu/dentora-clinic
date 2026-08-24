@@ -5,11 +5,13 @@ last_verified_commit: 66f01c8
 
 # dental_3d — technical overview
 
-Dental 3D (Phases 1–5.1): a 3D preview of the patient's dentition plus
+Dental 3D (Phases 1–5.2): a 3D preview of the patient's dentition plus
 source-agnostic geometry/data availability. Real intraoral-scan meshes
 (STL/OBJ) use media storage; Phase 5.1 adds validated CBCT/DICOM Part 10
 CT ingestion and normalized series availability through that same media
-boundary. The synthetic, non-clinical arch remains the regression-safe
+boundary. Phase 5.2 adds a replaceable, de-identified CBCT nerve-inference
+service boundary with explicit outcomes and native coordinates; the repository
+does not bundle trained weights. The synthetic, non-clinical arch remains the regression-safe
 fallback. CBCT availability is not renderable geometry, diagnosis or a
 clinical analysis. Optional and removable
 (`installable=True`, `auto_install=False`, `removable=True`).
@@ -21,7 +23,9 @@ boundary rationale:
 [`docs/adr/0020-real-mesh-ingestion.md`](../../adr/0020-real-mesh-ingestion.md)
 (Phase 2), plus
 [`docs/adr/0023-cbct-dicom-ingestion-foundation.md`](../../adr/0023-cbct-dicom-ingestion-foundation.md)
-(Phase 5.1).
+(Phase 5.1), and
+[`docs/adr/0024-real-nerve-detection-boundary.md`](../../adr/0024-real-nerve-detection-boundary.md)
+(Phase 5.2).
 
 ## Architecture in 30 seconds
 
@@ -194,3 +198,17 @@ patient-specific nerve alignment, pathology detection, implant planning,
 surgical planning, treatment recommendation, autonomous clinical decision,
 multimodal fusion, Digital Twin or clinical-accuracy claim. Existing Phase
 1–4 behavior and the synthetic fallback remain intact.
+
+## Phase 5.2 — CBCT nerve inference boundary
+
+The existing nerve endpoint now selects a patient-owned CBCT series, rebuilds
+its instances from a de-identifying allowlist, orders them geometrically and
+sends a bounded deterministic archive to an operator-configured model service.
+Strict normalized results distinguish detected, no-detection, uncertain and
+failed, and preserve DICOM patient coordinates, confidence/uncertainty,
+model/version, input digest and duration. Missing weights/service are reported
+as `missing_model`; canonical demo anatomy is no longer production output.
+
+Native CBCT findings are not overlaid on the synthetic arch or intraoral scan:
+there is no patient-specific registration in this phase. See the dedicated
+[nerve detection guide](nerve_detection.md).

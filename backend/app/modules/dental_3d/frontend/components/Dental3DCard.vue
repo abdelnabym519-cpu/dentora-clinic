@@ -331,7 +331,14 @@ async function onUploadChange(event: Event): Promise<void> {
           </div>
           <p class="text-subtle text-caption">
             {{ t('dental_3d.nerve.method', { method: nerve.method }) }}
-            — {{ t('dental_3d.nerve.simulated') }}
+            — {{ nerve.disclaimer }}
+          </p>
+          <p
+            v-if="nerve.status === 'failed' && nerve.failure"
+            data-testid="dental3d-nerve-model-failure"
+            class="text-caption text-warning"
+          >
+            {{ nerve.failure.message }}
           </p>
           <p
             v-if="nerve.pathways.length > 0"
@@ -383,7 +390,7 @@ async function onUploadChange(event: Event): Promise<void> {
             </button>
           </div>
           <p
-            v-if="nerve.review.status !== 'pending'"
+            v-if="nerve.review.status === 'accepted' || nerve.review.status === 'rejected'"
             data-testid="dental3d-nerve-review-state"
             class="text-subtle text-caption"
           >

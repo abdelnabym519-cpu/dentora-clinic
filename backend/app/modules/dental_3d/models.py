@@ -14,11 +14,10 @@ odontogram data. Uninstalling the module drops this table together
 with the dental_3d Alembic branch (analyses are derivable, not source
 data).
 
-Phase 4 adds ``DentalNerveAnalysis``: persisted mandibular nerve-detection
-analyses (canonical-model pathways + per-tooth AI-estimated proximities +
-dentist review state). Same rules as Phase 3 — append-only decision
-support, dropped with the module's Alembic branch on uninstall, never a
-clinical record and never an implant/surgical plan approval (ADR 0022).
+Phase 4 adds ``DentalNerveAnalysis``; Phase 5.2 evolves it to persist explicit
+CBCT model outcomes, native-coordinate findings, provenance and safe failure
+states. It remains append-only decision support and never represents patient
+alignment, implant/surgical planning or a clinical record (ADR 0024).
 """
 
 from datetime import datetime
@@ -140,18 +139,17 @@ class DentalSegmentationAnalysis(Base, TimestampMixin):
 
 
 class DentalNerveAnalysis(Base, TimestampMixin):
-    """One persisted mandibular nerve-detection analysis (Phase 4).
+    """One persisted mandibular nerve-detection analysis (Phases 4/5.2).
 
     ``pathways`` holds a list of
     :class:`app.modules.dental_3d.nerve.NervePathway` dicts and
     ``proximities`` a list of ``ToothNerveProximity`` dicts (both
     validated by Pydantic at the service boundary). Rows are
     append-only history; ``review_status`` records the dentist's
-    decision on the latest one. ``provider``/``method`` identify the
-    engine — today the deterministic canonical-mandible adapter,
-    tomorrow a real CBCT/ML detector behind the same port — and imply
-    **no clinical claim**: pathways are AI-assisted / simulated
-    decision support that a dentist must verify (ADR 0022).
+    decision on the latest one. Phase 5.2 adds explicit outcomes, failure
+    detail and provenance metadata for the CBCT model-service adapter.
+    Native findings are non-clinical and never imply alignment or planning
+    (ADR 0024).
     """
 
     __tablename__ = "dental_nerve_analyses"
@@ -168,7 +166,13 @@ class DentalNerveAnalysis(Base, TimestampMixin):
     pathways: Mapped[list] = mapped_column(JSONB, default=list)
     proximities: Mapped[list] = mapped_column(JSONB, default=list)
 
-    #: Dentist review workflow: pending → accepted | rejected.
+    detection_status: Mapped[str] = mapped_column(String(32), default="uncertain")
+    input_kind: Mapped[str] = mapped_column(String(32), default="scene")
+    failure_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    analysis_metadata: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    #: Dentist review workflow, or not_applicable for an operational failure.
     review_status: Mapped[str] = mapped_column(String(20), default="pending")
     reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -182,8 +186,12 @@ class DentalNerveAnalysis(Base, TimestampMixin):
 
     __table_args__ = (
         CheckConstraint(
-            "review_status IN ('pending', 'accepted', 'rejected')",
+            "review_status IN ('pending', 'accepted', 'rejected', 'not_applicable')",
             name="ck_dental_nerve_review_status",
+        ),
+        CheckConstraint(
+            "detection_status IN ('detected', 'no_detection', 'uncertain', 'failed')",
+            name="ck_dental_nerve_detection_status",
         ),
         Index(
             "idx_dental_nerve_latest",

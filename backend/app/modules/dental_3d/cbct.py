@@ -25,6 +25,10 @@ DicomModality = Literal["CT"]
 DicomSource = Literal["dicom"]
 CbctAvailabilityStatus = Literal["available"]
 
+# Canonical media vocabulary shared by the ingestion and inference adapters.
+DICOM_MEDIA_MIME = "application/dicom"
+DICOM_METADATA_KEY = "dental_3d_cbct"
+
 
 class DicomIngestionErrorCode(StrEnum):
     """Stable failure vocabulary shared by application and presentation."""
@@ -71,6 +75,7 @@ class DicomInstanceMetadata(BaseModel):
     series_instance_uid: str = Field(max_length=64)
     sop_instance_uid: str = Field(max_length=64)
     transfer_syntax_uid: str = Field(max_length=64)
+    frame_of_reference_uid: str | None = Field(default=None, max_length=64)
     rows: int = Field(ge=1, le=65535)
     columns: int = Field(ge=1, le=65535)
     number_of_frames: int = Field(default=1, ge=1, le=1_000_000)
@@ -87,10 +92,11 @@ class DicomInstanceMetadata(BaseModel):
         "series_instance_uid",
         "sop_instance_uid",
         "transfer_syntax_uid",
+        "frame_of_reference_uid",
     )
     @classmethod
-    def _uids_are_valid(cls, value: str) -> str:
-        return _validate_uid(value)
+    def _uids_are_valid(cls, value: str | None) -> str | None:
+        return None if value is None else _validate_uid(value)
 
     @field_validator("pixel_spacing_mm")
     @classmethod
@@ -115,6 +121,7 @@ class CbctSeriesDescriptor(BaseModel):
     status: CbctAvailabilityStatus = "available"
     study_instance_uid: str = Field(max_length=64)
     series_instance_uid: str = Field(max_length=64)
+    frame_of_reference_uid: str | None = Field(default=None, max_length=64)
     document_ids: list[UUID] = Field(min_length=1, max_length=2048)
     instance_count: int = Field(ge=1, le=2048)
     frame_count: int = Field(ge=1)
@@ -128,10 +135,10 @@ class CbctSeriesDescriptor(BaseModel):
     catalog_truncated: bool = False
     non_diagnostic: Literal[True] = True
 
-    @field_validator("study_instance_uid", "series_instance_uid")
+    @field_validator("study_instance_uid", "series_instance_uid", "frame_of_reference_uid")
     @classmethod
-    def _uids_are_valid(cls, value: str) -> str:
-        return _validate_uid(value)
+    def _uids_are_valid(cls, value: str | None) -> str | None:
+        return None if value is None else _validate_uid(value)
 
     @field_validator("pixel_spacing_mm")
     @classmethod

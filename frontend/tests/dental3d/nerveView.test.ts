@@ -163,6 +163,15 @@ describe('nerveOverlayState — viewer gating', () => {
     expect(state.pathways).toHaveLength(0)
   })
 
+  it('never overlays native DICOM findings on the unaligned synthetic arch', () => {
+    const native = payload({
+      pathways: [pathway('left', { reference_space: { kind: 'dicom_patient' } })]
+    })
+    const state = nerveOverlayState(toNerveView(native), true, true)
+    expect(state.show).toBe(false)
+    expect(state.pathways).toEqual([])
+  })
+
   it('respects the visibility toggle', () => {
     const state = nerveOverlayState(toNerveView(analysis()), true, false)
     expect(state.show).toBe(false)

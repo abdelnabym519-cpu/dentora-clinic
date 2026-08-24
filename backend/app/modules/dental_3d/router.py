@@ -28,7 +28,7 @@ from .cbct import (
 from .cbct_service import CbctIngestionService
 from .infrastructure import default_cbct_ingestion_port
 from .meshfiles import MeshUploadError
-from .nerve import NerveDetectionAnalysisResponse, NerveReviewUpdate
+from .nerve import NerveDetectionAnalysisResponse, NerveDetectionRunRequest, NerveReviewUpdate
 from .schemas import DentalMesh, DentalSceneResponse, DentalSceneUpdate
 from .segmentation import SegmentationAnalysisResponse, SegmentationReviewUpdate
 from .service import (
@@ -271,22 +271,27 @@ async def run_patient_nerve_detection(
     ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
     _: Annotated[None, Depends(require_permission("dental_3d.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
+    data: NerveDetectionRunRequest | None = None,
 ) -> ApiResponse[NerveDetectionAnalysisResponse]:
     """Run the mandibular nerve-detection analysis for the patient's scene.
 
-    The analysis is produced **server-side** by the configured provider
-    (deterministic canonical-mandible model in Phase 4 — AI-assisted /
-    simulated, **not** a clinically validated detector) and persisted
-    with review state ``pending``. There is no endpoint that accepts a
+    The analysis is produced server-side from a patient-owned CBCT series by
+    the configured Phase 5.2 inference service. An unavailable model or bad
+    input is persisted as an explicit non-reviewable failure; Dentora never
+    substitutes demo anatomy. There is no endpoint that accepts a
     client-supplied detection result: the dentist-review workflow
     (input → analysis → evidence → review → decision) is the only path,
-    a review never approves an implant or surgical plan, and proximities
-    are AI-estimated planning support — never clinical safety verdicts.
+    a review never approves an implant or surgical plan. Native DICOM-patient
+    geometry is not aligned to teeth or surface scans in this phase.
     """
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     try:
         analysis = await DentalNerveService.run_detection(
-            db, clinic_id=ctx.clinic_id, patient_id=patient_id, user_id=ctx.user_id
+            db,
+            clinic_id=ctx.clinic_id,
+            patient_id=patient_id,
+            user_id=ctx.user_id,
+            requested_series_instance_uid=(data.series_instance_uid if data else None),
         )
     except NerveError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc

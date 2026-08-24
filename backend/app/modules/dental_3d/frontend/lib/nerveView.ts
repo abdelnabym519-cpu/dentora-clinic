@@ -24,7 +24,8 @@ export type NervePathwayStatus = 'detected' | 'uncertain'
 
 export type NerveProximityWarning = 'near' | 'watch' | 'none'
 
-export type NerveReviewStatus = 'pending' | 'accepted' | 'rejected'
+export type NerveReviewStatus = 'pending' | 'accepted' | 'rejected' | 'not_applicable'
+export type NerveDetectionStatus = 'detected' | 'no_detection' | 'uncertain' | 'failed'
 
 export type ConfidenceBand = 'high' | 'medium' | 'low'
 
@@ -42,6 +43,7 @@ export type NervePathwayView = {
   source: string
   status: NervePathwayStatus
   confidence: number
+  referenceSpace: 'canonical_arch' | 'dicom_patient'
   points: NervePointView[]
   basis: string
   note: string | null
@@ -64,7 +66,9 @@ export type NerveAnalysisView = {
   provider: string
   method: string
   nonClinical: true
-  requiresReview: true
+  requiresReview: boolean
+  status: NerveDetectionStatus
+  failure: { code: string, message: string } | null
   performedAt: string | null
   pathways: NervePathwayView[]
   proximities: NerveProximityView[]
@@ -84,6 +88,7 @@ export type NervePathwayPayload = {
   source?: string | null
   status?: string | null
   confidence?: number | null
+  reference_space?: { kind?: string | null } | null
   points?: Array<{ x?: number | null, y?: number | null, z?: number | null }> | null
   evidence?: {
     basis?: string | null
@@ -107,8 +112,10 @@ export type NerveAnalysisPayload = {
   id: string
   provider: string
   method: string
+  status?: string | null
   is_clinical?: boolean
   requires_review?: boolean
+  failure?: { code?: string | null, message?: string | null } | null
   pathways?: NervePathwayPayload[] | null
   proximities?: NerveProximityPayload[] | null
   performed_at?: string | null
@@ -122,7 +129,8 @@ export type NerveAnalysisPayload = {
 const VALID_SIDES: ReadonlySet<string> = new Set(['left', 'right'])
 const VALID_PATHWAY_STATUSES: ReadonlySet<string> = new Set(['detected', 'uncertain'])
 const VALID_WARNINGS: ReadonlySet<string> = new Set(['near', 'watch', 'none'])
-const VALID_REVIEWS: ReadonlySet<string> = new Set(['pending', 'accepted', 'rejected'])
+const VALID_REVIEWS: ReadonlySet<string> = new Set(['pending', 'accepted', 'rejected', 'not_applicable'])
+const VALID_OUTCOMES: ReadonlySet<string> = new Set(['detected', 'no_detection', 'uncertain', 'failed'])
 
 function isFiniteConfidence(value: number): boolean {
   return Number.isFinite(value) && value >= 0 && value <= 1
@@ -149,6 +157,9 @@ function toPathwayView(payload: NervePathwayPayload): NervePathwayView | null {
     source: payload.source ?? '',
     status: payload.status as NervePathwayStatus,
     confidence,
+    referenceSpace: payload.reference_space?.kind === 'dicom_patient'
+      ? 'dicom_patient'
+      : 'canonical_arch',
     points,
     basis: payload.evidence?.basis ?? '',
     note: payload.evidence?.note ?? null,
@@ -210,9 +221,17 @@ export function toNerveView(payload: NerveAnalysisPayload | null | undefined): N
     id: payload.id,
     provider: payload.provider ?? '',
     method: payload.method ?? '',
+    status: VALID_OUTCOMES.has(payload.status ?? '')
+      ? payload.status as NerveDetectionStatus
+      : 'uncertain',
+    failure: payload.failure?.code && payload.failure?.message
+      ? { code: payload.failure.code, message: payload.failure.message }
+      : null,
     // Fixed safety markers — the backend schema cannot state otherwise.
     nonClinical: true,
-    requiresReview: true,
+    // Only an explicit operational failure is non-reviewable. A forged
+    // ``requires_review: false`` cannot suppress review of anatomy output.
+    requiresReview: payload.status === 'failed' ? false : true,
     performedAt: payload.performed_at ?? payload.created_at ?? null,
     pathways,
     proximities,
@@ -246,7 +265,8 @@ export function nerveOverlayState(
   if (!analysis || !renderSynthetic || !visible) {
     return { show: false, pathways: [] }
   }
-  return { show: analysis.pathways.length > 0, pathways: analysis.pathways }
+  const pathways = analysis.pathways.filter(pathway => pathway.referenceSpace === 'canonical_arch')
+  return { show: pathways.length > 0, pathways }
 }
 
 /**

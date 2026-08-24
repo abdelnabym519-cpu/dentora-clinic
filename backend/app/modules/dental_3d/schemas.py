@@ -151,16 +151,22 @@ class NerveDetectionSummary(BaseModel):
     can ever present itself as completed.
     """
 
-    status: Literal["not_available", "completed"] = "not_available"
+    status: Literal["not_available", "detected", "no_detection", "uncertain", "failed"] = (
+        "not_available"
+    )
+    input_kind: Literal["scene", "cbct_series"] | None = None
+    failure_code: str | None = Field(default=None, max_length=50)
+    requires_review: bool = False
     method: str | None = None
     pathway_count: int = Field(default=0, ge=0)
     near_count: int = Field(default=0, ge=0)
     watch_count: int = Field(default=0, ge=0)
+    uncertain_count: int = Field(default=0, ge=0)
     performed_at: datetime | None = None
     #: Latest analysis (Phase 4) — link to the full pathway detail.
     analysis_id: UUID | None = None
     provider: str | None = Field(default=None, max_length=50)
-    review_status: Literal["pending", "accepted", "rejected"] | None = None
+    review_status: Literal["pending", "accepted", "rejected", "not_applicable"] | None = None
     #: Fixed safety marker — Phase 4 nerve detection is AI-assisted /
     #: simulated decision support, never a clinical result (ADR 0022).
     non_clinical: bool = True
@@ -223,7 +229,7 @@ class DentalSceneUpdate(BaseModel):
     @field_validator("segmentation")
     @classmethod
     def _no_segmentation_yet(cls, value: SegmentationResult | None) -> SegmentationResult | None:
-        if value is not None and value.status == "completed":
+        if value is not None and value.status != "not_available":
             raise ValueError("segmentation results cannot be supplied — capability not available")
         return value
 

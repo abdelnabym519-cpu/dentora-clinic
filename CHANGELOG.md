@@ -9,6 +9,17 @@ architecture: the monolithic `clinical` module is gone, replaced by
 four purpose-built modules, and every official module now ships its
 frontend as a Nuxt layer under its own Python package.
 
+## [Unreleased]
+
+### Added
+
+- Dental 3D Phase 5.2 adds a replaceable CBCT nerve-inference service
+  boundary, deterministic de-identified DICOM preprocessing, native-coordinate
+  structured findings, confidence/uncertainty and model provenance, plus
+  explicit no-detection and safe failure outcomes. No trained model weights
+  are bundled; an unconfigured service reports `missing_model` and never falls
+  back to demo anatomy.
+
 ## [2.2.1] - 2026-08-09
 
 ### Fixed

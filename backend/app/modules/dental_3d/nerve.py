@@ -1,153 +1,171 @@
-"""Mandibular nerve detection — the application/domain boundary port.
+"""Framework-independent contracts for mandibular nerve detection.
 
-ADR 0019 / ADR 0022: nerve detection is an external capability (today a
-deterministic canonical-anatomy model, tomorrow a real CBCT/ML detector)
-and must sit behind an **interface defined at the inner boundary**. The
-application layer (:class:`DentalNerveService`) depends on the
-:class:`NerveDetectionProvider` protocol only, never on a concrete
-implementation:
+ADR 0019 / ADR 0022 define :class:`NerveDetectionProvider` as the
+replaceable inner-boundary port. Phase 5.2 evolves that seam from canonical
+demonstration geometry to truthful CBCT inference outcomes without coupling
+domain/application code to pydicom, storage, HTTP, a model runtime or
+visualization.
 
-    Application use case (service.py)
-            ↓ depends on
-    NerveDetectionProvider            ← this file (inner layer)
-            ↑ implemented by
-    infrastructure.py adapter         (canonical model today, ML later)
-
-Safety invariants encoded in the contracts themselves:
-
-- Every result is **non-clinical** (``is_clinical=False`` is fixed by
-  the schema — no provider can claim otherwise) and **requires dentist
-  review** (``requires_review=True``, likewise fixed). The workflow is
-  input → nerve analysis → evidence/confidence → dentist review →
-  dentist decision; the dentist remains the final decision-maker.
-- Proximities are **planning-support measurements** ("AI-estimated
-  proximity"), never clinical safety verdicts: no tooth is ever
-  labelled clinically unsafe, and no implant/surgical plan is approved
-  or produced.
-- Determinism for the Phase 4 foundation: identical requests yield
-  identical results; the request carries the server clock so providers
-  never read the environment, and the Phase 4 adapter contains no
-  randomness.
-
-Coordinate frame: pathway points are expressed in the **same canonical
-arch frame as the synthetic dentition** (``frontend/lib/dentalArch.ts``
-— half-width 2.2, depth 1.5, gap 0.5, lower arch at ``y = -0.25``).
-The adapter documents the millimetre scale factor. Client viewers can
-therefore plot pathways without re-projection while the synthetic arch
-renders; overlaying a canonical pathway on patient scan geometry would
-pretend an alignment nobody has, so the viewer does not do it.
-
-This file must stay framework-free: no FastAPI, no SQLAlchemy, no ML
-frameworks, no HTTP — only neutral contracts (pydantic, like the
-module's other schemas). Adapters live in ``.infrastructure``.
+The contracts distinguish a finding, explicit no-detection, uncertainty and
+operational failure. Every non-failed inference remains non-clinical decision
+support and requires dentist review. Native CBCT geometry stays in DICOM
+patient coordinates; no multimodal alignment or planning occurs here.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from typing import Literal, Protocol, runtime_checkable
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from .cbct import CbctSeriesDescriptor, _validate_uid
 from .schemas import DentalMesh, Tooth3D, _is_valid_fdi
 
-#: What kind of input a provider understands. Phase 4 providers analyse
-#: the *scene* (tooth universe + mesh references); a future CBCT-based
-#: kind extends this literal, never the port.
-NerveDetectionInputKind = Literal["scene"]
-
-#: Anatomical region label for a pathway. Phase 4 models the mandibular
-#: canal (inferior alveolar nerve); future regions extend the literal.
+NerveDetectionInputKind = Literal["scene", "cbct_series"]
+NerveDetectionOutcome = Literal["detected", "no_detection", "uncertain", "failed"]
 NerveRegion = Literal["mandibular_canal"]
-
-#: Which side of the mandible a pathway belongs to.
 NerveSide = Literal["left", "right"]
-
-#: Pathway-level detection status.
-#: ``detected`` — the model produced a pathway (still non-clinical);
-#: ``uncertain`` — generic model geometry with no patient geometry
-#: backing it; every pathway always requires dentist verification.
 NervePathwayStatus = Literal["detected", "uncertain"]
-
-#: Where the pathway geometry came from. Phase 4 emits a canonical
-#: demo anatomical model — never patient-measured data.
-NervePathwaySource = Literal["canonical_demo_model"]
-
-#: Per-tooth proximity warning band (planning support only).
-#: ``near``   — closer than PROXIMITY_NEAR_MM to the modelled pathway
-#: ``watch``  — closer than PROXIMITY_WATCH_MM
-#: ``none``   — listed for completeness, outside both bands
-#: These bands never mark a tooth clinically unsafe.
+NervePathwaySource = Literal["canonical_demo_model", "model_inference"]
+NerveReferenceSpaceKind = Literal["canonical_arch", "dicom_patient"]
 NerveProximityWarning = Literal["near", "watch", "none"]
-
-#: Review outcome recorded by a dentist (never by a provider).
 NerveReviewDecision = Literal["accepted", "rejected"]
+NerveReviewStatus = Literal["pending", "accepted", "rejected", "not_applicable"]
 
-#: Confidence bands surfaced to the UI (same thresholds as Phase 3,
-#: documented in ADR 0021 / ADR 0022).
 CONFIDENCE_HIGH = 0.8
 CONFIDENCE_MEDIUM = 0.6
-
-#: Proximity thresholds in millimetres (canonical-frame model units ×
-#: MM_PER_UNIT). Planning-support bands — NOT clinical safety limits.
 PROXIMITY_NEAR_MM = 2.0
 PROXIMITY_WATCH_MM = 5.0
-#: Teeth farther than this from the modelled pathway are omitted from
-#: the proximity list (the canal model ends at the premolar region).
 PROXIMITY_MAX_MM = 15.0
 
 
-class NerveEvidence(BaseModel):
-    """How the provider derived one pathway.
+class NerveDetectionFailureCode(StrEnum):
+    """Stable, safe failure vocabulary for application/API consumers."""
 
-    Evidence is explanatory metadata for the dentist — never proof of
-    clinical correctness. ``basis`` says what the model looked at;
-    ``backing_documents`` lists the media documents (scan meshes) that
-    informed the analysis, if any.
-    """
+    INVALID_INPUT = "invalid_input"
+    UNSUPPORTED_MODALITY = "unsupported_modality"
+    MISSING_MODEL = "missing_model"
+    MODEL_INITIALIZATION_FAILED = "model_initialization_failed"
+    INFERENCE_FAILED = "inference_failed"
+    MALFORMED_OUTPUT = "malformed_output"
+    INVALID_GEOMETRY = "invalid_geometry"
 
-    basis: Literal["anatomical_model", "mesh_backed"]
+
+class NerveDetectionFailure(BaseModel):
+    """Sanitized failure detail; never contains paths, URLs or stack traces."""
+
+    code: NerveDetectionFailureCode
+    message: str = Field(min_length=1, max_length=255)
+
+
+class NerveReferenceSpace(BaseModel):
+    """Coordinate system in which pathway points are expressed."""
+
+    kind: NerveReferenceSpaceKind
+    unit: Literal["model_unit", "mm"]
+    frame_of_reference_uid: str | None = Field(default=None, max_length=64)
+
+    @field_validator("frame_of_reference_uid")
+    @classmethod
+    def _valid_frame_uid(cls, value: str | None) -> str | None:
+        return None if value is None else _validate_uid(value)
+
+    @model_validator(mode="after")
+    def _space_is_consistent(self) -> NerveReferenceSpace:
+        if self.kind == "dicom_patient":
+            if self.unit != "mm" or self.frame_of_reference_uid is None:
+                raise ValueError("DICOM patient coordinates require mm and a frame UID")
+        elif self.unit != "model_unit" or self.frame_of_reference_uid is not None:
+            raise ValueError("canonical coordinates require model units and no frame UID")
+        return self
+
+
+class NerveUncertainty(BaseModel):
+    """Model-reported uncertainty when the inference service supplies it."""
+
+    kind: Literal["model_reported", "not_reported"]
+    value: float | None = Field(default=None, ge=0.0, le=1.0)
     note: str | None = Field(default=None, max_length=255)
-    backing_documents: list[UUID] = Field(default_factory=list, max_length=16)
+
+    @model_validator(mode="after")
+    def _value_matches_kind(self) -> NerveUncertainty:
+        if self.kind == "model_reported" and self.value is None:
+            raise ValueError("model-reported uncertainty requires a value")
+        if self.kind == "not_reported" and self.value is not None:
+            raise ValueError("unreported uncertainty cannot invent a value")
+        return self
+
+
+class NerveModelProvenance(BaseModel):
+    """Traceability for a model-backed inference operation."""
+
+    model_id: str = Field(min_length=1, max_length=100)
+    model_version: str = Field(min_length=1, max_length=100)
+    adapter: str = Field(min_length=1, max_length=100)
+    input_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    study_instance_uid: str = Field(max_length=64)
+    series_instance_uid: str = Field(max_length=64)
+    frame_of_reference_uid: str = Field(max_length=64)
+
+    @field_validator("study_instance_uid", "series_instance_uid", "frame_of_reference_uid")
+    @classmethod
+    def _valid_uids(cls, value: str) -> str:
+        return _validate_uid(value)
+
+
+class NerveEvidence(BaseModel):
+    """What informed a pathway; explanatory, never proof of correctness."""
+
+    basis: Literal["anatomical_model", "mesh_backed", "cbct_inference"]
+    note: str | None = Field(default=None, max_length=255)
+    backing_documents: list[UUID] = Field(default_factory=list, max_length=512)
 
 
 class NervePathPoint(BaseModel):
-    """One 3D point of a pathway polyline, in the canonical arch frame."""
+    """One finite 3D point in the pathway's declared reference space."""
 
-    x: float
-    y: float
-    z: float
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    x: float = Field(ge=-1_000_000, le=1_000_000)
+    y: float = Field(ge=-1_000_000, le=1_000_000)
+    z: float = Field(ge=-1_000_000, le=1_000_000)
 
 
 class NervePathway(BaseModel):
-    """One mandibular nerve pathway — structured geometry, not a UI line.
+    """One structured mandibular-canal finding."""
 
-    A pathway is a polyline of at least two points carrying its own
-    anatomical identity (side + region), provenance (``source`` —
-    always the canonical demo model in Phase 4), status, confidence and
-    evidence. Patient-specific clinical anatomy is never hardcoded as
-    real medical data: ``source`` states what the geometry is.
-    """
-
+    finding_id: str | None = Field(default=None, min_length=1, max_length=128)
     side: NerveSide
     region: NerveRegion = "mandibular_canal"
-    source: NervePathwaySource = "canonical_demo_model"
+    source: NervePathwaySource
     status: NervePathwayStatus
     confidence: float = Field(ge=0.0, le=1.0)
-    points: list[NervePathPoint] = Field(min_length=2, max_length=64)
-    evidence: NerveEvidence = Field(default_factory=NerveEvidence)
+    uncertainty: NerveUncertainty | None = None
+    reference_space: NerveReferenceSpace = Field(
+        default_factory=lambda: NerveReferenceSpace(kind="canonical_arch", unit="model_unit")
+    )
+    points: list[NervePathPoint] = Field(min_length=2, max_length=2048)
+    evidence: NerveEvidence
+
+    @model_validator(mode="after")
+    def _geometry_and_provenance_are_valid(self) -> NervePathway:
+        if len({(point.x, point.y, point.z) for point in self.points}) < 2:
+            raise ValueError("a nerve pathway requires at least two distinct points")
+        if self.source == "model_inference":
+            if self.finding_id is None:
+                raise ValueError("model inference findings require a stable identifier")
+            if self.reference_space.kind != "dicom_patient":
+                raise ValueError("model inference findings require DICOM patient coordinates")
+            if self.evidence.basis != "cbct_inference":
+                raise ValueError("model inference findings require CBCT inference evidence")
+        return self
 
 
 class ToothNerveProximity(BaseModel):
-    """AI-estimated distance from one tooth to a pathway (support only).
-
-    ``distance_mm`` is a model-space measurement against **canonical
-    demo anatomy** — an estimate for the dentist to verify, never a
-    clinical clearance or safety verdict. ``warning`` bands the value
-    for display; ``closest_point_index`` references the pathway's
-    ``points`` array for viewer highlighting.
-    """
+    """Legacy Phase 4 model-space proximity; never a safety verdict."""
 
     tooth_number: int
     side: NerveSide
@@ -164,121 +182,163 @@ class ToothNerveProximity(BaseModel):
         return value
 
 
-class NerveDetectionRequest(BaseModel):
-    """Everything a provider may look at — one patient's scene.
+class NerveConfidenceSummary(BaseModel):
+    """Observed confidence values; no unreported measurement is invented."""
 
-    ``teeth`` is the odontogram-driven tooth universe (presence and
-    conditions from ``ToothRecord`` — the existing source of truth);
-    ``meshes`` are the real geometry references the scene carries. Both
-    are already clinic-scoped by the caller; providers never query
-    anything themselves.
-    """
+    count: int = Field(ge=1, le=4)
+    minimum: float = Field(ge=0.0, le=1.0)
+    maximum: float = Field(ge=0.0, le=1.0)
+    mean: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def _ordered(self) -> NerveConfidenceSummary:
+        if self.minimum > self.mean or self.mean > self.maximum:
+            raise ValueError("confidence summary must be ordered")
+        return self
+
+
+class NerveDetectionRunRequest(BaseModel):
+    """Optional presentation input selecting one patient-owned CBCT series."""
+
+    series_instance_uid: str | None = Field(default=None, max_length=64)
+
+    @field_validator("series_instance_uid")
+    @classmethod
+    def _valid_series_uid(cls, value: str | None) -> str | None:
+        return None if value is None else _validate_uid(value)
+
+
+class NerveDetectionRequest(BaseModel):
+    """Clinic-scoped application input assembled server-side."""
 
     clinic_id: UUID
     patient_id: UUID
     teeth: list[Tooth3D] = Field(default_factory=list, max_length=52)
     meshes: list[DentalMesh] = Field(default_factory=list, max_length=16)
+    cbct_series: list[CbctSeriesDescriptor] = Field(default_factory=list, max_length=32)
+    requested_series_instance_uid: str | None = Field(default=None, max_length=64)
     performed_at: datetime
+
+    @field_validator("requested_series_instance_uid")
+    @classmethod
+    def _valid_requested_uid(cls, value: str | None) -> str | None:
+        return None if value is None else _validate_uid(value)
 
 
 class NerveDetectionResult(BaseModel):
-    """Provider output — the analysis awaiting dentist review.
+    """Provider output with explicit clinical and operational semantics."""
 
-    ``provider``/``method`` identify who produced the analysis and how
-    (logged, shown in the UI, never a clinical claim). The safety
-    fields are **fixed by the schema**: no provider can present itself
-    as clinical or as not requiring review.
-    """
-
+    status: NerveDetectionOutcome
     provider: str = Field(min_length=1, max_length=50)
     method: str = Field(min_length=1, max_length=100)
+    input_kind: NerveDetectionInputKind
     is_clinical: Literal[False] = False
-    requires_review: Literal[True] = True
+    requires_review: bool
     pathways: list[NervePathway] = Field(default_factory=list, max_length=4)
     proximities: list[ToothNerveProximity] = Field(default_factory=list, max_length=52)
+    failure: NerveDetectionFailure | None = None
+    provenance: NerveModelProvenance | None = None
+    confidence_summary: NerveConfidenceSummary | None = None
+    inference_duration_ms: int | None = Field(default=None, ge=0, le=3_600_000)
     performed_at: datetime
+
+    @model_validator(mode="after")
+    def _outcome_is_consistent(self) -> NerveDetectionResult:
+        if self.status == "failed":
+            if self.failure is None or self.pathways or self.proximities or self.requires_review:
+                raise ValueError("failed detection requires only a failure and no review")
+            return self
+        if self.failure is not None or not self.requires_review:
+            raise ValueError("non-failed inference requires review and no failure")
+        if self.input_kind == "cbct_series" and self.provenance is None:
+            raise ValueError("CBCT inference outcomes require model provenance")
+        if self.status == "no_detection":
+            if self.pathways or self.confidence_summary is not None:
+                raise ValueError("no-detection cannot contain findings or confidence")
+            return self
+        if not self.pathways or self.confidence_summary is None:
+            raise ValueError("detected/uncertain outcomes require findings and confidence")
+        if self.status == "detected" and any(
+            pathway.status != "detected" for pathway in self.pathways
+        ):
+            raise ValueError("detected outcome cannot contain uncertain pathways")
+        if self.status == "uncertain" and all(
+            pathway.status == "detected" for pathway in self.pathways
+        ):
+            raise ValueError("uncertain outcome requires an uncertain pathway")
+        if any(pathway.source == "model_inference" for pathway in self.pathways):
+            if self.input_kind != "cbct_series" or self.provenance is None:
+                raise ValueError("CBCT model findings require CBCT provenance")
+            if self.proximities:
+                raise ValueError("tooth proximity requires out-of-scope patient alignment")
+        return self
 
     @property
     def detected(self) -> list[NervePathway]:
-        return [p for p in self.pathways if p.status == "detected"]
+        return [pathway for pathway in self.pathways if pathway.status == "detected"]
 
     @property
     def uncertain(self) -> list[NervePathway]:
-        return [p for p in self.pathways if p.status == "uncertain"]
+        return [pathway for pathway in self.pathways if pathway.status == "uncertain"]
 
     @property
     def near_teeth(self) -> list[ToothNerveProximity]:
-        return [p for p in self.proximities if p.warning == "near"]
+        return [item for item in self.proximities if item.warning == "near"]
 
 
 @runtime_checkable
 class NerveDetectionProvider(Protocol):
-    """Port: mandibular nerve detection, regardless of engine.
-
-    Implementations are constructed by the composition root in
-    ``infrastructure.py`` and must be **deterministic** for identical
-    requests. ``name`` is a stable identity for logging and future
-    per-provider configuration; ``input_kind`` declares what the
-    provider analyses (Phase 4: the scene). Replacing the Phase 4
-    canonical-model adapter with a real CBCT/ML detector means
-    implementing this protocol — the application/domain contracts do
-    not change.
-    """
+    """Replaceable inference boundary used by the application service."""
 
     name: str
     input_kind: NerveDetectionInputKind
 
     async def detect(self, request: NerveDetectionRequest) -> NerveDetectionResult:
-        """Analyse the request's scene and return pathway + proximity proposals."""
+        """Return a structured outcome; never leak infrastructure exceptions."""
         ...
 
 
 class NerveDetectionAnalysisResponse(BaseModel):
-    """API payload for a persisted analysis: pathways + review state.
-
-    ``counts`` are server-derived; ``review`` carries the
-    dentist-review workflow state. ``disclaimer`` is fixed copy — every
-    payload tells the truth about what this is (AI-assisted / simulated
-    nerve detection requiring dentist verification).
-    """
+    """Persisted analysis plus dentist-review and traceability state."""
 
     id: UUID
     patient_id: UUID
+    status: NerveDetectionOutcome
     provider: str
     method: str
+    input_kind: NerveDetectionInputKind
     is_clinical: Literal[False] = False
-    requires_review: Literal[True] = True
+    requires_review: bool
     pathways: list[NervePathway] = Field(default_factory=list, max_length=4)
     proximities: list[ToothNerveProximity] = Field(default_factory=list, max_length=52)
+    failure: NerveDetectionFailure | None = None
+    provenance: NerveModelProvenance | None = None
+    confidence_summary: NerveConfidenceSummary | None = None
+    inference_duration_ms: int | None = None
     performed_at: datetime
     created_at: datetime | None = None
-    review_status: Literal["pending", "accepted", "rejected"] = "pending"
+    review_status: NerveReviewStatus
     reviewed_at: datetime | None = None
     review_note: str | None = None
     pathway_count: int = Field(default=0, ge=0)
+    uncertain_count: int = Field(default=0, ge=0)
     near_count: int = Field(default=0, ge=0)
     watch_count: int = Field(default=0, ge=0)
     disclaimer: str = (
-        "AI-assisted / simulated nerve detection on a canonical anatomical model. "
-        "It is non-clinical decision support: a dentist must verify the pathway "
-        "and proximities before any planning decision."
+        "Model-generated nerve output is non-clinical decision support. "
+        "Detected, uncertain and no-detection outcomes require dentist verification; "
+        "a failed operation contains no anatomical finding."
     )
 
     def counts_from_result(self) -> None:
-        """Derive the display counts from ``pathways``/``proximities``."""
         self.pathway_count = len(self.pathways)
-        self.near_count = sum(1 for p in self.proximities if p.warning == "near")
-        self.watch_count = sum(1 for p in self.proximities if p.warning == "watch")
+        self.uncertain_count = sum(1 for pathway in self.pathways if pathway.status == "uncertain")
+        self.near_count = sum(1 for item in self.proximities if item.warning == "near")
+        self.watch_count = sum(1 for item in self.proximities if item.warning == "watch")
 
 
 class NerveReviewUpdate(BaseModel):
-    """Dentist review decision for one analysis.
-
-    Only ``accepted`` / ``rejected`` are valid decisions — there is no
-    client-supplied detection payload anywhere in the workflow, and a
-    review never approves an implant or surgical plan: it records the
-    dentist's acknowledgement of decision-support output.
-    """
+    """Dentist acknowledgement of a non-failed inference result."""
 
     decision: NerveReviewDecision
     note: str | None = Field(default=None, max_length=1000)

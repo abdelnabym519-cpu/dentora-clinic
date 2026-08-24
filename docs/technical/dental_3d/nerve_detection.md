@@ -1,113 +1,92 @@
-# dental_3d — Mandibular nerve detection (Phase 4)
+# dental_3d — CBCT nerve detection (Phase 5.2)
 
-Status: accepted · ADR: [0022](../../adr/0022-nerve-detection-foundation.md) · Module: `backend/app/modules/dental_3d`
+Status: production architecture implemented; trained model integration not
+verified · ADR: [0024](../../adr/0024-real-nerve-detection-boundary.md)
 
-AI-assisted / simulated nerve detection for the 3D scene: canonical
-left/right mandibular-canal pathways plus per-tooth AI-estimated
-proximities, persisted behind a dentist-review boundary. **Non-clinical
-decision support — a dentist must verify everything this phase
-produces.**
+Phase 5.2 replaces the Phase 4 canonical demo as the production provider with
+a bounded CBCT inference-service adapter. Dentora does not ship model weights
+or a medical-model runtime. An unconfigured deployment returns and persists
+`failed / missing_model`; it never emits hard-coded anatomy as a detection.
 
 ## Architecture
 
-| Piece | File | Layer |
+| Responsibility | Implementation | Layer |
 |---|---|---|
-| Port + contracts (`NerveDetectionProvider`, pathways, proximities) | `nerve.py` | inner boundary (pydantic contracts only) |
-| Application use cases (run / latest / review) | `service.py` → `DentalNerveService` | application |
-| Deterministic adapter (`CanonicalMandibleNerveProvider`) + composition root | `infrastructure.py` | infrastructure |
-| HTTP endpoints | `router.py` | presentation (API) |
-| Persistence | `models.py` → `dental_nerve_analyses`, migration `d3d_0003` | infrastructure |
-| View projection (pure) | `frontend/lib/nerveView.ts` | presentation (pure) |
-| Fetch/run/review composable | `frontend/composables/useDental3DScene.ts` | presentation |
-| 3D tube overlay + toggle | `frontend/components/Dental3DViewer.vue`, `Dental3DCard.vue` | presentation (Three.js) |
+| Outcomes, geometry, provenance, uncertainty, provider port | `nerve.py` | inner boundary |
+| Run/latest/review orchestration | `service.py` | application |
+| DICOM acquisition, de-identification, archive, HTTP engine | `nerve_inference.py` | infrastructure |
+| Production composition root | `infrastructure.default_nerve_provider` | infrastructure |
+| API | `router.py` | interface |
+| Native/canonical display projection | `frontend/lib/nerveView.ts` | interface |
 
-Dependency direction is one-way (presentation → application → port ←
-infrastructure), mirroring Phase 3's segmentation seam exactly.
+The existing `NerveDetectionProvider` seam is retained. Domain/application
+code imports no pydicom, storage, SQLAlchemy, HTTP, model runtime, NumPy,
+PyTorch, ONNX, CUDA or Three.js.
 
-## API
+## Pipeline
 
-All under `/api/v1/dental_3d`, clinic-scoped, patient-authorized:
+1. Select the requested (or newest) patient-owned `CbctSeriesDescriptor`.
+2. Re-query every media document by document id, clinic id, patient id,
+   active status and canonical DICOM MIME.
+3. Parse each Part 10 instance and rebuild it from an allowlist containing
+   pixel data plus geometry/intensity tags. Patient identity, free text and
+   private tags are excluded.
+4. Sort slices by the normal derived from Image Orientation/Position Patient,
+   with SOP Instance UID as a deterministic fallback.
+5. Build a deterministic, uncompressed ZIP with fixed timestamps, a bounded
+   manifest and SHA-256 input digest.
+6. POST it to the operator-configured inference service using the
+   `nerve-detection-v1` contract. Redirects and environment proxies are
+   disabled; request/response sizes and time are bounded.
+7. Validate the response strictly and normalize findings into DICOM patient
+   coordinates (millimetres + Frame of Reference UID).
 
-| Method | Path | Permission | Purpose |
-|---|---|---|---|
-| POST | `/patients/{id}/nerve-detection` | `dental_3d.write` | Run the analysis server-side (201, review `pending`) |
-| GET | `/patients/{id}/nerve-detection` | `dental_3d.read` | Latest analysis (404 when never run) |
-| POST | `/patients/{id}/nerve-detection/{analysis_id}/review` | `dental_3d.write` | Dentist decision `accepted`/`rejected` (409 on re-review) |
+Configuration:
 
-`GET /patients/{id}/scene` carries a server-derived
-`nerve_detection` summary (status, provider, counts, review state,
-`non_clinical: true`). `PUT .../scene` rejects any client-supplied
-`nerve_detection.status == "completed"` payload (422) — there is no
-path by which a client result presents itself as completed.
+- `DENTAL_3D_NERVE_INFERENCE_URL` (empty means `missing_model`; HTTPS required
+  in production)
+- `DENTAL_3D_NERVE_INFERENCE_TOKEN`
+- `DENTAL_3D_NERVE_INFERENCE_TIMEOUT_SECONDS`
+- `DENTAL_3D_NERVE_MAX_INSTANCES`
+- `DENTAL_3D_NERVE_MAX_INPUT_BYTES`
+- `DENTAL_3D_NERVE_LOW_CONFIDENCE_THRESHOLD`
 
-## The canonical model (Phase 4 engine)
+## API and outcomes
 
-`CanonicalMandibleNerveProvider` — deterministic, no randomness, no
-environment reads, clock injected via the request:
+`POST /api/v1/dental_3d/patients/{id}/nerve-detection` optionally accepts
+`{"series_instance_uid": "..."}`. The structured result distinguishes:
 
-- **Pathways**: one per side (left/right), a 6-point polyline in the
-  canonical arch frame (the same frame as `frontend/lib/dentalArch.ts`
-  — half-width 2.2, depth 1.5, gap 0.5; scale 10 units ≈ mm,
-  documented, not a calibration).
-- **Status/confidence**: `uncertain` / 0.6 with no real geometry;
-  `detected` / 0.75 when scan meshes back the arch frame (capped below
-  the 0.8 "high" band — the pathway is canonical either way).
-  Evidence basis is always `anatomical_model`; backing scan documents
-  are listed.
-- **Proximities**: present permanent lower teeth only (FDI 31–48);
-  distance = minimum point-to-polyline distance from the tooth's
-  root-apex anchor × the mm scale; teeth farther than 15 mm are
-  omitted. Bands: `< 2 mm near`, `< 5 mm watch`, else `none` — display
-  bands for "AI-estimated proximity", **never clinical safety
-  verdicts**.
-- Typical full-arch output: 2 pathways, proximities for all 16 lower
-  teeth — near: 37/38/47/48, watch: 34/35/36/44/45/46, none:
-  31/32/33/41/42/43.
+- `detected`: one or more validated findings;
+- `uncertain`: service-reported uncertainty or confidence below the configured
+  threshold;
+- `no_detection`: inference completed without a finding (still reviewable);
+- `failed`: invalid input, unsupported modality, missing model, initialization,
+  inference, malformed output or invalid geometry failure.
 
-## Safety boundary
+Each model finding has a stable id, side/region, native reference space,
+polyline, confidence, reported-or-not-reported uncertainty and backing media
+document ids. Operation metadata includes model id/version, adapter id, input
+digest, Study/Series/Frame UIDs, duration and a confidence summary. No raw
+model output or infrastructure exception reaches the API.
 
-- `is_clinical` is `Literal[False]`, `requires_review` is
-  `Literal[True]` — fixed in the schema, not flags.
-- Workflow: Input → Nerve analysis → Evidence/Confidence → Dentist
-  review → Dentist decision. Reviews are terminal (409) and never
-  approve an implant/surgical plan or touch odontogram data.
-- UI wording is fixed across locales: "AI-assisted / simulated nerve
-  detection", "requires dentist verification", "AI-estimated proximity,
-  not a safety verdict".
+## Safety and visualization
 
-## 3D rendering rules
+- All anatomy output is non-clinical decision support and requires dentist
+  review. Operational failures contain no anatomy and use `not_applicable`
+  review state.
+- Native DICOM findings are surfaced to the UI but deliberately not overlaid
+  on the synthetic arch or an intraoral scan. That would require the
+  patient-specific alignment explicitly deferred to Phase 5.3.
+- Phase 5.2 produces no tooth distance/proximity, safety recommendation,
+  implant position, surgical trajectory, pathology result or treatment plan.
+- Historical Phase 4 rows remain parseable, but the canonical provider is no
+  longer present in production wiring.
 
-- Pathways render as `THREE.TubeGeometry` tubes (colour by confidence
-  band, half-opacity when `uncertain`) in the synthetic arch frame,
-  with a visibility toggle; geometry/materials join the viewer's
-  disposal lifecycle.
-- **Synthetic arch only**: the canonical frame has no relationship to
-  a patient's real scan surface, so the overlay is hidden while a real
-  mesh renders (same policy as segmentation labels).
-- The `'nerve'` `MeshSource`/`SceneMeshKind` value reserves the mesh
-  vocabulary for a future export path; Phase 4 pathways are analysis
-  output, not downloadable documents.
+## Model status
 
-## ThreeUI decision
-
-ThreeUI was evaluated per the phase authorization: **it does not exist
-in the repository** (no package, no API, no integration — only `three`
-^0.185.1). The existing Three.js implementation is preserved; any
-future ThreeUI adoption must stay at this presentation edge and out of
-the ports/contracts/business rules. See ADR 0022 §8.
-
-## Limitations
-
-- The engine is a demo anatomical model — distances are model-space
-  estimates, not clinical measurements; no patient-specific canal
-  exists until a real detector ships.
-- No CBCT input, no volumetric analysis, no implant/surgical planning
-  (Phase 5+ scope, needs its own authorization).
-- Left/right coverage is the permanent mandibular dentition only.
-
-## Future CBCT/ML integration seam
-
-Implement `NerveDetectionProvider.detect()` (a future CBCT input kind
-extends `NerveDetectionInputKind`, never the port shape) and return it
-from `default_nerve_provider()` — contracts, persistence, review
-workflow, scene summary and UI are untouched (ADR 0022).
+No trained nerve model or inference-capable medical runtime exists in this
+repository. DentalSegmentator/nnU-Net was evaluated as an external candidate,
+but its large weights/runtime and clinical/resource trust boundary are not
+silently bundled. Therefore the adapter and full normalized pipeline are
+tested with a controlled HTTP contract, while execution of an actual trained
+model remains an explicit deployment/integration gap.

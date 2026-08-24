@@ -22,6 +22,7 @@ from app.modules.dental_3d.models import DentalNerveAnalysis as AnalysisRow
 from app.modules.dental_3d.nerve import (
     NerveDetectionRequest,
     NerveDetectionResult,
+    NerveModelProvenance,
     NerveReviewUpdate,
 )
 from app.modules.dental_3d.service import (
@@ -41,8 +42,20 @@ class _StubProvider:
 
     async def detect(self, request: NerveDetectionRequest) -> NerveDetectionResult:
         return NerveDetectionResult(
+            status="no_detection",
             provider=self.name,
             method="stub-method",
+            input_kind="cbct_series",
+            requires_review=True,
+            provenance=NerveModelProvenance(
+                model_id="stub",
+                model_version="1",
+                adapter="test",
+                input_digest="sha256:" + "a" * 64,
+                study_instance_uid="1.2.3",
+                series_instance_uid="1.2.3.1",
+                frame_of_reference_uid="1.2.3.2",
+            ),
             performed_at=request.performed_at,
         )
 
@@ -81,17 +94,15 @@ async def test_run_detection_persists_pending_review(
         patient_id=test_patient.id,
         user_id=None,  # FK-honest: real users come from the API layer
     )
-    assert analysis.review_status == "pending"
+    assert analysis.review_status == "not_applicable"
     assert analysis.is_clinical is False
-    assert analysis.requires_review is True
-    assert analysis.provider == "canonical-mandible"
-    assert analysis.method == "canonical-mandible-model-v0"
-    assert analysis.pathway_count == 2  # left + right
-    assert analysis.near_count == 4  # 37/38/47/48 on a full healthy arch
-    assert analysis.watch_count == 6  # premolars + first molars
-    assert len(analysis.proximities) == 16  # every present lower tooth
-    assert "verify" in analysis.disclaimer.lower()
-    assert "simulated" in analysis.disclaimer.lower()
+    assert analysis.requires_review is False
+    assert analysis.provider == "cbct-model-service"
+    assert analysis.status == "failed"
+    assert analysis.failure is not None
+    assert analysis.failure.code == "invalid_input"
+    assert analysis.pathway_count == 0
+    assert "verification" in analysis.disclaimer.lower()
 
 
 @pytest.mark.asyncio
@@ -102,9 +113,8 @@ async def test_odontogram_absence_drops_proximity(
     analysis = await DentalNerveService.run_detection(
         db_session, clinic_id=test_patient.clinic_id, patient_id=test_patient.id, user_id=None
     )
-    listed = {p.tooth_number for p in analysis.proximities}
-    assert 48 not in listed
-    assert analysis.near_count == 3  # 37, 38, 47
+    assert analysis.proximities == []
+    assert analysis.status == "failed"
 
 
 @pytest.mark.asyncio
@@ -147,7 +157,11 @@ async def test_review_accept_records_dentist_decision(
     db_session: AsyncSession, test_patient: Patient
 ) -> None:
     analysis = await DentalNerveService.run_detection(
-        db_session, clinic_id=test_patient.clinic_id, patient_id=test_patient.id, user_id=None
+        db_session,
+        clinic_id=test_patient.clinic_id,
+        patient_id=test_patient.id,
+        user_id=None,
+        provider=_StubProvider(),
     )
     reviewed = await DentalNerveService.review_analysis(
         db_session,
@@ -167,7 +181,11 @@ async def test_review_reject_and_no_double_review(
     db_session: AsyncSession, test_patient: Patient
 ) -> None:
     analysis = await DentalNerveService.run_detection(
-        db_session, clinic_id=test_patient.clinic_id, patient_id=test_patient.id, user_id=None
+        db_session,
+        clinic_id=test_patient.clinic_id,
+        patient_id=test_patient.id,
+        user_id=None,
+        provider=_StubProvider(),
     )
     rejected = await DentalNerveService.review_analysis(
         db_session,
@@ -208,14 +226,17 @@ async def test_review_unknown_analysis_raises_key_error(
 async def test_provider_failure_surfaces_as_nerve_error(
     db_session: AsyncSession, test_patient: Patient
 ) -> None:
-    with pytest.raises(NerveError, match="nerve detection provider failed"):
-        await DentalNerveService.run_detection(
-            db_session,
-            clinic_id=test_patient.clinic_id,
-            patient_id=test_patient.id,
-            user_id=None,
-            provider=_FailingProvider(),
-        )
+    analysis = await DentalNerveService.run_detection(
+        db_session,
+        clinic_id=test_patient.clinic_id,
+        patient_id=test_patient.id,
+        user_id=None,
+        provider=_FailingProvider(),
+    )
+    assert analysis.status == "failed"
+    assert analysis.review_status == "not_applicable"
+    assert analysis.failure is not None
+    assert analysis.failure.code == "inference_failed"
 
 
 @pytest.mark.asyncio
@@ -230,7 +251,8 @@ async def test_provider_injection_uses_the_port(
         provider=_StubProvider(),
     )
     assert analysis.provider == "stub-nerve"
-    assert analysis.pathways == []  # whatever the engine returns — never faked
+    assert analysis.status == "no_detection"
+    assert analysis.pathways == []
 
 
 @pytest.mark.asyncio
@@ -243,7 +265,11 @@ async def test_scene_summary_reflects_latest_analysis(
     assert scene.nerve_detection.status == "not_available"
 
     analysis = await DentalNerveService.run_detection(
-        db_session, clinic_id=test_patient.clinic_id, patient_id=test_patient.id, user_id=None
+        db_session,
+        clinic_id=test_patient.clinic_id,
+        patient_id=test_patient.id,
+        user_id=None,
+        provider=_StubProvider(),
     )
     reviewed = await DentalNerveService.review_analysis(
         db_session,
@@ -259,12 +285,10 @@ async def test_scene_summary_reflects_latest_analysis(
         db_session, test_patient.clinic_id, test_patient.id
     )
     summary = scene.nerve_detection
-    assert summary.status == "completed"
+    assert summary.status == "no_detection"
     assert summary.analysis_id == analysis.id
-    assert summary.provider == "canonical-mandible"
-    assert summary.pathway_count == 2
-    assert summary.near_count == 4
-    assert summary.watch_count == 6
+    assert summary.provider == "stub-nerve"
+    assert summary.pathway_count == 0
     assert summary.review_status == "accepted"
     assert summary.non_clinical is True
     assert summary.performed_at is not None

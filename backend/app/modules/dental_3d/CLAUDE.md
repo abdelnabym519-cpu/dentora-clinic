@@ -15,6 +15,10 @@ Phase 5.1 adds the **CBCT/DICOM ingestion foundation** — validated CT
 instances stored by media and grouped into normalized, non-diagnostic
 series availability behind ports (ADR 0023). It does not decode pixels,
 render volumes, detect anatomy/pathology or perform planning.
+Phase 5.2 adds the production-ready **CBCT nerve-inference boundary**:
+de-identified deterministic input archives, a replaceable HTTP engine,
+structured native-coordinate outcomes and explicit model-unavailable failure.
+No trained weights ship in this repository and no alignment/planning is added.
 
 ## Public API
 
@@ -27,7 +31,7 @@ render volumes, detect anatomy/pathology or perform planning.
   - `POST   /dental_3d/patients/{patient_id}/segmentation` — run the segmentation provider server-side; permission `dental_3d.write`
   - `GET    /dental_3d/patients/{patient_id}/segmentation` — latest analysis (404 when never run); permission `dental_3d.read`
   - `POST   /dental_3d/patients/{patient_id}/segmentation/{analysis_id}/review` — dentist review decision; permission `dental_3d.write`
-  - `POST   /dental_3d/patients/{patient_id}/nerve-detection` — run the nerve provider server-side (simulated, non-clinical); permission `dental_3d.write`
+  - `POST   /dental_3d/patients/{patient_id}/nerve-detection` — run CBCT nerve inference (optional series UID); permission `dental_3d.write`
   - `GET    /dental_3d/patients/{patient_id}/nerve-detection` — latest nerve analysis (404 when never run); permission `dental_3d.read`
   - `POST   /dental_3d/patients/{patient_id}/nerve-detection/{analysis_id}/review` — dentist review decision; permission `dental_3d.write`
 
@@ -75,6 +79,9 @@ metadata lives in media's existing `extra_data` extensibility field.
   inner layer, ADR 0022). Same fixed safety literals; proximity
   warnings (`near`/`watch`/`none`) are display bands, never clinical
   verdicts.
+- `nerve_inference.py` — Phase 5.2 infrastructure: clinic/patient-scoped
+  media acquisition, DICOM de-identification and deterministic ordering,
+  bounded HTTP inference adapter, strict output normalization and safe errors.
 - `router.py` / `tools.py` / `frontend/` — presentation.
 
 ## Permissions
@@ -113,7 +120,8 @@ a future optimization, not a correctness need.
   dentist review state). Phase 4 adds `d3d_0003` (`dental_nerve_analyses`,
   same shape: pathways + proximities + review state) — persisted because
   a review boundary that forgets itself on reload would be a boundary in
-  name only. Phase 5.1 adds no migration. Uninstall drops only the
+  name only. Phase 5.1 adds no migration. Phase 5.2 adds `d3d_0004`
+  for explicit outcome/failure/provenance state. Uninstall drops only the
   dental_3d branch; uploaded scans/DICOM instances remain ordinary media
   documents owned by the media module, and
   analyses are derivable decision support.
@@ -154,17 +162,12 @@ a future optimization, not a correctness need.
   rejects `status="completed"`, and a review never mutates odontogram
   records. `ArchPartitionSegmentationProvider` is a rule-based
   foundation — never present it as a medical AI model.
-- Nerve detection is **AI-assisted / simulated decision support**: the
-  `CanonicalMandibleNerveProvider` models a canonical mandibular canal
-  (demo anatomy, `source=canonical_demo_model`) — never a clinically
-  validated detector, never patient-specific. Same write rules as
-  segmentation (run + review only; `PUT scene` rejects
-  `nerve_detection.status="completed"`); reviews never approve an
-  implant/surgical plan. Proximity bands near/watch/none are display
-  bands for "AI-estimated proximity", never clinical safety verdicts.
-  The viewer renders pathway tubes on the synthetic arch only (the
-  canonical frame has no patient-scan alignment); ThreeUI was evaluated
-  and does not exist in the repository (ADR 0022 §8).
+- Production nerve detection is the Phase 5.2 CBCT adapter only. Missing
+  model configuration is `failed/missing_model`; never substitute canonical
+  anatomy. Model findings stay in DICOM patient coordinates and must not be
+  overlaid on teeth/scans until separately authorized registration exists.
+  No proximity, implant/surgical planning or clinical safety verdict is
+  produced (ADR 0024).
 - Segmentation analyses are append-only; latest wins in the scene
   summary. Re-reviewing a decided analysis is a 409.
 - Viewer FDI labels render on the synthetic arch only — labelling a

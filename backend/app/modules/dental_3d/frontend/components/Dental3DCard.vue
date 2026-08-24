@@ -70,7 +70,7 @@ const {
   review: reviewNerve
 } = useDental3DNerveDetection(() => props.ctx.patient.id)
 
-/** Normalized nerve analysis (Phase 4) — null when not run. */
+/** Normalized nerve analysis (Phase 5.2) — null when not run. */
 const nerve = computed(() => toNerveView(rawNerveAnalysis.value))
 const primaryNervePathway = computed(() => nerve.value?.pathways[0] ?? null)
 const nerveNearList = computed(() => nearTeeth(nerve.value))
@@ -272,8 +272,8 @@ async function onUploadChange(event: Event): Promise<void> {
         </p>
       </div>
 
-      <!-- Phase 4: mandibular nerve detection — AI-assisted / simulated
-           decision support with dentist verification (ADR 0022). -->
+      <!-- Phase 5.2: mandibular nerve detection — CBCT model
+           decision support with explicit failure/no-detection semantics. -->
       <div
         data-testid="dental3d-nerve"
         class="space-y-1 border-t border-default pt-2"
@@ -286,6 +286,9 @@ async function onUploadChange(event: Event): Promise<void> {
             {{ t('dental_3d.nerve.title') }}:
             <span v-if="nerve === null">
               {{ nerveRunning ? t('dental_3d.nerve.running') : t('dental_3d.nerve.none') }}
+            </span>
+            <span v-else-if="nerve.status === 'failed'">
+              {{ t('dental_3d.nerve.runError') }}
             </span>
             <span v-else-if="nerve.review.status === 'pending'">
               {{ t('dental_3d.nerve.reviewPending') }}

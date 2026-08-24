@@ -1,13 +1,13 @@
 import { test, expect, type Page } from './_fixtures'
 
 /**
- * Dental 3D nerve detection foundation (Phase 4, ADR 0022).
+ * Dental 3D nerve detection safety contract (Phase 5.2).
  *
- * Exercises the full AI-assisted / simulated workflow through the
- * product UI: run the canonical-model analysis from the patient
- * summary card, see the pathway summary and AI-estimated proximities,
- * review it as a dentist, and verify the RBAC boundary — write actions
- * are denied for read-only roles at both the UI and API layers.
+ * Exercises the real CBCT-provider boundary without invoking a model:
+ * seeded patients intentionally have no validated CBCT series, so the
+ * product must persist and display an explicit non-reviewable failure,
+ * never substitute demo anatomy or fabricate tooth proximity. RBAC
+ * boundaries remain covered at both the UI and API layers.
  *
  * Preconditions: demo users seeded (admin@demo.clinic / demo1234) and
  * the dental_3d layer loaded (CI regenerates modules.json).
@@ -41,55 +41,97 @@ function authHeaders(page: Page): Promise<Record<string, string>> {
   })
 }
 
-test.describe('dental 3D — nerve detection foundation', () => {
+test.describe('dental 3D — nerve detection Phase 5.2 safety contract', () => {
   test.use({ role: 'admin' })
 
-  test('run → proximity evidence → dentist review workflow', async ({ loggedIn }) => {
+  test('run without validated CBCT fails safely without anatomy or review', async ({ loggedIn }) => {
     const patientId = await getPatientId(loggedIn, 2)
     await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
 
-    // 1. The nerve section surfaces on the card.
     const section = loggedIn.locator('[data-testid="dental3d-nerve"]')
     await expect(section).toBeVisible({ timeout: 15_000 })
 
-    // 2. Run the (AI-assisted / simulated) analysis.
     await loggedIn.locator('[data-testid="dental3d-nerve-run"]').click()
+
+    const failure = loggedIn.locator(
+      '[data-testid="dental3d-nerve-model-failure"]'
+    )
+    await expect(failure).toBeVisible({ timeout: 15_000 })
+    await expect(failure).toContainText(
+      'No validated CBCT series is available for this patient'
+    )
+
     const counts = loggedIn.locator('[data-testid="dental3d-nerve-counts"]')
-    await expect(counts).toBeVisible({ timeout: 15_000 })
-    await expect(counts).toContainText('2 pathways')
-    await expect(counts).toContainText('4 near')
-    await expect(counts).toContainText('6 watch')
+    await expect(counts).toContainText('0 pathways')
+    await expect(counts).toContainText('0 near')
+    await expect(counts).toContainText('0 watch')
 
-    // 3. Safety wording is fixed: simulated + requires verification.
-    await expect(section).toContainText('requires dentist verification')
-
-    // 4. Proximity evidence: near FDI teeth, explicitly AI-estimated.
-    const near = loggedIn.locator('[data-testid="dental3d-nerve-near"]')
-    await expect(near).toBeVisible()
-    await expect(near).toContainText('37, 38, 47, 48')
-    await expect(near).toContainText('AI-estimated proximity')
-
-    // 5. The overlay toggle is available once an analysis exists.
-    await expect(loggedIn.locator('[data-testid="dental3d-nerve-toggle"]')).toBeVisible()
-
-    // 6. Dentist review: accept, then the decision is terminal.
-    await loggedIn.locator('[data-testid="dental3d-nerve-accept"]').click()
-    const reviewState = loggedIn.locator('[data-testid="dental3d-nerve-review-state"]')
-    await expect(reviewState).toBeVisible({ timeout: 10_000 })
-    await expect(reviewState).toContainText('verified — accepted')
+    // A failed operation contains no anatomical finding and is not reviewable.
+    await expect(loggedIn.locator('[data-testid="dental3d-nerve-near"]')).toHaveCount(0)
+    await expect(loggedIn.locator('[data-testid="dental3d-nerve-watch"]')).toHaveCount(0)
     await expect(loggedIn.locator('[data-testid="dental3d-nerve-accept"]')).toHaveCount(0)
+    await expect(loggedIn.locator('[data-testid="dental3d-nerve-reject"]')).toHaveCount(0)
+    await expect(loggedIn.locator('[data-testid="dental3d-nerve-review-state"]')).toHaveCount(0)
+
+    // Do not misrepresent not_applicable as dentist rejection.
+    await expect(
+      loggedIn.locator('[data-testid="dental3d-nerve-status"]')
+    ).toContainText('Nerve detection could not run right now.')
   })
 
-  test('scene API reports the reviewed nerve summary', async ({ loggedIn }) => {
+  test('API persists the no-CBCT result as a non-reviewable failure', async ({ loggedIn }) => {
     const patientId = await getPatientId(loggedIn, 2)
     const headers = await authHeaders(loggedIn)
-    const res = await loggedIn.context().request.get(
+
+    const run = await loggedIn.context().request.post(
+      `${API_BASE}/api/v1/dental_3d/patients/${patientId}/nerve-detection`,
+      { headers }
+    )
+
+    expect(run.status()).toBe(201)
+
+    const runBody = (await run.json()) as {
+      data: {
+        status: string
+        provider: string
+        method: string
+        input_kind: string
+        requires_review: boolean
+        review_status: string
+        pathway_count: number
+        near_count: number
+        watch_count: number
+        failure: {
+          code: string
+          message: string
+        } | null
+      }
+    }
+
+    expect(runBody.data.status).toBe('failed')
+    expect(runBody.data.provider).toBe('cbct-model-service')
+    expect(runBody.data.method).toBe('dentora-cbct-http-v1')
+    expect(runBody.data.input_kind).toBe('cbct_series')
+    expect(runBody.data.requires_review).toBe(false)
+    expect(runBody.data.review_status).toBe('not_applicable')
+    expect(runBody.data.pathway_count).toBe(0)
+    expect(runBody.data.near_count).toBe(0)
+    expect(runBody.data.watch_count).toBe(0)
+    expect(runBody.data.failure?.code).toBe('invalid_input')
+    expect(runBody.data.failure?.message).toBe(
+      'No validated CBCT series is available for this patient'
+    )
+
+    // The scene summary must persist the same safe outcome.
+    const scene = await loggedIn.context().request.get(
       `${API_BASE}/api/v1/dental_3d/patients/${patientId}/scene`,
       { headers }
     )
-    expect(res.ok()).toBeTruthy()
-    const body = (await res.json()) as {
+
+    expect(scene.ok()).toBeTruthy()
+
+    const sceneBody = (await scene.json()) as {
       data: {
         nerve_detection: {
           status: string
@@ -101,12 +143,13 @@ test.describe('dental 3D — nerve detection foundation', () => {
         }
       }
     }
-    expect(body.data.nerve_detection.status).toBe('completed')
-    expect(body.data.nerve_detection.provider).toBe('canonical-mandible')
-    expect(body.data.nerve_detection.review_status).toBe('accepted')
-    expect(body.data.nerve_detection.pathway_count).toBe(2)
-    expect(body.data.nerve_detection.near_count).toBe(4)
-    expect(body.data.nerve_detection.non_clinical).toBe(true)
+
+    expect(sceneBody.data.nerve_detection.status).toBe('failed')
+    expect(sceneBody.data.nerve_detection.provider).toBe('cbct-model-service')
+    expect(sceneBody.data.nerve_detection.review_status).toBe('not_applicable')
+    expect(sceneBody.data.nerve_detection.pathway_count).toBe(0)
+    expect(sceneBody.data.nerve_detection.near_count).toBe(0)
+    expect(sceneBody.data.nerve_detection.non_clinical).toBe(true)
   })
 })
 

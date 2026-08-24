@@ -26,6 +26,13 @@
   synthetic arch. Dental3D-specific TypeScript validation is clean; this remains
   engineering validation only and the commercial-use gate remains open.
 
+- Closed the Phase 5.2 E2E contract gap: seeded patients without a
+  validated CBCT series now validate the intended fail-safe path
+  (`failed` / `invalid_input`, zero findings/proximity, no dentist review)
+  instead of the retired Phase 4 canonical demo output. The patient card
+  also no longer presents a non-reviewable failed operation as a rejected
+  dentist verification.
+
 ### 0.5.0 — Phase 5.1: CBCT/DICOM ingestion foundation
 
 - Framework-independent `DicomIngestionPort`, normalized CT instance/series

@@ -369,6 +369,16 @@ jobs:
           set -e
           cat "${PERIO_DIAG_DIR}/restart.log"
           docker compose ps > "${PERIO_DIAG_DIR}/compose-after-restart.txt" 2>&1 || true
+          if [ "${rc}" -eq 0 ]; then
+            backend_endpoint="$(docker compose port backend 8000)"
+            backend_port="${backend_endpoint##*:}"
+            if ! [[ "${backend_port}" =~ ^[0-9]+$ ]]; then
+              echo "::error::Could not resolve backend host port after restart from: ${backend_endpoint}"
+              exit 1
+            fi
+            echo "BACKEND_BASE_URL=http://127.0.0.1:${backend_port}" >> "${GITHUB_ENV}"
+            echo "backend republished at http://127.0.0.1:${backend_port}"
+          fi
           exit "${rc}"
 
       - name: Wait for backend after Periodontogram restart

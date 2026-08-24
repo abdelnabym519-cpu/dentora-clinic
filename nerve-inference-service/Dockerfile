@@ -25,8 +25,8 @@ RUN python -m pip install --no-cache-dir --timeout 1000 --retries 10 \
     dynamic-network-architectures==0.2 \
     nnunetv2==2.2.1 \
     pydicom==3.0.2 \
-    SimpleITK>=2.3,<3 \
-    fastapi>=0.115,<1 \
+    "SimpleITK>=2.3,<3" \
+    "fastapi>=0.115,<1" \
     "uvicorn[standard]>=0.30,<1"
 
 RUN python -m pip check && \

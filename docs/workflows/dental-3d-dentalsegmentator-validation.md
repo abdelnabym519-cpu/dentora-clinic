@@ -1,7 +1,8 @@
 # Dental 3D — DentalSegmentator validation record
 
-Status: engineering validation complete for the standalone sample pipeline;
-Dentora DICOM-service end-to-end gate pending.
+Status: engineering validation complete for both the standalone sample pipeline
+and the Dentora DICOM-service end-to-end integration path. This remains
+engineering validation only; clinical and commercial-use gates remain open.
 
 This record exists so agents do **not** repeat expensive model acquisition,
 checkpoint inspection or CPU inference unless a later change invalidates one of
@@ -128,14 +129,38 @@ The standalone evidence proves:
 
 `CBCT sample → DentalSegmentator/nnU-Net → patient-specific label-5 mask → native geometry`
 
-It does **not** yet prove the full Dentora deployed path:
+The Dentora end-to-end integration has now additionally verified:
 
-`Dentora DICOM upload → sanitized nerve-detection-v1 archive → isolated service → native LPS polyline response → persistence/API`
+`DICOM series → Dentora backend provider → sanitized nerve-detection-v1 archive → isolated DentalSegmentator service → native LPS polyline response → persistence/API → frontend contract`
 
-The latter is the next end-to-end gate. The existing backend adapter tests
-already verify deterministic de-identification, slice ordering, strict HTTP
-normalization, native reference-space contracts and safe failure outcomes with a
-controlled service response.
+Verified saved result:
+
+- outcome: `detected`
+- `requires_review`: `true`
+- model: `DentalSegmentator/Dataset112`
+- model version: `v100-checkpoint-a3a91ae0f8d7`
+- Frame of Reference UID:
+  `2.25.62227709036452476721866742325628339408`
+- inference duration: `1852635 ms`
+- pathway count: `2`
+- right pathway: confidence approximately `0.967874`, 34 points
+- left pathway: confidence approximately `0.967874`, 33 points
+- reference space: `dicom_patient`
+- unit: millimetres
+
+Frontend nerve validation passed with 23/23 tests, and the saved real inference
+payload passed the dedicated frontend contract test. The contract preserves
+model confidence, requires dentist review, creates no synthetic tooth proximity
+and does not render native DICOM pathways over the unaligned synthetic arch.
+
+The isolated Dental3D TypeScript validation also reports zero Dental3D errors.
+Repository-wide pre-existing frontend TypeScript debt is outside Phase 5.2 and
+is not treated as a failure of this gate.
+
+This closes the Phase 5.2 engineering end-to-end integration evidence. It does
+**not** establish clinical validation, diagnostic accuracy, regulatory
+clearance, commercial-use clearance, or CBCT-to-synthetic/intraoral
+registration.
 
 ## Re-run conditions
 

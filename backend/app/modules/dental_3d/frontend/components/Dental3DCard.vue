@@ -40,7 +40,7 @@ const {
   review: reviewSegmentation
 } = useDental3DSegmentation(() => props.ctx.patient.id)
 
-const scene = computed(() => data.value)
+const scene = computed(() => data.value ?? null)
 const failed = computed(() => status.value !== 'pending' && scene.value === null)
 const viewerTeeth = computed<DentalToothView[]>(() => toViewerTeeth(scene.value))
 const summary = computed(() => summarizeScene(scene.value))
@@ -72,6 +72,7 @@ const {
 
 /** Normalized nerve analysis (Phase 4) — null when not run. */
 const nerve = computed(() => toNerveView(rawNerveAnalysis.value))
+const primaryNervePathway = computed(() => nerve.value?.pathways[0] ?? null)
 const nerveNearList = computed(() => nearTeeth(nerve.value))
 const nerveWatchList = computed(() => watchTeeth(nerve.value))
 const nerveNearLabel = computed(() =>
@@ -341,13 +342,13 @@ async function onUploadChange(event: Event): Promise<void> {
             {{ nerve.failure.message }}
           </p>
           <p
-            v-if="nerve.pathways.length > 0"
+            v-if="primaryNervePathway"
             class="text-subtle text-caption"
           >
             {{ t('dental_3d.nerve.confidence', {
-              value: Math.round(nerve.pathways[0].confidence * 100) / 100
+              value: Math.round(primaryNervePathway.confidence * 100) / 100
             }) }}
-            · {{ nerve.pathways[0].status === 'uncertain'
+            · {{ primaryNervePathway.status === 'uncertain'
               ? t('dental_3d.nerve.uncertainModel') : t('dental_3d.nerve.detectedModel') }}
           </p>
           <p

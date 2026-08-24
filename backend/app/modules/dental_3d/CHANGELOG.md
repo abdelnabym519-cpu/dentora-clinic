@@ -18,6 +18,13 @@
   Slicer `PreDentalSurgery` CBCT sample was verified with native geometry and
   bilateral label-5 output. This is engineering validation only, not clinical
   validation or an accuracy claim; the commercial-use gate remains open.
+- Completed the real Dentora DICOM-service end-to-end integration through the
+  sanitized HTTP boundary into DentalSegmentator and back into persisted
+  native-coordinate findings: bilateral `dicom_patient` pathways were detected,
+  preserved for dentist review and accepted by the frontend contract without
+  inventing tooth proximity or overlaying unregistered DICOM geometry on the
+  synthetic arch. Dental3D-specific TypeScript validation is clean; this remains
+  engineering validation only and the commercial-use gate remains open.
 
 ### 0.5.0 — Phase 5.1: CBCT/DICOM ingestion foundation
 

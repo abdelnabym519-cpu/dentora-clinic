@@ -101,7 +101,7 @@ let controls: OrbitControls | null = null
 let animationId = 0
 let resizeObserver: ResizeObserver | null = null
 /** Every geometry / material created here — disposed on unmount. */
-const disposables: Array<THREE.BufferGeometry | THREE.Material> = []
+const disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> = []
 
 /** Real-mesh state machine (idle → loading → ready | error). */
 const meshPhase = ref<MeshLoadPhase>('idle')

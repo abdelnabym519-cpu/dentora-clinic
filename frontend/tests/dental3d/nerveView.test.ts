@@ -164,7 +164,7 @@ describe('nerveOverlayState — viewer gating', () => {
   })
 
   it('never overlays native DICOM findings on the unaligned synthetic arch', () => {
-    const native = payload({
+    const native = analysis({
       pathways: [pathway('left', { reference_space: { kind: 'dicom_patient' } })]
     })
     const state = nerveOverlayState(toNerveView(native), true, true)

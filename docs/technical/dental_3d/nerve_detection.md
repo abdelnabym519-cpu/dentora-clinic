@@ -1,7 +1,8 @@
 # dental_3d — CBCT nerve detection (Phase 5.2 + reference runtime)
 
 Status: production architecture implemented; standalone trained-model execution
-verified; Dentora DICOM-service end-to-end gate pending · ADRs:
+verified; Dentora DICOM-service end-to-end integration verified as engineering
+validation only. Commercial-use clearance remains open · ADRs:
 [0024](../../adr/0024-real-nerve-detection-boundary.md),
 [0025](../../adr/0025-dentalsegmentator-runtime-integration.md)
 
@@ -151,6 +152,26 @@ mandibular-canal-specific accuracy claim. Commercial-use clearance for the
 external model/weights is not established by this repository and remains a
 separate production gate.
 
-The next integration gate is an end-to-end Dentora DICOM-series run through the
-sanitized HTTP boundary into the isolated model service and back into persisted
-native-coordinate findings.
+The Dentora DICOM-service end-to-end integration gate has now been completed
+using the public validation CBCT through the real DICOM transport path:
+
+`DICOM series → Dentora backend provider → sanitized nerve-detection-v1 HTTP
+boundary → isolated DentalSegmentator service → label-5 findings → persisted
+NerveDetectionResult`
+
+The verified result was `detected` with two bilateral pathways in
+`dicom_patient` millimetres, dentist review required, model
+`DentalSegmentator/Dataset112`, version `v100-checkpoint-a3a91ae0f8d7`, Frame
+of Reference UID `2.25.62227709036452476721866742325628339408`, and inference
+duration `1852635 ms`. The right pathway contained 34 points with confidence
+approximately `0.967874`; the left contained 33 points with approximately the
+same confidence.
+
+Frontend contract validation preserves those native-coordinate findings and
+does not fabricate tooth proximity. Native DICOM pathways remain deliberately
+hidden over the synthetic dental arch until patient-specific
+alignment/registration exists.
+
+This closes the Phase 5.2 engineering integration gate only. It does not
+establish clinical validation, diagnostic accuracy, regulatory clearance or
+commercial-use clearance for the external model/weights.

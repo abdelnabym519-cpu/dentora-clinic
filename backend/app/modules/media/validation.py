@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import AsyncIterator
 
 from fastapi import HTTPException, UploadFile
@@ -10,6 +11,7 @@ from app.config import settings
 
 DOCUMENT_TYPES = ["consent", "id_scan", "insurance", "report", "referral", "other"]
 UPLOAD_CHUNK_SIZE = 1024 * 1024
+_SAFE_EXTENSION_RE = re.compile(r"^[a-z0-9]{1,16}$")
 
 _PHOTO_MIME_EXTRA = frozenset(
     {
@@ -101,7 +103,8 @@ def validate_document_type(document_type: str) -> None:
 
 
 def get_file_extension(filename: str) -> str:
-    """Extract extension without a leading dot."""
-    if "." in filename:
-        return filename.rsplit(".", 1)[1].lower()
-    return ""
+    """Return a safe extension only; never let filenames shape object paths."""
+    if "." not in filename:
+        return ""
+    extension = filename.rsplit(".", 1)[1].lower()
+    return extension if _SAFE_EXTENSION_RE.fullmatch(extension) else ""

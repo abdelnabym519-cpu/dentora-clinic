@@ -11,6 +11,7 @@ import type {
   ClinicalScene,
   PatientPointMm
 } from '../lib/clinicalScene'
+import { implantPlanningOf } from '../lib/implantScene'
 import type { PatientMeasurement } from '../lib/patientMeasurements'
 import { useDental3DMeshIO } from '../composables/useDental3DScene'
 
@@ -134,7 +135,13 @@ function nerveObject(scene: ClinicalScene): THREE.Group {
     const curve = new THREE.CatmullRomCurve3(
       pathway.points.map(point => new THREE.Vector3(point.x, point.y, point.z))
     )
-    const geometry = new THREE.TubeGeometry(curve, Math.max(24, pathway.points.length * 4), 0.6, 8, false)
+    const geometry = new THREE.TubeGeometry(
+      curve,
+      Math.max(24, pathway.points.length * 4),
+      0.6,
+      8,
+      false
+    )
     prepareGeometry(geometry)
     const material = new THREE.MeshStandardMaterial({
       color: pathway.status === 'uncertain' ? 0xF59E0B : 0xEF4444,
@@ -148,6 +155,79 @@ function nerveObject(scene: ClinicalScene): THREE.Group {
     mesh.userData.aiOverlayId = pathway.id
     group.add(mesh)
   }
+  return group
+}
+
+function implantPlanningObject(scene: ClinicalScene): THREE.Group {
+  const group = new THREE.Group()
+  group.name = 'clinical-implant-planning-overlays'
+  const planning = implantPlanningOf(scene)
+  const patientY = new THREE.Vector3(0, 1, 0)
+
+  for (const implant of planning.implants) {
+    const geometry = new THREE.CylinderGeometry(
+      implant.diameterMm * 0.5,
+      implant.diameterMm * 0.5,
+      implant.lengthMm,
+      32
+    )
+    prepareGeometry(geometry)
+    const material = new THREE.MeshStandardMaterial({
+      color: implant.status === 'accepted' ? 0x22C55E : 0x38BDF8,
+      roughness: 0.4,
+      metalness: 0.35,
+      transparent: implant.status !== 'accepted',
+      opacity: implant.status === 'accepted' ? 0.9 : 0.72,
+      clippingPlanes: props.clippingPlane ? [props.clippingPlane] : []
+    })
+    const mesh = new THREE.Mesh(geometry, material)
+    const axis = new THREE.Vector3(implant.axis.x, implant.axis.y, implant.axis.z)
+    mesh.position.set(implant.center.x, implant.center.y, implant.center.z)
+    mesh.quaternion.setFromUnitVectors(patientY, axis)
+    mesh.name = `implant-plan:${implant.planId}:revision:${implant.revisionNumber}`
+    mesh.userData.clinicalPickable = true
+    mesh.userData.implantPlanId = implant.planId
+    group.add(mesh)
+
+    const half = implant.lengthMm * 0.5
+    const center = new THREE.Vector3(implant.center.x, implant.center.y, implant.center.z)
+    const axisGeometry = new THREE.BufferGeometry().setFromPoints([
+      center.clone().addScaledVector(axis, -half),
+      center.clone().addScaledVector(axis, half)
+    ])
+    const axisMaterial = new THREE.LineBasicMaterial({
+      color: 0xE2E8F0,
+      clippingPlanes: props.clippingPlane ? [props.clippingPlane] : []
+    })
+    group.add(new THREE.Line(axisGeometry, axisMaterial))
+  }
+
+  for (const target of planning.prostheticTargets) {
+    const center = new THREE.Vector3(target.center.x, target.center.y, target.center.z)
+    const axis = new THREE.Vector3(target.axis.x, target.axis.y, target.axis.z)
+    const marker = new THREE.Mesh(
+      new THREE.SphereGeometry(1.25, 16, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0xF59E0B,
+        clippingPlanes: props.clippingPlane ? [props.clippingPlane] : []
+      })
+    )
+    marker.position.copy(center)
+    marker.name = `prosthetic-target:${target.id}`
+    marker.userData.clinicalPickable = true
+    group.add(marker)
+
+    const axisGeometry = new THREE.BufferGeometry().setFromPoints([
+      center,
+      center.clone().addScaledVector(axis, 12)
+    ])
+    const axisMaterial = new THREE.LineBasicMaterial({
+      color: 0xF59E0B,
+      clippingPlanes: props.clippingPlane ? [props.clippingPlane] : []
+    })
+    group.add(new THREE.Line(axisGeometry, axisMaterial))
+  }
+
   return group
 }
 
@@ -173,7 +253,11 @@ async function loadScene(): Promise<void> {
     patientRoot.value.position.set(0, 0, 0)
     patientRoot.value.scale.set(1, 1, 1)
     patientRoot.value.rotation.set(0, 0, 0)
-    patientRoot.value.add(...loaded, nerveObject(props.scene))
+    patientRoot.value.add(
+      ...loaded,
+      nerveObject(props.scene),
+      implantPlanningObject(props.scene)
+    )
     patientRoot.value.updateMatrixWorld(true)
     const bounds = new THREE.Box3().setFromObject(patientRoot.value)
     if (!bounds.isEmpty()) emit('bounds', bounds)
@@ -216,7 +300,11 @@ function buildAnnotations(): void {
 }
 
 watch(() => props.scene, () => void loadScene(), { immediate: true, deep: false })
-watch([() => props.landmarks, () => props.measurements], buildAnnotations, { immediate: true, deep: true })
+watch(
+  [() => props.landmarks, () => props.measurements],
+  buildAnnotations,
+  { immediate: true, deep: true }
+)
 watch(() => props.clippingPlane, (plane) => {
   for (const material of [...materialsOf(patientRoot.value), ...materialsOf(annotationRoot.value)]) {
     material.clippingPlanes = plane ? [plane] : []

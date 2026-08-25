@@ -1,12 +1,4 @@
-"""Domain contract tests for the dental_3d schemas.
-
-Phase 1 contract invariants:
-- FDI notation is the only accepted tooth numbering (odontogram is the
-  source of truth for tooth identity — never duplicated).
-- Mesh descriptors are source-agnostic but Phase 1 only produces
-  ``synthetic`` / ``procedural``.
-- Segmentation results cannot be client-supplied (future capability).
-"""
+"""Domain contract tests for the dental_3d schemas."""
 
 from __future__ import annotations
 
@@ -56,8 +48,9 @@ class TestDentalMesh:
             DentalMesh(source="cbct_v2")
 
     def test_rejects_unknown_format(self) -> None:
+        # PLY is a supported real mesh format since patient registration.
         with pytest.raises(ValidationError):
-            DentalMesh(format="ply")
+            DentalMesh(format="fbx")
 
     def test_vertex_count_must_be_non_negative(self) -> None:
         with pytest.raises(ValidationError):
@@ -92,7 +85,6 @@ class TestDentalSceneUpdate:
 
 class TestDentalScene:
     def test_teeth_cap_matches_fdi_universe(self) -> None:
-        # 32 permanent + 20 deciduous teeth max — the FDI universe.
         with pytest.raises(ValidationError):
             DentalScene(teeth=[Tooth3D(tooth_number=11) for _ in range(53)])
 

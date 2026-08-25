@@ -1,22 +1,4 @@
-"""Dental 3D module — patient-space clinical visualization.
-
-Optional, removable module. Surfaces a 3D preview of the patient's
-dentition in the patient Summary via the ``patient.summary.cards`` slot.
-Phase 1 established the source-agnostic scene contract
-(``DentalScene`` / ``Tooth3D`` / ``DentalMesh`` / ``SegmentationResult``)
-with synthetic demo geometry. Phase 2 adds **real mesh ingestion**:
-validated STL / PLY / OBJ files stored through the existing **media** module
-and surfaced as scene-level mesh references (``DentalGeometrySource``
-port — see ``sources.py`` / ADR 0020), rendered by the viewer with the
-synthetic geometry kept outside the clinical ThreeUI path.
-
-Coupling with ``odontogram`` is read-only (``ToothRecord`` state drives
-per-tooth presence / condition); coupling with ``media`` is document
-storage + discovery — no second storage system, no FKs beyond
-clinics/patients/users. The module uninstalls cleanly through its
-isolated Alembic branch (``dental_3d``); uploaded scans remain ordinary
-media documents owned by the media module.
-"""
+"""Dental 3D — patient-space clinical visualization and engineering decision support."""
 
 from __future__ import annotations
 
@@ -24,13 +6,23 @@ from fastapi import APIRouter
 
 from app.core.plugins import BaseModule
 
+from .implant_models import (
+    DentalImplantPlan,
+    DentalImplantPlanRevision,
+    DentalProstheticTarget,
+)
+from .implant_router import router as implant_router
 from .models import (
     DentalAlignmentResult,
     DentalNerveAnalysis,
     DentalScene,
     DentalSegmentationAnalysis,
 )
-from .router import router
+from .router import router as core_router
+
+router = APIRouter()
+router.include_router(core_router)
+router.include_router(implant_router)
 
 
 class Dental3DModule(BaseModule):
@@ -45,7 +37,9 @@ class Dental3DModule(BaseModule):
             "non-clinical real nerve-inference boundary with native-coordinate "
             "findings and explicit unavailable/failure states, plus patient-specific "
             "rigid IOS-to-CBCT registration with explicit geometry provenance and review, "
-            "plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation."
+            "plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation, and "
+            "deterministic prosthetic-guided implant planning with explicit patient-space "
+            "provenance, immutable revisions, fail-closed missing-data checks and dentist review."
         ),
         "author": "Dentora Core Team",
         "license": "BSL-1.1",
@@ -73,6 +67,9 @@ class Dental3DModule(BaseModule):
             DentalSegmentationAnalysis,
             DentalNerveAnalysis,
             DentalAlignmentResult,
+            DentalProstheticTarget,
+            DentalImplantPlan,
+            DentalImplantPlanRevision,
         ]
 
     def get_router(self) -> APIRouter:
@@ -82,7 +79,9 @@ class Dental3DModule(BaseModule):
         return ["read", "write"]
 
     def get_tools(self):
-        # Smallest agent surface: one READ wrapper over the service.
         from .tools import get_tools
 
         return get_tools()
+
+
+__all__ = ["Dental3DModule"]

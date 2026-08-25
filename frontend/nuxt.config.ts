@@ -59,51 +59,38 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
 
-  // Default to light mode; users can opt into dark via the toggle. Both
-  // ``preference`` and ``fallback`` are set so SSR + first-paint render
-  // light without a flash even before client hydration reads OS prefs.
   colorMode: {
     preference: 'light',
     fallback: 'light'
   },
 
   runtimeConfig: {
-    // Server-side only (for SSR inside Docker)
     apiBaseUrlServer: process.env.API_BASE_URL_SERVER || 'http://backend:8000',
     public: {
-      // Client-side (browser)
       apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8000',
       demoMode: process.env.NUXT_PUBLIC_DEMO_MODE === 'true',
       trialMode: process.env.NUXT_PUBLIC_TRIAL_MODE === 'true',
       trialStartedAt: process.env.NUXT_PUBLIC_TRIAL_STARTED_AT || '',
       trialDays: Number(process.env.NUXT_PUBLIC_TRIAL_DAYS || '3'),
-      // Documentation portal origin used by the in-app help drawer
-      // (Fase 5 of issue #75). Empty disables the help button.
       docsUrl: process.env.NUXT_PUBLIC_DOCS_URL || 'https://docs.dentora.example'
     }
   },
   srcDir: 'app',
-
-  // Restart dev server when the backend rewrites `modules.json` on
-  // module install/uninstall. `extends` is evaluated once at config
-  // boot, so a layer added after Nuxt started is invisible until
-  // restart. Watching the file makes the round-trip automatic.
   watch: [modulesJsonPath],
-
   compatibilityDate: '2025-01-15',
 
   vite: {
     optimizeDeps: {
-      // Pre-bundle deps that Vite otherwise discovers at runtime. Runtime
-      // discovery triggers a full page reload, which in CI races Playwright's
-      // `goto` and causes net::ERR_ABORTED on the very first visit to any
-      // route that uses these packages.
       include: [
         'nprogress',
         '@vueuse/core',
         '@vue/devtools-core',
         '@vue/devtools-kit',
         'three',
+        'three/addons/controls/OrbitControls.js',
+        'three/addons/loaders/OBJLoader.js',
+        'three/addons/loaders/PLYLoader.js',
+        'three/addons/loaders/STLLoader.js',
         '@tresjs/core',
         'three-mesh-bvh',
         '@cornerstonejs/core',
@@ -130,8 +117,6 @@ export default defineNuxtConfig({
       { code: 'pt', name: 'Português', file: 'pt.json' },
       { code: 'ar', name: 'العربية', file: 'ar.json' }
     ],
-    // E2E supplies `E2E_LOCALE=en` so browser assertions are deterministic.
-    // Production keeps Arabic as the default when that test-only variable is absent.
     defaultLocale: process.env.E2E_LOCALE === 'en' ? 'en' : 'ar',
     lazy: true,
     langDir: 'locales',
@@ -139,11 +124,6 @@ export default defineNuxtConfig({
     detectBrowserLanguage: false
   },
 
-  // Pre-bundle every `i-lucide-*` icon referenced in source into the client
-  // bundle. Without this, @nuxt/icon fetches icons lazily per-name on client
-  // navigation, which causes the sidebar to briefly render a stale / wrong
-  // icon (e.g. the settings cog showing up next to "Pacientes") until the
-  // real icon resolves.
   icon: {
     clientBundle: {
       scan: true,

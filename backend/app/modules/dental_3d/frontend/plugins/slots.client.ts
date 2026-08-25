@@ -9,13 +9,21 @@ import { registerSlot } from '~~/app/composables/useModuleSlots'
  * independently removable.
  */
 export default defineNuxtPlugin(() => {
-  // Patient Resumen — synthetic 3D dentition preview card.
   registerSlot('patient.summary.cards', {
     id: 'dental_3d.patient.summary.cards.viewer',
     component: defineAsyncComponent(
       () => import('../components/Dental3DCard.vue')
     ),
     order: 50,
+    permission: 'dental_3d.read'
+  })
+
+  registerSlot('patient.summary.cards', {
+    id: 'dental_3d.patient.summary.cards.implant-planning',
+    component: defineAsyncComponent(
+      () => import('../components/ImplantPlanningCard.vue')
+    ),
+    order: 51,
     permission: 'dental_3d.read'
   })
 })

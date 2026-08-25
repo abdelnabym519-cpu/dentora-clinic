@@ -9,7 +9,6 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.core.events import event_bus
 from app.core.llm.base import Provider
 from app.core.llm.factory import get_provider
 from app.modules.case_intelligence.contracts import digest_value
@@ -106,21 +105,6 @@ class AICaseSummaryService:
         )
         db.add(row)
         await db.commit()
-        await event_bus.publish(
-            "ai_case_summary.generated",
-            {
-                "clinic_id": str(clinic_id),
-                "patient_id": str(patient_id),
-                "summary_id": str(row.id),
-                "summary_version": version,
-                "case_snapshot_version": snapshot.case_snapshot_version,
-                "case_source_digest": snapshot.source_digest,
-                "provider": provider_name,
-                "model": model,
-                "input_digest": input_digest,
-                "output_digest": output_digest,
-            },
-        )
         return cls._to_contract(row)
 
     @classmethod
@@ -171,18 +155,6 @@ class AICaseSummaryService:
         row.reviewed_by = reviewer_id
         row.reviewed_at = datetime.now(UTC)
         await db.commit()
-        await event_bus.publish(
-            "ai_case_summary.reviewed",
-            {
-                "clinic_id": str(clinic_id),
-                "patient_id": str(row.patient_id),
-                "summary_id": str(row.id),
-                "summary_version": row.summary_version,
-                "review_status": row.review_status,
-                "reviewed_by": str(reviewer_id),
-                "output_digest": row.output_digest,
-            },
-        )
         return cls._to_contract(row)
 
     @staticmethod

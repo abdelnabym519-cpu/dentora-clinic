@@ -59,9 +59,7 @@ async def test_generator_requires_traceable_claims_and_complete_gaps() -> None:
 async def test_generator_rejects_unknown_evidence() -> None:
     provider = FakeProvider(
         {
-            "claims": [
-                {"claim_id": "C1", "text": "Invented.", "evidence_ids": ["E999"]}
-            ],
+            "claims": [{"claim_id": "C1", "text": "Invented.", "evidence_ids": ["E999"]}],
             "data_gaps": [{"section": "nerve", "status": "invalid_or_stale"}],
         }
     )

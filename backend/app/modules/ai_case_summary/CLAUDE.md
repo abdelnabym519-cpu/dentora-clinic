@@ -10,5 +10,5 @@
 - Domain/application/persistence contracts stay renderer-neutral; no Three/Tres/Three.js types.
 - Provider responses are schema-validated and fail closed when claims reference unknown evidence or data gaps do not match the snapshot.
 - Provider/model, prompt contract, input digest and output digest are persisted for reproducible provenance.
-- Generated/review audit events must contain identifiers and digests only; summary clinical text must never be placed on the event bus.
+- AI Case Summary v1 emits no event-bus payload; persistence and API contracts are the integration surface, keeping summary clinical text off shared events.
 - No new model weights or AI runtime dependencies may be introduced without explicit license and commercial-use review.

@@ -91,8 +91,20 @@ async def test_generate_is_redacted_append_only_and_never_creates_canonical_plan
     outgoing = json.dumps(provider.user_payload)
     assert str(test_patient.id) not in outgoing
     assert test_patient.email not in outgoing
-    assert test_patient.first_name not in outgoing
-    assert test_patient.last_name not in outgoing
+    patient_data = provider.user_payload["case"]["sections"]["patient"]["data"]
+    for forbidden_key in (
+        "id",
+        "patient_id",
+        "clinic_id",
+        "first_name",
+        "last_name",
+        "full_name",
+        "email",
+        "phone",
+        "mobile",
+        "date_of_birth",
+    ):
+        assert forbidden_key not in patient_data
 
     after_count = await db_session.scalar(select(func.count()).select_from(TreatmentPlan))
     assert after_count == before_count

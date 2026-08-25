@@ -1,7 +1,15 @@
-import { chromium, type FullConfig } from '@playwright/test'
+import { appendFileSync, mkdirSync } from 'node:fs'
+import { chromium, type Browser, type FullConfig } from '@playwright/test'
 
 const API_BASE = process.env.E2E_API_BASE || 'http://127.0.0.1:8000'
 const WARMUP_TIMEOUT_MS = 120_000
+const DIAGNOSTICS_DIR = 'test-results'
+const DIAGNOSTICS_PATH = `${DIAGNOSTICS_DIR}/global-setup.log`
+
+function diagnostic(message: string) {
+  mkdirSync(DIAGNOSTICS_DIR, { recursive: true })
+  appendFileSync(DIAGNOSTICS_PATH, `${new Date().toISOString()} ${message}\n`, 'utf8')
+}
 
 export default async function globalSetup(config: FullConfig) {
   const configuredBaseURL = config.projects[0]?.use.baseURL
@@ -9,19 +17,26 @@ export default async function globalSetup(config: FullConfig) {
     ? configuredBaseURL
     : (process.env.E2E_BASE_URL || 'http://localhost:3000')
   const origin = new URL(baseURL).origin
+  let browser: Browser | undefined
 
-  const browser = await chromium.launch({ headless: true })
+  diagnostic(`start origin=${origin} api=${API_BASE}`)
 
   try {
+    diagnostic('launch chromium')
+    browser = await chromium.launch({ headless: true })
+    diagnostic('chromium launched')
+
     const context = await browser.newContext()
     const form = new URLSearchParams()
     form.set('username', 'admin@demo.clinic')
     form.set('password', 'demo1234')
 
+    diagnostic('warm-up login request')
     const response = await context.request.post(`${API_BASE}/api/v1/auth/login`, {
       data: form.toString(),
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
     })
+    diagnostic(`warm-up login status=${response.status()}`)
 
     if (!response.ok()) {
       throw new Error(`E2E warm-up login failed: HTTP ${response.status()}`)
@@ -31,6 +46,7 @@ export default async function globalSetup(config: FullConfig) {
     if (!body.access_token) {
       throw new Error('E2E warm-up login did not return access_token')
     }
+    diagnostic('warm-up login returned access token')
 
     await context.addCookies([
       { name: 'access_token', value: body.access_token, url: origin }
@@ -42,16 +58,24 @@ export default async function globalSetup(config: FullConfig) {
     })
 
     const page = await context.newPage()
+    diagnostic('navigate dashboard warm-up')
     await page.goto(origin, { waitUntil: 'load', timeout: WARMUP_TIMEOUT_MS })
+    diagnostic(`dashboard warm-up navigation complete url=${page.url()}`)
     await page.getByTestId('dashboard-screen').waitFor({
       state: 'visible',
       timeout: WARMUP_TIMEOUT_MS
     })
+    diagnostic('dashboard screen visible')
     await page.getByTestId('dashboard-skeleton').waitFor({
       state: 'hidden',
       timeout: WARMUP_TIMEOUT_MS
     })
+    diagnostic('dashboard skeleton hidden; global setup complete')
+  } catch (error) {
+    const detail = error instanceof Error ? (error.stack || error.message) : String(error)
+    diagnostic(`ERROR ${detail}`)
+    throw error
   } finally {
-    await browser.close()
+    await browser?.close()
   }
 }

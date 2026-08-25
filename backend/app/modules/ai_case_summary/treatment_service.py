@@ -19,7 +19,7 @@ from app.modules.risk_engine.service import RiskEngineService
 
 from .contracts import ReviewStatus as SummaryReviewStatus
 from .privacy import build_redacted_llm_input
-from .service import AICaseSummaryService, PROVIDER_CONTRACT_VERSION
+from .service import PROVIDER_CONTRACT_VERSION, AICaseSummaryService
 from .treatment_contracts import (
     AI_TREATMENT_PLAN_CONTRACT_VERSION,
     AI_TREATMENT_PLAN_PROMPT_VERSION,

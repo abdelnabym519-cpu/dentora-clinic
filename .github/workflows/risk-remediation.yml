@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
 
+# Validation retry after correcting the privacy assertion to inspect forbidden fields.
 jobs:
   validate-and-fix:
     runs-on: ubuntu-24.04

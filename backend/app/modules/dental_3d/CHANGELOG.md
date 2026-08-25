@@ -33,6 +33,28 @@
   also no longer presents a non-reviewable failed operation as a rejected
   dentist verification.
 
+### 0.7.0 — Patient-specific IOS → CBCT rigid registration
+
+- Real patient geometry only: explicit-unit STL/PLY/OBJ IOS input and selected
+  DICOM series are resolved from clinic/patient-owned media; DICOM frame,
+  spacing, orientation, origin and unit ambiguity are rejected safely.
+- `RegistrationPort`, `DentalAnatomyPort` and input port keep external systems
+  out of the domain/application layers. DentalSegmentator remains an
+  operator-managed HTTP service; Dentora ships no PyTorch, nnU-Net or weights.
+- Open3D FPFH/RANSAC global registration, optional TEASER++ robust candidate,
+  measured candidate selection and iterative point-to-plane ICP produce a
+  validated IOS→DICOM-patient SE(3) matrix.
+- Append-only `dental_alignment_results` (`d3d_0005`) persists frames, units,
+  input digests, model/algorithm versions, correspondences, overlap/residual
+  metrics, technical convergence, safe failures and dentist review state.
+- `POST/GET /patients/{id}/alignment` and review endpoint reuse existing read/
+  write permissions. Results are `pending_review`, `uncertain`, `accepted`,
+  `rejected` or `failed`; the clinical threshold remains explicitly unvalidated.
+- Open3D/NumPy dependencies and Open3D, TEASER++, DentalSegmentator code/weight
+  commercial-use license checks are documented in the registration guide.
+- No non-rigid/face registration, implant/surgical/pathology feature or new 3D
+  visualization was added.
+
 ### 0.5.0 — Phase 5.1: CBCT/DICOM ingestion foundation
 
 - Framework-independent `DicomIngestionPort`, normalized CT instance/series

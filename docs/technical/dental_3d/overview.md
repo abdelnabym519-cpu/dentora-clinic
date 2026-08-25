@@ -132,7 +132,7 @@ rendering, diagnosis, patient-specific alignment, detector or planning.
 
 | Schema | Role |
 |---|---|
-| `DentalMesh` | Geometry descriptor — `source` (`synthetic` / `intraoral_scan` today; `segmentation`/`cbct`/`face_scan`/`digital_twin` reserved), `format` (`procedural` / `stl` / `obj`; `gltf` reserved), `document_id` referencing the media document for real meshes, `vertex_count`, display metadata (`label`, `file_size`, `uploaded_at`) and the server-built content `url`. |
+| `DentalMesh` | Geometry descriptor — `source` (`synthetic` / `intraoral_scan` today; `segmentation`/`cbct`/`face_scan`/`digital_twin` reserved), `format` (`procedural` / `stl` / `ply` / `obj`; `gltf` reserved), `document_id` referencing the media document for real meshes, `vertex_count`, display metadata (`label`, `file_size`, `uploaded_at`) and the server-built content `url`. |
 | `Tooth3D` | One tooth: FDI number (validated against the odontogram `ALL_TEETH` universe), `present`, `condition`, `color` override (`#RRGGBB`), `visible`, `mesh`. |
 | `DentalScene` | Aggregate: `generator` + `teeth` (≤52 = FDI universe) + `segmentation` + `meshes` (server-derived real mesh references). |
 | `SegmentationResult` | Placeholder for automatic tooth segmentation. Phase 2 always answers `status="not_available"`; `DentalSceneUpdate` rejects `completed` (future capability, not client-suppliable). |
@@ -161,7 +161,7 @@ as the odontogram/periodontogram routers). Invalid FDI numbers, a
 descriptor → 422. Invalid mesh uploads (bad extension/MIME/content,
 oversized) → 400 with a stable code prefix
 (`unsupported_extension` / `mime_mismatch` / `malformed_stl` /
-`malformed_obj` / `empty_file` / `too_large`).
+`malformed_ply` / `malformed_obj` / `empty_file` / `too_large`).
 
 ## Frontend layer
 
@@ -212,3 +212,17 @@ as `missing_model`; canonical demo anatomy is no longer production output.
 Native CBCT findings are not overlaid on the synthetic arch or intraoral scan:
 there is no patient-specific registration in this phase. See the dedicated
 [nerve detection guide](nerve_detection.md).
+
+## Patient-specific IOS → CBCT rigid registration
+
+The alignment API resolves one explicit-unit patient IOS mesh and one validated
+patient CBCT series, obtains patient dental anatomy from an operator-managed
+DentalSegmentator service, and computes a real IOS→DICOM-patient SE(3) transform
+through Open3D RANSAC, optional TEASER++ and iterative ICP. The append-only
+result preserves coordinate frames, units, input digests, model/algorithm
+versions, correspondence/overlap/residual metrics, convergence, failures and
+dentist review state. No clinical acceptance threshold or automatic approval is
+claimed. See [patient registration](patient_registration.md) and ADR 0025.
+
+This phase does not render the transform, add face/non-rigid registration,
+detect pathology, or perform implant/surgical planning.

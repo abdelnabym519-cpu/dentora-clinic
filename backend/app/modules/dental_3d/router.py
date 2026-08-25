@@ -29,6 +29,8 @@ from .cbct_service import CbctIngestionService
 from .infrastructure import default_cbct_ingestion_port
 from .meshfiles import MeshUploadError
 from .nerve import NerveDetectionAnalysisResponse, NerveDetectionRunRequest, NerveReviewUpdate
+from .registration import AlignmentResult, AlignmentReviewUpdate, AlignmentRunRequest
+from .registration_service import AlignmentError, DentalAlignmentService
 from .schemas import DentalMesh, DentalSceneResponse, DentalSceneUpdate
 from .segmentation import SegmentationAnalysisResponse, SegmentationReviewUpdate
 from .service import (
@@ -352,3 +354,83 @@ async def review_patient_nerve_detection(
     except NerveError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ApiResponse(data=analysis)
+
+
+@router.post(
+    "/patients/{patient_id}/alignment",
+    response_model=ApiResponse[AlignmentResult],
+    status_code=status.HTTP_201_CREATED,
+)
+async def run_patient_alignment(
+    patient_id: UUID,
+    data: AlignmentRunRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[AlignmentResult]:
+    """Run real patient-specific rigid IOS→CBCT registration.
+
+    The server resolves patient-owned inputs, requires explicit IOS units,
+    preserves the DICOM frame, and persists success or safe failure. A valid
+    transform remains technical decision support until dentist review.
+    """
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    result = await DentalAlignmentService.run_alignment(
+        db,
+        clinic_id=ctx.clinic_id,
+        patient_id=patient_id,
+        user_id=ctx.user_id,
+        request=data,
+    )
+    return ApiResponse(data=result)
+
+
+@router.get(
+    "/patients/{patient_id}/alignment",
+    response_model=ApiResponse[AlignmentResult],
+)
+async def get_patient_alignment(
+    patient_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.read"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[AlignmentResult]:
+    """Return the latest patient-specific alignment result."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    result = await DentalAlignmentService.latest_alignment(db, ctx.clinic_id, patient_id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No patient alignment result yet",
+        )
+    return ApiResponse(data=result)
+
+
+@router.post(
+    "/patients/{patient_id}/alignment/{alignment_id}/review",
+    response_model=ApiResponse[AlignmentResult],
+)
+async def review_patient_alignment(
+    patient_id: UUID,
+    alignment_id: UUID,
+    data: AlignmentReviewUpdate,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("dental_3d.write"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[AlignmentResult]:
+    """Accept or reject one reviewable technical registration result."""
+    await _ensure_patient(db, ctx.clinic_id, patient_id)
+    try:
+        result = await DentalAlignmentService.review_alignment(
+            db,
+            clinic_id=ctx.clinic_id,
+            patient_id=patient_id,
+            alignment_id=alignment_id,
+            reviewer_id=ctx.user_id,
+            payload=data,
+        )
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alignment not found")
+    except AlignmentError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    return ApiResponse(data=result)

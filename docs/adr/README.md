@@ -55,3 +55,6 @@ Triggers (any one):
 | 0020 | [Real mesh ingestion via geometry-source ports and media storage](0020-real-mesh-ingestion.md) | accepted | 2026-08-23 |
 | 0021 | [Automatic tooth segmentation foundation behind a provider port](0021-tooth-segmentation-foundation.md) | accepted | 2026-08-23 |
 | 0022 | [Mandibular nerve detection foundation behind a provider port](0022-nerve-detection-foundation.md) | accepted | 2026-08-24 |
+| 0023 | [CBCT/DICOM ingestion foundation](0023-cbct-dicom-ingestion-foundation.md) | accepted | 2026-08-24 |
+| 0024 | [Real nerve detection boundary](0024-real-nerve-detection-boundary.md) | accepted | 2026-08-24 |
+| 0025 | [Patient-specific rigid registration behind Dentora ports](0025-patient-specific-rigid-registration.md) | accepted | 2026-08-25 |

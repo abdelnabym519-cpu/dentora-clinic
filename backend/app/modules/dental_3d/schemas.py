@@ -48,7 +48,7 @@ MeshSource = Literal[
 ]
 
 #: How the geometry is delivered to the viewer.
-MeshFormat = Literal["procedural", "stl", "obj", "gltf"]
+MeshFormat = Literal["procedural", "stl", "ply", "obj", "gltf"]
 
 SegmentationStatus = Literal["not_available", "synthetic", "completed"]
 

@@ -96,6 +96,20 @@ class Settings(BaseSettings):
     )
     DENTAL_3D_NERVE_LOW_CONFIDENCE_THRESHOLD: float = Field(default=0.6, ge=0, le=1)
 
+    # Patient-specific IOS→CBCT registration. DentalSegmentator remains an
+    # operator-managed service; no model weights or PyTorch ship in Dentora.
+    DENTAL_3D_DENTAL_SEGMENTATOR_URL: str = ""
+    DENTAL_3D_DENTAL_SEGMENTATOR_TOKEN: str = ""
+    DENTAL_3D_DENTAL_SEGMENTATOR_TIMEOUT_SECONDS: float = Field(default=900.0, gt=0, le=7200)
+    DENTAL_3D_REGISTRATION_MAX_INSTANCES: int = Field(default=512, ge=1, le=2048)
+    DENTAL_3D_REGISTRATION_MAX_INPUT_BYTES: int = Field(
+        default=256 * 1024 * 1024, ge=1024, le=2 * 1024 * 1024 * 1024
+    )
+    DENTAL_3D_REGISTRATION_VOXEL_SIZE_MM: float = Field(default=1.0, gt=0, le=10)
+    DENTAL_3D_REGISTRATION_GLOBAL_DISTANCE_MM: float = Field(default=3.0, gt=0, le=50)
+    DENTAL_3D_REGISTRATION_ICP_DISTANCE_MM: float = Field(default=1.5, gt=0, le=20)
+    DENTAL_3D_REGISTRATION_ICP_MAX_ITERATIONS: int = Field(default=50, ge=1, le=500)
+
     @property
     def storage_allowed_mime_types_list(self) -> list[str]:
         """Parse allowed MIME types as list."""

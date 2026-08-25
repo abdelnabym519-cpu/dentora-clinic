@@ -18,7 +18,11 @@ render volumes, detect anatomy/pathology or perform planning.
 Phase 5.2 adds the production-ready **CBCT nerve-inference boundary**:
 de-identified deterministic input archives, a replaceable HTTP engine,
 structured native-coordinate outcomes and explicit model-unavailable failure.
-No trained weights ship in this repository and no alignment/planning is added.
+The next phase adds **patient-specific rigid IOS→CBCT registration** behind
+input/anatomy/registration ports: explicit mesh units, DentalSegmentator dental
+anatomy, Open3D RANSAC + optional TEASER++ initialization + ICP, a validated
+SE(3) transform, technical metrics and dentist review (ADR 0025). No trained
+weights, clinical threshold, planning or new visualization ships here.
 
 ## Public API
 
@@ -26,7 +30,7 @@ No trained weights ship in this repository and no alignment/planning is added.
 - Key endpoints:
   - `GET    /dental_3d/patients/{patient_id}/scene` — geometry sources + persisted view state; permission `dental_3d.read`
   - `PUT    /dental_3d/patients/{patient_id}/scene` — full-replace per-tooth view state; permission `dental_3d.write`
-  - `POST   /dental_3d/patients/{patient_id}/meshes` — ingest one STL/OBJ scan file (multipart); permission `dental_3d.write`
+  - `POST   /dental_3d/patients/{patient_id}/meshes` — ingest one STL/PLY/OBJ scan file (multipart); permission `dental_3d.write`
   - `POST   /dental_3d/patients/{patient_id}/cbct/dicom-instances` — validate/store one DICOM Part 10 CT instance and return normalized metadata; permission `dental_3d.write`
   - `POST   /dental_3d/patients/{patient_id}/segmentation` — run the segmentation provider server-side; permission `dental_3d.write`
   - `GET    /dental_3d/patients/{patient_id}/segmentation` — latest analysis (404 when never run); permission `dental_3d.read`
@@ -34,6 +38,9 @@ No trained weights ship in this repository and no alignment/planning is added.
   - `POST   /dental_3d/patients/{patient_id}/nerve-detection` — run CBCT nerve inference (optional series UID); permission `dental_3d.write`
   - `GET    /dental_3d/patients/{patient_id}/nerve-detection` — latest nerve analysis (404 when never run); permission `dental_3d.read`
   - `POST   /dental_3d/patients/{patient_id}/nerve-detection/{analysis_id}/review` — dentist review decision; permission `dental_3d.write`
+  - `POST   /dental_3d/patients/{patient_id}/alignment` — run patient-specific IOS→CBCT rigid registration; permission `dental_3d.write`
+  - `GET    /dental_3d/patients/{patient_id}/alignment` — latest alignment result; permission `dental_3d.read`
+  - `POST   /dental_3d/patients/{patient_id}/alignment/{alignment_id}/review` — dentist accept/reject; permission `dental_3d.write`
 
 ## Dependencies
 
@@ -82,6 +89,12 @@ metadata lives in media's existing `extra_data` extensibility field.
 - `nerve_inference.py` — Phase 5.2 infrastructure: clinic/patient-scoped
   media acquisition, DICOM de-identification and deterministic ordering,
   bounded HTTP inference adapter, strict output normalization and safe errors.
+- `registration.py` — framework-free AlignmentResult, coordinate-frame, SE(3),
+  provenance/metric/failure/review contracts and the three registration ports.
+- `registration_service.py` — application orchestration and append-only
+  persistence; imports concrete adapters lazily at the composition root.
+- `registration_infrastructure.py` — media/DICOM acquisition,
+  DentalSegmentator HTTP and Open3D/TEASER++/ICP adapters (ADR 0025).
 - `router.py` / `tools.py` / `frontend/` — presentation.
 
 ## Permissions
@@ -124,7 +137,8 @@ a future optimization, not a correctness need.
   for explicit outcome/failure/provenance state. Uninstall drops only the
   dental_3d branch; uploaded scans/DICOM instances remain ordinary media
   documents owned by the media module, and
-  analyses are derivable decision support.
+  analyses are derivable decision support. `d3d_0005` adds append-only
+  `dental_alignment_results`; media inputs remain media-owned.
 
 ## Gotchas / non-obvious invariants
 
@@ -136,6 +150,8 @@ a future optimization, not a correctness need.
   `model/stl` / `model/obj`.
 - Binary STL validation is exact: `len(data) == 84 + 50·triangles`;
   ASCII STL must start with `solid` and contain `facet`.
+- PLY registration input requires a bounded ASCII header with explicit format,
+  vertices and faces. Its physical unit is still mandatory per alignment run.
 - `DentalSceneUpdate` rejects tooth-level mesh descriptors (meshes are
   server-derived); scene-level `meshes` are never accepted from
   clients.
@@ -165,7 +181,7 @@ a future optimization, not a correctness need.
 - Production nerve detection is the Phase 5.2 CBCT adapter only. Missing
   model configuration is `failed/missing_model`; never substitute canonical
   anatomy. Model findings stay in DICOM patient coordinates and must not be
-  overlaid on teeth/scans until separately authorized registration exists.
+  overlaid on teeth/scans without an accepted patient-specific registration.
   No proximity, implant/surgical planning or clinical safety verdict is
   produced (ADR 0024).
 - Segmentation analyses are append-only; latest wins in the scene
@@ -173,3 +189,6 @@ a future optimization, not a correctness need.
 - Viewer FDI labels render on the synthetic arch only — labelling a
   real scan surface would claim a per-tooth alignment the Phase 3
   engine does not have.
+- Alignment always maps normalized IOS millimetres into the named DICOM patient
+  frame. `CLINICAL_THRESHOLD_NOT_VALIDATED` is invariant; accepted review is
+  an acknowledgement, not a clinical accuracy or treatment-planning claim.

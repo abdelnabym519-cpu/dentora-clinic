@@ -13,6 +13,12 @@ frontend as a Nuxt layer under its own Python package.
 
 ### Added
 
+- Dental 3D patient-specific alignment adds explicit-unit STL/PLY/OBJ to CBCT
+  rigid registration through DentalSegmentator, Open3D RANSAC, optional
+  TEASER++ initialization and iterative ICP. The append-only `AlignmentResult`
+  preserves the SE(3) matrix, DICOM/IOS frames, input digests, model identity,
+  technical metrics, safe failures and dentist review state. No clinical
+  threshold, treatment planning or new visualization is claimed.
 - Dental 3D Phase 5.2 adds a replaceable CBCT nerve-inference service
   boundary, deterministic de-identified DICOM preprocessing, native-coordinate
   structured findings, confidence/uncertainty and model provenance, plus

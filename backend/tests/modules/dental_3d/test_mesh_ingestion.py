@@ -55,6 +55,11 @@ def _binary_stl(triangles: int = 2) -> bytes:
 
 ASCII_STL = b"solid scan\nfacet normal 0 0 1\nouter loop\nendloop\nendfacet\nendsolid scan\n"
 OBJ = b"# dentora test\nv 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n"
+PLY = (
+    b"ply\nformat ascii 1.0\nelement vertex 3\nproperty float x\nproperty float y\n"
+    b"property float z\nelement face 1\nproperty list uchar int vertex_indices\nend_header\n"
+    b"0 0 0\n1 0 0\n0 1 0\n3 0 1 2\n"
+)
 
 
 def _mesh_url(patient_id) -> str:
@@ -119,9 +124,13 @@ class TestMeshValidation:
         assert detect_mesh_format("arch.obj", "model/obj", OBJ) == "obj"
         assert canonical_mime("obj") == "model/obj"
 
+    def test_ply_accepted(self) -> None:
+        assert detect_mesh_format("arch.ply", "model/ply", PLY) == "ply"
+        assert canonical_mime("ply") == "model/ply"
+
     def test_unsupported_extension_rejected(self) -> None:
         with pytest.raises(MeshUploadError) as exc:
-            detect_mesh_format("arch.ply", "application/octet-stream", b"whatever")
+            detect_mesh_format("arch.gltf", "application/octet-stream", b"whatever")
         assert exc.value.code == "unsupported_extension"
 
     def test_mime_mismatch_rejected(self) -> None:
@@ -151,9 +160,10 @@ class TestMeshValidation:
         assert exc.value.code == "empty_file"
 
     def test_discovery_vocabulary_is_canonical_only(self) -> None:
-        assert mesh_mimes() == {"model/stl", "model/obj"}
+        assert mesh_mimes() == {"model/stl", "model/obj", "model/ply"}
         assert format_for_mime("model/stl") == "stl"
         assert format_for_mime("model/obj") == "obj"
+        assert format_for_mime("model/ply") == "ply"
         assert format_for_mime("application/pdf") is None
 
 
@@ -301,7 +311,7 @@ class TestMeshUploadEndpoint:
     @pytest.mark.parametrize(
         ("filename", "content", "mime", "code"),
         [
-            ("scan.ply", b"solid fake", "application/octet-stream", "unsupported_extension"),
+            ("scan.ply", b"solid fake", "application/octet-stream", "malformed_ply"),
             ("scan.stl", _binary_stl(), "image/png", "mime_mismatch"),
             ("scan.stl", b"junk-data-not-stl", "model/stl", "malformed_stl"),
             ("scan.obj", b"\x00\x01bin", "model/obj", "malformed_obj"),

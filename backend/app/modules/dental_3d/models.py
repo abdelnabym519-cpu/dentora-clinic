@@ -202,4 +202,54 @@ class DentalNerveAnalysis(Base, TimestampMixin):
     )
 
 
-__all__ = ["DentalScene", "DentalSegmentationAnalysis", "DentalNerveAnalysis"]
+class DentalAlignmentResult(Base, TimestampMixin):
+    """Append-only patient-specific IOS→CBCT rigid registration result."""
+
+    __tablename__ = "dental_alignment_results"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
+    patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), index=True)
+    performed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    status: Mapped[str] = mapped_column(String(20))
+    algorithm: Mapped[str] = mapped_column(String(100))
+    algorithm_version: Mapped[str] = mapped_column(String(255))
+    transform: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    source_frame: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    target_frame: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    provenance: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    metrics: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    failure_message: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    performed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+
+    clinic: Mapped["Clinic"] = relationship()
+    patient: Mapped["Patient"] = relationship()
+    performer: Mapped["User | None"] = relationship(foreign_keys=[performed_by])
+    reviewer: Mapped["User | None"] = relationship(foreign_keys=[reviewed_by])
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending_review', 'accepted', 'rejected', 'failed', 'uncertain')",
+            name="ck_dental_alignment_status",
+        ),
+        Index(
+            "idx_dental_alignment_latest",
+            "clinic_id",
+            "patient_id",
+            "created_at",
+        ),
+    )
+
+
+__all__ = [
+    "DentalAlignmentResult",
+    "DentalNerveAnalysis",
+    "DentalScene",
+    "DentalSegmentationAnalysis",
+]

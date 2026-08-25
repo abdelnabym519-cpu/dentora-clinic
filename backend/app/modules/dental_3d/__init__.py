@@ -24,21 +24,27 @@ from fastapi import APIRouter
 
 from app.core.plugins import BaseModule
 
-from .models import DentalNerveAnalysis, DentalScene, DentalSegmentationAnalysis
+from .models import (
+    DentalAlignmentResult,
+    DentalNerveAnalysis,
+    DentalScene,
+    DentalSegmentationAnalysis,
+)
 from .router import router
 
 
 class Dental3DModule(BaseModule):
     manifest = {
         "name": "dental_3d",
-        "version": "0.6.0",
+        "version": "0.7.0",
         "summary": (
             "Dental 3D — 3D dentition preview on the patient summary with real "
-            "mesh ingestion (STL/OBJ via the media module), a synthetic fallback "
+            "mesh ingestion (STL/PLY/OBJ via the media module), a synthetic fallback "
             "and a non-clinical automatic tooth-segmentation foundation with "
             "dentist review, plus CBCT/DICOM ingestion and a replaceable, "
             "non-clinical real nerve-inference boundary with native-coordinate "
-            "findings and explicit unavailable/failure states."
+            "findings and explicit unavailable/failure states, plus patient-specific "
+            "rigid IOS-to-CBCT registration with explicit geometry provenance and review."
         ),
         "author": "Dentora Core Team",
         "license": "BSL-1.1",
@@ -61,7 +67,12 @@ class Dental3DModule(BaseModule):
     }
 
     def get_models(self) -> list:
-        return [DentalScene, DentalSegmentationAnalysis, DentalNerveAnalysis]
+        return [
+            DentalScene,
+            DentalSegmentationAnalysis,
+            DentalNerveAnalysis,
+            DentalAlignmentResult,
+        ]
 
     def get_router(self) -> APIRouter:
         return router

@@ -1,6 +1,6 @@
 """Mesh file validation — pure domain rules, no framework imports.
 
-Phase 2 accepts exactly two container formats (STL, OBJ) — the minimum
+Phase 2 accepted STL and OBJ; patient registration also accepts PLY.
 safe surface. Everything here is deliberately stdlib-only so the rules
 are unit-testable in isolation and reusable by any future adapter
 (upload today, batch import later). The constants double as the
@@ -13,7 +13,8 @@ only when **extension, declared MIME and actual byte content** all
 agree. Content is sniffed — binary STL must match the exact
 ``84 + 50·triangle_count`` length, ASCII STL must start with
 ``solid`` and contain ``facet``, OBJ must decode as text with both
-``v`` and ``f`` records.
+``v`` and ``f`` records, and PLY must have a complete ASCII or binary header
+declaring vertices and faces.
 """
 
 from __future__ import annotations
@@ -21,15 +22,16 @@ from __future__ import annotations
 from uuid import UUID
 
 #: Accepted container formats (Phase 2 scope — do not extend casually).
-SUPPORTED_MESH_FORMATS: frozenset[str] = frozenset({"stl", "obj"})
+SUPPORTED_MESH_FORMATS: frozenset[str] = frozenset({"stl", "obj", "ply"})
 
 #: Extension → format.
-_FORMAT_BY_EXTENSION: dict[str, str] = {"stl": "stl", "obj": "obj"}
+_FORMAT_BY_EXTENSION: dict[str, str] = {"stl": "stl", "obj": "obj", "ply": "ply"}
 
 #: Canonical MIME stored on the media document (also the discovery set).
 CANONICAL_MIME_BY_FORMAT: dict[str, str] = {
     "stl": "model/stl",
     "obj": "model/obj",
+    "ply": "model/ply",
 }
 
 #: MIME types a browser may legitimately declare for each format.
@@ -39,6 +41,7 @@ CANONICAL_MIME_BY_FORMAT: dict[str, str] = {
 ACCEPTED_MIME_BY_FORMAT: dict[str, frozenset[str]] = {
     "stl": frozenset({"model/stl", "application/sla", "application/octet-stream"}),
     "obj": frozenset({"model/obj", "text/x-obj", "text/plain", "application/octet-stream"}),
+    "ply": frozenset({"model/ply", "application/octet-stream"}),
 }
 
 #: How much of the file the sniffers look at (validation only).
@@ -101,7 +104,7 @@ def detect_mesh_format(filename: str, content_type: str | None, data: bytes) -> 
     mesh_format = _FORMAT_BY_EXTENSION.get(extension)
     if mesh_format is None:
         raise MeshUploadError(
-            f"unsupported_extension: .{extension or '(none)'} — supported: .stl, .obj"
+            f"unsupported_extension: .{extension or '(none)'} — supported: .stl, .obj, .ply"
         )
 
     declared = (content_type or "").split(";", 1)[0].strip().lower()
@@ -113,8 +116,10 @@ def detect_mesh_format(filename: str, content_type: str | None, data: bytes) -> 
 
     if mesh_format == "stl":
         _sniff_stl(data)
-    else:
+    elif mesh_format == "obj":
         _sniff_obj(data)
+    else:
+        _sniff_ply(data)
     return mesh_format
 
 
@@ -148,3 +153,40 @@ def _sniff_obj(data: bytes) -> None:
         if has_vertex and has_face:
             return
     raise MeshUploadError("malformed_obj: no vertex/face records found")
+
+
+def _sniff_ply(data: bytes) -> None:
+    """Validate the bounded PLY header without decoding the full mesh."""
+    marker = b"end_header"
+    end = data.find(marker, 0, _SNIFF_WINDOW)
+    if end < 0:
+        raise MeshUploadError("malformed_ply: missing bounded PLY header")
+    header_end = end + len(marker)
+    line_end = data.find(b"\n", header_end, header_end + 3)
+    if line_end < 0:
+        raise MeshUploadError("malformed_ply: incomplete PLY header")
+    try:
+        header = data[:line_end].decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise MeshUploadError("malformed_ply: header is not ASCII") from exc
+    lines = [line.strip() for line in header.splitlines() if line.strip()]
+    if not lines or lines[0] != "ply":
+        raise MeshUploadError("malformed_ply: missing magic header")
+    formats = [line for line in lines if line.startswith("format ")]
+    if formats not in (
+        ["format ascii 1.0"],
+        ["format binary_little_endian 1.0"],
+        ["format binary_big_endian 1.0"],
+    ):
+        raise MeshUploadError("malformed_ply: unsupported or ambiguous format")
+    vertices = [line for line in lines if line.startswith("element vertex ")]
+    faces = [line for line in lines if line.startswith("element face ")]
+    try:
+        vertex_count = int(vertices[0].split()[2]) if len(vertices) == 1 else 0
+        face_count = int(faces[0].split()[2]) if len(faces) == 1 else 0
+    except (ValueError, IndexError) as exc:
+        raise MeshUploadError("malformed_ply: invalid element counts") from exc
+    if vertex_count < 3 or face_count < 1:
+        raise MeshUploadError("malformed_ply: mesh requires vertices and faces")
+    if len(data) <= line_end + 1:
+        raise MeshUploadError("malformed_ply: mesh payload is empty")

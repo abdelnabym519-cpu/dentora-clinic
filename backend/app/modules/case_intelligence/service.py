@@ -9,6 +9,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.events import event_bus
+from app.core.events.types import EventType
 from app.modules.patients.models import Patient
 
 from .aggregation import CaseAggregator
@@ -85,7 +86,7 @@ class CaseIntelligenceService:
         db.add(row)
         await db.commit()
         await event_bus.publish(
-            "case_intelligence.snapshot.created",
+            EventType.CASE_INTELLIGENCE_SNAPSHOT_CREATED,
             {
                 "clinic_id": str(clinic_id),
                 "patient_id": str(patient_id),

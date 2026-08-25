@@ -31,7 +31,7 @@ class CaseIntelligenceModule(BaseModule):
         ],
         "installable": True,
         "auto_install": False,
-        "removable": True,
+        "removable": False,
         "role_permissions": {
             "admin": ["*"],
             "dentist": ["read"],

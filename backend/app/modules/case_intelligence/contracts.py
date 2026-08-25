@@ -11,7 +11,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 CASE_SNAPSHOT_CONTRACT_VERSION = "1.0"
 
 

@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from app.modules.media.storage.local import LocalStorageBackend
+from app.modules.media.thumbnails import MEDIUM_SUFFIX, THUMB_SUFFIX
 from scripts.migrate_media_storage import migrate_document
 
 
@@ -34,6 +35,31 @@ async def test_migration_success_is_non_destructive_and_verified(tmp_path, docum
     assert document.extra_data["storage_backend"] == "s3"
     assert document.extra_data["storage_migration"]["status"] == "completed"
     assert document.extra_data["storage_migration"]["sha256"]
+
+
+@pytest.mark.asyncio
+async def test_migration_moves_existing_image_derivatives_without_deleting_source(
+    tmp_path, document
+) -> None:
+    source = LocalStorageBackend(str(tmp_path / "source"))
+    target = LocalStorageBackend(str(tmp_path / "target"))
+    await source.store(b"abcdef", document.storage_path)
+    await source.store(b"thumb", f"{document.storage_path}{THUMB_SUFFIX}")
+    await source.store(b"medium", f"{document.storage_path}{MEDIUM_SUFFIX}")
+
+    result = await migrate_document(document, source=source, target=target, dry_run=False)
+
+    assert result.status == "migrated"
+    for suffix, expected in ((THUMB_SUFFIX, b"thumb"), (MEDIUM_SUFFIX, b"medium")):
+        path = f"{document.storage_path}{suffix}"
+        assert await source.retrieve(path) == expected
+        assert await target.retrieve(path) == expected
+    objects = document.extra_data["storage_migration"]["objects"]
+    assert {item["object_key"] for item in objects} == {
+        document.storage_path,
+        f"{document.storage_path}{THUMB_SUFFIX}",
+        f"{document.storage_path}{MEDIUM_SUFFIX}",
+    }
 
 
 @pytest.mark.asyncio

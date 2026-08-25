@@ -34,6 +34,10 @@ Mounted at `/api/v1/prescriptions`:
 - `POST /{id}/void`
 - `GET /{id}/audit`
 
+## Frontend
+
+The Nuxt layer exposes `/prescriptions`. Patient selection uses the existing clinic-scoped Patients search API, medication fields mirror the backend contract, and lifecycle controls are rendered only for transitions valid from the current status. Issued/terminal prescriptions are displayed read-only. The Playwright flow covers dentist login, patient association, draft creation and issue/immutability.
+
 ## Architecture
 
 Pure lifecycle rules live in `domain.py`. `use_cases.py` depends only on protocols in `ports.py`. SQLAlchemy patient/persistence adapters live in `repository.py`, and FastAPI wiring lives in `router.py`.

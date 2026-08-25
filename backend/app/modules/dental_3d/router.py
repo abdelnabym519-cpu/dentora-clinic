@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.schemas import ApiResponse
 from app.database import get_db
@@ -43,6 +44,7 @@ from .service import (
 )
 
 router = APIRouter()
+_UPLOAD_CHUNK_SIZE = 1024 * 1024
 
 
 async def _ensure_patient(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> None:
@@ -54,6 +56,50 @@ async def _ensure_patient(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -
     )
     if (await db.execute(stmt)).scalar_one_or_none() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+
+
+async def _read_mesh_upload(file: UploadFile) -> bytes:
+    """Read mesh validation input with a deterministic configured byte ceiling."""
+    max_size = settings.STORAGE_MAX_FILE_SIZE
+    parsed_size = getattr(file, "size", None)
+    if parsed_size is not None and parsed_size > max_size:
+        raise MeshUploadError(
+            f"too_large: file exceeds the {max_size // (1024 * 1024)}MB limit"
+        )
+
+    data = bytearray()
+    total = 0
+    while chunk := await file.read(_UPLOAD_CHUNK_SIZE):
+        total += len(chunk)
+        if total > max_size:
+            raise MeshUploadError(
+                f"too_large: file exceeds the {max_size // (1024 * 1024)}MB limit"
+            )
+        data.extend(chunk)
+    return bytes(data)
+
+
+async def _read_dicom_upload(file: UploadFile) -> bytes:
+    """Read DICOM header-validation input with the same hard storage upload limit."""
+    max_size = settings.STORAGE_MAX_FILE_SIZE
+    parsed_size = getattr(file, "size", None)
+    if parsed_size is not None and parsed_size > max_size:
+        raise DicomIngestionError(
+            DicomIngestionErrorCode.TOO_LARGE,
+            f"file exceeds the {max_size // (1024 * 1024)}MB limit",
+        )
+
+    data = bytearray()
+    total = 0
+    while chunk := await file.read(_UPLOAD_CHUNK_SIZE):
+        total += len(chunk)
+        if total > max_size:
+            raise DicomIngestionError(
+                DicomIngestionErrorCode.TOO_LARGE,
+                f"file exceeds the {max_size // (1024 * 1024)}MB limit",
+            )
+        data.extend(chunk)
+    return bytes(data)
 
 
 @router.get(
@@ -113,8 +159,8 @@ async def upload_patient_mesh(
     """
     await _ensure_patient(db, ctx.clinic_id, patient_id)
 
-    data = await file.read()
     try:
+        data = await _read_mesh_upload(file)
         mesh = await DentalMeshService.ingest(
             db,
             clinic_id=ctx.clinic_id,
@@ -154,9 +200,11 @@ async def upload_patient_dicom_instance(
         request = DicomIngestionRequest(
             filename=file.filename or "scan",
             content_type=file.content_type,
-            data=await file.read(),
+            data=await _read_dicom_upload(file),
             title=title,
         )
+    except DicomIngestionError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except ValidationError as exc:
         error = DicomIngestionError(
             code=DicomIngestionErrorCode.INVALID_REQUEST,

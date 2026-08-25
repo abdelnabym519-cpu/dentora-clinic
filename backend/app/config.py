@@ -78,11 +78,29 @@ class Settings(BaseSettings):
     # to override; exists for non-standard container layouts.
     DENTORA_MODULE_PKG_ROOT: str = "/app/app/modules"
 
-    # Storage configuration
+    # Storage configuration. PostgreSQL stores metadata/references only;
+    # binary payloads are always delegated to the selected storage backend.
     STORAGE_BACKEND: str = "local"
     STORAGE_LOCAL_PATH: str = "/app/storage"
-    STORAGE_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
+    STORAGE_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # business upload limit, not a DB threshold
     STORAGE_ALLOWED_MIME_TYPES: str = "application/pdf,image/jpeg,image/png"
+    STORAGE_STREAM_CHUNK_SIZE: int = Field(default=1024 * 1024, ge=64 * 1024, le=8 * 1024 * 1024)
+
+    # S3-compatible object storage (AWS S3, MinIO, and compatible providers).
+    # Credentials stay environment-driven. Empty credentials intentionally use
+    # the standard AWS credential provider chain when no custom pair is set.
+    S3_ENDPOINT: str = ""
+    S3_REGION: str = ""
+    S3_BUCKET: str = ""
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_PREFIX: str = ""
+    S3_PRESIGN_EXPIRE_SECONDS: int = Field(default=300, ge=60, le=86400)
+    S3_MULTIPART_PART_SIZE: int = Field(
+        default=8 * 1024 * 1024,
+        ge=5 * 1024 * 1024,
+        le=512 * 1024 * 1024,
+    )
 
     # Dental 3D Phase 5.2 — optional, operator-managed CBCT nerve inference.
     # Dentora does not bundle medical-model weights. An empty URL is an

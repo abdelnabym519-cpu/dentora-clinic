@@ -78,7 +78,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["prescription_id"], ["prescriptions.id"], ondelete="CASCADE"),
         sa.CheckConstraint("quantity > 0", name="ck_prescription_items_quantity"),
     )
-    op.create_index("ix_prescription_items_prescription_id", "prescription_items", ["prescription_id"])
+    op.create_index(
+        "ix_prescription_items_prescription_id", "prescription_items", ["prescription_id"]
+    )
 
     op.create_table(
         "prescription_audit_events",

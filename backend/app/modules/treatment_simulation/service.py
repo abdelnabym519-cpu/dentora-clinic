@@ -63,7 +63,9 @@ class TreatmentSimulationService:
             user_id=user_id,
         )
         risk_evaluation = evaluate_snapshot(snapshot)
-        cls._assert_current_evidence(plan_row=plan_row, snapshot=snapshot, risk_evaluation=risk_evaluation)
+        cls._assert_current_evidence(
+            plan_row=plan_row, snapshot=snapshot, risk_evaluation=risk_evaluation
+        )
 
         planning = AITreatmentPlanningService._to_contract(plan_row)
         scene = build_digital_twin_scene(

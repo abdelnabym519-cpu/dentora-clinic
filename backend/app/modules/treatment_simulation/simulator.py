@@ -44,7 +44,9 @@ def build_digital_twin_scene(
     if not isinstance(reference_frame, dict) or not reference_frame:
         raise SimulationBuildError("accepted_patient_space_reference_frame_required")
 
-    selected = next((item for item in planning.content.options if item.option_id == option_id), None)
+    selected = next(
+        (item for item in planning.content.options if item.option_id == option_id), None
+    )
     if selected is None:
         raise SimulationBuildError("planning_option_not_found")
 

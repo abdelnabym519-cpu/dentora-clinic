@@ -24,7 +24,12 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  # A production tag cannot publish before the same required CI suite succeeds.
+  quality:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: quality
     strategy:
       fail-fast: false
       matrix:
@@ -148,6 +153,35 @@ jobs:
           ref: ${{ inputs.tag || github.ref }}
           fetch-depth: 0
 
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create immutable release manifest and checksum
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          mkdir -p release-assets
+          for image in backend frontend; do
+            ref="${REGISTRY}/${GITHUB_REPOSITORY}-${image}:${VERSION}"
+            # OCI index bytes hash to the immutable registry digest. The client
+            # pulls exactly this digest, never a mutable tag.
+            docker buildx imagetools inspect "$ref" --raw > "release-assets/${image}.index.json"
+            digest="sha256:$(sha256sum "release-assets/${image}.index.json" | awk '{print $1}')"
+            jq -e --arg d "$digest" '.["manifests"] != null and ($d | test("^sha256:[a-f0-9]{64}$"))' "release-assets/${image}.index.json" >/dev/null
+            echo "$image=$ref@$digest" >> release-assets/images.env
+          done
+          backend=$(grep '^backend=' release-assets/images.env | cut -d= -f2-)
+          frontend=$(grep '^frontend=' release-assets/images.env | cut -d= -f2-)
+          jq -n --arg version "$VERSION" --arg tag "$TAG" --arg backend "$backend" --arg frontend "$frontend" \
+            '{schema: 1, version: $version, tag: $tag, images: {backend: $backend, frontend: $frontend}}' \
+            > release-assets/dentora-release-manifest.json
+          sha256sum release-assets/dentora-release-manifest.json > release-assets/dentora-release-manifest.json.sha256
+
       - name: Extract the CHANGELOG section for this version
         id: notes
         run: |
@@ -190,8 +224,10 @@ jobs:
         run: |
           TAG="${{ inputs.tag || github.ref_name }}"
           gh release create "$TAG" \
+            release-assets/dentora-release-manifest.json \
+            release-assets/dentora-release-manifest.json.sha256 \
             --title "$TAG" \
             --notes-file notes.md \
             --generate-notes \
             --verify-tag \
-            || gh release edit "$TAG" --notes-file notes.md
+            || { gh release edit "$TAG" --notes-file notes.md; gh release upload "$TAG" release-assets/dentora-release-manifest.json release-assets/dentora-release-manifest.json.sha256 --clobber; }

@@ -17,7 +17,7 @@ for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"POSTGRES_USER=" ".env.clien
 for /f "tokens=1,* delims==" %%A in ('findstr /B /C:"POSTGRES_DB=" ".env.client"') do set "DB_NAME=%%B"
 
 echo Backing up PostgreSQL...
-docker compose --env-file .env.client -f docker-compose.client.yml exec -T db pg_dump -U %DB_USER% -d %DB_NAME% > "backups\database_%STAMP%.sql"
+docker compose --env-file .env.client -f docker-compose.client.yml exec -T db pg_dump --clean --if-exists -U %DB_USER% -d %DB_NAME% > "backups\database_%STAMP%.sql"
 if errorlevel 1 (
   echo ERROR: Database backup failed.
   pause

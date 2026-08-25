@@ -1,5 +1,8 @@
 name: dentora-client
 
+# Distributed client packages run immutable release images. UPDATE_DENTORA.bat
+# replaces DENTORA_BACKEND_IMAGE / DENTORA_FRONTEND_IMAGE with digest-pinned
+# references only after verifying the checksummed GitHub Release manifest and backup.
 services:
   db:
     image: postgres:15-alpine
@@ -18,9 +21,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ${DENTORA_BACKEND_IMAGE:?Set DENTORA_BACKEND_IMAGE in .env.client}
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dental}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-dental_clinic}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env.client}
@@ -47,7 +48,8 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
+      # Readiness verifies the database/schema, rather than only process liveness.
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2).status == 200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 5
@@ -55,11 +57,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile.prod
-      args:
-        API_BASE_URL: ${PUBLIC_URL:-http://localhost}
+    image: ${DENTORA_FRONTEND_IMAGE:?Set DENTORA_FRONTEND_IMAGE in .env.client}
     environment:
       NUXT_PUBLIC_API_BASE_URL: ${PUBLIC_URL:-http://localhost}
       API_BASE_URL_SERVER: http://backend:8000
@@ -94,9 +92,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  # New installations receive Dentora-only physical volume names. An existing
-  # installation can supply its inspected physical volume names through the
-  # untracked environment and the existing-volumes overlay.
   pgdata:
     name: ${DENTORA_POSTGRES_VOLUME:-dentora-client-pgdata}
   storage_data:

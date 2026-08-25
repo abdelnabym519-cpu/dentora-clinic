@@ -13,7 +13,8 @@ def test_prescriptions_migration_is_visible_to_alembic_cli() -> None:
 
     revision = script.get_revision("rx_0001")
     assert revision is not None
-    assert Path(revision.path).resolve().parent == (
-        backend_root / "app/modules/prescriptions/migrations/versions"
-    ).resolve()
+    assert (
+        Path(revision.path).resolve().parent
+        == (backend_root / "app/modules/prescriptions/migrations/versions").resolve()
+    )
     assert "rx_0001" in script.get_heads()

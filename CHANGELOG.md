@@ -9,6 +9,35 @@ architecture: the monolithic `clinical` module is gone, replaced by
 four purpose-built modules, and every official module now ships its
 frontend as a Nuxt layer under its own Python package.
 
+## [Unreleased] — Multi-Tenant / Multi-Clinic Expansion
+
+### Added
+
+- **Production multi-tenant foundation.** A new `tenants` table and
+  `clinics.tenant_id` ownership anchor every clinic to a tenant. The
+  default/self-hosted tenant is provisioned automatically and the
+  migration is fully reversible.
+- **`MultiTenantResolver`** with host / `X-Tenant-Id` / JWT resolution,
+  active-tenant enforcement, a per-URL engine registry (future
+  dedicated-database support), and `tenant.resolved` event publishing.
+- **Use-case layer** (`ProvisionTenant`, `ProvisionClinic`,
+  `AssignMembership`) behind ports/adapters, plus a Super Admin
+  `/api/v1/platform/*` API.
+- **Clinic selection at authentication.** `X-Clinic-Id` / JWT / query
+  selection replaces "first membership"; permissions are computed from
+  the role held in the *selected* clinic, and a new
+  `/auth/select-clinic` endpoint mints a scoped token.
+- **Platform admins** (`users.is_platform_admin`) with platform.* grants.
+- **Repository/service-level defense in depth** (`ClinicContext.assert_clinic`,
+  `tenancy.guards`) and comprehensive cross-clinic isolation tests.
+- Frontend clinic switcher, selected-clinic cookie/header injection,
+  and permission refresh on switch.
+
+### Compatibility
+
+- Self-hosted single-clinic deployments are unchanged: one default
+  tenant, one clinic owned by it, and the switcher is hidden.
+
 ## [2.2.1] - 2026-08-09
 
 ### Fixed

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import TYPE_CHECKING
-from uuid import UUID as PyUUID
 from uuid import uuid4
 
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
@@ -21,9 +20,9 @@ if TYPE_CHECKING:
 class RiskResultRecord(Base):
     __tablename__ = "risk_results"
 
-    id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    clinic_id: Mapped[PyUUID] = mapped_column(ForeignKey("clinics.id"), nullable=False, index=True)
-    patient_id: Mapped[PyUUID] = mapped_column(ForeignKey("patients.id"), nullable=False, index=True)
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), nullable=False, index=True)
+    patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), nullable=False, index=True)
     result_version: Mapped[int] = mapped_column(Integer, nullable=False)
     contract_version: Mapped[str] = mapped_column(String(20), nullable=False)
     case_snapshot_version: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -37,9 +36,9 @@ class RiskResultRecord(Base):
     result_data: Mapped[dict] = mapped_column(JSONB, nullable=False)
     review_status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending_review")
     generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    generated_by: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    generated_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    reviewed_by: Mapped[PyUUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     clinic: Mapped[Clinic] = relationship(foreign_keys=[clinic_id])
     patient: Mapped[Patient] = relationship(foreign_keys=[patient_id])

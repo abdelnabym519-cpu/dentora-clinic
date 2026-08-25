@@ -46,11 +46,11 @@ def normalize_storage_key(path: str) -> str:
     cannot escape the local storage root or smuggle ambiguous S3 keys.
     """
 
-    if not path or path.startswith(('/', '\\')) or '\\' in path:
+    if not path or path.startswith(("/", "\\")) or "\\" in path:
         raise ValueError("Storage key must be a non-empty relative POSIX path")
 
-    parts = path.split('/')
-    if any(part in {'', '.', '..'} for part in parts):
+    parts = path.split("/")
+    if any(part in {"", ".", ".."} for part in parts):
         raise ValueError("Storage key contains an unsafe path segment")
 
     normalized = str(PurePosixPath(*parts))

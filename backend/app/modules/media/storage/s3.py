@@ -308,9 +308,7 @@ class S3StorageBackend(StorageBackend):
             Key=self._object_key(key),
             UploadId=upload.upload_id,
             MultipartUpload={
-                "Parts": [
-                    {"ETag": part.etag, "PartNumber": part.part_number} for part in ordered
-                ]
+                "Parts": [{"ETag": part.etag, "PartNumber": part.part_number} for part in ordered]
             },
         )
         return await self.stat(key)

@@ -301,7 +301,9 @@ class ObjectUploadService:
             await ObjectUploadService._mark_failed(
                 db, document, f"size_mismatch:{info.size}:{expected_size}"
             )
-            raise HTTPException(status_code=400, detail="Uploaded object size does not match declaration")
+            raise HTTPException(
+                status_code=400, detail="Uploaded object size does not match declaration"
+            )
 
         digest = hashlib.sha256()
         async for chunk in storage.iter_chunks(
@@ -311,7 +313,9 @@ class ObjectUploadService:
         actual_sha = digest.hexdigest()
         if actual_sha != expected_sha:
             await ObjectUploadService._mark_failed(db, document, "checksum_mismatch")
-            raise HTTPException(status_code=400, detail="Uploaded object checksum verification failed")
+            raise HTTPException(
+                status_code=400, detail="Uploaded object checksum verification failed"
+            )
 
         envelope = dict(document.extra_data or {})
         object_upload = dict(envelope.get("object_upload") or {})

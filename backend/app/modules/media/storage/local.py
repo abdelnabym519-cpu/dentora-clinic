@@ -90,9 +90,10 @@ class LocalStorageBackend(StorageBackend):
         destination = self._full_path(key)
         destination.parent.mkdir(parents=True, exist_ok=True)
         digest = hashlib.sha256()
-        async with aiofiles.open(source_path, "rb") as source, aiofiles.open(
-            destination, "wb"
-        ) as target:
+        async with (
+            aiofiles.open(source_path, "rb") as source,
+            aiofiles.open(destination, "wb") as target,
+        ):
             while True:
                 chunk = await source.read(1024 * 1024)
                 if not chunk:

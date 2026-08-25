@@ -242,6 +242,4 @@ async def abort_multipart_upload(
     _: Annotated[None, Depends(require_permission("media.documents.write"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> None:
-    await ObjectUploadService.abort_multipart(
-        db, clinic_id=ctx.clinic_id, document_id=document_id
-    )
+    await ObjectUploadService.abort_multipart(db, clinic_id=ctx.clinic_id, document_id=document_id)

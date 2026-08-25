@@ -61,11 +61,11 @@ export default async function globalSetup(config: FullConfig) {
     diagnostic('navigate dashboard warm-up')
     await page.goto(origin, { waitUntil: 'load', timeout: WARMUP_TIMEOUT_MS })
     diagnostic(`dashboard warm-up navigation complete url=${page.url()}`)
-    await page.getByTestId('dashboard-screen').waitFor({
+    await page.locator('main').getByRole('heading', { level: 1 }).waitFor({
       state: 'visible',
       timeout: WARMUP_TIMEOUT_MS
     })
-    diagnostic('dashboard screen visible')
+    diagnostic('dashboard page heading visible')
     await page.getByTestId('dashboard-skeleton').waitFor({
       state: 'hidden',
       timeout: WARMUP_TIMEOUT_MS

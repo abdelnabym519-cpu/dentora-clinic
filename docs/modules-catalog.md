@@ -36,6 +36,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `risk_engine` | 1.0.0 | official | case_intelligence, patients, dental_3d | manual | no | 3 | 0 | 0 | no |
 | `schedules` | 0.1.0 | official | agenda | auto | yes | 8 | 0 | 3 | yes |
 | `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media | auto | no | 5 | 13 | 7 | yes |
+| `treatment_simulation` | 1.0.0 | official | dental_3d, case_intelligence, risk_engine, ai_treatment_planning, patients | manual | no | 2 | 0 | 0 | no |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
 | `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
 
@@ -670,6 +671,23 @@ Patient treatment plans with budget + odontogram sync.
   - `budget.superseded`
   - `odontogram.treatment.performed`
 - **Module CLAUDE.md:** [`backend/app/modules/treatment_plan/CLAUDE.md`](../backend/app/modules/treatment_plan/CLAUDE.md)
+
+### `treatment_simulation` — v1.0.0
+
+Deterministic, non-predictive visualization of a dentist-accepted AI Treatment Planning option over the existing Dental Digital Twin, patient-space evidence, and Risk Map with append-only provenance and stale-input protection.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `dental_3d`, `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `patients`
+- **Frontend layer:** —
+- **Permissions:**
+  - `treatment_simulation.generate`
+  - `treatment_simulation.read`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/treatment_simulation/CLAUDE.md`](../backend/app/modules/treatment_simulation/CLAUDE.md)
 
 ### `verifactu` — v0.1.0
 

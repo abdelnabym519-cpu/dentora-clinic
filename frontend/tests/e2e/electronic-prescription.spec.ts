@@ -16,7 +16,9 @@ test('dentist creates and issues an immutable electronic prescription', async ({
   const patient = body.data[0]
 
   await page.goto('/prescriptions')
-  await expect(page.getByTestId('prescriptions-page')).toBeVisible()
+  const prescriptionsPage = page.getByTestId('prescriptions-page')
+  await expect(prescriptionsPage).toBeVisible()
+  await expect(prescriptionsPage).toHaveAttribute('data-hydrated', 'true')
   await page.getByTestId('prescription-patient-search').fill(patient.first_name)
   await page.getByTestId(`prescription-patient-${patient.id}`).click()
   await page.getByTestId('medication-name-0').fill('Amoxicillin')

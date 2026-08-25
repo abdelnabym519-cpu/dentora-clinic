@@ -1,0 +1,59 @@
+services:
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-dentora}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-dentora}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      S3_BUCKET: ${S3_BUCKET:-dentora-media}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mc alias set dentora http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" &&
+        mc mb --ignore-existing "dentora/$${S3_BUCKET}" &&
+        mc anonymous set none "dentora/$${S3_BUCKET}"
+    restart: "no"
+
+  backend:
+    environment:
+      STORAGE_BACKEND: s3
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-dentora-media}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-dentora}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      S3_PREFIX: ${S3_PREFIX:-dentora}
+      S3_ADDRESSING_STYLE: path
+      S3_PRESIGN_EXPIRY_SECONDS: ${S3_PRESIGN_EXPIRY_SECONDS:-900}
+      S3_MULTIPART_THRESHOLD_BYTES: ${S3_MULTIPART_THRESHOLD_BYTES:-8388608}
+      S3_MULTIPART_PART_SIZE_BYTES: ${S3_MULTIPART_PART_SIZE_BYTES:-8388608}
+    depends_on:
+      db:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+volumes:
+  minio_data:

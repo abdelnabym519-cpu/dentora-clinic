@@ -48,8 +48,9 @@ def upgrade() -> None:
         Column("created_at", String(64), nullable=True),
         Column("updated_at", String(64), nullable=True),
     )
+    # The primary key already provides an index on tenants.id; only the
+    # unique slug lookup needs an explicit index.
     op.create_index("ix_tenants_slug", "tenants", ["slug"], unique=True)
-    op.create_index("ix_tenants_id", "tenants", ["id"])
 
     # Timestamp columns should be timezone-aware; fix their type now
     # (declared as placeholders above to keep the create_table simple).
@@ -108,6 +109,5 @@ def downgrade() -> None:
     op.drop_column("clinics", "is_active")
     op.drop_index("ix_clinics_tenant_id", table_name="clinics")
     op.drop_column("clinics", "tenant_id")
-    op.drop_index("ix_tenants_id", table_name="tenants")
     op.drop_index("ix_tenants_slug", table_name="tenants")
     op.drop_table("tenants")

@@ -51,24 +51,21 @@ class Clinic(Base, TimestampMixin):
     currency: Mapped[str] = mapped_column(String(3), nullable=False, server_default="EUR")
     settings: Mapped[dict] = mapped_column(JSONB, default=dict)
     # Tenant that owns this clinic (multi-tenant / multi-clinic).
-    # Nullable at the DB level so the bootstrap migration can backfill
-    # the default tenant before the NOT NULL constraint is enforced;
-    # the application always treats it as required. Every business row
+    # NOT NULL at the database level (enforced by migration 0007 after
+    # backfill). The Python-side default attaches in-memory construction
+    # to the well-known default tenant so legacy code paths and tests
+    # that build a Clinic without an explicit tenant stay valid; real
+    # provisioning always sets tenant_id explicitly. Every business row
     # is reachable only through a clinic owned by the request's tenant,
     # which gives repository-level defense in depth on top of the
     # per-request ``clinic_id`` filter.
-    tenant_id: Mapped[UUID | None] = mapped_column(
+    tenant_id: Mapped[UUID] = mapped_column(
         PGUUID(as_uuid=True),
         ForeignKey("tenants.id", ondelete="RESTRICT"),
         index=True,
-        nullable=True,
-        # Application-side safety net: when a clinic is created without
-        # an explicit tenant (legacy code paths, tests, first-run setup
-        # before the bootstrap ran) attach it to the well-known default
-        # tenant. The migration enforces NOT NULL, so every persisted
-        # clinic has an owner; this default keeps in-memory construction
-        # consistent. Real provisioning always sets tenant_id explicitly.
+        nullable=False,
         default=lambda: _DEFAULT_TENANT_UUID,
+        server_default=text("'00000000-0000-0000-0000-000000000001'"),
     )
 
     # Relationships

@@ -132,7 +132,9 @@ async def generate_treatment_plan(
         if gap.section in seen_gaps:
             raise TreatmentGenerationError("duplicate_data_gap")
         seen_gaps.add(gap.section)
-        gaps.append(TreatmentDataGap(section=gap.section, status=gap.status, reason=section.get("reason")))
+        gaps.append(
+            TreatmentDataGap(section=gap.section, status=gap.status, reason=section.get("reason"))
+        )
 
     required_gaps = {
         name

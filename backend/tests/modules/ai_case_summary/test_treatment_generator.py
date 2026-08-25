@@ -106,9 +106,7 @@ async def test_generator_rejects_unknown_evidence() -> None:
                     ],
                 }
             ],
-            "data_gaps": [
-                {"section": "periodontogram", "status": "not_available", "reason": None}
-            ],
+            "data_gaps": [{"section": "periodontogram", "status": "not_available", "reason": None}],
             "limitations": [],
         }
     )

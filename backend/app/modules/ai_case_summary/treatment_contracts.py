@@ -105,9 +105,7 @@ class AITreatmentPlan(BaseModel):
     applied_to_treatment_plan: Literal[False] = False
     disclaimer: Literal[
         "Advisory treatment-planning draft only; dentist review and independent clinical judgment are required."
-    ] = (
-        "Advisory treatment-planning draft only; dentist review and independent clinical judgment are required."
-    )
+    ] = "Advisory treatment-planning draft only; dentist review and independent clinical judgment are required."
 
 
 class TreatmentReviewRequest(BaseModel):

@@ -1,16 +1,16 @@
 """File validation utilities."""
 
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+
 from fastapi import HTTPException, UploadFile
 
 from app.config import settings
 
-# Document types enum
 DOCUMENT_TYPES = ["consent", "id_scan", "insurance", "report", "referral", "other"]
+UPLOAD_CHUNK_SIZE = 1024 * 1024
 
-# Modern image formats not in the default config allowlist but commonly
-# uploaded from clinical phones / tablets. The base allowlist covers
-# JPEG / PNG / PDF; we extend for HEIC (iOS), WebP and GIF so the photo
-# gallery accepts them without per-clinic config changes.
 _PHOTO_MIME_EXTRA = frozenset(
     {
         "image/heic",
@@ -21,37 +21,64 @@ _PHOTO_MIME_EXTRA = frozenset(
 )
 
 
+def _too_large(max_size: int) -> HTTPException:
+    return HTTPException(
+        status_code=400,
+        detail=f"File size exceeds limit of {max_size // (1024 * 1024)}MB",
+    )
+
+
 def validate_file_size(file: UploadFile, content_length: int | None = None) -> None:
-    """Validate file size against limit.
+    """Deterministically validate the parsed upload size when available.
 
-    Args:
-        file: Uploaded file
-        content_length: Content-Length header value (if available)
-
-    Raises:
-        HTTPException: If file exceeds size limit
+    Starlette tracks ``UploadFile.size`` while parsing multipart bodies. The
+    optional content length remains a compatibility fallback for callers that
+    construct UploadFile instances without a size. Streaming readers below
+    enforce the same limit again while consuming bytes, so a missing or
+    incorrect declared size cannot bypass the configured maximum.
     """
     max_size = settings.STORAGE_MAX_FILE_SIZE
+    parsed_size = getattr(file, "size", None)
+    measured = parsed_size if parsed_size is not None else content_length
+    if measured is not None and measured > max_size:
+        raise _too_large(max_size)
 
-    if content_length and content_length > max_size:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File size exceeds limit of {max_size // (1024 * 1024)}MB",
-        )
+
+async def iter_upload_chunks(
+    file: UploadFile,
+    *,
+    max_size: int | None = None,
+    chunk_size: int = UPLOAD_CHUNK_SIZE,
+) -> AsyncIterator[bytes]:
+    """Yield upload bytes incrementally while enforcing a hard byte limit."""
+    limit = settings.STORAGE_MAX_FILE_SIZE if max_size is None else max_size
+    if limit <= 0:
+        raise ValueError("max_size must be positive")
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+
+    total = 0
+    while chunk := await file.read(chunk_size):
+        total += len(chunk)
+        if total > limit:
+            raise _too_large(limit)
+        yield chunk
+
+
+async def read_upload_bytes_limited(
+    file: UploadFile,
+    *,
+    max_size: int | None = None,
+) -> bytes:
+    """Compatibility helper for validators that still require a byte payload."""
+    data = bytearray()
+    async for chunk in iter_upload_chunks(file, max_size=max_size):
+        data.extend(chunk)
+    return bytes(data)
 
 
 def validate_mime_type(file: UploadFile) -> str:
-    """Validate and return MIME type.
-
-    Args:
-        file: Uploaded file
-
-    Returns:
-        Validated MIME type
-
-    Raises:
-        HTTPException: If MIME type not allowed
-    """
+    """Validate and return MIME type."""
     allowed = set(settings.storage_allowed_mime_types_list) | _PHOTO_MIME_EXTRA
     content_type = file.content_type or "application/octet-stream"
 
@@ -65,14 +92,7 @@ def validate_mime_type(file: UploadFile) -> str:
 
 
 def validate_document_type(document_type: str) -> None:
-    """Validate document type.
-
-    Args:
-        document_type: Document type to validate
-
-    Raises:
-        HTTPException: If document type invalid
-    """
+    """Validate document type."""
     if document_type not in DOCUMENT_TYPES:
         raise HTTPException(
             status_code=400,
@@ -81,14 +101,7 @@ def validate_document_type(document_type: str) -> None:
 
 
 def get_file_extension(filename: str) -> str:
-    """Extract file extension from filename.
-
-    Args:
-        filename: Original filename
-
-    Returns:
-        Extension without dot (e.g., "pdf")
-    """
+    """Extract extension without a leading dot."""
     if "." in filename:
         return filename.rsplit(".", 1)[1].lower()
     return ""

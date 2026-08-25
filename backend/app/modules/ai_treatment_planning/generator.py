@@ -109,9 +109,7 @@ async def generate_planning_options(
 
     case = llm_input["case"]
     allowed_evidence = set(case["evidence"])
-    allowed_risk_factors = {
-        factor["factor_id"] for factor in llm_input["risk_context"]["factors"]
-    }
+    allowed_risk_factors = {factor["factor_id"] for factor in llm_input["risk_context"]["factors"]}
 
     options: list[TreatmentOption] = []
     seen_option_ids: set[str] = set()

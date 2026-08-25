@@ -68,7 +68,9 @@ def _valid_output():
                     }
                 ],
                 "uncertainties": ["Nerve data is not available."],
-                "alternatives_or_tradeoffs": ["Defer treatment choice until missing data is reviewed."],
+                "alternatives_or_tradeoffs": [
+                    "Defer treatment choice until missing data is reviewed."
+                ],
             }
         ],
         "data_gaps": [{"section": "nerve", "status": "not_available"}],
@@ -84,9 +86,7 @@ async def test_generator_validates_traceability_and_server_stamps_gap_reason():
         max_tokens=1000,
     )
     assert result.content.options[0].evidence_ids == ["E001"]
-    assert result.content.options[0].steps[0].risk_factor_ids == [
-        "accepted_nerve_pathway_present"
-    ]
+    assert result.content.options[0].steps[0].risk_factor_ids == ["accepted_nerve_pathway_present"]
     assert result.content.data_gaps[0].reason == "nerve_analysis_not_available"
     assert result.content.no_automatic_execution is True
 

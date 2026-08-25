@@ -13,6 +13,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
 | `agenda` | 0.4.0 | official | patients, catalog, odontogram | auto | no | 4 | 11 | 0 | yes |
 | `ai_case_summary` | 1.0.0 | official | case_intelligence, patients | manual | no | 3 | 0 | 0 | no |
+| `ai_treatment_planning` | 1.0.0 | official | case_intelligence, risk_engine, patients | manual | no | 3 | 0 | 0 | no |
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
 | `booking` | 0.1.0 | community | patients, agenda, schedules | auto | yes | 2 | 0 | 0 | yes |
 | `budget` | 0.1.0 | official | patients, catalog, odontogram | auto | no | 5 | 9 | 4 | yes |
@@ -104,6 +105,24 @@ Advisory, evidence-traceable AI summaries derived from redacted CaseSnapshot inp
 - **Events emitted:** —
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/ai_case_summary/CLAUDE.md`](../backend/app/modules/ai_case_summary/CLAUDE.md)
+
+### `ai_treatment_planning` — v1.0.0
+
+Advisory AI-generated treatment options grounded in redacted CaseSnapshot evidence and deterministic Risk Engine context, with append-only provenance and mandatory dentist review; never writes a canonical treatment plan automatically.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `case_intelligence`, `risk_engine`, `patients`
+- **Frontend layer:** —
+- **Permissions:**
+  - `ai_treatment_planning.generate`
+  - `ai_treatment_planning.read`
+  - `ai_treatment_planning.review`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/ai_treatment_planning/CLAUDE.md`](../backend/app/modules/ai_treatment_planning/CLAUDE.md)
 
 ### `billing` — v0.1.0
 

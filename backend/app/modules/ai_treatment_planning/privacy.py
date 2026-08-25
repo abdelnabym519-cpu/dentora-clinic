@@ -84,9 +84,7 @@ def _section_payload(section: CaseSection, aliases: dict[tuple, str]) -> dict[st
         "status": section.status.value,
         "data": _sanitize(section.data),
         "evidence_ids": [
-            aliases[_evidence_key(ref)]
-            for ref in section.evidence
-            if _evidence_key(ref) in aliases
+            aliases[_evidence_key(ref)] for ref in section.evidence if _evidence_key(ref) in aliases
         ],
         "reason": section.reason,
     }

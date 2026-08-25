@@ -93,6 +93,7 @@ migration_import = "app.modules.migration_import:MigrationImportModule"
 copilot = "app.modules.copilot:CopilotModule"
 dental_3d = "app.modules.dental_3d:Dental3DModule"
 case_intelligence = "app.modules.case_intelligence:CaseIntelligenceModule"
+ai_case_summary = "app.modules.ai_case_summary:AICaseSummaryModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -61,8 +61,12 @@ def upgrade() -> None:
     # 2) New columns on clinics / users.
     op.add_column(
         "clinics",
-        Column("tenant_id", UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="RESTRICT"),
-               nullable=True),
+        Column(
+            "tenant_id",
+            UUID(as_uuid=True),
+            ForeignKey("tenants.id", ondelete="RESTRICT"),
+            nullable=True,
+        ),
     )
     op.create_index("ix_clinics_tenant_id", "clinics", ["tenant_id"])
     op.add_column(

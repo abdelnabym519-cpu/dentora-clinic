@@ -37,13 +37,13 @@ from app.core.agents.models import (  # noqa: F401
     AgentSession,
 )
 from app.core.auth.models import Clinic, ClinicMembership, User  # noqa: F401
-from app.core.tenancy.models import Tenant  # noqa: F401
 from app.core.plugins.alembic_paths import discover_version_locations
 from app.core.plugins.db_models import (  # noqa: F401
     ExternalId,
     ModuleOperationLog,
     ModuleRecord,
 )
+from app.core.tenancy.models import Tenant  # noqa: F401
 from app.database import Base
 from app.modules.agenda.models import Appointment, AppointmentTreatment, Cabinet  # noqa: F401
 from app.modules.billing.models import (  # noqa: F401

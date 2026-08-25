@@ -58,9 +58,14 @@ class _FakeS3Client:
         self.objects.pop((kwargs["Bucket"], kwargs["Key"]), None)
         return {}
 
-    def generate_presigned_url(self, operation, *, Params, ExpiresIn, HttpMethod=None):
-        method = HttpMethod or "GET"
-        return f"https://signed.invalid/{operation}/{Params['Key']}?method={method}&expires={ExpiresIn}"
+    def generate_presigned_url(self, operation, **kwargs):
+        params = kwargs["Params"]
+        expires_in = kwargs["ExpiresIn"]
+        method = kwargs.get("HttpMethod") or "GET"
+        return (
+            f"https://signed.invalid/{operation}/{params['Key']}"
+            f"?method={method}&expires={expires_in}"
+        )
 
     def create_multipart_upload(self, **kwargs):
         self._upload_sequence += 1
@@ -75,7 +80,9 @@ class _FakeS3Client:
 
     def complete_multipart_upload(self, **kwargs):
         upload = self.uploads.pop(kwargs["UploadId"])
-        ordered = b"".join(upload["parts"][part["PartNumber"]] for part in kwargs["MultipartUpload"]["Parts"])
+        ordered = b"".join(
+            upload["parts"][part["PartNumber"]] for part in kwargs["MultipartUpload"]["Parts"]
+        )
         self.objects[(kwargs["Bucket"], kwargs["Key"])] = {
             "data": ordered,
             "metadata": {},
@@ -109,7 +116,10 @@ async def test_local_backend_stream_round_trip_and_integrity(tmp_path) -> None:
     result = await backend.store_stream(_chunks(b"abc", b"def"), "clinic/patient/media.bin")
     assert result.size == 6
     assert result.checksum_sha256 == hashlib.sha256(b"abcdef").hexdigest()
-    assert b"".join([chunk async for chunk in backend.iter_bytes(result.path, chunk_size=2)]) == b"abcdef"
+    assert (
+        b"".join([chunk async for chunk in backend.iter_bytes(result.path, chunk_size=2)])
+        == b"abcdef"
+    )
     assert (await backend.stat(result.path)).checksum_sha256 == result.checksum_sha256
 
 

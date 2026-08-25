@@ -26,6 +26,11 @@ class LocalStorageBackend(StorageBackend):
             raise ValueError("Storage key escapes configured storage root")
         return candidate
 
+    def filesystem_path(self, path: str) -> Path:
+        """Return a traversal-safe source path for migration tooling."""
+
+        return self._full_path(path)
+
     async def store(self, data: bytes, path: str) -> str:
         key = normalize_storage_key(path)
         full_path = self._full_path(key)

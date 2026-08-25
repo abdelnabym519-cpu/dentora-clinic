@@ -19,8 +19,13 @@ from .models import (
     DentalSegmentationAnalysis,
 )
 from .router import router as core_router
+from .storage_router import router as storage_router
 
 router = APIRouter()
+# Register bounded binary-ingestion endpoints before the existing router so
+# public URLs and application services stay unchanged while oversized uploads
+# can no longer be read unbounded into process memory.
+router.include_router(storage_router)
 router.include_router(core_router)
 router.include_router(implant_router)
 

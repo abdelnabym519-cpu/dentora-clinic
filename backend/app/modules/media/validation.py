@@ -4,13 +4,8 @@ from fastapi import HTTPException, UploadFile
 
 from app.config import settings
 
-# Document types enum
 DOCUMENT_TYPES = ["consent", "id_scan", "insurance", "report", "referral", "other"]
 
-# Modern image formats not in the default config allowlist but commonly
-# uploaded from clinical phones / tablets. The base allowlist covers
-# JPEG / PNG / PDF; we extend for HEIC (iOS), WebP and GIF so the photo
-# gallery accepts them without per-clinic config changes.
 _PHOTO_MIME_EXTRA = frozenset(
     {
         "image/heic",
@@ -21,19 +16,38 @@ _PHOTO_MIME_EXTRA = frozenset(
 )
 
 
+def _uploaded_size(file: UploadFile) -> int | None:
+    """Return the actual spooled upload size without trusting Content-Length."""
+
+    size = getattr(file, "size", None)
+    if isinstance(size, int):
+        return size
+
+    raw = getattr(file, "file", None)
+    if raw is None or not hasattr(raw, "seek") or not hasattr(raw, "tell"):
+        return None
+    try:
+        position = raw.tell()
+        raw.seek(0, 2)
+        actual = raw.tell()
+        raw.seek(position)
+        return int(actual)
+    except (OSError, ValueError):
+        return None
+
+
 def validate_file_size(file: UploadFile, content_length: int | None = None) -> None:
-    """Validate file size against limit.
+    """Enforce the configured business upload limit against actual bytes.
 
-    Args:
-        file: Uploaded file
-        content_length: Content-Length header value (if available)
-
-    Raises:
-        HTTPException: If file exceeds size limit
+    ``Content-Length`` is only an early-rejection hint.  Starlette's
+    ``UploadFile.size`` (or the spooled file size fallback) is the source of
+    truth, so omitting or lying about the request header cannot bypass the
+    limit.
     """
-    max_size = settings.STORAGE_MAX_FILE_SIZE
 
-    if content_length and content_length > max_size:
+    max_size = settings.STORAGE_MAX_FILE_SIZE
+    candidates = [size for size in (content_length, _uploaded_size(file)) if size is not None]
+    if candidates and max(candidates) > max_size:
         raise HTTPException(
             status_code=400,
             detail=f"File size exceeds limit of {max_size // (1024 * 1024)}MB",
@@ -41,17 +55,8 @@ def validate_file_size(file: UploadFile, content_length: int | None = None) -> N
 
 
 def validate_mime_type(file: UploadFile) -> str:
-    """Validate and return MIME type.
+    """Validate and return MIME type."""
 
-    Args:
-        file: Uploaded file
-
-    Returns:
-        Validated MIME type
-
-    Raises:
-        HTTPException: If MIME type not allowed
-    """
     allowed = set(settings.storage_allowed_mime_types_list) | _PHOTO_MIME_EXTRA
     content_type = file.content_type or "application/octet-stream"
 
@@ -65,14 +70,8 @@ def validate_mime_type(file: UploadFile) -> str:
 
 
 def validate_document_type(document_type: str) -> None:
-    """Validate document type.
+    """Validate administrative document type."""
 
-    Args:
-        document_type: Document type to validate
-
-    Raises:
-        HTTPException: If document type invalid
-    """
     if document_type not in DOCUMENT_TYPES:
         raise HTTPException(
             status_code=400,
@@ -81,14 +80,11 @@ def validate_document_type(document_type: str) -> None:
 
 
 def get_file_extension(filename: str) -> str:
-    """Extract file extension from filename.
+    """Extract a conservative lowercase extension without path semantics."""
 
-    Args:
-        filename: Original filename
-
-    Returns:
-        Extension without dot (e.g., "pdf")
-    """
-    if "." in filename:
-        return filename.rsplit(".", 1)[1].lower()
-    return ""
+    if "." not in filename:
+        return ""
+    raw = filename.rsplit(".", 1)[1].lower()
+    if not raw or len(raw) > 16 or not raw.isalnum():
+        return ""
+    return raw

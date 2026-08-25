@@ -42,7 +42,7 @@ class S3StorageConfig:
     addressing_style: str
 
     @classmethod
-    def from_env(cls) -> "S3StorageConfig":
+    def from_env(cls) -> S3StorageConfig:
         """Load configuration without ever embedding credentials in source."""
         bucket = os.getenv("S3_BUCKET", "").strip()
         if not bucket:

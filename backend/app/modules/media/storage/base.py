@@ -107,17 +107,22 @@ class StorageBackend(ABC):
         """Return whether an object exists."""
         ...
 
-    @abstractmethod
     async def stat(self, path: str) -> StorageObjectInfo:
-        """Return object metadata without loading the binary payload."""
-        ...
+        """Compatibility metadata fallback for legacy byte-oriented adapters."""
 
-    @abstractmethod
+        key = normalize_storage_key(path)
+        payload = await self.retrieve(key)
+        return StorageObjectInfo(key=key, size=len(payload))
+
     async def iter_chunks(self, path: str, *, chunk_size: int) -> AsyncIterator[bytes]:
-        """Stream an object in bounded chunks."""
-        ...
+        """Compatibility streaming fallback for legacy byte-oriented adapters."""
 
-    @abstractmethod
+        if chunk_size <= 0:
+            raise ValueError("chunk_size must be positive")
+        payload = await self.retrieve(normalize_storage_key(path))
+        for offset in range(0, len(payload), chunk_size):
+            yield payload[offset : offset + chunk_size]
+
     async def store_file(
         self,
         source_path: Path,
@@ -126,8 +131,10 @@ class StorageBackend(ABC):
         content_type: str | None = None,
         checksum_sha256: str | None = None,
     ) -> str:
-        """Stream a local file into the backend without loading it all into RAM."""
-        ...
+        """Compatibility file fallback for legacy byte-oriented adapters."""
+
+        del content_type, checksum_sha256
+        return await self.store(source_path.read_bytes(), normalize_storage_key(path))
 
     async def presign_download(
         self,

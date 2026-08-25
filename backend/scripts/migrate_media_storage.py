@@ -1,8 +1,9 @@
 """Non-destructive, retryable migration from local media files to S3-compatible storage.
 
 Run from ``backend/`` after configuring S3_* environment variables. The
-script never deletes the source file. Re-running is safe: an existing target
-object is checksum-verified instead of uploaded again.
+script never deletes source files. Re-running is safe: existing target
+objects are checksum-verified instead of blindly uploaded again. Photo/X-ray
+thumbnail derivatives are migrated together with their original document.
 """
 
 from __future__ import annotations
@@ -17,9 +18,11 @@ from sqlalchemy import select
 from app.config import settings
 from app.database import async_session_maker
 from app.modules.media.models import Document
+from app.modules.media.storage import StorageBackend
 from app.modules.media.storage.configuration import S3StorageConfig
 from app.modules.media.storage.local import LocalStorageBackend
 from app.modules.media.storage.s3 import S3StorageBackend
+from app.modules.media.thumbnails import MEDIUM_SUFFIX, THUMB_SUFFIX
 
 
 @dataclass(slots=True)
@@ -28,13 +31,54 @@ class MigrationResult:
     status: str
 
 
-async def _checksum(backend, path: str) -> tuple[int, str]:
+@dataclass(frozen=True, slots=True)
+class SourceObject:
+    path: str
+    content_type: str
+    size: int
+    sha256: str
+
+
+async def _checksum(backend: StorageBackend, path: str) -> tuple[int, str]:
     digest = hashlib.sha256()
     size = 0
     async for chunk in backend.iter_bytes(path):
         size += len(chunk)
         digest.update(chunk)
     return size, digest.hexdigest()
+
+
+async def _discover_source_objects(
+    document: Document,
+    source: LocalStorageBackend,
+) -> list[SourceObject]:
+    """Discover the original plus existing thumbnail/medium binary derivatives."""
+    size, checksum = await _checksum(source, document.storage_path)
+    if size != document.file_size:
+        raise ValueError("source_size_mismatch")
+
+    objects = [
+        SourceObject(
+            path=document.storage_path,
+            content_type=document.mime_type,
+            size=size,
+            sha256=checksum,
+        )
+    ]
+    for suffix in (THUMB_SUFFIX, MEDIUM_SUFFIX):
+        path = f"{document.storage_path}{suffix}"
+        if not await source.exists(path):
+            continue
+        derivative_size, derivative_checksum = await _checksum(source, path)
+        objects.append(
+            SourceObject(
+                path=path,
+                content_type="image/jpeg",
+                size=derivative_size,
+                sha256=derivative_checksum,
+            )
+        )
+    return objects
 
 
 def _migration_metadata(document: Document) -> dict:
@@ -64,57 +108,74 @@ async def migrate_document(
     document: Document,
     *,
     source: LocalStorageBackend,
-    target: S3StorageBackend,
+    target: StorageBackend,
     dry_run: bool,
 ) -> MigrationResult:
-    path = document.storage_path
     try:
-        source_size, source_checksum = await _checksum(source, path)
+        source_objects = await _discover_source_objects(document, source)
     except FileNotFoundError:
         if not dry_run:
             await _mark_failure(document, "source_missing")
         return MigrationResult(str(document.id), "failed:source_missing")
-
-    if source_size != document.file_size:
+    except ValueError as exc:
+        error_code = str(exc)
         if not dry_run:
-            await _mark_failure(document, "source_size_mismatch")
-        return MigrationResult(str(document.id), "failed:source_size_mismatch")
+            await _mark_failure(document, error_code)
+        return MigrationResult(str(document.id), f"failed:{error_code}")
 
     if dry_run:
         return MigrationResult(str(document.id), "dry-run")
 
+    migrated_objects: list[dict[str, object]] = []
     try:
-        duplicate = await target.exists(path)
-        if not duplicate:
-            await target.store_stream(
-                source.iter_bytes(path),
-                path,
-                content_type=document.mime_type,
-                content_length=source_size,
+        for source_object in source_objects:
+            duplicate = await target.exists(source_object.path)
+            if not duplicate:
+                await target.store_stream(
+                    source.iter_bytes(source_object.path),
+                    source_object.path,
+                    content_type=source_object.content_type,
+                    content_length=source_object.size,
+                )
+
+            target_size, target_checksum = await _checksum(target, source_object.path)
+            if target_size != source_object.size or target_checksum != source_object.sha256:
+                await _mark_failure(document, "checksum_mismatch")
+                return MigrationResult(str(document.id), "failed:checksum_mismatch")
+
+            migrated_objects.append(
+                {
+                    "object_key": source_object.path,
+                    "size": source_object.size,
+                    "sha256": source_object.sha256,
+                    "deduplicated": duplicate,
+                }
             )
 
-        target_size, target_checksum = await _checksum(target, path)
-        if target_size != source_size or target_checksum != source_checksum:
-            await _mark_failure(document, "checksum_mismatch")
-            return MigrationResult(str(document.id), "failed:checksum_mismatch")
-
+        original = migrated_objects[0]
         extra = _migration_metadata(document)
         migration = dict(extra["storage_migration"])
         migration.update(
             {
                 "status": "completed",
                 "target_backend": "s3",
-                "object_key": path,
-                "size": source_size,
-                "sha256": source_checksum,
-                "deduplicated": duplicate,
+                "object_key": document.storage_path,
+                "size": original["size"],
+                "sha256": original["sha256"],
+                "deduplicated": all(bool(item["deduplicated"]) for item in migrated_objects),
+                "objects": migrated_objects,
             }
         )
         migration.pop("error_code", None)
         extra["storage_backend"] = "s3"
         extra["storage_migration"] = migration
         document.extra_data = extra
-        return MigrationResult(str(document.id), "verified-existing" if duplicate else "migrated")
+        return MigrationResult(
+            str(document.id),
+            "verified-existing"
+            if all(bool(item["deduplicated"]) for item in migrated_objects)
+            else "migrated",
+        )
     except Exception as exc:
         await _mark_failure(document, type(exc).__name__)
         return MigrationResult(str(document.id), f"failed:{type(exc).__name__}")

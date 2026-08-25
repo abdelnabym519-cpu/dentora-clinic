@@ -59,12 +59,12 @@ def get_storage_backend(backend_name: str | None = None) -> StorageBackend:
 
 
 def get_document_storage_backend(document: Any) -> StorageBackend:
-    """Resolve the backend recorded on a document, preserving legacy local rows.
+    """Resolve a per-document migration hint or the configured default backend.
 
-    Existing rows predate backend hints and therefore represent files in
-    ``/app/storage``. New rows record the backend in ``extra_data`` so a
-    non-destructive local-to-object migration can be gradual and retryable.
+    The migration tool records ``extra_data.storage_backend=s3`` only after
+    checksum verification. Rows without a hint continue to follow
+    ``STORAGE_BACKEND``, preserving existing behaviour and clean cutovers.
     """
     extra_data = getattr(document, "extra_data", None) or {}
     backend = extra_data.get("storage_backend") if isinstance(extra_data, dict) else None
-    return get_storage_backend(str(backend) if backend else "local")
+    return get_storage_backend(str(backend) if backend else None)

@@ -87,7 +87,6 @@ def build_redacted_llm_input(snapshot: CaseSnapshot) -> tuple[dict[str, Any], st
     evidence = {
         aliases[_evidence_key(ref)]: {
             "source_module": ref.source_module,
-            "source_entity": ref.source_entity,
             "source_version": ref.source_version,
             "validation_state": ref.validation_state,
         }

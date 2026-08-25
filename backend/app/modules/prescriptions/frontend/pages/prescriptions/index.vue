@@ -13,6 +13,7 @@ const selectedPatient = ref<PatientBrief | null>(null)
 const busy = ref(false)
 const error = ref('')
 const transitionReason = ref('')
+const hydrated = ref(false)
 
 const emptyItem = (): PrescriptionItem => ({
   medication_name: '',
@@ -106,11 +107,21 @@ async function voidRx(rx: Prescription) {
   }
 }
 
-onMounted(loadPrescriptions)
+onMounted(() => {
+  // SSR can make the form visible before Vue has attached its input handlers.
+  // Expose an explicit client-readiness signal so browser automation (and any
+  // future client integration) never races hydration and loses user input.
+  hydrated.value = true
+  void loadPrescriptions()
+})
 </script>
 
 <template>
-  <div class="mx-auto max-w-7xl space-y-6 p-6" data-testid="prescriptions-page">
+  <div
+    class="mx-auto max-w-7xl space-y-6 p-6"
+    data-testid="prescriptions-page"
+    :data-hydrated="hydrated ? 'true' : 'false'"
+  >
     <header>
       <h1 class="text-2xl font-semibold">
         Electronic Prescriptions

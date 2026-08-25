@@ -12,7 +12,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 |--------|---------|----------|---------|---------|-----------|-------------|-------|----------|----------|
 | `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
 | `agenda` | 0.4.0 | official | patients, catalog, odontogram | auto | no | 4 | 11 | 0 | yes |
-| `ai_case_summary` | 1.0.0 | official | case_intelligence | manual | no | 3 | 0 | 0 | no |
+| `ai_case_summary` | 1.0.0 | official | case_intelligence, patients | manual | no | 3 | 0 | 0 | no |
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
 | `booking` | 0.1.0 | community | patients, agenda, schedules | auto | yes | 2 | 0 | 0 | yes |
 | `budget` | 0.1.0 | official | patients, catalog, odontogram | auto | no | 5 | 9 | 4 | yes |
@@ -21,7 +21,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
 | `dental_3d` | 0.8.0 | official | patients, odontogram, media | manual | yes | 2 | 0 | 0 | yes |
-| `media` | 0.2.0 | official | patients | auto | no | 4 | 7 | 1 | yes |
+| `media` | 0.2.0 | official | patients | auto | no | 4 | 8 | 1 | yes |
 | `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
 | `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
 | `odontogram` | 0.3.0 | official | patients, catalog | auto | no | 4 | 7 | 0 | yes |
@@ -94,7 +94,7 @@ Advisory, evidence-traceable AI summaries derived from redacted CaseSnapshot inp
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=False
-- **Depends:** `case_intelligence`
+- **Depends:** `case_intelligence`, `patients`
 - **Frontend layer:** —
 - **Permissions:**
   - `ai_case_summary.generate`

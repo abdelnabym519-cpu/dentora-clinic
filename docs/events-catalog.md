@@ -398,6 +398,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 - **Constant:** `EventType.DOCUMENT_UPLOADED`
 - **Publishers:**
   - `media` — `backend/app/modules/media/service.py:167`
+  - `media` — `backend/app/modules/media/storage_uploads.py:334`
 - **Subscribers:**
   - `patient_timeline`
 

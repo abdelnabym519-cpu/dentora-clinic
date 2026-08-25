@@ -49,9 +49,7 @@ def _available_sections() -> dict:
                 "unit": "mm",
                 "frame_of_reference_uid": "fixture-frame",
             },
-            "transform": {
-                "matrix": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
-            },
+            "transform": {"matrix": [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]},
         }
     }
     return sections

@@ -51,7 +51,9 @@ class CaseAggregator:
             raw = deepcopy(sections.get(name) or {})
             status = AvailabilityStatus(raw.get("status", AvailabilityStatus.NOT_AVAILABLE))
             evidence = [
-                item if isinstance(item, EvidenceReference) else EvidenceReference.model_validate(item)
+                item
+                if isinstance(item, EvidenceReference)
+                else EvidenceReference.model_validate(item)
                 for item in raw.get("evidence", [])
             ]
             evidence.sort(

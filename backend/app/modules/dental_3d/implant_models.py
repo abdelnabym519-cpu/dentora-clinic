@@ -33,7 +33,9 @@ class DentalProstheticTarget(Base, TimestampMixin):
     id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
     patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), index=True)
-    alignment_id: Mapped[UUID] = mapped_column(ForeignKey("dental_alignment_results.id"), index=True)
+    alignment_id: Mapped[UUID] = mapped_column(
+        ForeignKey("dental_alignment_results.id"), index=True
+    )
     created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     platform_center: Mapped[dict] = mapped_column(JSONB)

@@ -118,7 +118,10 @@ async def test_plan_requires_current_accepted_prosthetic_target_for_acceptance_a
     assert plan["status"] == "draft"
     assert plan["current_revision"]["revision_number"] == 1
     assert plan["current_revision"]["assessment"]["prosthetic_offset_mm"]["status"] == "UNAVAILABLE"
-    assert plan["current_revision"]["assessment"]["nerve_surface_to_centerline_mm"]["status"] == "UNAVAILABLE"
+    assert (
+        plan["current_revision"]["assessment"]["nerve_surface_to_centerline_mm"]["status"]
+        == "UNAVAILABLE"
+    )
     assert plan["current_revision"]["assessment"]["bone_axis_span_mm"]["status"] == "UNAVAILABLE"
 
     blocked = await client.post(

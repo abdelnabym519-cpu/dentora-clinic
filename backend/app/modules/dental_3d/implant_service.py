@@ -120,7 +120,9 @@ class DentalImplantPlanningService:
         if payload.alignment_id != alignment.id:
             raise ImplantPlanningError("prosthetic target is tied to a stale alignment")
         if payload.frame_of_reference_uid != frame_uid:
-            raise ImplantPlanningError("prosthetic target does not match the accepted patient frame")
+            raise ImplantPlanningError(
+                "prosthetic target does not match the accepted patient frame"
+            )
 
         if payload.source_reference_space == "ios_mesh":
             ios = alignment.provenance.ios if alignment.provenance else None
@@ -129,7 +131,9 @@ class DentalImplantPlanningService:
             if payload.source_digest != ios.digest:
                 raise ImplantPlanningError("prosthetic IOS source digest does not match alignment")
             covered = set(ios.document_ids)
-            if not payload.source_document_ids or not set(payload.source_document_ids).issubset(covered):
+            if not payload.source_document_ids or not set(payload.source_document_ids).issubset(
+                covered
+            ):
                 raise ImplantPlanningError(
                     "prosthetic IOS source documents are not covered by accepted alignment"
                 )
@@ -275,9 +279,7 @@ class DentalImplantPlanningService:
                 or reference.frame_of_reference_uid != frame_uid
             ):
                 continue
-            pathways.append(
-                [Point3D(x=point.x, y=point.y, z=point.z) for point in pathway.points]
-            )
+            pathways.append([Point3D(x=point.x, y=point.y, z=point.z) for point in pathway.points])
         return (row.id if pathways else None), pathways
 
     @staticmethod
@@ -489,9 +491,7 @@ class DentalImplantPlanningService:
         user_id: UUID | None,
         payload: ImplantPlanEdit,
     ) -> DentalImplantPlanResponse:
-        plan = await DentalImplantPlanningService._plan_row(
-            db, clinic_id, patient_id, plan_id
-        )
+        plan = await DentalImplantPlanningService._plan_row(db, clinic_id, patient_id, plan_id)
         planning_case, assessment = await DentalImplantPlanningService._case_and_assessment(
             db,
             clinic_id=clinic_id,
@@ -532,9 +532,7 @@ class DentalImplantPlanningService:
         decision: str,
         note: str | None,
     ) -> DentalImplantPlanResponse:
-        plan = await DentalImplantPlanningService._plan_row(
-            db, clinic_id, patient_id, plan_id
-        )
+        plan = await DentalImplantPlanningService._plan_row(db, clinic_id, patient_id, plan_id)
         if plan.status not in {"draft", "proposed"}:
             raise ImplantPlanningError("implant plan is not pending dentist review")
         if decision == "accepted":
@@ -573,10 +571,7 @@ class DentalImplantPlanningService:
             .order_by(ImplantPlanRow.created_at.desc(), ImplantPlanRow.id.desc())
         )
         rows = list((await db.execute(stmt)).scalars().all())
-        return [
-            await DentalImplantPlanningService._plan_response(db, row)
-            for row in rows
-        ]
+        return [await DentalImplantPlanningService._plan_response(db, row) for row in rows]
 
     @staticmethod
     async def snapshot(
@@ -596,9 +591,7 @@ class DentalImplantPlanningService:
                 if target_row is not None
                 else None
             ),
-            plans=await DentalImplantPlanningService.list_plans(
-                db, clinic_id, patient_id
-            ),
+            plans=await DentalImplantPlanningService.list_plans(db, clinic_id, patient_id),
         )
 
 

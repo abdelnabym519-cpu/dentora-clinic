@@ -102,9 +102,7 @@ class ProstheticTargetCreate(BaseModel):
     def _real_sources_have_provenance(self) -> ProstheticTargetCreate:
         if self.source_type != "dentist_defined":
             if self.source_digest is None or not self.source_document_ids:
-                raise ValueError(
-                    "real IOS/prosthetic targets require digest and source documents"
-                )
+                raise ValueError("real IOS/prosthetic targets require digest and source documents")
         if self.source_type == "registered_ios" and self.source_reference_space != "ios_mesh":
             raise ValueError("registered_ios target must declare ios_mesh source coordinates")
         if self.source_reference_space == "dicom_patient":
@@ -437,7 +435,9 @@ def nerve_surface_distance_mm(
     return _available(best, "mm", NERVE_DISTANCE_SEMANTICS), best == 0.0
 
 
-def unavailable_bone_checks() -> tuple[PlanningCheck, PlanningCheck, PlanningCheck, PlanningCheck, PlanningCheck]:
+def unavailable_bone_checks() -> tuple[
+    PlanningCheck, PlanningCheck, PlanningCheck, PlanningCheck, PlanningCheck
+]:
     """Default runtime boundary: no persisted validated bone volume exists yet."""
 
     return (

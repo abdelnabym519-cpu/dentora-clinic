@@ -100,9 +100,7 @@ def upgrade() -> None:
         sa.Column("patient_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("status", sa.String(length=20), nullable=False, server_default="draft"),
-        sa.Column(
-            "current_revision_number", sa.Integer(), nullable=False, server_default="1"
-        ),
+        sa.Column("current_revision_number", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("reviewed_by", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("review_note", sa.String(length=1000), nullable=True),
@@ -159,9 +157,7 @@ def upgrade() -> None:
             "revision_number >= 1",
             name="ck_dental_implant_plan_revision_number_positive",
         ),
-        sa.ForeignKeyConstraint(
-            ["plan_id"], ["dental_implant_plans.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["plan_id"], ["dental_implant_plans.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["clinic_id"], ["clinics.id"]),
         sa.ForeignKeyConstraint(["patient_id"], ["patients.id"]),
         sa.ForeignKeyConstraint(["created_by"], ["users.id"]),

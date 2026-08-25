@@ -63,9 +63,7 @@ async def _read_mesh_upload(file: UploadFile) -> bytes:
     max_size = settings.STORAGE_MAX_FILE_SIZE
     parsed_size = getattr(file, "size", None)
     if parsed_size is not None and parsed_size > max_size:
-        raise MeshUploadError(
-            f"too_large: file exceeds the {max_size // (1024 * 1024)}MB limit"
-        )
+        raise MeshUploadError(f"too_large: file exceeds the {max_size // (1024 * 1024)}MB limit")
 
     data = bytearray()
     total = 0

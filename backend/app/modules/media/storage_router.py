@@ -49,7 +49,9 @@ async def stream_document(
     try:
         info = await storage.stat(document.storage_path)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Object not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Object not found"
+        ) from exc
 
     return StreamingResponse(
         storage.iter_bytes(document.storage_path),

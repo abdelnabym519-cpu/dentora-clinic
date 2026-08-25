@@ -63,7 +63,9 @@ async def test_migration_moves_existing_image_derivatives_without_deleting_sourc
 
 
 @pytest.mark.asyncio
-async def test_migration_existing_identical_target_avoids_duplicate_upload(tmp_path, document) -> None:
+async def test_migration_existing_identical_target_avoids_duplicate_upload(
+    tmp_path, document
+) -> None:
     source = LocalStorageBackend(str(tmp_path / "source"))
     target = LocalStorageBackend(str(tmp_path / "target"))
     await source.store(b"abcdef", document.storage_path)
@@ -76,7 +78,9 @@ async def test_migration_existing_identical_target_avoids_duplicate_upload(tmp_p
 
 
 @pytest.mark.asyncio
-async def test_migration_checksum_mismatch_records_failure_and_retry_succeeds(tmp_path, document) -> None:
+async def test_migration_checksum_mismatch_records_failure_and_retry_succeeds(
+    tmp_path, document
+) -> None:
     source = LocalStorageBackend(str(tmp_path / "source"))
     target = LocalStorageBackend(str(tmp_path / "target"))
     await source.store(b"abcdef", document.storage_path)

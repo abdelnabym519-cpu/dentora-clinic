@@ -34,7 +34,8 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',
-    '@nuxtjs/i18n'
+    '@nuxtjs/i18n',
+    '@tresjs/nuxt'
   ],
 
   components: [
@@ -102,7 +103,12 @@ export default defineNuxtConfig({
         '@vueuse/core',
         '@vue/devtools-core',
         '@vue/devtools-kit',
-        'three'
+        'three',
+        '@tresjs/core',
+        'three-mesh-bvh',
+        '@cornerstonejs/core',
+        '@cornerstonejs/tools',
+        '@cornerstonejs/dicom-image-loader'
       ]
     }
   },

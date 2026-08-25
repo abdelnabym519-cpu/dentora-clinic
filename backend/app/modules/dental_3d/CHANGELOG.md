@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### 0.8.0 — ThreeUI patient-space clinical presentation
+
+- Added the `dentora-clinical-scene-v1` presentation contract. DICOM patient
+  coordinates and millimetres are authoritative; accepted server-issued rigid
+  transforms are applied verbatim to matching IOS documents.
+- Replaced the legacy centred/rescaled synthetic fallback viewer with a TresJS
+  WebGL2, on-demand patient-space renderer for real IOS, explicit
+  DentalSegmentator anatomy meshes and native mandibular nerve pathways.
+- Added BVH picking, user-picked patient-space landmarks/measurements, clipping,
+  provenance/review display and a frame-gated generic AI overlay registry.
+- Added Cornerstone3D authenticated DICOM loading and axial/sagittal/coronal MPR
+  synchronized with ThreeUI through DICOM patient coordinates.
+- Unregistered, rejected, frame-mismatched, provenance-free and synthetic
+  clinical overlays fail closed. No browser registration or fabricated anatomy,
+  nerve, alignment or measurement is permitted.
+
 ### Phase 5.2 runtime integration — DentalSegmentator reference service
 
 - Added an optional isolated `nerve-inference-service/` implementing the

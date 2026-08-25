@@ -22,6 +22,7 @@ import type { ApiResponse } from '~~/app/types'
 import type { DentalToothView } from '../lib/dentalArch'
 import type { DentalMeshPayload, SceneMeshRef } from '../lib/sceneMeshes'
 import type { NerveAnalysisPayload } from '../lib/nerveView'
+import type { AlignmentPayload } from '../lib/clinicalScene'
 
 export interface DentalSceneSegmentation {
   status: 'not_available' | 'synthetic' | 'completed'
@@ -38,6 +39,13 @@ export interface DentalScenePayload {
   segmentation: DentalSceneSegmentation
   /** Real mesh references (server-derived; Phase 2: intraoral scans). */
   meshes?: DentalMeshPayload[] | null
+  cbct_series?: Array<{
+    study_instance_uid: string
+    series_instance_uid: string
+    frame_of_reference_uid?: string | null
+    document_ids: string[]
+    instance_count: number
+  }> | null
   updated_at?: string | null
 }
 
@@ -115,6 +123,29 @@ export function useDental3DMeshIO() {
     })
   }
 
+  async function fetchGeometryContent(
+    url: string,
+    format: 'stl' | 'ply' | 'obj',
+    signal?: AbortSignal
+  ): Promise<ArrayBuffer | string> {
+    return await $fetch<ArrayBuffer | string>(url, {
+      baseURL: apiBaseUrl.value,
+      headers: authHeaders(),
+      responseType: format === 'obj' ? 'text' : 'arrayBuffer',
+      signal
+    })
+  }
+
+  async function fetchDocumentBlob(url: string, signal?: AbortSignal): Promise<Blob> {
+    const content = await $fetch<ArrayBuffer>(url, {
+      baseURL: apiBaseUrl.value,
+      headers: authHeaders(),
+      responseType: 'arrayBuffer',
+      signal
+    })
+    return new Blob([content], { type: 'application/dicom' })
+  }
+
   /** Upload a mesh file; returns the new mesh descriptor or null. */
   async function uploadMesh(patientId: string, file: File): Promise<DentalMeshPayload | null> {
     const formData = new FormData()
@@ -136,7 +167,47 @@ export function useDental3DMeshIO() {
     }
   }
 
-  return { fetchMeshContent, uploadMesh }
+  return { fetchMeshContent, fetchGeometryContent, fetchDocumentBlob, uploadMesh }
+}
+
+/** Latest patient-specific alignment and dentist review. No client transform is computed. */
+export function useDental3DAlignment(patientId: () => string) {
+  const api = useApi()
+  const alignment = ref<AlignmentPayload | null>(null)
+  const reviewing = ref(false)
+
+  function alignmentUrl(): string {
+    return `/api/v1/dental_3d/patients/${patientId()}/alignment`
+  }
+
+  async function load(): Promise<void> {
+    try {
+      const response = await api.get<ApiResponse<AlignmentPayload>>(alignmentUrl())
+      alignment.value = response.data
+    } catch {
+      alignment.value = null
+    }
+  }
+
+  async function review(decision: 'accepted' | 'rejected', note?: string): Promise<boolean> {
+    if (!alignment.value?.id) return false
+    reviewing.value = true
+    try {
+      const response = await api.post<ApiResponse<AlignmentPayload>>(
+        `${alignmentUrl()}/${alignment.value.id}/review`,
+        { decision, note: note ?? null }
+      )
+      alignment.value = response.data
+      return true
+    } catch (error) {
+      console.error('Error reviewing patient alignment:', error)
+      return false
+    } finally {
+      reviewing.value = false
+    }
+  }
+
+  return { alignment, reviewing, load, review }
 }
 
 /**

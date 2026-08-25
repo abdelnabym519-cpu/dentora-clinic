@@ -1,14 +1,14 @@
-"""Dental 3D module — foundation for 3D dental visualization (Phase 2).
+"""Dental 3D module — patient-space clinical visualization.
 
 Optional, removable module. Surfaces a 3D preview of the patient's
 dentition in the patient Summary via the ``patient.summary.cards`` slot.
 Phase 1 established the source-agnostic scene contract
 (``DentalScene`` / ``Tooth3D`` / ``DentalMesh`` / ``SegmentationResult``)
 with synthetic demo geometry. Phase 2 adds **real mesh ingestion**:
-validated STL / OBJ files stored through the existing **media** module
+validated STL / PLY / OBJ files stored through the existing **media** module
 and surfaced as scene-level mesh references (``DentalGeometrySource``
 port — see ``sources.py`` / ADR 0020), rendered by the viewer with the
-synthetic geometry kept as fallback.
+synthetic geometry kept outside the clinical ThreeUI path.
 
 Coupling with ``odontogram`` is read-only (``ToothRecord`` state drives
 per-tooth presence / condition); coupling with ``media`` is document
@@ -36,15 +36,16 @@ from .router import router
 class Dental3DModule(BaseModule):
     manifest = {
         "name": "dental_3d",
-        "version": "0.7.0",
+        "version": "0.8.0",
         "summary": (
             "Dental 3D — 3D dentition preview on the patient summary with real "
-            "mesh ingestion (STL/PLY/OBJ via the media module), a synthetic fallback "
+            "mesh ingestion (STL/PLY/OBJ via the media module), patient-space ThreeUI "
             "and a non-clinical automatic tooth-segmentation foundation with "
             "dentist review, plus CBCT/DICOM ingestion and a replaceable, "
             "non-clinical real nerve-inference boundary with native-coordinate "
             "findings and explicit unavailable/failure states, plus patient-specific "
-            "rigid IOS-to-CBCT registration with explicit geometry provenance and review."
+            "rigid IOS-to-CBCT registration with explicit geometry provenance and review, "
+            "plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation."
         ),
         "author": "Dentora Core Team",
         "license": "BSL-1.1",

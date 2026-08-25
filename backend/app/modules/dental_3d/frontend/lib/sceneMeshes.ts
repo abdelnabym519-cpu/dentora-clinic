@@ -39,7 +39,7 @@ export type SceneMeshRef = {
   id: string
   kind: SceneMeshKind
   source: string
-  format: 'stl' | 'obj'
+  format: 'stl' | 'ply' | 'obj'
   label: string
   url: string
   documentId: string
@@ -75,7 +75,7 @@ export function toSceneMeshes(source: MeshSceneSource | null): SceneMeshRef[] {
   const refs: SceneMeshRef[] = []
   for (const mesh of meshes) {
     if (mesh.source === 'synthetic') continue
-    if (mesh.format !== 'stl' && mesh.format !== 'obj') continue
+    if (mesh.format !== 'stl' && mesh.format !== 'ply' && mesh.format !== 'obj') continue
     if (!mesh.document_id || !mesh.url) continue
     refs.push({
       id: mesh.document_id,

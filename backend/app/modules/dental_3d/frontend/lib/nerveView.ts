@@ -83,12 +83,17 @@ export type NerveAnalysisView = {
 
 /** Raw pathway payload as returned by the nerve-detection API. */
 export type NervePathwayPayload = {
+  finding_id?: string | null
   side?: string | null
   region?: string | null
   source?: string | null
   status?: string | null
   confidence?: number | null
-  reference_space?: { kind?: string | null } | null
+  reference_space?: {
+    kind?: string | null
+    unit?: string | null
+    frame_of_reference_uid?: string | null
+  } | null
   points?: Array<{ x?: number | null, y?: number | null, z?: number | null }> | null
   evidence?: {
     basis?: string | null
@@ -116,6 +121,15 @@ export type NerveAnalysisPayload = {
   is_clinical?: boolean
   requires_review?: boolean
   failure?: { code?: string | null, message?: string | null } | null
+  provenance?: {
+    model_id?: string | null
+    model_version?: string | null
+    adapter?: string | null
+    input_digest?: string | null
+    study_instance_uid?: string | null
+    series_instance_uid?: string | null
+    frame_of_reference_uid?: string | null
+  } | null
   pathways?: NervePathwayPayload[] | null
   proximities?: NerveProximityPayload[] | null
   performed_at?: string | null

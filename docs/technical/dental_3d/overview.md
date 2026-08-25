@@ -168,13 +168,17 @@ oversized) → 400 with a stable code prefix
 - Slot: `patient.summary.cards` (order 50, gated on `dental_3d.read`)
   registered by `frontend/plugins/slots.client.ts` — same contract as
   the odontogram's DiagnosesCard.
-- `Dental3DViewer.vue` — client-only three.js viewer (OrbitControls:
-  rotate/zoom/pan; ResizeObserver; full resource disposal). Loaded via
-  `defineAsyncComponent` from the `.client.ts` plugin and additionally
-  wrapped in `<ClientOnly>`; falls back to a message when WebGL is
-  unavailable. Renders real surface meshes (STL/OBJ loaders, centered
-  + scaled into the arch framing) with loading / error / badge overlay
-  states; a failed scan load falls back to the synthetic arch.
+- `Dental3DViewer.vue` — client-only TresJS/Three.js WebGL2 viewer using
+  on-demand rendering. The patient-space root is identity DICOM Patient LPS in
+  millimetres; camera fitting never mutates geometry.
+- `lib/clinicalScene.ts` — fail-closed presentation contract. IOS requires a
+  dentist-accepted matching alignment; native anatomy and nerve layers require
+  an exact Frame of Reference UID, millimetres and provenance.
+- `Dental3DCbctMpr.vue` — authenticated Cornerstone3D volume loading and
+  axial/sagittal/coronal MPR. Cross-view points synchronize in DICOM patient
+  coordinates only.
+- `lib/aiOverlayRegistry.ts` — generic frame/review/provenance gate for current
+  mandibular-nerve and anatomy overlays and future AI presentation layers.
 - `lib/dentalArch.ts` — dependency-free placement math (quadrant
   mirroring, parabolic arch curve, per-category scaling). Unit-tested
   in `frontend/tests/dental3d/`.
@@ -183,9 +187,9 @@ oversized) → 400 with a stable code prefix
   `tooth` / `nerve` / `implant` / …) and owns the pure loading/error/
   fallback state machine. Future segmented-tooth phases extend the
   kind vocabulary, not the viewer architecture. Unit-tested.
-- Synthetic geometry is isolated inside the viewer's
-  `buildToothMeshes`; real geometry inside `buildSurfaceMesh`.
-- `Dental3DCard.vue` also offers an STL/OBJ upload control
+- Synthetic geometry is not shown by the clinical viewer. Missing or unsafe
+  artifacts produce an explicit empty state.
+- `Dental3DCard.vue` also offers an STL/PLY/OBJ upload control
   (`dental_3d.write` holders only) that ingests via the module API and
   refreshes the scene.
 - Locales: en / es / fr / pt / ar under `frontend/i18n/locales/`.
@@ -224,5 +228,6 @@ versions, correspondence/overlap/residual metrics, convergence, failures and
 dentist review state. No clinical acceptance threshold or automatic approval is
 claimed. See [patient registration](patient_registration.md) and ADR 0025.
 
-This phase does not render the transform, add face/non-rigid registration,
-detect pathology, or perform implant/surgical planning.
+ThreeUI now renders only an accepted transform and matching real patient-space
+artifacts. It does not add face/non-rigid registration, detect pathology, or
+perform implant/surgical planning.

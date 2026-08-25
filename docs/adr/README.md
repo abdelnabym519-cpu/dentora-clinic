@@ -58,3 +58,4 @@ Triggers (any one):
 | 0023 | [CBCT/DICOM ingestion foundation](0023-cbct-dicom-ingestion-foundation.md) | accepted | 2026-08-24 |
 | 0024 | [Real nerve detection boundary](0024-real-nerve-detection-boundary.md) | accepted | 2026-08-24 |
 | 0025 | [Patient-specific rigid registration behind Dentora ports](0025-patient-specific-rigid-registration.md) | accepted | 2026-08-25 |
+| 0026 | [ThreeUI uses native DICOM patient space](0026-threeui-native-patient-space.md) | accepted | 2026-08-25 |

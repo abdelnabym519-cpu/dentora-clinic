@@ -4,20 +4,20 @@
  *
  * Registered into ``patient.summary.cards`` by the dental_3d module
  * (see ``plugins/slots.client.ts``). Renders the patient's 3D preview:
- * real scan geometry when the backend provides mesh references
- * (Phase 2), the synthetic non-clinical arch otherwise (Phase 1
- * fallback). Holders of ``dental_3d.write`` can upload STL/OBJ scans
+ * registered patient-space geometry when the backend provides validated
+ * artifacts. It never falls back to synthetic clinical geometry. Holders
+ * of ``dental_3d.write`` can upload STL/PLY/OBJ scans
  * straight from the card; storage goes through the backend into the
  * existing media module. The disclaimer line stays visible by design —
  * visualization, not a diagnostic tool.
  */
 import { computed, onMounted, ref } from 'vue'
 import { PERMISSIONS } from '~~/app/config/permissions'
-import { useDental3DMeshIO, useDental3DScene, useDental3DSegmentation, useDental3DNerveDetection, toViewerTeeth, summarizeScene } from '../composables/useDental3DScene'
+import { useDental3DAlignment, useDental3DMeshIO, useDental3DScene, useDental3DSegmentation, useDental3DNerveDetection, summarizeScene } from '../composables/useDental3DScene'
 import { toSceneMeshes } from '../lib/sceneMeshes'
 import { toSegmentationView, uncertainTeeth } from '../lib/segmentationView'
 import { toNerveView, nearTeeth, watchTeeth } from '../lib/nerveView'
-import type { DentalToothView } from '../lib/dentalArch'
+import { buildClinicalScene } from '../lib/clinicalScene'
 
 interface Ctx {
   patient: { id: string }
@@ -42,7 +42,6 @@ const {
 
 const scene = computed(() => data.value ?? null)
 const failed = computed(() => status.value !== 'pending' && scene.value === null)
-const viewerTeeth = computed<DentalToothView[]>(() => toViewerTeeth(scene.value))
 const summary = computed(() => summarizeScene(scene.value))
 const sceneMeshes = computed(() => toSceneMeshes(scene.value))
 const hasRealMesh = computed(() => sceneMeshes.value.length > 0)
@@ -85,9 +84,23 @@ const canRunNerve = computed(() => can(PERMISSIONS.dental3d.write))
 /** Overlay toggle — defaults on once an analysis exists. */
 const showNerve = ref(true)
 
+const {
+  alignment: rawAlignment,
+  reviewing: alignmentReviewing,
+  load: loadAlignment,
+  review: reviewAlignment
+} = useDental3DAlignment(() => props.ctx.patient.id)
+
+const clinicalScene = computed(() => buildClinicalScene(
+  scene.value,
+  rawAlignment.value,
+  showNerve.value ? rawNerveAnalysis.value : null
+))
+
 onMounted(() => {
   void loadSegmentation()
   void loadNerve()
+  void loadAlignment()
 })
 
 async function onRunSegmentation(): Promise<void> {
@@ -105,6 +118,10 @@ async function onRunNerve(): Promise<void> {
 
 async function onReviewNerve(decision: 'accepted' | 'rejected'): Promise<void> {
   await reviewNerve(decision)
+}
+
+async function onReviewAlignment(decision: 'accepted' | 'rejected'): Promise<void> {
+  await reviewAlignment(decision)
 }
 
 async function onUploadChange(event: Event): Promise<void> {
@@ -157,12 +174,8 @@ async function onUploadChange(event: Event): Promise<void> {
       </div>
       <ClientOnly v-else>
         <Dental3DViewer
-          :teeth="viewerTeeth"
-          :meshes="sceneMeshes"
-          :segmentation="segmentation"
-          :nerve="nerve"
-          :show-nerve="showNerve"
-          :height="230"
+          :clinical-scene="clinicalScene"
+          :height="420"
         />
         <template #fallback>
           <div
@@ -171,6 +184,43 @@ async function onUploadChange(event: Event): Promise<void> {
           />
         </template>
       </ClientOnly>
+
+      <div
+        data-testid="dental3d-alignment-review"
+        class="space-y-1 border-t border-default pt-2 text-caption"
+      >
+        <div class="flex items-center justify-between gap-2">
+          <span class="font-medium text-default">
+            Patient alignment: {{ rawAlignment?.status ?? 'not available' }}
+          </span>
+          <div
+            v-if="rawAlignment && (rawAlignment.status === 'pending_review' || rawAlignment.status === 'uncertain') && canRunNerve"
+            class="flex gap-2"
+          >
+            <button
+              type="button"
+              data-testid="dental3d-alignment-accept"
+              class="rounded border border-default px-2 py-0.5 text-muted disabled:opacity-60"
+              :disabled="alignmentReviewing"
+              @click="onReviewAlignment('accepted')"
+            >
+              Accept
+            </button>
+            <button
+              type="button"
+              data-testid="dental3d-alignment-reject"
+              class="rounded border border-default px-2 py-0.5 text-muted disabled:opacity-60"
+              :disabled="alignmentReviewing"
+              @click="onReviewAlignment('rejected')"
+            >
+              Reject
+            </button>
+          </div>
+        </div>
+        <p class="text-subtle">
+          Only dentist-accepted IOS→DICOM patient transforms are rendered. Geometry remains in native millimetres.
+        </p>
+      </div>
 
       <!-- Phase 3: automatic tooth segmentation — non-clinical decision
            support with dentist review (ADR 0021). -->
@@ -425,7 +475,7 @@ async function onUploadChange(event: Event): Promise<void> {
           ref="fileInputRef"
           type="file"
           class="hidden"
-          accept=".stl,.obj"
+          accept=".stl,.ply,.obj"
           data-testid="dental3d-mesh-upload-input"
           :disabled="uploading"
           @change="onUploadChange"

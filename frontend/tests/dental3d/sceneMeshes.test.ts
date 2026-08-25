@@ -48,6 +48,10 @@ describe('toSceneMeshes', () => {
     expect(toSceneMeshes({ meshes: [mesh({ format: 'gltf' })] })).toEqual([])
   })
 
+  it('accepts validated PLY mesh references', () => {
+    expect(toSceneMeshes({ meshes: [mesh({ format: 'ply' })] })[0]?.format).toBe('ply')
+  })
+
   it('degrades to an empty list without a scene or meshes', () => {
     expect(toSceneMeshes(null)).toEqual([])
     expect(toSceneMeshes({})).toEqual([])

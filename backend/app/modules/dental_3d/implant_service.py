@@ -10,7 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .implant_models import (
     DentalImplantPlan as ImplantPlanRow,
+)
+from .implant_models import (
     DentalImplantPlanRevision as ImplantRevisionRow,
+)
+from .implant_models import (
     DentalProstheticTarget as ProstheticTargetRow,
 )
 from .implant_planning import (
@@ -19,8 +23,8 @@ from .implant_planning import (
     ImplantCandidate,
     ImplantPlanCreate,
     ImplantPlanEdit,
-    ImplantPlanRevisionResponse,
     ImplantPlanningSnapshot,
+    ImplantPlanRevisionResponse,
     ImplantProposalRequest,
     PlanningCase,
     PlanningPolicy,

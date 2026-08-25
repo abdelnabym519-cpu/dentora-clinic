@@ -35,8 +35,8 @@ const planning = useDental3DImplantPlanning(() => props.ctx.patient.id)
 const canWrite = computed(() => can(PERMISSIONS.dental3d.write))
 const frameUid = computed(() =>
   alignment.value?.status === 'accepted'
-    && alignment.value.target_frame?.kind === 'dicom_patient'
-    && alignment.value.target_frame.unit === 'mm'
+  && alignment.value.target_frame?.kind === 'dicom_patient'
+  && alignment.value.target_frame.unit === 'mm'
     ? alignment.value.target_frame.frame_of_reference_uid ?? null
     : null
 )

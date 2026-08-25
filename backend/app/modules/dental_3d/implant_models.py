@@ -6,7 +6,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -44,10 +52,10 @@ class DentalProstheticTarget(Base, TimestampMixin):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
-    clinic: Mapped["Clinic"] = relationship()
-    patient: Mapped["Patient"] = relationship()
-    creator: Mapped["User | None"] = relationship(foreign_keys=[created_by])
-    reviewer: Mapped["User | None"] = relationship(foreign_keys=[reviewed_by])
+    clinic: Mapped[Clinic] = relationship()
+    patient: Mapped[Patient] = relationship()
+    creator: Mapped[User | None] = relationship(foreign_keys=[created_by])
+    reviewer: Mapped[User | None] = relationship(foreign_keys=[reviewed_by])
 
     __table_args__ = (
         CheckConstraint(
@@ -84,10 +92,10 @@ class DentalImplantPlan(Base, TimestampMixin):
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     review_note: Mapped[str | None] = mapped_column(String(1000), nullable=True)
 
-    clinic: Mapped["Clinic"] = relationship()
-    patient: Mapped["Patient"] = relationship()
-    creator: Mapped["User | None"] = relationship(foreign_keys=[created_by])
-    reviewer: Mapped["User | None"] = relationship(foreign_keys=[reviewed_by])
+    clinic: Mapped[Clinic] = relationship()
+    patient: Mapped[Patient] = relationship()
+    creator: Mapped[User | None] = relationship(foreign_keys=[created_by])
+    reviewer: Mapped[User | None] = relationship(foreign_keys=[reviewed_by])
 
     __table_args__ = (
         CheckConstraint(

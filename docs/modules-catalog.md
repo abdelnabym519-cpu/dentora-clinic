@@ -223,7 +223,7 @@ Conversational AI agent over Dentora, scoped to the caller's permissions.
 
 ### `dental_3d` — v0.8.0
 
-Dental 3D — 3D dentition preview on the patient summary with real mesh ingestion (STL/PLY/OBJ via the media module), patient-space ThreeUI and a non-clinical automatic tooth-segmentation foundation with dentist review, plus CBCT/DICOM ingestion and a replaceable, non-clinical real nerve-inference boundary with native-coordinate findings and explicit unavailable/failure states, plus patient-specific rigid IOS-to-CBCT registration with explicit geometry provenance and review, plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation.
+Dental 3D — 3D dentition preview on the patient summary with real mesh ingestion (STL/PLY/OBJ via the media module), patient-space ThreeUI and a non-clinical automatic tooth-segmentation foundation with dentist review, plus CBCT/DICOM ingestion and a replaceable, non-clinical real nerve-inference boundary with native-coordinate findings and explicit unavailable/failure states, plus patient-specific rigid IOS-to-CBCT registration with explicit geometry provenance and review, plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation, and deterministic prosthetic-guided implant planning with explicit patient-space provenance, immutable revisions, fail-closed missing-data checks and dentist review.
 
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1

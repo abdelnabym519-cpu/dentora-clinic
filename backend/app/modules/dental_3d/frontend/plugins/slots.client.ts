@@ -26,4 +26,13 @@ export default defineNuxtPlugin(() => {
     order: 51,
     permission: 'dental_3d.read'
   })
+
+  registerSlot('patient.summary.cards', {
+    id: 'dental_3d.patient.summary.cards.risk-engine',
+    component: defineAsyncComponent(
+      () => import('../components/RiskEngineCard.vue')
+    ),
+    order: 52,
+    permission: 'risk_engine.read'
+  })
 })

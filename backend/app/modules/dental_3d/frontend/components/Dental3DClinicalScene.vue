@@ -13,6 +13,7 @@ import type {
 } from '../lib/clinicalScene'
 import { implantPlanningOf } from '../lib/implantScene'
 import type { PatientMeasurement } from '../lib/patientMeasurements'
+import { riskRegionsOf } from '../lib/riskMap'
 import { useDental3DMeshIO } from '../composables/useDental3DScene'
 
 const props = defineProps<{
@@ -231,6 +232,78 @@ function implantPlanningObject(scene: ClinicalScene): THREE.Group {
   return group
 }
 
+function riskRegionColor(displayBand: string): number {
+  if (displayBand === 'evidence_present') return 0xF59E0B
+  if (displayBand === 'evidence_absent') return 0x38BDF8
+  if (displayBand === 'invalid_source') return 0xA855F7
+  return 0x94A3B8
+}
+
+function riskMapObject(scene: ClinicalScene): THREE.Group {
+  const group = new THREE.Group()
+  group.name = 'clinical-advisory-risk-map-overlays'
+  const patientY = new THREE.Vector3(0, 1, 0)
+  for (const region of riskRegionsOf(scene)) {
+    const color = riskRegionColor(region.displayBand)
+    if (region.kind === 'polyline' && region.points.length >= 2) {
+      const curve = new THREE.CatmullRomCurve3(
+        region.points.map(point => new THREE.Vector3(point.x, point.y, point.z))
+      )
+      const geometry = new THREE.TubeGeometry(
+        curve,
+        Math.max(24, region.points.length * 4),
+        0.9,
+        8,
+        false
+      )
+      prepareGeometry(geometry)
+      const material = new THREE.MeshStandardMaterial({
+        color,
+        transparent: true,
+        opacity: region.reviewStatus === 'accepted' ? 0.8 : 0.55,
+        clippingPlanes: props.clippingPlane ? [props.clippingPlane] : []
+      })
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.name = `risk-map:${region.id}`
+      mesh.userData.aiOverlayId = region.id
+      mesh.userData.riskFactorIds = region.factorIds
+      group.add(mesh)
+      continue
+    }
+    if (
+      region.kind === 'cylinder'
+      && region.center
+      && region.axis
+      && region.radiusMm
+      && region.lengthMm
+    ) {
+      const geometry = new THREE.CylinderGeometry(
+        region.radiusMm,
+        region.radiusMm,
+        region.lengthMm,
+        32
+      )
+      prepareGeometry(geometry)
+      const material = new THREE.MeshStandardMaterial({
+        color,
+        transparent: true,
+        opacity: region.reviewStatus === 'accepted' ? 0.6 : 0.4,
+        wireframe: true,
+        clippingPlanes: props.clippingPlane ? [props.clippingPlane] : []
+      })
+      const mesh = new THREE.Mesh(geometry, material)
+      const axis = new THREE.Vector3(region.axis.x, region.axis.y, region.axis.z)
+      mesh.position.set(region.center.x, region.center.y, region.center.z)
+      mesh.quaternion.setFromUnitVectors(patientY, axis)
+      mesh.name = `risk-map:${region.id}`
+      mesh.userData.aiOverlayId = region.id
+      mesh.userData.riskFactorIds = region.factorIds
+      group.add(mesh)
+    }
+  }
+  return group
+}
+
 async function loadScene(): Promise<void> {
   request?.abort()
   request = new AbortController()
@@ -256,7 +329,8 @@ async function loadScene(): Promise<void> {
     patientRoot.value.add(
       ...loaded,
       nerveObject(props.scene),
-      implantPlanningObject(props.scene)
+      implantPlanningObject(props.scene),
+      riskMapObject(props.scene)
     )
     patientRoot.value.updateMatrixWorld(true)
     const bounds = new THREE.Box3().setFromObject(patientRoot.value)

@@ -9,6 +9,7 @@ import type { ClinicalScene, PatientPointMm } from '../lib/clinicalScene'
 import { registryFromClinicalScene } from '../lib/aiOverlayRegistry'
 import { measurementFromLandmarks, type PatientMeasurement } from '../lib/patientMeasurements'
 import { synchronizePatientPoint } from '../lib/patientCoordinateSync'
+import { riskRegionsOf, type RiskClinicalScene } from '../lib/riskMap'
 
 const props = withDefaults(defineProps<{
   clinicalScene: ClinicalScene | null
@@ -43,11 +44,13 @@ const overlays = computed(() => registry.value?.list() ?? [])
 const renderedScene = computed<ClinicalScene | null>(() => {
   if (!props.clinicalScene) return null
   const visible = (id: string) => overlayVisibility[id] !== false
-  return {
+  const next = {
     ...props.clinicalScene,
     geometry: props.clinicalScene.geometry.filter(layer => !layer.provenance.modelId || visible(layer.id)),
-    nerves: props.clinicalScene.nerves.filter(pathway => visible(pathway.id))
-  }
+    nerves: props.clinicalScene.nerves.filter(pathway => visible(pathway.id)),
+    riskRegions: riskRegionsOf(props.clinicalScene).filter(region => visible(region.id))
+  } as RiskClinicalScene
+  return next
 })
 
 const clippingPlane = computed<THREE.Plane | null>(() => {
@@ -245,15 +248,9 @@ onBeforeUnmount(() => {
             v-model="clippingAxis"
             class="rounded border border-default bg-default px-1"
           >
-            <option value="x">
-              X
-            </option>
-            <option value="y">
-              Y
-            </option>
-            <option value="z">
-              Z
-            </option>
+            <option value="x">X</option>
+            <option value="y">Y</option>
+            <option value="z">Z</option>
           </select>
           <input
             v-model.number="clippingOffsetMm"

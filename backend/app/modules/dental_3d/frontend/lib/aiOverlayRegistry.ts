@@ -1,4 +1,5 @@
 import type { ClinicalScene, PatientReferenceSpace, ReviewStatus } from './clinicalScene'
+import { riskRegionsOf } from './riskMap'
 
 export interface AiOverlay<T = unknown> {
   id: string
@@ -58,6 +59,17 @@ export function registryFromClinicalScene(scene: ClinicalScene): AiOverlayRegist
       provenanceId: layer.provenance.identifier,
       visible: true,
       data: layer
+    })
+  }
+  for (const region of riskRegionsOf(scene)) {
+    registry.register({
+      id: region.id,
+      type: `risk:${region.kind}`,
+      frame: region.frame,
+      reviewStatus: region.reviewStatus,
+      provenanceId: region.provenanceId,
+      visible: true,
+      data: region
     })
   }
   return registry

@@ -37,6 +37,11 @@ export const PERMISSIONS = {
     read: 'dental_3d.read',
     write: 'dental_3d.write'
   },
+  riskEngine: {
+    read: 'risk_engine.read',
+    generate: 'risk_engine.generate',
+    review: 'risk_engine.review'
+  },
   catalog: {
     read: 'catalog.read',
     write: 'catalog.write',

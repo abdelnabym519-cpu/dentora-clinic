@@ -248,9 +248,15 @@ onBeforeUnmount(() => {
             v-model="clippingAxis"
             class="rounded border border-default bg-default px-1"
           >
-            <option value="x">X</option>
-            <option value="y">Y</option>
-            <option value="z">Z</option>
+            <option value="x">
+              X
+            </option>
+            <option value="y">
+              Y
+            </option>
+            <option value="z">
+              Z
+            </option>
           </select>
           <input
             v-model.number="clippingOffsetMm"

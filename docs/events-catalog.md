@@ -31,6 +31,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `budget.sent` | `EventType.BUDGET_SENT` | `budget` | `notifications`, `patient_timeline` |
 | `budget.superseded` | `EventType.BUDGET_SUPERSEDED` | `budget` | `treatment_plan` |
 | `budget.viewed` | `EventType.BUDGET_VIEWED` | `budget` | `patient_timeline` |
+| `case_intelligence.snapshot.created` | `EventType.CASE_INTELLIGENCE_SNAPSHOT_CREATED` | `case_intelligence` | — |
 | `clinical_notes.administrative_created` | `EventType.CLINICAL_NOTE_ADMINISTRATIVE_CREATED` | `clinical_notes` | `patient_timeline` |
 | `clinical_notes.appointment_administrative_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_ADMINISTRATIVE_CREATED` | `clinical_notes` | — |
 | `clinical_notes.appointment_clinical_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_CLINICAL_CREATED` | `clinical_notes` | — |
@@ -286,6 +287,13 @@ Maintained by `backend/scripts/generate_catalogs.py`.
   - `budget` — `backend/app/modules/budget/workflow.py:609`
 - **Subscribers:**
   - `patient_timeline`
+
+### `case_intelligence.snapshot.created`
+
+- **Constant:** `EventType.CASE_INTELLIGENCE_SNAPSHOT_CREATED`
+- **Publishers:**
+  - `case_intelligence` — `backend/app/modules/case_intelligence/service.py:88`
+- **Subscribers:** —
 
 ### `clinical_notes.administrative_created`
 

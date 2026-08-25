@@ -15,6 +15,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
 | `booking` | 0.1.0 | community | patients, agenda, schedules | auto | yes | 2 | 0 | 0 | yes |
 | `budget` | 0.1.0 | official | patients, catalog, odontogram | auto | no | 5 | 9 | 4 | yes |
+| `case_intelligence` | 1.0.0 | official | patients, patients_clinical, odontogram, periodontogram, patient_timeline, media, dental_3d | manual | no | 1 | 1 | 0 | no |
 | `catalog` | 0.1.0 | official | — | auto | no | 3 | 0 | 0 | yes |
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
@@ -155,6 +156,23 @@ Dental treatment quotes, versioning, signatures.
   - `treatment_plan.treatment_added`
   - `treatment_plan.treatment_removed`
 - **Module CLAUDE.md:** [`backend/app/modules/budget/CLAUDE.md`](../backend/app/modules/budget/CLAUDE.md)
+
+### `case_intelligence` — v1.0.0
+
+Deterministic, versioned unified clinical case snapshots with explicit availability, provenance, evidence references and append-only persistence; informational infrastructure only, with no diagnosis, risk scoring or AI narrative.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `patients`, `patients_clinical`, `odontogram`, `periodontogram`, `patient_timeline`, `media`, `dental_3d`
+- **Frontend layer:** —
+- **Permissions:**
+  - `case_intelligence.read`
+- **Events emitted:**
+  - `case_intelligence.snapshot.created`
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/case_intelligence/CLAUDE.md`](../backend/app/modules/case_intelligence/CLAUDE.md)
 
 ### `catalog` — v0.1.0
 

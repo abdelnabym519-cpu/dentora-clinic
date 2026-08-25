@@ -3,8 +3,8 @@ from uuid import uuid4
 
 import pytest
 
-from app.modules.electronic_prescription import ElectronicPrescriptionModule
-from app.modules.electronic_prescription.domain import (
+from app.modules.prescriptions import ElectronicPrescriptionModule
+from app.modules.prescriptions.domain import (
     MedicationItem,
     Prescription,
     PrescriptionError,

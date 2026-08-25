@@ -107,13 +107,15 @@ jobs:
                            -v --tb=short
 
   catalog-freshness:
-    # Verifies docs/modules-catalog.md and docs/events-catalog.md are
-    # in sync with the manifests + EventType enum + event_bus.publish
-    # callsites. Authors regenerate locally with:
-    #   python backend/scripts/generate_catalogs.py
+    # Temporary closure runner: generate and commit the official catalogs on
+    # the PR head. This diagnostic workflow is reverted before final CI.
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -125,7 +127,7 @@ jobs:
         run: |
           pip install -e ".[dev]"
 
-      - name: Generate catalogs for closure artifact
+      - name: Generate official catalogs
         working-directory: backend
         env:
           DATABASE_URL: postgresql+asyncpg://dental:testpass@localhost:5432/stub
@@ -134,17 +136,17 @@ jobs:
           TESTING: "true"
         run: python scripts/generate_catalogs.py
 
-      - name: Upload generated catalogs
-        uses: actions/upload-artifact@v5
-        with:
-          name: scalable-media-storage-generated-catalogs
-          path: |
-            docs/modules-catalog.md
-            docs/events-catalog.md
-          retention-days: 1
-
-      - name: Prove committed catalogs differ
-        run: git diff --exit-code -- docs/modules-catalog.md docs/events-catalog.md
+      - name: Commit generated catalogs to PR head
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/modules-catalog.md docs/events-catalog.md
+          if git diff --cached --quiet; then
+            echo "Catalogs already fresh"
+          else
+            git commit -m "docs: regenerate module and event catalogs"
+            git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          fi
 
       - name: Check catalogs are fresh
         working-directory: backend

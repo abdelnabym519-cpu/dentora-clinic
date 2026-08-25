@@ -35,7 +35,7 @@ def test_release_manifest_is_exactly_pinned_to_official_ghcr_images() -> None:
     script = _read("scripts/client-update.ps1")
     assert "$OfficialRepository = 'abdelnabym519-cpu/dentora-clinic'" in script
     assert "Assert-ImmutableImageReference" in script
-    assert 'Unauthorized release repository' in script
+    assert "Unauthorized release repository" in script
     assert "@sha256:" in script
     assert "Release manifest checksum verification failed." in script
     assert "Release manifest tag does not match the GitHub Release." in script
@@ -47,10 +47,12 @@ def test_release_workflow_gates_publish_and_emits_portable_checksum() -> None:
     assert "uses: ./.github/workflows/ci.yml" in workflow
     assert "update-security:" in workflow
     assert "needs: [quality, update-security, release-meta]" in workflow
-    assert "branches: [\"release/v*\"]" in workflow
-    assert "sha256sum dentora-release-manifest.json > dentora-release-manifest.json.sha256" in workflow
+    assert 'branches: ["release/v*"]' in workflow
+    assert (
+        "sha256sum dentora-release-manifest.json > dentora-release-manifest.json.sha256" in workflow
+    )
     assert "sha256sum release-assets/dentora-release-manifest.json" not in workflow
-    assert "--target \"$GITHUB_SHA\"" in workflow
+    assert '--target "$GITHUB_SHA"' in workflow
 
 
 def test_release_runs_real_update_rollback_and_recovery_validation() -> None:
@@ -60,6 +62,6 @@ def test_release_runs_real_update_rollback_and_recovery_validation() -> None:
     assert "scripts/client-update.ps1 -Mode Update" in workflow
     for point in ("after-backup", "after-install", "after-health"):
         assert point in workflow
-    assert "kill -9 \"$updater_pid\"" in workflow
+    assert 'kill -9 "$updater_pid"' in workflow
     assert "scripts/client-update.ps1 -Mode Recover" in workflow
     assert "auto-update-production-validation" in workflow

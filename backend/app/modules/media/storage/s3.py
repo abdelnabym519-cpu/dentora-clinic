@@ -67,15 +67,18 @@ class S3StorageBackend(StorageBackend):
         return await asyncio.to_thread(method, **kwargs)
 
     async def store(self, data: bytes, path: str) -> str:
-        digest = hashlib.sha256(data).hexdigest()
-        await self._call(
-            "put_object",
-            Bucket=self.config.bucket,
-            Key=self._key(path),
-            Body=data,
-            Metadata={"dentora-sha256": digest},
+        """Compatibility byte API routed through bounded/multipart upload logic."""
+
+        async def _single_chunk() -> AsyncIterator[bytes]:
+            if data:
+                yield data
+
+        result = await self.store_stream(
+            _single_chunk(),
+            path,
+            content_length=len(data),
         )
-        return path
+        return result.path
 
     async def store_stream(
         self,

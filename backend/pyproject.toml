@@ -92,6 +92,7 @@ verifactu = "app.modules.verifactu:VerifactuModule"
 migration_import = "app.modules.migration_import:MigrationImportModule"
 copilot = "app.modules.copilot:CopilotModule"
 dental_3d = "app.modules.dental_3d:Dental3DModule"
+case_intelligence = "app.modules.case_intelligence:CaseIntelligenceModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

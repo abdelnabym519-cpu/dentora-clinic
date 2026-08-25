@@ -1,19 +1,18 @@
 name: Release
 
-# Tag -> publish images to ghcr.io -> publish the GitHub Release.
-#
-# Each architecture builds on its own native runner and pushes by digest;
-# a merge job then stitches them into one manifest list per image. The
-# obvious alternative — one runner, QEMU, `platforms: amd64,arm64` — puts
-# the Nuxt build under emulation, where a 4 GB heap is a coin flip.
+# A production release is published only after the repository Quality Gate and
+# updater security contract pass. Tags remain supported; release/v* branches are
+# an auditable release-trigger path that creates the corresponding tag at the
+# exact validated commit.
 
 on:
   push:
     tags: ["v*"]
+    branches: ["release/v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to (re)publish, e.g. v2.0.0"
+        description: "Existing tag to (re)publish, e.g. v2.0.1"
         required: true
 
 permissions:
@@ -24,12 +23,94 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # A production tag cannot publish before the same required CI suite succeeds.
+  release-meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - id: meta
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${INPUT_TAG:-}" ]]; then
+            TAG="$INPUT_TAG"
+          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            TAG="$GITHUB_REF_NAME"
+          elif [[ "$GITHUB_REF_TYPE" == "branch" && "$GITHUB_REF_NAME" =~ ^release/(v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            TAG="${BASH_REMATCH[1]}"
+          else
+            echo "::error::Unsupported release ref: $GITHUB_REF"
+            exit 1
+          fi
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Invalid release tag $TAG"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
   quality:
     uses: ./.github/workflows/ci.yml
 
+  update-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Parse updater and execute negative security contracts
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          $path = (Resolve-Path 'scripts/client-update.ps1').Path
+          $ast = [System.Management.Automation.Language.Parser]::ParseFile($path, [ref]$tokens, [ref]$errors)
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            throw 'client-update.ps1 has PowerShell parse errors.'
+          }
+
+          $ast.FindAll({ param($n) $n -is [System.Management.Automation.Language.FunctionDefinitionAst] }, $true) |
+            ForEach-Object { Invoke-Expression $_.Extent.Text }
+
+          function Assert-Throws([string]$Name, [scriptblock]$Action) {
+            $threw = $false
+            try { & $Action } catch { $threw = $true; Write-Host "$Name rejected: $($_.Exception.Message)" }
+            if (-not $threw) { throw "$Name was incorrectly accepted." }
+          }
+
+          $repo = 'abdelnabym519-cpu/dentora-clinic'
+          $digest = 'a' * 64
+          $release = [pscustomobject]@{ tag_name='v2.0.1'; draft=$false; prerelease=$false; assets=@() }
+          $valid = [pscustomobject]@{
+            schema=1; version='2.0.1'; tag='v2.0.1';
+            images=[pscustomobject]@{
+              backend="ghcr.io/$repo-backend@sha256:$digest"
+              frontend="ghcr.io/$repo-frontend@sha256:$digest"
+            }
+          }
+          Assert-ReleaseManifest $valid $release $repo
+
+          Assert-Throws 'invalid manifest' { Assert-ReleaseManifest ([pscustomobject]@{schema=9}) $release $repo }
+          Assert-Throws 'invalid version' { Convert-Version '2.0.bad' | Out-Null }
+          Assert-Throws 'mutable image' { Assert-ImmutableImageReference "ghcr.io/$repo-backend:2.0.1" $repo 'backend' }
+          Assert-Throws 'missing OCI digest' { Assert-ImmutableImageReference "ghcr.io/$repo-backend" $repo 'backend' }
+          Assert-Throws 'unauthorized registry' { Assert-ImmutableImageReference "docker.io/$repo-backend@sha256:$digest" $repo 'backend' }
+          Assert-Throws 'unauthorized repository' { Assert-ImmutableImageReference "ghcr.io/attacker/dentora-clinic-backend@sha256:$digest" $repo 'backend' }
+          Assert-Throws 'invalid Release' { Assert-ReleaseDescriptor ([pscustomobject]@{tag_name='v2.0.1'; draft=$true; prerelease=$false; assets=@()}) }
+
+          $tmp = Join-Path $env:RUNNER_TEMP 'dentora-update-security'
+          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+          $manifestPath = Join-Path $tmp 'manifest.json'
+          $checksumPath = Join-Path $tmp 'manifest.sha256'
+          [IO.File]::WriteAllText($manifestPath, '{"schema":1}', (New-Object Text.UTF8Encoding($false)))
+          $good = (Get-FileHash -Algorithm SHA256 $manifestPath).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText($checksumPath, "$good  manifest.json`n", (New-Object Text.UTF8Encoding($false)))
+          Assert-ManifestChecksum $manifestPath $checksumPath
+          [IO.File]::WriteAllText($checksumPath, "$('0' * 64)  manifest.json`n", (New-Object Text.UTF8Encoding($false)))
+          Assert-Throws 'wrong checksum' { Assert-ManifestChecksum $manifestPath $checksumPath }
+
   build:
-    needs: quality
+    needs: [quality, update-security, release-meta]
     strategy:
       fail-fast: false
       matrix:
@@ -38,8 +119,6 @@ jobs:
             context: ./backend
             dockerfile: ./backend/Dockerfile
           - name: frontend
-            # Needs the repo root: the Nuxt build copies module layers
-            # out of backend/app/modules (see frontend/Dockerfile.prod).
             context: .
             dockerfile: ./frontend/Dockerfile.prod
         platform:
@@ -67,8 +146,6 @@ jobs:
           context: ${{ matrix.image.context }}
           file: ${{ matrix.image.dockerfile }}
           platforms: linux/${{ matrix.platform.arch }}
-          # No tags here: tagging happens once, in the merge job, so a
-          # half-finished matrix never leaves :latest pointing at one arch.
           outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.image.name }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
@@ -76,8 +153,7 @@ jobs:
       - name: Record the digest
         run: |
           mkdir -p /tmp/digests
-          echo "${{ steps.build.outputs.digest }}" \
-            > "/tmp/digests/${{ matrix.image.name }}-${{ matrix.platform.arch }}"
+          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.image.name }}-${{ matrix.platform.arch }}"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -86,10 +162,9 @@ jobs:
           retention-days: 1
 
   merge:
-    needs: build
+    needs: [build, release-meta]
     runs-on: ubuntu-latest
     strategy:
-      # One image failing should not cancel the other's diagnosis.
       fail-fast: false
       matrix:
         name: [backend, frontend]
@@ -113,40 +188,37 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.name }}
           tags: |
-            type=semver,pattern={{version}},value=${{ inputs.tag || github.ref_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.ref_name }}
+            type=semver,pattern={{version}},value=${{ needs.release-meta.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-meta.outputs.tag }}
             type=raw,value=latest
 
       - name: Create the manifest list
         run: |
           IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}"
           SOURCES=""
-          for f in /tmp/digests/*; do
-            SOURCES="$SOURCES ${IMAGE}@$(cat "$f")"
-          done
+          for f in /tmp/digests/*; do SOURCES="$SOURCES ${IMAGE}@$(cat "$f")"; done
           # shellcheck disable=SC2086
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $SOURCES
 
-      - name: Check both architectures made it
+      - name: Verify both architectures
         run: |
           IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}"
-          TAG="${{ inputs.tag || github.ref_name }}"
-          # Parse it — `--raw` pretty-prints, so grepping for
-          # "architecture":"amd64" misses the space after the colon and
-          # fails a manifest that is perfectly fine.
-          MANIFEST=$(docker buildx imagetools inspect "${IMAGE}:${TAG#v}" --raw)
+          VERSION="${{ needs.release-meta.outputs.version }}"
+          MANIFEST=$(docker buildx imagetools inspect "${IMAGE}:${VERSION}" --raw)
           for arch in amd64 arm64; do
             echo "$MANIFEST" | jq -e --arg a "$arch" \
               '[.manifests[]?.platform | select(.os == "linux" and .architecture == $a)] | length > 0' >/dev/null \
               || { echo "::error::$IMAGE is missing linux/$arch"; exit 1; }
           done
-          echo "$IMAGE ships amd64 and arm64."
 
   release:
-    needs: merge
+    needs: [merge, release-meta]
     runs-on: ubuntu-latest
+    outputs:
+      backend_digest: ${{ steps.manifest.outputs.backend_digest }}
+      frontend_digest: ${{ steps.manifest.outputs.frontend_digest }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -161,73 +233,293 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create immutable release manifest and checksum
+      - id: manifest
+        name: Create immutable release manifest and checksum
+        shell: bash
         run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          VERSION="${TAG#v}"
+          set -euo pipefail
+          TAG="${{ needs.release-meta.outputs.tag }}"
+          VERSION="${{ needs.release-meta.outputs.version }}"
           mkdir -p release-assets
+          : > release-assets/images.env
           for image in backend frontend; do
             ref="${REGISTRY}/${GITHUB_REPOSITORY}-${image}:${VERSION}"
-            # OCI index bytes hash to the immutable registry digest. The client
-            # pulls exactly this digest, never a mutable tag.
-            docker buildx imagetools inspect "$ref" --raw > "release-assets/${image}.index.json"
-            digest="sha256:$(sha256sum "release-assets/${image}.index.json" | awk '{print $1}')"
-            jq -e --arg d "$digest" '.["manifests"] != null and ($d | test("^sha256:[a-f0-9]{64}$"))' "release-assets/${image}.index.json" >/dev/null
+            inspect="$(docker buildx imagetools inspect "$ref")"
+            digest="$(awk '/^Digest:/ {print $2; exit}' <<< "$inspect")"
+            [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo "::error::Could not resolve immutable digest for $ref"; exit 1; }
+            docker buildx imagetools inspect "$ref@$digest" --raw > "release-assets/${image}.index.json"
+            jq -e '.manifests != null and (.manifests | length) >= 2' "release-assets/${image}.index.json" >/dev/null
             echo "$image=$ref@$digest" >> release-assets/images.env
+            echo "${image}_digest=$digest" >> "$GITHUB_OUTPUT"
           done
           backend=$(grep '^backend=' release-assets/images.env | cut -d= -f2-)
           frontend=$(grep '^frontend=' release-assets/images.env | cut -d= -f2-)
-          jq -n --arg version "$VERSION" --arg tag "$TAG" --arg backend "$backend" --arg frontend "$frontend" \
-            '{schema: 1, version: $version, tag: $tag, images: {backend: $backend, frontend: $frontend}}' \
+          jq -n \
+            --arg version "$VERSION" \
+            --arg tag "$TAG" \
+            --arg sourceSha "$GITHUB_SHA" \
+            --arg backend "$backend" \
+            --arg frontend "$frontend" \
+            '{schema: 1, version: $version, tag: $tag, sourceSha: $sourceSha, images: {backend: $backend, frontend: $frontend}}' \
             > release-assets/dentora-release-manifest.json
-          sha256sum release-assets/dentora-release-manifest.json > release-assets/dentora-release-manifest.json.sha256
+          (cd release-assets && sha256sum dentora-release-manifest.json > dentora-release-manifest.json.sha256)
+          (cd release-assets && sha256sum -c dentora-release-manifest.json.sha256)
 
-      - name: Extract the CHANGELOG section for this version
-        id: notes
+      - name: Extract release notes
         run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          VERSION="${TAG#v}"
-          # Everything between "## [<version>]" and the next "## [" heading.
+          TAG="${{ needs.release-meta.outputs.tag }}"
+          VERSION="${{ needs.release-meta.outputs.version }}"
           awk -v v="$VERSION" '
             $0 ~ "^## \\[" v "\\]" { inside = 1; next }
             inside && /^## \[/     { exit }
             inside                 { print }
           ' CHANGELOG.md > notes.md
-          if [ ! -s notes.md ]; then
-            echo "No CHANGELOG section for $VERSION — falling back to generated notes only."
-            : > notes.md
-          fi
-          # These three are pulled from main, not from $TAG: a backfilled
-          # release predates them, and they are operational files whose
-          # latest version is the one you want. DENTORA_VERSION in .env
-          # is what pins the release you actually run.
-          RAW="https://raw.githubusercontent.com/${{ github.repository }}/main"
+          if [ ! -s notes.md ]; then : > notes.md; fi
           {
             echo ""
-            echo "## Install"
+            echo "## Immutable images"
             echo ""
-            echo '```bash'
-            echo "curl -O $RAW/docker-compose.prod.yml"
-            echo "curl -O $RAW/Caddyfile"
-            echo "curl -o .env $RAW/.env.prod.example"
-            echo "# set PUBLIC_URL, POSTGRES_PASSWORD, SECRET_KEY"
-            echo "# and DENTORA_VERSION=$VERSION to pin this release, then:"
-            echo "docker compose -f docker-compose.prod.yml up -d"
-            echo '```'
-            echo ""
-            echo "Images (amd64 + arm64): \`ghcr.io/${{ github.repository }}-backend:$VERSION\` · \`ghcr.io/${{ github.repository }}-frontend:$VERSION\`"
+            echo "Backend and frontend OCI digests are attached in dentora-release-manifest.json."
           } >> notes.md
 
-      - name: Publish the release
+      - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          gh release create "$TAG" \
-            release-assets/dentora-release-manifest.json \
-            release-assets/dentora-release-manifest.json.sha256 \
-            --title "$TAG" \
-            --notes-file notes.md \
-            --generate-notes \
-            --verify-tag \
-            || { gh release edit "$TAG" --notes-file notes.md; gh release upload "$TAG" release-assets/dentora-release-manifest.json release-assets/dentora-release-manifest.json.sha256 --clobber; }
+          set -euo pipefail
+          TAG="${{ needs.release-meta.outputs.tag }}"
+          ASSETS=(release-assets/dentora-release-manifest.json release-assets/dentora-release-manifest.json.sha256)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file notes.md --title "$TAG"
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+          elif [[ "$GITHUB_REF_TYPE" == "branch" ]]; then
+            gh release create "$TAG" "${ASSETS[@]}" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md --generate-notes
+          else
+            gh release create "$TAG" "${ASSETS[@]}" --title "$TAG" --notes-file notes.md --generate-notes --verify-tag
+          fi
+
+  client-validation:
+    needs: [release, release-meta]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait until v2.0.1 is the public latest Release
+        env:
+          TARGET_TAG: ${{ needs.release-meta.outputs.tag }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            tag=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty' || true)
+            if [ "$tag" = "$TARGET_TAG" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::Latest GitHub Release did not resolve to $TARGET_TAG"
+          exit 1
+
+      - name: Build real local v2.0.0 client images
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          BASE_SHA=$(git merge-base HEAD origin/main)
+          git worktree add /tmp/dentora-v200 "$BASE_SHA"
+          docker build -t dentora-validation-backend:2.0.0 /tmp/dentora-v200/backend
+          docker build -f /tmp/dentora-v200/frontend/Dockerfile.prod -t dentora-validation-frontend:2.0.0 /tmp/dentora-v200
+
+      - name: Start Client v2.0.0 and create preservation fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.client.example .env.client
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.env.client')
+          vals={
+            'PUBLIC_URL':'http://localhost',
+            'POSTGRES_DB':'dental_clinic',
+            'POSTGRES_USER':'dental',
+            'POSTGRES_PASSWORD':'dentora-validation-password',
+            'SECRET_KEY':'dentora-validation-secret-key',
+            'BUDGET_PUBLIC_SECRET_KEY':'dentora-validation-budget-secret',
+            'DENTORA_VERSION':'2.0.0',
+            'DENTORA_BACKEND_IMAGE':'dentora-validation-backend:2.0.0',
+            'DENTORA_FRONTEND_IMAGE':'dentora-validation-frontend:2.0.0',
+            'DENTORA_RELEASE_REPOSITORY':'abdelnabym519-cpu/dentora-clinic',
+            'LICENSE_SERVER_URL':'',
+            'LICENSE_PUBLIC_KEY_B64':'',
+            'LICENSE_MACHINE_FINGERPRINT':'production-validation',
+          }
+          lines=p.read_text().splitlines()
+          for k,v in vals.items():
+              for i,line in enumerate(lines):
+                  if line.startswith(k+'='):
+                      lines[i]=f'{k}={v}'; break
+              else: lines.append(f'{k}={v}')
+          p.write_text('\n'.join(lines)+'\n')
+          PY
+          docker compose --env-file .env.client -f docker-compose.client.yml up -d
+          for i in $(seq 1 90); do
+            if docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=2).status==200" >/dev/null 2>&1 \
+              && docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/; then
+              break
+            fi
+            sleep 2
+          done
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python /app/scripts/seed_demo.py --lang en
+          cat > /tmp/create_fixture.py <<'PY'
+          import asyncio
+          from pathlib import Path
+          from uuid import UUID
+          from app.database import async_session_maker
+          from app.modules.media.models import Document
+          from app.seeds.demo_data import CLINIC_ID, USER_DENTIST_ID, get_patients_data
+          DOC_ID=UUID('00000000-0000-4000-8000-000000000201')
+          PATIENT_ID=get_patients_data()[0]['id']
+          DATA=b'Dentora Auto Update production preservation sentinel v2.0.0\n'
+          async def main():
+              async with async_session_maker() as db:
+                  path=f'production-validation/{DOC_ID}.txt'
+                  full=Path('/app/storage')/path
+                  full.parent.mkdir(parents=True, exist_ok=True)
+                  full.write_bytes(DATA)
+                  db.add(Document(id=DOC_ID, clinic_id=CLINIC_ID, patient_id=PATIENT_ID,
+                      document_type='report', title='Production validation attachment', description='Auto Update preservation fixture',
+                      original_filename='production-validation.txt', storage_path=path, mime_type='text/plain', file_size=len(DATA),
+                      media_kind='document', tags=['production-validation'], extra_data={'version':'2.0.0'}, uploaded_by=USER_DENTIST_ID, status='active'))
+                  await db.commit()
+          asyncio.run(main())
+          PY
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/create_fixture.py
+          cat > /tmp/snapshot.py <<'PY'
+          import asyncio, hashlib, json
+          from pathlib import Path
+          from uuid import UUID
+          from sqlalchemy import func, select
+          from app.database import async_session_maker
+          from app.modules.media.models import Document
+          from app.modules.patients.models import Patient
+          from app.modules.patients_clinical.models import Allergy, MedicalContext, Medication, SystemicDisease
+          DOC_ID=UUID('00000000-0000-4000-8000-000000000201')
+          async def main():
+              async with async_session_maker() as db:
+                  doc=await db.get(Document,DOC_ID); assert doc is not None
+                  patient=await db.get(Patient,doc.patient_id); assert patient is not None
+                  counts={}
+                  for model in (Allergy,MedicalContext,Medication,SystemicDisease):
+                      counts[model.__tablename__]=(await db.execute(select(func.count()).select_from(model).where(model.patient_id==patient.id))).scalar_one()
+                  patient_count=(await db.execute(select(func.count()).select_from(Patient))).scalar_one()
+                  data=(Path('/app/storage')/doc.storage_path).read_bytes()
+                  print(json.dumps({'patient_id':str(patient.id),'patient_name':patient.full_name,'patient_notes':patient.notes,
+                    'patient_count':patient_count,'clinical_counts':counts,'document_id':str(doc.id),'storage_path':doc.storage_path,
+                    'storage_sha256':hashlib.sha256(data).hexdigest(),'storage_size':len(data)},sort_keys=True))
+          asyncio.run(main())
+          PY
+          mkdir -p dentora-validation-evidence
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > dentora-validation-evidence/before.json
+          grep '^DENTORA_' .env.client > dentora-validation-evidence/v200.env
+
+      - name: Real update v2.0.0 to v2.0.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Check | tee dentora-validation-evidence/check.log
+          jq -e '.state == "update-available" and .installedVersion == "2.0.0" and .latestVersion == "2.0.1"' .dentora-update/status.json
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update | tee dentora-validation-evidence/update.log
+          cp .dentora-update/status.json dentora-validation-evidence/updated-status.json
+          jq -e '.state == "updated" and .installedVersion == "2.0.1"' .dentora-update/status.json
+          grep -q '^DENTORA_VERSION=2.0.1$' .env.client
+          grep -Eq '^DENTORA_BACKEND_IMAGE=ghcr\.io/abdelnabym519-cpu/dentora-clinic-backend@sha256:[a-f0-9]{64}$' .env.client
+          grep -Eq '^DENTORA_FRONTEND_IMAGE=ghcr\.io/abdelnabym519-cpu/dentora-clinic-frontend@sha256:[a-f0-9]{64}$' .env.client
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=3).status==200"
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/
+          docker compose --env-file .env.client -f docker-compose.client.yml logs backend | tee dentora-validation-evidence/backend-after-update.log
+          grep -q '\[entrypoint\] Running alembic upgrade heads' dentora-validation-evidence/backend-after-update.log
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > dentora-validation-evidence/after-update.json
+          cmp dentora-validation-evidence/before.json dentora-validation-evidence/after-update.json
+
+      - name: Prove rollback after-backup after-install after-health
+        shell: bash
+        run: |
+          set -euo pipefail
+          reset_baseline() {
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.env.client'); lines=p.read_text().splitlines()
+          vals={'DENTORA_VERSION':'2.0.0','DENTORA_BACKEND_IMAGE':'dentora-validation-backend:2.0.0','DENTORA_FRONTEND_IMAGE':'dentora-validation-frontend:2.0.0'}
+          for k,v in vals.items():
+              for i,line in enumerate(lines):
+                  if line.startswith(k+'='): lines[i]=f'{k}={v}'; break
+          p.write_text('\n'.join(lines)+'\n')
+          PY
+            docker compose --env-file .env.client -f docker-compose.client.yml up -d
+            for i in $(seq 1 60); do
+              if docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=2).status==200" >/dev/null 2>&1 \
+                && docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/; then return 0; fi
+              sleep 2
+            done
+            return 1
+          }
+          for point in after-backup after-install after-health; do
+            reset_baseline
+            if pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update -SimulateFailureAt "$point" > "dentora-validation-evidence/${point}.log" 2>&1; then
+              echo "::error::$point was expected to fail"; exit 1
+            fi
+            cp .dentora-update/status.json "dentora-validation-evidence/${point}-status.json"
+            jq -e '.state == "rolled-back" and .installedVersion == "2.0.0"' .dentora-update/status.json
+            grep -q '^DENTORA_VERSION=2.0.0$' .env.client
+            grep -q '^DENTORA_BACKEND_IMAGE=dentora-validation-backend:2.0.0$' .env.client
+            grep -q '^DENTORA_FRONTEND_IMAGE=dentora-validation-frontend:2.0.0$' .env.client
+            docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=3).status==200"
+            docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/
+            docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > "dentora-validation-evidence/${point}-snapshot.json"
+            cmp dentora-validation-evidence/before.json "dentora-validation-evidence/${point}-snapshot.json"
+          done
+
+      - name: Prove recovery after a real interrupted update
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update > dentora-validation-evidence/interrupted-update.log 2>&1 &
+          updater_pid=$!
+          seen=0
+          for i in $(seq 1 600); do
+            if [ -f .dentora-update/status.json ] && jq -e '.state == "installing"' .dentora-update/status.json >/dev/null 2>&1; then seen=1; break; fi
+            if ! kill -0 "$updater_pid" 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          [ "$seen" = 1 ] || { cat dentora-validation-evidence/interrupted-update.log; echo "::error::Did not reach an interruptible installing state"; exit 1; }
+          kill -9 "$updater_pid" || true
+          wait "$updater_pid" 2>/dev/null || true
+          grep -q '^DENTORA_VERSION=2.0.1$' .env.client
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Recover | tee dentora-validation-evidence/recover.log
+          cp .dentora-update/status.json dentora-validation-evidence/recovered-status.json
+          jq -e '.state == "recovered" and .installedVersion == "2.0.0"' .dentora-update/status.json
+          grep -q '^DENTORA_VERSION=2.0.0$' .env.client
+          grep -q '^DENTORA_BACKEND_IMAGE=dentora-validation-backend:2.0.0$' .env.client
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=3).status==200"
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > dentora-validation-evidence/after-recovery.json
+          cmp dentora-validation-evidence/before.json dentora-validation-evidence/after-recovery.json
+          docker compose --env-file .env.client -f docker-compose.client.yml ps > dentora-validation-evidence/final-compose-ps.txt
+
+      - name: Upload production validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-update-production-validation
+          path: dentora-validation-evidence
+          retention-days: 30
+
+      - name: Cleanup validation client
+        if: always()
+        run: docker compose --env-file .env.client -f docker-compose.client.yml down -v --remove-orphans || true

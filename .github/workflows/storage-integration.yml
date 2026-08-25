@@ -12,7 +12,9 @@ jobs:
     timeout-minutes: 10
     env:
       DATABASE_URL: postgresql+asyncpg://dental:testpass@localhost:5432/stub
+      POSTGRES_PASSWORD: storage-compose-ci
       SECRET_KEY: storage-integration-ci
+      BUDGET_PUBLIC_SECRET_KEY: storage-budget-ci
       ENVIRONMENT: test
       TESTING: "true"
       RUN_S3_INTEGRATION: "1"
@@ -26,9 +28,17 @@ jobs:
       S3_PRESIGN_EXPIRY_SECONDS: "300"
       S3_MULTIPART_THRESHOLD_BYTES: "5242880"
       S3_MULTIPART_PART_SIZE_BYTES: "5242880"
+      MINIO_ROOT_USER: dentora-ci
+      MINIO_ROOT_PASSWORD: dentora-ci-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Validate S3 and MinIO compose overlays
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.s3.yml config --quiet
+          docker compose -f docker-compose.client.yml -f docker-compose.s3.yml config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.minio.yml config --quiet
 
       - name: Set up Python
         uses: actions/setup-python@v6

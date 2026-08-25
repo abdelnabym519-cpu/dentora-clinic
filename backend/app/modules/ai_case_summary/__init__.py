@@ -22,7 +22,7 @@ class AICaseSummaryModule(BaseModule):
         "depends": ["case_intelligence"],
         "installable": True,
         "auto_install": False,
-        "removable": True,
+        "removable": False,
         "role_permissions": {
             "admin": ["read", "generate"],
             "dentist": ["read", "generate", "review"],

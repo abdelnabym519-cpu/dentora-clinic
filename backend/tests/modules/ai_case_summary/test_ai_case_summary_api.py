@@ -23,16 +23,35 @@ class CapturingProvider:
         ]
         claims = []
         if evidence_ids:
-            claims.append({"claim_id": "C1", "text": "Structured case data is available.", "evidence_ids": [evidence_ids[0]]})
+            claims.append(
+                {
+                    "claim_id": "C1",
+                    "text": "Structured case data is available.",
+                    "evidence_ids": [evidence_ids[0]],
+                }
+            )
         yield TextDelta(json.dumps({"claims": claims, "data_gaps": gaps}))
         yield Done("stop")
 
 
 @pytest.mark.asyncio
-async def test_generate_is_redacted_traceable_and_requires_dentist_review(client, db_session, auth_headers, test_clinic, test_patient, monkeypatch):
+async def test_generate_is_redacted_traceable_and_requires_dentist_review(
+    client,
+    db_session,
+    auth_headers,
+    test_clinic,
+    test_patient,
+    monkeypatch,
+):
     provider = CapturingProvider()
-    monkeypatch.setattr(AICaseSummaryService, "provider_factory", staticmethod(lambda _name: provider))
-    response = await client.post(f"/api/v1/ai_case_summary/patients/{test_patient.id}", headers=auth_headers)
+    monkeypatch.setattr(
+        AICaseSummaryService,
+        "provider_factory",
+        staticmethod(lambda _name: provider),
+    )
+    response = await client.post(
+        f"/api/v1/ai_case_summary/patients/{test_patient.id}", headers=auth_headers
+    )
     assert response.status_code == 200, response.text
     summary = response.json()["data"]
     assert summary["review_status"] == "pending_review"
@@ -48,12 +67,22 @@ async def test_generate_is_redacted_traceable_and_requires_dentist_review(client
     assert test_patient.last_name not in outgoing
     row = await db_session.scalar(select(AICaseSummaryRecord))
     assert row is not None
-    review = await client.post(f"/api/v1/ai_case_summary/summaries/{row.id}/review", headers=auth_headers, json={"decision": "accepted"})
+    review = await client.post(
+        f"/api/v1/ai_case_summary/summaries/{row.id}/review",
+        headers=auth_headers,
+        json={"decision": "accepted"},
+    )
     assert review.status_code == 403
-    membership = await db_session.scalar(select(ClinicMembership).where(ClinicMembership.clinic_id == test_clinic.id))
+    membership = await db_session.scalar(
+        select(ClinicMembership).where(ClinicMembership.clinic_id == test_clinic.id)
+    )
     membership.role = "dentist"
     await db_session.commit()
-    review = await client.post(f"/api/v1/ai_case_summary/summaries/{row.id}/review", headers=auth_headers, json={"decision": "accepted"})
+    review = await client.post(
+        f"/api/v1/ai_case_summary/summaries/{row.id}/review",
+        headers=auth_headers,
+        json={"decision": "accepted"},
+    )
     assert review.status_code == 200, review.text
     reviewed = review.json()["data"]
     assert reviewed["review_status"] == "accepted"

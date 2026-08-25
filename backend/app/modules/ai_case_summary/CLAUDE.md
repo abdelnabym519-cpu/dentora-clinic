@@ -8,3 +8,7 @@
 - A generated summary starts as `pending_review`; only a user whose clinic role is exactly `dentist` can accept/reject it. `clinical_output` is true only after acceptance.
 - The module may persist its own summaries/review metadata. It must never write patient, anatomy, Dental3D, implant-planning, treatment, or other canonical source records.
 - Domain/application/persistence contracts stay renderer-neutral; no Three/Tres/Three.js types.
+- Provider responses are schema-validated and fail closed when claims reference unknown evidence or data gaps do not match the snapshot.
+- Provider/model, prompt contract, input digest and output digest are persisted for reproducible provenance.
+- Generated/review audit events must contain identifiers and digests only; summary clinical text must never be placed on the event bus.
+- No new model weights or AI runtime dependencies may be introduced without explicit license and commercial-use review.

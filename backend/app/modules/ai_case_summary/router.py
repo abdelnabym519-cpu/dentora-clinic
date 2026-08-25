@@ -32,7 +32,9 @@ async def generate_case_summary(
             db, clinic_id=ctx.clinic_id, patient_id=patient_id, user_id=ctx.user_id
         )
     except KeyError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
+        ) from exc
     except (LLMError, SummaryGenerationError) as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -53,7 +55,9 @@ async def get_latest_case_summary(
             db, clinic_id=ctx.clinic_id, patient_id=patient_id
         )
     except KeyError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Summary not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Summary not found"
+        ) from exc
     return ApiResponse(data=result)
 
 
@@ -75,9 +79,14 @@ async def review_case_summary(
             decision=payload.decision,
         )
     except KeyError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Summary not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Summary not found"
+        ) from exc
     except PermissionError as exc:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Dentist review is required") from exc
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dentist review is required",
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ApiResponse(data=result)

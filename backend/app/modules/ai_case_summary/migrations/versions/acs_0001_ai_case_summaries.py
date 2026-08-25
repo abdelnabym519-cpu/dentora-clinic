@@ -36,7 +36,12 @@ def upgrade() -> None:
         sa.Column("input_digest", sa.String(length=71), nullable=False),
         sa.Column("output_digest", sa.String(length=71), nullable=False),
         sa.Column("summary_data", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("review_status", sa.String(length=30), nullable=False, server_default="pending_review"),
+        sa.Column(
+            "review_status",
+            sa.String(length=30),
+            nullable=False,
+            server_default="pending_review",
+        ),
         sa.Column("generated_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("generated_by", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("reviewed_at", sa.DateTime(timezone=True), nullable=True),
@@ -46,12 +51,36 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["generated_by"], ["users.id"]),
         sa.ForeignKeyConstraint(["reviewed_by"], ["users.id"]),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("patient_id", "summary_version", name="uq_ai_case_summary_patient_version"),
+        sa.UniqueConstraint(
+            "patient_id",
+            "summary_version",
+            name="uq_ai_case_summary_patient_version",
+        ),
     )
-    op.create_index("ix_ai_case_summaries_clinic_id", "ai_case_summaries", ["clinic_id"], unique=False)
-    op.create_index("ix_ai_case_summaries_patient_id", "ai_case_summaries", ["patient_id"], unique=False)
-    op.create_index("idx_ai_case_summary_latest", "ai_case_summaries", ["clinic_id", "patient_id", "summary_version"], unique=False)
-    op.create_index("idx_ai_case_summary_snapshot", "ai_case_summaries", ["clinic_id", "patient_id", "case_snapshot_version", "input_digest"], unique=False)
+    op.create_index(
+        "ix_ai_case_summaries_clinic_id",
+        "ai_case_summaries",
+        ["clinic_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_ai_case_summaries_patient_id",
+        "ai_case_summaries",
+        ["patient_id"],
+        unique=False,
+    )
+    op.create_index(
+        "idx_ai_case_summary_latest",
+        "ai_case_summaries",
+        ["clinic_id", "patient_id", "summary_version"],
+        unique=False,
+    )
+    op.create_index(
+        "idx_ai_case_summary_snapshot",
+        "ai_case_summaries",
+        ["clinic_id", "patient_id", "case_snapshot_version", "input_digest"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:

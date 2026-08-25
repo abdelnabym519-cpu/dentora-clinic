@@ -47,7 +47,11 @@ class AICaseSummaryRecord(Base):
     reviewer: Mapped[User | None] = relationship(foreign_keys=[reviewed_by])
 
     __table_args__ = (
-        UniqueConstraint("patient_id", "summary_version", name="uq_ai_case_summary_patient_version"),
+        UniqueConstraint(
+            "patient_id",
+            "summary_version",
+            name="uq_ai_case_summary_patient_version",
+        ),
         Index("idx_ai_case_summary_latest", "clinic_id", "patient_id", "summary_version"),
         Index(
             "idx_ai_case_summary_snapshot",

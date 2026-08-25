@@ -87,9 +87,11 @@ async def test_current_snapshot_is_reproducible_append_only_and_does_not_mutate_
 async def test_case_intelligence_is_tenant_scoped(
     client: AsyncClient,
     auth_headers: dict[str, str],
+    test_patient: Patient,
 ) -> None:
+    missing_patient_id = UUID(int=test_patient.id.int ^ 1)
     response = await client.get(
-        f"/api/v1/case_intelligence/patients/{UUID(int=0)}",
+        f"/api/v1/case_intelligence/patients/{missing_patient_id}",
         headers=auth_headers,
     )
     assert response.status_code == 404

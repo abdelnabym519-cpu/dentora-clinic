@@ -32,6 +32,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
 | `recalls` | 0.1.0 | official | patients, agenda | auto | yes | 3 | 4 | 5 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments | auto | no | 3 | 0 | 0 | yes |
+| `risk_engine` | 1.0.0 | official | case_intelligence, patients, dental_3d | manual | no | 3 | 0 | 0 | no |
 | `schedules` | 0.1.0 | official | agenda | auto | yes | 8 | 0 | 3 | yes |
 | `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media | auto | no | 5 | 13 | 7 | yes |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
@@ -567,6 +568,24 @@ Cross-module reporting: billing, budgets, scheduling.
 - **Events emitted:** —
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/reports/CLAUDE.md`](../backend/app/modules/reports/CLAUDE.md)
+
+### `risk_engine` — v1.0.0
+
+Deterministic observed-fact risk decision support and fail-closed patient-space 3D Risk Map with explicit availability, provenance and mandatory dentist review.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `case_intelligence`, `patients`, `dental_3d`
+- **Frontend layer:** —
+- **Permissions:**
+  - `risk_engine.generate`
+  - `risk_engine.read`
+  - `risk_engine.review`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/risk_engine/CLAUDE.md`](../backend/app/modules/risk_engine/CLAUDE.md)
 
 ### `schedules` — v0.1.0
 

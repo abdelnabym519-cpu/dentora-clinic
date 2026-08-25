@@ -65,7 +65,9 @@ def _evidence_key(ref: EvidenceReference) -> tuple[str, str, str, str, str, str]
     )
 
 
-def _evidence_catalog(snapshot: CaseSnapshot) -> tuple[list[RiskEvidenceReference], dict[tuple, str]]:
+def _evidence_catalog(
+    snapshot: CaseSnapshot,
+) -> tuple[list[RiskEvidenceReference], dict[tuple, str]]:
     unique: dict[tuple[str, str, str, str, str, str], EvidenceReference] = {}
     for ref in snapshot.provenance:
         unique[_evidence_key(ref)] = ref
@@ -91,9 +93,7 @@ def _evidence_catalog(snapshot: CaseSnapshot) -> tuple[list[RiskEvidenceReferenc
 
 def _section_evidence(section: CaseSection, aliases: dict[tuple, str]) -> list[str]:
     return sorted(
-        alias
-        for ref in section.evidence
-        if (alias := aliases.get(_evidence_key(ref))) is not None
+        alias for ref in section.evidence if (alias := aliases.get(_evidence_key(ref))) is not None
     )
 
 
@@ -333,7 +333,7 @@ def _implant_factors(
         flags: list[bool] = []
         invalid = False
         for plan in plans:
-            assessment = ((plan.get("revision") or {}).get("assessment") or {})
+            assessment = (plan.get("revision") or {}).get("assessment") or {}
             value = assessment.get("intersects_nerve_centerline")
             if value is None:
                 continue
@@ -562,8 +562,7 @@ def evaluate_snapshot(snapshot: CaseSnapshot) -> RiskEvaluation:
     risk_map = _risk_map(snapshot, factor_index, aliases)
 
     relevant_projection = {
-        name: snapshot.clinical_state[name].model_dump(mode="json")
-        for name in RELEVANT_SECTIONS
+        name: snapshot.clinical_state[name].model_dump(mode="json") for name in RELEVANT_SECTIONS
     }
     input_payload = {
         "contract_version": RISK_RESULT_CONTRACT_VERSION,

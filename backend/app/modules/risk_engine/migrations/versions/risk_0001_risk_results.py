@@ -56,12 +56,8 @@ def upgrade() -> None:
             name="uq_risk_result_patient_version",
         ),
     )
-    op.create_index(
-        "ix_risk_results_clinic_id", "risk_results", ["clinic_id"], unique=False
-    )
-    op.create_index(
-        "ix_risk_results_patient_id", "risk_results", ["patient_id"], unique=False
-    )
+    op.create_index("ix_risk_results_clinic_id", "risk_results", ["clinic_id"], unique=False)
+    op.create_index("ix_risk_results_patient_id", "risk_results", ["patient_id"], unique=False)
     op.create_index(
         "idx_risk_result_latest",
         "risk_results",

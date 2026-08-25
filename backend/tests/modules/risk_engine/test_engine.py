@@ -229,4 +229,6 @@ def test_relevant_source_change_changes_provenance_digests_without_clinical_scor
 
     assert first.input_digest != second.input_digest
     assert first.result_digest != second.result_digest
-    assert not any("score" in factor.factor_id or "high" in factor.factor_id for factor in second.factors)
+    assert not any(
+        "score" in factor.factor_id or "high" in factor.factor_id for factor in second.factors
+    )

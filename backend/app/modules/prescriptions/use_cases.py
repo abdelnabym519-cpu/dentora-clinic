@@ -146,12 +146,8 @@ class PrescriptionUseCases:
             reason=reason.strip(),
         )
 
-    async def get(
-        self, prescription_id: UUID, *, tenant_id: UUID, clinic_id: UUID
-    ) -> Prescription:
-        rx = await self.repository.get(
-            prescription_id, tenant_id=tenant_id, clinic_id=clinic_id
-        )
+    async def get(self, prescription_id: UUID, *, tenant_id: UUID, clinic_id: UUID) -> Prescription:
+        rx = await self.repository.get(prescription_id, tenant_id=tenant_id, clinic_id=clinic_id)
         if rx is None:
             raise PrescriptionError("prescription not found")
         return rx

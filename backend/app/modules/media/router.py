@@ -34,6 +34,7 @@ from .service import AttachmentService, DocumentService, PhotoService
 from .thumbnails import MEDIUM_SUFFIX, THUMB_SUFFIX, is_thumbnailable
 from .validation import (
     DOCUMENT_TYPES,
+    read_upload_bytes_limited,
     validate_document_type,
     validate_file_size,
     validate_mime_type,
@@ -92,7 +93,7 @@ async def upload_document(
     validate_file_size(file)
     mime_type = validate_mime_type(file)
 
-    file_data = await file.read()
+    file_data = await read_upload_bytes_limited(file)
 
     document = await DocumentService.create_document(
         db=db,
@@ -186,7 +187,7 @@ async def upload_photo(
 
     validate_file_size(file)
     mime_type = validate_mime_type(file)
-    file_data = await file.read()
+    file_data = await read_upload_bytes_limited(file)
 
     document = await DocumentService.create_document(
         db=db,
@@ -284,9 +285,9 @@ async def download_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    from .storage import get_storage_backend
+    from .storage import get_document_storage_backend
 
-    storage = get_storage_backend()
+    storage = get_document_storage_backend(document)
     base_path = document.storage_path
 
     path: str

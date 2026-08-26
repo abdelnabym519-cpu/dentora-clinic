@@ -1,0 +1,66 @@
+name: Apply Auto Update Manifest Contract Fix
+
+on:
+  push:
+    branches: ["ops/auto-update-production-validation"]
+    paths: [".github/workflows/auto-update-apply-manifest-fix.yml"]
+
+permissions:
+  contents: write
+
+env:
+  EXPECTED_RELEASE_SHA: 4c55baa7884a559c05b592c73a2e3f33eb32166c
+  RELEASE_BRANCH: release/v2.0.1
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout guarded release branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Verify checkpoint and patch manifest producer
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          if [[ "$actual" != "$EXPECTED_RELEASE_SHA" ]]; then
+            echo "::error::release/v2.0.1 moved: expected $EXPECTED_RELEASE_SHA, got $actual"
+            exit 1
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/release.yml')
+          text = path.read_text(encoding='utf-8')
+          old = '            echo "$image=$ref@$digest" >> release-assets/images.env\n'
+          new = (
+              '            immutable_ref="${REGISTRY}/${GITHUB_REPOSITORY}-${image}@${digest}"\n'
+              '            echo "$image=$immutable_ref" >> release-assets/images.env\n'
+          )
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one manifest producer occurrence, found {count}')
+          text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
+          git diff --check
+          grep -F 'immutable_ref="${REGISTRY}/${GITHUB_REPOSITORY}-${image}@${digest}"' .github/workflows/release.yml
+          if grep -F 'echo "$image=$ref@$digest" >> release-assets/images.env' .github/workflows/release.yml; then
+            echo '::error::tag@digest manifest producer remains'
+            exit 1
+          fi
+          git diff -- .github/workflows/release.yml
+
+      - name: Commit and push proven fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/release.yml
+          git commit -m 'fix: emit digest-only release image references'
+          git push origin HEAD:${RELEASE_BRANCH}
+          echo "new_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"

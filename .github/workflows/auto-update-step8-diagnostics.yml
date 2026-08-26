@@ -1,0 +1,123 @@
+name: Auto Update Step 8 Diagnostics
+
+on:
+  push:
+    branches: ["ops/auto-update-production-validation"]
+    paths: [".github/workflows/auto-update-step8-diagnostics.yml"]
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  TARGET_SHA: 4c55baa7884a559c05b592c73a2e3f33eb32166c
+  TARGET_TAG: v2.0.1
+
+jobs:
+  step8-check-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout final release validation SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+
+      - name: Prepare exact Step 8 Check precondition
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          [ "$actual" = "$TARGET_SHA" ]
+          cp .env.client.example .env.client
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.env.client')
+          vals={
+            'DENTORA_VERSION':'2.0.0',
+            'DENTORA_RELEASE_REPOSITORY':'abdelnabym519-cpu/dentora-clinic',
+            'DENTORA_BACKEND_IMAGE':'dentora-validation-backend:2.0.0',
+            'DENTORA_FRONTEND_IMAGE':'dentora-validation-frontend:2.0.0',
+          }
+          lines=p.read_text().splitlines()
+          for k,v in vals.items():
+              for i,line in enumerate(lines):
+                  if line.startswith(k+'='):
+                      lines[i]=f'{k}={v}'
+                      break
+              else:
+                  lines.append(f'{k}={v}')
+          p.write_text('\n'.join(lines)+'\n')
+          PY
+          mkdir -p dentora-step8-diagnostics
+          printf '%s\n' "$actual" > dentora-step8-diagnostics/checkout-sha.txt
+          grep '^DENTORA_' .env.client > dentora-step8-diagnostics/dentora-env.txt
+          pwsh --version > dentora-step8-diagnostics/pwsh-version.txt 2>&1 || true
+          docker version > dentora-step8-diagnostics/docker-version.txt 2>&1 || true
+          docker compose version > dentora-step8-diagnostics/compose-version.txt 2>&1 || true
+          docker compose --env-file .env.client -f docker-compose.client.yml config > dentora-step8-diagnostics/compose-config.txt 2>&1 || true
+          curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" \
+            > dentora-step8-diagnostics/latest-release.json 2> dentora-step8-diagnostics/latest-release.stderr.log || true
+          jq '{tag_name,draft,prerelease,assets:[.assets[]|{name,size,digest,browser_download_url}]}' \
+            dentora-step8-diagnostics/latest-release.json > dentora-step8-diagnostics/latest-release-summary.json 2>/dev/null || true
+
+      - name: Run Step 8 Check with explicit evidence capture
+        id: check
+        shell: bash
+        run: |
+          set +e
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Check \
+            > dentora-step8-diagnostics/check.stdout.log \
+            2> dentora-step8-diagnostics/check.stderr.log
+          code=$?
+          set -e
+          printf '%s\n' "$code" > dentora-step8-diagnostics/check.exit-code.txt
+          if [ -f .dentora-update/status.json ]; then
+            cp .dentora-update/status.json dentora-step8-diagnostics/status.json
+          fi
+          if [ -d .dentora-update ]; then
+            find .dentora-update -maxdepth 4 -type f -printf '%p\t%s bytes\n' | sort > dentora-step8-diagnostics/update-files.txt || true
+            tar -czf dentora-step8-diagnostics/update-state.tar.gz .dentora-update || true
+          fi
+          {
+            echo '## Step 8 diagnostic evidence'
+            echo
+            echo "- Target SHA: $TARGET_SHA"
+            echo "- Check exit code: $code"
+            echo
+            echo '### stdout'
+            echo '```text'
+            sed -n '1,240p' dentora-step8-diagnostics/check.stdout.log
+            echo '```'
+            echo
+            echo '### stderr'
+            echo '```text'
+            sed -n '1,240p' dentora-step8-diagnostics/check.stderr.log
+            echo '```'
+            echo
+            echo '### update state files'
+            echo '```text'
+            cat dentora-step8-diagnostics/update-files.txt 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Step 8 diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-update-step8-diagnostics
+          path: dentora-step8-diagnostics
+          retention-days: 7
+
+      - name: Preserve original Check result
+        if: always()
+        shell: bash
+        run: |
+          code='${{ steps.check.outputs.exit_code }}'
+          if [ -z "$code" ]; then
+            echo '::error::Step 8 Check did not produce an exit code.'
+            exit 1
+          fi
+          exit "$code"

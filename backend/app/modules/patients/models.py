@@ -72,9 +72,7 @@ class Patient(Base, TimestampMixin):
     # uniqueness gives tenant-owned child tables a legal PostgreSQL target for
     # (patient_id, clinic_id) foreign keys, preventing cross-clinic references
     # at the database boundary without changing API identifiers.
-    __table_args__ = (
-        UniqueConstraint("id", "clinic_id", name="uq_patients_id_clinic"),
-    )
+    __table_args__ = (UniqueConstraint("id", "clinic_id", name="uq_patients_id_clinic"),)
 
     @property
     def full_name(self) -> str:

@@ -13,13 +13,13 @@ from app.database import async_session_maker
 from .models import Document, MediaAttachment
 from .router import router
 from .service import DocumentService
-from .storage_router import router as storage_router
+from .storage_router import router as storage_delivery_router
 
 logger = logging.getLogger(__name__)
 
 # Scalable delivery endpoints are additive; the existing media routes remain
 # unchanged for compatibility with current frontend and integrations.
-router.include_router(storage_router)
+router.include_router(storage_delivery_router)
 
 
 class MediaModule(BaseModule):

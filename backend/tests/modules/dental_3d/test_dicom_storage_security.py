@@ -75,6 +75,7 @@ async def test_dicom_upload_cannot_target_patient_in_another_clinic(
     client: AsyncClient,
     auth_headers: dict[str, str],
     db_session: AsyncSession,
+    test_clinic: Clinic,
 ) -> None:
     other_clinic = Clinic(
         id=uuid4(),

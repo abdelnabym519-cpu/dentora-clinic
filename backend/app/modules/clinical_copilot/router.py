@@ -26,6 +26,15 @@ from .service import (
 router = APIRouter(dependencies=[Depends(require_license_feature("ai"))])
 
 
+def _enforce_dentist_control(role: str) -> None:
+    """Reject non-dentists even when a broader RBAC wildcard matches ``use``."""
+    if role != "dentist":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "dentist_control_required"},
+        )
+
+
 @router.get(
     "/patients/{patient_id}/context",
     response_model=ApiResponse[ClinicalCopilotContext],
@@ -50,6 +59,7 @@ async def advise(
     _: Annotated[None, Depends(require_permission("clinical_copilot.use"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ClinicalCopilotAdvisory]:
+    _enforce_dentist_control(ctx.role)
     configured = await db.get(CopilotSettings, ctx.clinic_id)
     provider_name = configured.provider if configured else app_settings.COPILOT_PROVIDER_DEFAULT
     model = configured.model if configured else app_settings.COPILOT_MODEL_CHAT_OPENAI

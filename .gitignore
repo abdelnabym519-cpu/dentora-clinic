@@ -68,6 +68,10 @@ logs/
 .gstack/
 proyecto_open_source_dental.docx
 
+# Auto-scaling runtime state / generated metrics
+.dentora/
+monitoring/dentora-autoscaler.prom
+
 # DPMF export files contain real patient data — never commit
 *.dpm
 *.dpmf

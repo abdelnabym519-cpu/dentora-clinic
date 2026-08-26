@@ -1,0 +1,32 @@
+{
+  "service": "backend",
+  "min_replicas": 1,
+  "max_replicas": 4,
+  "cpu": {
+    "scale_out_percent": 70,
+    "scale_in_percent": 35
+  },
+  "memory": {
+    "scale_out_percent": 75,
+    "scale_in_percent": 50
+  },
+  "queue": {
+    "enabled": false,
+    "scale_out_depth": 100,
+    "scale_in_depth": 20
+  },
+  "scale_out": {
+    "step": 1,
+    "breaches": 2,
+    "cooldown_seconds": 60
+  },
+  "scale_in": {
+    "step": 1,
+    "breaches": 5,
+    "cooldown_seconds": 300,
+    "stabilization_seconds": 300
+  },
+  "evaluation_interval_seconds": 30,
+  "state_path": ".dentora/autoscaler-state.json",
+  "metrics_path": "monitoring/dentora-autoscaler.prom"
+}

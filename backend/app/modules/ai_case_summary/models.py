@@ -6,7 +6,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -47,6 +55,11 @@ class AICaseSummaryRecord(Base):
     reviewer: Mapped[User | None] = relationship(foreign_keys=[reviewed_by])
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            name="fk_ai_case_summary_patient_clinic",
+        ),
         UniqueConstraint(
             "patient_id",
             "summary_version",

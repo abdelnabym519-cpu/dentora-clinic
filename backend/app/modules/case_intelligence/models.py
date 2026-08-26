@@ -6,7 +6,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,10 +42,15 @@ class CaseSnapshotRecord(Base):
     generated_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     clinic: Mapped[Clinic] = relationship()
-    patient: Mapped[Patient] = relationship()
+    patient: Mapped[Patient] = relationship(foreign_keys=[patient_id])
     generator: Mapped[User | None] = relationship()
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            name="fk_case_intelligence_patient_clinic",
+        ),
         UniqueConstraint(
             "patient_id",
             "snapshot_version",

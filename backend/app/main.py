@@ -31,6 +31,7 @@ from app.core.plugins.service import ModuleService
 from app.core.scheduler import init_scheduler, shutdown_scheduler
 from app.core.schemas import ErrorResponse
 from app.database import async_session_maker, engine, get_db
+from app.infrastructure.scheduler_leadership import PostgresAdvisorySchedulerLease
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +71,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception:
         logger.exception("Pending module processor raised")
 
-    init_scheduler()
+    # API replicas share PostgreSQL, so a session advisory lock elects one
+    # periodic-job leader. Followers keep serving requests and retry leadership
+    # automatically if the current leader disappears.
+    await init_scheduler(PostgresAdvisorySchedulerLease(engine))
 
     yield
 
-    shutdown_scheduler()
+    await shutdown_scheduler()
     engines = getattr(app.state, "tenant_engines", None)
     if engines is not None:
         await engines.dispose_all()

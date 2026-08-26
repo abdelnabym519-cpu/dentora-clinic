@@ -52,15 +52,50 @@
 
 **لا تستخدم `docker compose down -v` على جهاز العميل** لأنه يحذف Docker volumes وبالتالي بيانات العيادة وحالة التفعيل المحلية.
 
-## الوصول من أجهزة أخرى داخل العيادة
+## Mini PC والوصول الآمن من شبكة العيادة
 
-إذا كان مطلوبًا فتح Dentora من أجهزة أخرى على نفس الشبكة، ثبّت IP لجهاز السيرفر ثم غيّر في `.env.client`:
+يظل التشغيل الأول متاحًا على `http://localhost` للحفاظ على التوافق مع التثبيتات الحالية. عند استخدام جهاز Mini PC كسيرفر داخل العيادة، يجب استخدام عنوان IPv4 خاص وثابت أو محجوز من الراوتر ثم تفعيل HTTPS على هذا العنوان.
 
-```env
-PUBLIC_URL=http://192.168.1.50
+1. ثبّت أو احجز عنوانًا خاصًا للـMini PC، مثل `192.168.1.50`.
+2. شغّل `START_DENTORA.bat` مرة واحدة أولًا حتى يتم إنشاء `.env.client` وDocker volumes الخاصة بالتثبيت.
+3. افتح Command Prompt بصلاحية Administrator داخل مجلد Dentora وشغّل:
+
+```bat
+SETUP_LAN_HTTPS.bat 192.168.1.50
 ```
 
-واسمح بمنفذ TCP 80 في Windows Firewall ثم أعد تشغيل الخدمات.
+السكريبت يتحقق من أن العنوان ضمن شبكات RFC1918 الخاصة، ثم يضبط `PUBLIC_URL` إلى:
+
+```env
+PUBLIC_URL=https://192.168.1.50
+```
+
+بعد ذلك يعيد Build/Start للواجهة على الـorigin الجديد، ويفتح TCP 80 و443 في Windows Firewall للـ`LocalSubnet` فقط، ويصدر شهادة Caddy المحلية إلى `dentora-lan-ca.crt`، ويضيف هذه الشهادة إلى Trust Store على جهاز الـMini PC، ثم يتحقق فعليًا من `https://<IP>/health`.
+
+- Caddy هو الخدمة الوحيدة المنشورة إلى شبكة العيادة؛ PostgreSQL والـbackend والـfrontend لا تنشر منافذها مباشرة على الـLAN.
+- المنفذ 80 موجود فقط لدعم التحويل التلقائي إلى HTTPS عندما يكون `PUBLIC_URL` عنوان HTTPS.
+- احتفظ بعنوان الـMini PC ثابتًا. تغيير الـIP يتطلب إعادة تشغيل `SETUP_LAN_HTTPS.bat` بالعنوان الجديد حتى يتطابق الـorigin والشهادة وإعدادات الواجهة.
+- ملف `dentora-lan-ca.crt` ليس مفتاحًا خاصًا، لكنه يخص هذا التثبيت ويُنشأ محليًا ولا يتم Commit له في Git.
+
+## Workstation Setup — أجهزة الاستقبال والأطباء
+
+بعد نجاح إعداد الـMini PC وLAN/HTTPS، جهّز حزمة أجهزة العمل على السيرفر بتشغيل:
+
+```bat
+PREPARE_WORKSTATION_KIT.bat
+```
+
+ينشئ السكريبت `Dentora_Workstation_Kit` ويضع داخله شهادة الـCA العامة، إعدادات URL وSHA-256، سكريبت إعداد جهاز العمل، ودليل الاستخدام فقط. لا ينسخ `.env.client` أو كلمات مرور قاعدة البيانات أو مفاتيح خاصة أو بيانات مرضى.
+
+على كل جهاز استقبال أو طبيب:
+
+1. انسخ مجلد `Dentora_Workstation_Kit` كاملًا من الـMini PC.
+2. شغّل `SETUP_DENTORA_WORKSTATION.bat` بصلاحية Administrator.
+3. السكريبت يتحقق من URL الخاص بالـMini PC ومن سلامة شهادة الـCA باستخدام SHA-256، ويتأكد من الوصول إلى TCP 443.
+4. يثبت شهادة Dentora في Windows `LocalMachine\Root` ويختبر `/health` على HTTPS **بدون certificate bypass**.
+5. ينشئ Shortcut باسم **Dentora Clinic** على Public Desktop لكل مستخدمي الجهاز.
+
+أجهزة العمل لا تحتاج Docker أو PostgreSQL أو نسخة محلية من Dentora أو `.env.client`. راجع `WORKSTATION_SETUP_AR.md` للتفاصيل واستكشاف الأخطاء.
 
 ## الترخيص والعمل دون إنترنت
 

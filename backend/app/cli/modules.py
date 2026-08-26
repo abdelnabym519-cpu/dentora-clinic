@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.plugins import ModuleOperationError, ModuleService
 from app.core.plugins.loader import discover_modules
 from app.core.plugins.registry import module_registry
-from app.database import async_session_maker
+from app.database import async_session_maker, engine
 
 
 def register(sub: argparse._SubParsersAction) -> None:
@@ -106,6 +106,11 @@ def _run(
     coro_fn: Callable[[ModuleService, argparse.Namespace], Awaitable[int]],
 ) -> Callable[[argparse.Namespace], Awaitable[int]]:
     async def wrapper(args: argparse.Namespace) -> int:
+        # ``--json`` is a machine-readable contract. SQLAlchemy echo output in
+        # development would otherwise contaminate stdout before/after the JSON.
+        if getattr(args, "as_json", False):
+            engine.echo = False
+
         # Discovery populates the in-memory registry so CLI can see modules
         # even without a running app lifespan.
         if not module_registry.list_modules():

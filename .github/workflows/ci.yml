@@ -6,9 +6,13 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-lint:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -27,7 +31,7 @@ jobs:
         run: ruff format --check backend/
 
   backend-test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     services:
       postgres:
         image: postgres:15-alpine
@@ -57,6 +61,22 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Ensure pg_dump is available
+        run: |
+          if command -v pg_dump >/dev/null 2>&1; then
+            pg_dump --version
+            exit 0
+          fi
+          pg_bin_dir="${RUNNER_TEMP}/postgres-client-bin"
+          mkdir -p "${pg_bin_dir}"
+          cat > "${pg_bin_dir}/pg_dump" <<'EOF'
+          #!/usr/bin/env bash
+          exec docker run --rm --network host postgres:15-alpine pg_dump "$@"
+          EOF
+          chmod +x "${pg_bin_dir}/pg_dump"
+          echo "${pg_bin_dir}" >> "${GITHUB_PATH}"
+          "${pg_bin_dir}/pg_dump" --version
+
       - name: Install dependencies
         working-directory: backend
         run: |
@@ -77,7 +97,7 @@ jobs:
     # resolve, declare a valid manifest, and its role permissions must
     # match the ROLE_PERMISSIONS table. Runs without a database so we
     # get a quick signal on PRs that touch modules.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -111,7 +131,7 @@ jobs:
     # in sync with the manifests + EventType enum + event_bus.publish
     # callsites. Authors regenerate locally with:
     #   python backend/scripts/generate_catalogs.py
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -153,7 +173,7 @@ jobs:
     # Fails if a new markdown file is dropped at docs/ root, an unknown
     # folder is added under docs/, or an image is placed outside
     # docs/screenshots or docs/diagrams.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -169,7 +189,7 @@ jobs:
     # Smoke test: the VitePress documentation portal (ADR 0009) builds
     # cleanly. Runs on every PR — fast (under a minute) and surfaces
     # broken markdown / sidebar config before deploy.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -190,7 +210,7 @@ jobs:
         run: test -f docs/portal/.vitepress/dist/index.html
 
   frontend-lint:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -211,7 +231,7 @@ jobs:
     # Guards against broken Vue/TS imports across module Nuxt layers
     # (Fase B.6). `modules.json` is written by the backend at runtime;
     # we stub an empty one here so Nuxt picks up only the host sources.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -234,7 +254,7 @@ jobs:
         run: npx nuxi prepare
 
   frontend-test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     steps:
       - uses: actions/checkout@v5
 
@@ -256,14 +276,31 @@ jobs:
     # Nuxt on the host (simpler than juggling the container's bind
     # mount + host npm), drives it with Playwright on the host. Slow
     # (~6 min). Required on main + PRs.
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, dentora-ci]
     timeout-minutes: 20
     env:
       POSTGRES_PASSWORD: testpass
       SECRET_KEY: ci-secret-key-for-e2e
+      COMPOSE_PROJECT_NAME: dentora_ci_e2e
+      POSTGRES_PORT_MAPPING: "5432"
+      BACKEND_PORT_MAPPING: "8000"
 
     steps:
       - uses: actions/checkout@v5
+
+      - name: Sanitize self-hosted E2E workspace
+        run: |
+          echo "--- checkout revision ---"
+          git rev-parse HEAD
+          echo "--- stale E2E paths before clean ---"
+          git clean -ndx -- frontend/tests/e2e || true
+          git reset --hard HEAD
+          git clean -ffdx
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Workspace is not clean after checkout sanitization."
+            git status --short
+            exit 1
+          fi
 
       - name: Write .env
         run: |
@@ -276,16 +313,28 @@ jobs:
       - name: Boot db + backend
         run: docker compose up -d db backend
 
+      - name: Resolve backend host port
+        run: |
+          backend_endpoint="$(docker compose port backend 8000)"
+          backend_port="${backend_endpoint##*:}"
+          if ! [[ "${backend_port}" =~ ^[0-9]+$ ]]; then
+            echo "could not resolve backend host port from: ${backend_endpoint}"
+            docker compose ps
+            exit 1
+          fi
+          echo "BACKEND_BASE_URL=http://127.0.0.1:${backend_port}" >> "${GITHUB_ENV}"
+          echo "backend published at http://127.0.0.1:${backend_port}"
+
       - name: Wait for backend health
         run: |
           for i in $(seq 1 60); do
-            if curl -sf http://127.0.0.1:8100/health > /dev/null; then
+            if curl -sf "${BACKEND_BASE_URL}/health" > /dev/null; then
               echo "backend ready"
               exit 0
             fi
             sleep 2
           done
-          echo "backend did not become ready on port 8100"
+          echo "backend did not become ready at ${BACKEND_BASE_URL}"
           docker compose ps
           docker compose logs backend
           exit 1
@@ -296,6 +345,87 @@ jobs:
       - name: Seed demo data
         run: ./scripts/seed-demo.sh --lang es
 
+      - name: Schedule Periodontogram for E2E
+        run: |
+          diag_dir="${RUNNER_TEMP}/periodontogram-e2e-diagnostics"
+          rm -rf "${diag_dir}"
+          mkdir -p "${diag_dir}"
+          echo "PERIO_DIAG_DIR=${diag_dir}" >> "${GITHUB_ENV}"
+          set +e
+          ./bin/dentora modules install periodontogram > "${diag_dir}/schedule.log" 2>&1
+          rc=$?
+          set -e
+          cat "${diag_dir}/schedule.log"
+          ./bin/dentora modules info periodontogram --json > "${diag_dir}/info-after-schedule.json" 2>&1 || true
+          ./bin/dentora modules status --json > "${diag_dir}/status-after-schedule.json" 2>&1 || true
+          exit "${rc}"
+
+      - name: Restart backend for Periodontogram
+        run: |
+          docker compose ps > "${PERIO_DIAG_DIR}/compose-before-restart.txt" 2>&1 || true
+          set +e
+          docker compose restart backend > "${PERIO_DIAG_DIR}/restart.log" 2>&1
+          rc=$?
+          set -e
+          cat "${PERIO_DIAG_DIR}/restart.log"
+          docker compose ps > "${PERIO_DIAG_DIR}/compose-after-restart.txt" 2>&1 || true
+          if [ "${rc}" -eq 0 ]; then
+            backend_endpoint="$(docker compose port backend 8000)"
+            backend_port="${backend_endpoint##*:}"
+            if ! [[ "${backend_port}" =~ ^[0-9]+$ ]]; then
+              echo "::error::Could not resolve backend host port after restart from: ${backend_endpoint}"
+              exit 1
+            fi
+            echo "BACKEND_BASE_URL=http://127.0.0.1:${backend_port}" >> "${GITHUB_ENV}"
+            echo "backend republished at http://127.0.0.1:${backend_port}"
+          fi
+          exit "${rc}"
+
+      - name: Wait for backend after Periodontogram restart
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf "${BACKEND_BASE_URL}/health" > /dev/null; then
+              echo "backend ready after Periodontogram restart"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Backend did not recover after Periodontogram restart."
+          docker compose ps | tee "${PERIO_DIAG_DIR}/compose-health-failure.txt" || true
+          docker compose logs --no-color backend > "${PERIO_DIAG_DIR}/backend-health-failure.log" 2>&1 || true
+          cat "${PERIO_DIAG_DIR}/backend-health-failure.log" || true
+          exit 1
+
+      - name: Verify Periodontogram for E2E
+        run: |
+          ./bin/dentora modules info periodontogram --json > "${PERIO_DIAG_DIR}/info-after-restart.json" 2>&1
+          ./bin/dentora modules status --json > "${PERIO_DIAG_DIR}/status-after-restart.json" 2>&1 || true
+          cat "${PERIO_DIAG_DIR}/info-after-restart.json"
+          module_state="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["state"])' < "${PERIO_DIAG_DIR}/info-after-restart.json")"
+          if [ "${module_state}" != "installed" ]; then
+            echo "::error::Periodontogram module state is ${module_state}, expected installed."
+            exit 1
+          fi
+
+      - name: Capture Periodontogram diagnostics
+        if: always()
+        run: |
+          diag_dir="${PERIO_DIAG_DIR:-${RUNNER_TEMP}/periodontogram-e2e-diagnostics}"
+          mkdir -p "${diag_dir}"
+          docker compose ps > "${diag_dir}/compose-final.txt" 2>&1 || true
+          docker compose logs --no-color backend > "${diag_dir}/backend-final.log" 2>&1 || true
+          ./bin/dentora modules info periodontogram --json > "${diag_dir}/info-final.json" 2>&1 || true
+          ./bin/dentora modules status --json > "${diag_dir}/status-final.json" 2>&1 || true
+
+      - name: Upload Periodontogram diagnostics
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: periodontogram-e2e-diagnostics
+          path: ${{ runner.temp }}/periodontogram-e2e-diagnostics
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
@@ -305,7 +435,8 @@ jobs:
         working-directory: frontend
         run: |
           npm install
-          npx playwright install --with-deps chromium
+          # OS dependencies are provisioned once by the dedicated Linux runner bootstrap.
+          npx playwright install chromium
 
       - name: Generate modules.json with host paths
         # The backend writes `modules.json` with `/module_layers/...`
@@ -337,12 +468,13 @@ jobs:
         working-directory: frontend
         env:
           E2E_LOCALE: en
-          NUXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8100
-          API_BASE_URL_SERVER: http://127.0.0.1:8100
           NITRO_HOST: 0.0.0.0
           NITRO_PORT: "3000"
         run: |
+          export NUXT_PUBLIC_API_BASE_URL="${BACKEND_BASE_URL}"
+          export API_BASE_URL_SERVER="${BACKEND_BASE_URL}"
           nohup npm run dev > /tmp/nuxt.log 2>&1 &
+          echo $! > /tmp/dentora-nuxt.pid
           echo "nuxt started (pid $!)"
 
       - name: Wait for frontend
@@ -355,11 +487,21 @@ jobs:
           done
           curl -sf -o /dev/null -w "final status: %{http_code}\n" http://localhost:3000/login
 
+      - name: Verify E2E sources are tracked
+        run: |
+          untracked="$(git ls-files --others --exclude-standard -- frontend/tests/e2e)"
+          ignored="$(git ls-files --others --ignored --exclude-standard -- frontend/tests/e2e)"
+          if [ -n "${untracked}${ignored}" ]; then
+            echo "::error::Untracked or ignored E2E source files appeared after checkout."
+            printf '%s\n' "${untracked}" "${ignored}" | sed '/^$/d'
+            exit 1
+          fi
+
       - name: Run E2E
         working-directory: frontend
-        env:
-          E2E_API_BASE: http://127.0.0.1:8100
-        run: npx playwright test --reporter=list
+        run: |
+          export E2E_API_BASE="${BACKEND_BASE_URL}"
+          npx playwright test --reporter=list
 
       - name: Upload Nuxt log on failure
         if: failure()
@@ -384,3 +526,12 @@ jobs:
           name: playwright-test-results
           path: frontend/test-results
           retention-days: 7
+
+      - name: Clean self-hosted E2E resources
+        if: always()
+        run: |
+          if [ -f /tmp/dentora-nuxt.pid ]; then
+            kill "$(cat /tmp/dentora-nuxt.pid)" 2>/dev/null || true
+            rm -f /tmp/dentora-nuxt.pid
+          fi
+          docker compose down -v --remove-orphans || true

@@ -65,6 +65,7 @@ async def test_presigned_download_requires_clinic_authorization(
     client: AsyncClient,
     auth_headers: dict[str, str],
     db_session: AsyncSession,
+    test_clinic: Clinic,
 ) -> None:
     me = await client.get("/api/v1/auth/me", headers=auth_headers)
     user_id = me.json()["data"]["user"]["id"]

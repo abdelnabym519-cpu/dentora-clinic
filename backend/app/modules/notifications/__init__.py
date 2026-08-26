@@ -71,15 +71,16 @@ class NotificationsModule(BaseModule):
         return tools.get_tools()
 
     def get_scheduled_jobs(self) -> list[ScheduledJob]:
-        from .tasks import dispatch_outbox, process_appointment_reminders
+        from .tasks import dispatch_outbox
+        from .whatsapp_automation import process_appointment_message_automation
 
         return [
             ScheduledJob(
                 id="appointment_reminders",
-                func=process_appointment_reminders,
+                func=process_appointment_message_automation,
                 trigger="interval",
                 trigger_args={"minutes": 5},
-                name="Process appointment reminders (every 5 minutes)",
+                name="Process appointment messages (every 5 minutes)",
             ),
             ScheduledJob(
                 id="notifications_dispatch_outbox",
@@ -104,9 +105,10 @@ class NotificationsModule(BaseModule):
 
     def get_event_handlers(self) -> dict:
         from .handlers import NotificationHandlers
+        from .whatsapp_automation import on_appointment_scheduled
 
         return {
-            EventType.APPOINTMENT_SCHEDULED: NotificationHandlers.on_appointment_scheduled,
+            EventType.APPOINTMENT_SCHEDULED: on_appointment_scheduled,
             EventType.APPOINTMENT_CANCELLED: NotificationHandlers.on_appointment_cancelled,
             EventType.PATIENT_CREATED: NotificationHandlers.on_patient_created,
             EventType.BUDGET_SENT: NotificationHandlers.on_budget_sent,

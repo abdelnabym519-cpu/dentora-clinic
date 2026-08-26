@@ -1,5 +1,5 @@
 """Parity test: the frontend copy of the status state machine must match
-the backend's ``VALID_TRANSITIONS``.
+the backend's canonical domain ``VALID_TRANSITIONS``.
 
 Duplication is intentional — the frontend needs the machine synchronously
 to render quick-action buttons, and a dedicated ``GET /status-machine``
@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from app.modules.agenda.service import VALID_TRANSITIONS
+from app.modules.agenda.domain import VALID_TRANSITIONS
 
 FRONTEND_COMPOSABLE = (
     Path(__file__).resolve().parents[1]
@@ -27,8 +27,6 @@ FRONTEND_COMPOSABLE = (
 
 def _parse_frontend_machine() -> dict[str, set[str]]:
     text = FRONTEND_COMPOSABLE.read_text()
-    # Grab the object literal between the VALID_TRANSITIONS opening brace
-    # and the matching closing brace.
     match = re.search(r"VALID_TRANSITIONS:\s*Record<[^>]+>\s*=\s*\{([^}]*)\}", text)
     assert match is not None, "VALID_TRANSITIONS block not found in composable"
     body = match.group(1)

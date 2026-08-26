@@ -56,7 +56,7 @@ class ClinicalNotesModule(BaseModule):
             "dentist": ["notes.read", "notes.write"],
             "hygienist": ["notes.read", "notes.write"],
             "assistant": ["notes.read", "notes.write"],
-            "receptionist": ["notes.read", "notes.write"],
+            "receptionist": [],
         },
         "frontend": {
             "layer_path": "frontend",

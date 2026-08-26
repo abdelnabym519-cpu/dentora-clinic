@@ -110,10 +110,30 @@ def _sanitize_structured(value: Any) -> Any:
     return value
 
 
+def _tokenize_internal_uuids(value: Any, *, redactor: Redactor) -> Any:
+    """Tokenize every canonical UUID value using Dentora's existing symbol table."""
+    if isinstance(value, dict):
+        return {key: _tokenize_internal_uuids(item, redactor=redactor) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_tokenize_internal_uuids(item, redactor=redactor) for item in value]
+    if isinstance(value, UUID):
+        return redactor.table.tokenize(str(value), "REF")
+    if isinstance(value, str):
+        try:
+            parsed = UUID(value)
+        except (ValueError, AttributeError):
+            return value
+        if str(parsed) == value.lower():
+            return redactor.table.tokenize(value, "REF")
+    return value
+
+
 def _redact_structured(value: Any, *, redactor: Redactor | None = None) -> Any:
     """Apply the existing agent redactor after the stricter clinical allow/deny boundary."""
     active = redactor or Redactor(enabled=True)
-    return active.redact_result(_sanitize_structured(value))
+    sanitized = _sanitize_structured(value)
+    tokenized = _tokenize_internal_uuids(sanitized, redactor=active)
+    return active.redact_result(tokenized)
 
 
 def _evidence_refs(payload: dict[str, Any]) -> list[str]:

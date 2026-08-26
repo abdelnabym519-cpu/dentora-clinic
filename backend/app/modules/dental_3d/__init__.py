@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.core.plugins import BaseModule
 
+from .change_detection_router import router as change_detection_router
 from .implant_models import (
     DentalImplantPlan,
     DentalImplantPlanRevision,
@@ -23,6 +24,7 @@ from .router import router as core_router
 router = APIRouter()
 router.include_router(core_router)
 router.include_router(implant_router)
+router.include_router(change_detection_router)
 
 
 class Dental3DModule(BaseModule):

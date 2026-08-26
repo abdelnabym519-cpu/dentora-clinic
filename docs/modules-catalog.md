@@ -13,6 +13,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
 | `agenda` | 0.4.0 | official | patients, catalog, odontogram | auto | no | 4 | 11 | 0 | yes |
 | `ai_case_summary` | 1.0.0 | official | case_intelligence, patients | manual | no | 3 | 0 | 0 | no |
+| `ai_clinical_report` | 1.0.0 | official | clinical_copilot, ai_second_review, copilot | manual | no | 2 | 0 | 0 | no |
 | `ai_second_review` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, patients | manual | no | 3 | 0 | 0 | no |
 | `ai_treatment_planning` | 1.0.0 | official | case_intelligence, risk_engine, patients | manual | no | 3 | 0 | 0 | no |
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
@@ -108,6 +109,23 @@ Advisory, evidence-traceable AI summaries derived from redacted CaseSnapshot inp
 - **Events emitted:** —
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/ai_case_summary/CLAUDE.md`](../backend/app/modules/ai_case_summary/CLAUDE.md)
+
+### `ai_clinical_report` — v1.0.0
+
+Draft-only AI clinical reports assembled from the reviewed cross-stage clinical evidence chain, with strict provenance and no canonical record mutation.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `clinical_copilot`, `ai_second_review`, `copilot`
+- **Frontend layer:** —
+- **Permissions:**
+  - `ai_clinical_report.generate`
+  - `ai_clinical_report.read`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/ai_clinical_report/CLAUDE.md`](../backend/app/modules/ai_clinical_report/CLAUDE.md)
 
 ### `ai_second_review` — v1.0.0
 

@@ -7,9 +7,7 @@ DEFAULT_EMBEDDING_VERSION = "v1"
 MAX_RETRIEVAL_LIMIT = 50
 DEFAULT_LEASE_SECONDS = 300
 
-RETRIEVAL_STATUSES = frozenset(
-    {"pending", "processing", "ready", "stale", "failed", "deleted"}
-)
+RETRIEVAL_STATUSES = frozenset({"pending", "processing", "ready", "stale", "failed", "deleted"})
 
 # Source categories are intentionally broader than today's modules so future
 # clinical adapters do not require a schema rewrite. They identify derived

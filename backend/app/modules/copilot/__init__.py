@@ -1,9 +1,10 @@
-"""Copilot module — operational chat plus a strict advisory clinical surface.
+"""Copilot module — conversational AI agent over Dentora (issue #81).
 
-The existing agentic chat remains a thin surface over ``app/core/agents`` and
-``app/core/llm``. Clinical Copilot is mounted separately under ``/clinical``;
-it reads reviewed clinical workflow contracts at request time, exposes no tools,
-and never mutates canonical clinical records.
+A thin *surface* over the core agentic engine (``app/core/agents`` +
+``app/core/llm``). Consumes tools through the global registry only;
+never imports another module's service, so it keeps ``depends = []`` and
+stays cleanly removable. Per-user RBAC parity: the agent can never see
+or do anything the calling user couldn't through the UI.
 """
 
 from __future__ import annotations
@@ -14,7 +15,6 @@ from app.core.events.types import EventType
 from app.core.plugins import BaseModule
 from app.core.scheduling import ScheduledJob
 
-from .clinical_router import router as clinical_router
 from .models import CopilotConversation, CopilotMessage, CopilotNudge, CopilotSettings
 from .router import router
 
@@ -56,10 +56,7 @@ class CopilotModule(BaseModule):
         return [CopilotConversation, CopilotMessage, CopilotNudge, CopilotSettings]
 
     def get_router(self) -> APIRouter:
-        combined = APIRouter()
-        combined.include_router(router)
-        combined.include_router(clinical_router, prefix="/clinical")
-        return combined
+        return router
 
     def get_event_handlers(self) -> dict:
         # Proactive nudges (ADR 0014 §Deferred). Subscription only — no
@@ -69,8 +66,7 @@ class CopilotModule(BaseModule):
         return {EventType.APPOINTMENT_CANCELLED: on_appointment_cancelled}
 
     def get_permissions(self) -> list[str]:
-        # Clinical Copilot reuses ``copilot.chat`` but additionally enforces
-        # dentist role in the clinical service before any provider call.
+        # Registry namespaces → copilot.chat, copilot.history.read, etc.
         return ["chat", "history.read", "history.read_all", "supervise", "configure"]
 
     def get_tools(self) -> list:

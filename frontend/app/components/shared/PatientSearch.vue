@@ -109,12 +109,14 @@ function handleKeydown(event: KeyboardEvent) {
       event.preventDefault()
       highlightedIndex.value = Math.max(highlightedIndex.value - 1, 0)
       break
-    case 'Enter':
+    case 'Enter': {
       event.preventDefault()
-      if (highlightedIndex.value >= 0 && patients.value[highlightedIndex.value]) {
-        selectPatient(patients.value[highlightedIndex.value])
+      const patient = patients.value[highlightedIndex.value]
+      if (highlightedIndex.value >= 0 && patient) {
+        selectPatient(patient)
       }
       break
+    }
     case 'Escape':
       event.preventDefault()
       isOpen.value = false

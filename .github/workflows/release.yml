@@ -420,9 +420,11 @@ jobs:
           import asyncio
           from pathlib import Path
           from uuid import UUID
+          from app.core.plugins.loader import discover_modules
           from app.database import async_session_maker
           from app.modules.media.models import Document
           from app.seeds.demo_data import CLINIC_ID, USER_DENTIST_ID, get_patients_data
+          discover_modules()
           DOC_ID=UUID('00000000-0000-4000-8000-000000000201')
           PATIENT_ID=get_patients_data()[0]['id']
           DATA=b'Dentora Auto Update production preservation sentinel v2.0.0\n'
@@ -445,10 +447,12 @@ jobs:
           from pathlib import Path
           from uuid import UUID
           from sqlalchemy import func, select
+          from app.core.plugins.loader import discover_modules
           from app.database import async_session_maker
           from app.modules.media.models import Document
           from app.modules.patients.models import Patient
           from app.modules.patients_clinical.models import Allergy, MedicalContext, Medication, SystemicDisease
+          discover_modules()
           DOC_ID=UUID('00000000-0000-4000-8000-000000000201')
           async def main():
               async with async_session_maker() as db:

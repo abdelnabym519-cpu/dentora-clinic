@@ -7,8 +7,6 @@ from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 CHANGE_DETECTION_CONTRACT_VERSION = "1.0"
 
@@ -235,60 +233,39 @@ def compare_snapshot_payloads(
     return baseline_uid, changes
 
 
-class ChangeDetectionService:
-    """Application service for tenant-scoped immutable timepoint comparison."""
+def build_change_detection_response(
+    *,
+    patient_id: UUID,
+    baseline_version: int,
+    followup_version: int,
+    baseline_payload: dict[str, Any],
+    followup_payload: dict[str, Any],
+    baseline_source_digest: str,
+    followup_source_digest: str,
+    baseline_source_versions: dict[str, str],
+    followup_source_versions: dict[str, str],
+) -> ChangeDetectionResponse:
+    """Build a response from immutable snapshots supplied by their owning module."""
 
-    @staticmethod
-    async def compare(
-        db: AsyncSession,
-        *,
-        clinic_id: UUID,
-        patient_id: UUID,
-        baseline_version: int,
-        followup_version: int,
-    ) -> ChangeDetectionResponse:
-        if followup_version <= baseline_version:
-            raise ValueError("followup_version must be greater than baseline_version")
+    if followup_version <= baseline_version:
+        raise ValueError("followup_version must be greater than baseline_version")
 
-        # Local import avoids a module-load cycle: Case Intelligence depends on dental_3d.
-        from app.modules.case_intelligence.models import CaseSnapshotRecord
-
-        rows = (
-            await db.scalars(
-                select(CaseSnapshotRecord)
-                .where(
-                    CaseSnapshotRecord.clinic_id == clinic_id,
-                    CaseSnapshotRecord.patient_id == patient_id,
-                    CaseSnapshotRecord.snapshot_version.in_([baseline_version, followup_version]),
-                )
-                .order_by(CaseSnapshotRecord.snapshot_version)
-            )
-        ).all()
-        by_version = {row.snapshot_version: row for row in rows}
-        baseline_row = by_version.get(baseline_version)
-        followup_row = by_version.get(followup_version)
-        if baseline_row is None or followup_row is None:
-            raise KeyError("snapshot_not_found")
-
-        frame_uid, changes = compare_snapshot_payloads(
-            dict(baseline_row.snapshot_data),
-            dict(followup_row.snapshot_data),
-        )
-        changed_sections = sorted({item.section for item in changes})
-        return ChangeDetectionResponse(
-            patient_id=patient_id,
-            baseline=SnapshotEvidence(
-                version=baseline_version,
-                source_digest=baseline_row.source_digest,
-                source_versions=dict(baseline_row.source_versions or {}),
-            ),
-            followup=SnapshotEvidence(
-                version=followup_version,
-                source_digest=followup_row.source_digest,
-                source_versions=dict(followup_row.source_versions or {}),
-            ),
-            reference_frame_uid=frame_uid,
-            changed_sections=changed_sections,
-            change_count=len(changes),
-            changes=changes,
-        )
+    frame_uid, changes = compare_snapshot_payloads(baseline_payload, followup_payload)
+    changed_sections = sorted({item.section for item in changes})
+    return ChangeDetectionResponse(
+        patient_id=patient_id,
+        baseline=SnapshotEvidence(
+            version=baseline_version,
+            source_digest=baseline_source_digest,
+            source_versions=baseline_source_versions,
+        ),
+        followup=SnapshotEvidence(
+            version=followup_version,
+            source_digest=followup_source_digest,
+            source_versions=followup_source_versions,
+        ),
+        reference_frame_uid=frame_uid,
+        changed_sections=changed_sections,
+        change_count=len(changes),
+        changes=changes,
+    )

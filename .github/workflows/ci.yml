@@ -208,9 +208,9 @@ jobs:
         run: npm run lint
 
   frontend-typecheck:
-    # Guards against broken Vue/TS imports across module Nuxt layers
-    # (Fase B.6). `modules.json` is written by the backend at runtime;
-    # we stub an empty one here so Nuxt picks up only the host sources.
+    # Type-check the same Nuxt module-layer graph that the host runs in E2E.
+    # Absolute host paths preserve the real auto-import/type surface instead
+    # of hiding module composables behind an empty modules.json stub.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -224,10 +224,27 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: Ensure empty modules.json
+      - name: Generate modules.json with host paths
         working-directory: frontend
         run: |
-          echo '{"layers":[],"modules":[],"version":1}' > modules.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          modules_dir = root / "backend/app/modules"
+          entries = []
+          for m in sorted(modules_dir.iterdir()):
+              layer = m / "frontend"
+              if layer.is_dir():
+                  entries.append({"name": m.name, "path": str(layer.resolve())})
+          Path("modules.json").write_text(
+              json.dumps(
+                  {"layers": [e["path"] for e in entries], "modules": entries, "version": 1},
+                  indent=2,
+              )
+          )
+          PY
+          cat modules.json
 
       - name: Nuxt prepare (generates .nuxt type stubs)
         working-directory: frontend

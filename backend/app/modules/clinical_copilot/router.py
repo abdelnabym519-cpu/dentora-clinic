@@ -18,7 +18,7 @@ from app.modules.copilot.models import CopilotSettings
 
 from .contracts import ClinicalCopilotAdvisory, ClinicalCopilotAsk, ClinicalCopilotContext
 from .service import (
-    ClinicalContextInsufficient,
+    ClinicalContextInsufficientError,
     ClinicalCopilotOutputError,
     ClinicalCopilotService,
 )
@@ -63,7 +63,7 @@ async def advise(
             provider_name=provider_name,
             model=model,
         )
-    except ClinicalContextInsufficient as exc:
+    except ClinicalContextInsufficientError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={

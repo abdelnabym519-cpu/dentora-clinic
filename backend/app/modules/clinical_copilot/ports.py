@@ -34,7 +34,5 @@ class SecondReviewReader(Protocol):
 
 
 class UnavailableSecondReviewReader:
-    async def get_latest(
-        self, *, clinic_id: UUID, patient_id: UUID
-    ) -> SecondReviewArtifact | None:
+    async def get_latest(self, *, clinic_id: UUID, patient_id: UUID) -> SecondReviewArtifact | None:
         return None

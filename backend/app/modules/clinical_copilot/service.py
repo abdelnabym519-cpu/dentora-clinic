@@ -113,7 +113,9 @@ def _sanitize_structured(value: Any) -> Any:
 def _tokenize_internal_uuids(value: Any, *, redactor: Redactor) -> Any:
     """Tokenize every canonical UUID value using Dentora's existing symbol table."""
     if isinstance(value, dict):
-        return {key: _tokenize_internal_uuids(item, redactor=redactor) for key, item in value.items()}
+        return {
+            key: _tokenize_internal_uuids(item, redactor=redactor) for key, item in value.items()
+        }
     if isinstance(value, list):
         return [_tokenize_internal_uuids(item, redactor=redactor) for item in value]
     if isinstance(value, UUID):
@@ -196,7 +198,9 @@ class ClinicalCopilotService:
         )
         risk = await self.db.scalar(
             select(RiskResultRecord)
-            .where(RiskResultRecord.clinic_id == clinic_id, RiskResultRecord.patient_id == patient_id)
+            .where(
+                RiskResultRecord.clinic_id == clinic_id, RiskResultRecord.patient_id == patient_id
+            )
             .order_by(desc(RiskResultRecord.result_version))
             .limit(1)
         )
@@ -418,9 +422,7 @@ class ClinicalCopilotService:
                     generated_at=simulation.generated_at,
                     source_digest=simulation.output_digest,
                     evidence_refs=refs,
-                    reason=None
-                    if simulation_ready
-                    else "treatment_simulation_provenance_is_stale",
+                    reason=None if simulation_ready else "treatment_simulation_provenance_is_stale",
                 )
             )
             catalog["treatment_simulation"] = {

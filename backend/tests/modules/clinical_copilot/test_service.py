@@ -295,9 +295,7 @@ async def test_simulation_requires_matching_planning_review_provenance(mismatch)
         FakeDB(rows), second_review_reader=ReviewReader(review)
     ).build_context(clinic_id=clinic_id, patient_id=patient_id)
 
-    stage = next(
-        item for item in context.stages if item.stage is StageName.TREATMENT_SIMULATION
-    )
+    stage = next(item for item in context.stages if item.stage is StageName.TREATMENT_SIMULATION)
     assert stage.state is StageState.STALE
     assert stage.reason == "treatment_simulation_provenance_is_stale"
     assert context.ready_for_advice is False
@@ -344,9 +342,7 @@ async def test_advice_is_grounded_redacted_tool_free_and_provenanced() -> None:
     internal_trace_uuid = rows[3].scene_data["trace_reference"]
     provider = FakeProvider(
         {
-            "claims": [
-                {"text": "Review the simulated option.", "evidence_ids": ["SIM-1"]}
-            ],
+            "claims": [{"text": "Review the simulated option.", "evidence_ids": ["SIM-1"]}],
             "limitations": [],
         }
     )
@@ -420,9 +416,7 @@ async def test_provider_tool_use_and_unknown_evidence_are_rejected() -> None:
     clinic_id, patient_id, rows, review = _chain()
     service = ClinicalCopilotService(FakeDB(rows), second_review_reader=ReviewReader(review))
     with pytest.raises(ClinicalCopilotOutputError, match="tool_use_forbidden"):
-        await service.advise(
-            **_advice_args(clinic_id, patient_id, FakeProvider({}, tool_use=True))
-        )
+        await service.advise(**_advice_args(clinic_id, patient_id, FakeProvider({}, tool_use=True)))
 
     clinic_id, patient_id, rows, review = _chain()
     service = ClinicalCopilotService(FakeDB(rows), second_review_reader=ReviewReader(review))
@@ -433,9 +427,7 @@ async def test_provider_tool_use_and_unknown_evidence_are_rejected() -> None:
                 patient_id,
                 FakeProvider(
                     {
-                        "claims": [
-                            {"text": "Unsupported", "evidence_ids": ["MADE-UP"]}
-                        ],
+                        "claims": [{"text": "Unsupported", "evidence_ids": ["MADE-UP"]}],
                         "limitations": [],
                     }
                 ),

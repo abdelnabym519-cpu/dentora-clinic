@@ -24,7 +24,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `clinical_copilot` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, copilot | manual | no | 2 | 0 | 0 | no |
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
-| `dental_3d` | 0.8.0 | official | patients, odontogram, media | manual | yes | 2 | 0 | 0 | yes |
+| `dental_3d` | 0.9.0 | official | patients, odontogram, media | manual | yes | 2 | 0 | 0 | yes |
 | `media` | 0.2.0 | official | patients | auto | no | 4 | 7 | 1 | yes |
 | `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
 | `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
@@ -334,9 +334,9 @@ Conversational AI agent over Dentora, scoped to the caller's permissions.
   - `appointment.cancelled`
 - **Module CLAUDE.md:** [`backend/app/modules/copilot/CLAUDE.md`](../backend/app/modules/copilot/CLAUDE.md)
 
-### `dental_3d` — v0.8.0
+### `dental_3d` — v0.9.0
 
-Dental 3D — 3D dentition preview on the patient summary with real mesh ingestion (STL/PLY/OBJ via the media module), patient-space ThreeUI and a non-clinical automatic tooth-segmentation foundation with dentist review, plus CBCT/DICOM ingestion and a replaceable, non-clinical real nerve-inference boundary with native-coordinate findings and explicit unavailable/failure states, plus patient-specific rigid IOS-to-CBCT registration with explicit geometry provenance and review, plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation, and deterministic prosthetic-guided implant planning with explicit patient-space provenance, immutable revisions, fail-closed missing-data checks and dentist review.
+Dental 3D — 3D dentition preview on the patient summary with real mesh ingestion (STL/PLY/OBJ via the media module), patient-space ThreeUI and a non-clinical automatic tooth-segmentation foundation with dentist review, plus CBCT/DICOM ingestion and a replaceable, non-clinical real nerve-inference boundary with native-coordinate findings and explicit unavailable/failure states, plus patient-specific rigid IOS-to-CBCT registration with explicit geometry provenance and review, plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation, and deterministic prosthetic-guided implant planning with explicit patient-space provenance, immutable revisions, fail-closed missing-data checks and dentist review, plus deterministic longitudinal Change Detection over registered Case Intelligence snapshots with traceable deltas and mandatory clinician review.
 
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1

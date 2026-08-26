@@ -30,6 +30,7 @@ services:
       ALLOWED_ORIGINS: ${PUBLIC_URL:-http://localhost}
       STORAGE_BACKEND: local
       STORAGE_LOCAL_PATH: /app/storage
+      PYTHONPATH: /app
       SEED_ON_STARTUP: "0"
       SEED_LANG: ar
       TRIAL_MODE: "false"

@@ -58,7 +58,7 @@ async def advise(
         result = await ClinicalCopilotService(db).advise(
             clinic_id=ctx.clinic_id,
             patient_id=body.patient_id,
-            question=body.question,
+            question=body.focus,
             provider=provider,
             provider_name=provider_name,
             model=model,

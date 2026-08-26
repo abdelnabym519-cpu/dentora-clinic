@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, develop, codex/auto-scaling-foundation]
   pull_request:
     branches: [main, develop]
 
@@ -25,6 +25,41 @@ jobs:
 
       - name: Run ruff format check
         run: ruff format --check backend/
+
+  autoscaling-foundation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Run autoscaling policy tests
+        run: python -m unittest discover -s scripts/autoscaling/tests -v
+
+      - name: Validate autoscaling policy
+        run: python -c "from scripts.autoscaling.config import load_policy; print(load_policy('infra/autoscaling/policy.json'))"
+
+      - name: Validate production Compose
+        env:
+          POSTGRES_PASSWORD: ci-autoscaling-password
+          SECRET_KEY: ci-autoscaling-secret
+        run: docker compose -f docker-compose.prod.yml config > /tmp/dentora-prod-compose.yml
+
+      - name: Validate Coolify Compose
+        env:
+          POSTGRES_PASSWORD: ci-autoscaling-password
+          SECRET_KEY: ci-autoscaling-secret
+          BACKEND_FQDN: http://backend.example.test
+          BACKEND_URL: http://backend.example.test
+          FRONTEND_FQDN: http://frontend.example.test
+          FRONTEND_URL: http://frontend.example.test
+        run: docker compose -f docker-compose.coolify.yml config > /tmp/dentora-coolify-compose.yml
+
+      - name: Validate Caddy replica-aware routing
+        run: docker run --rm -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
   backend-test:
     runs-on: ubuntu-latest
@@ -296,6 +331,12 @@ jobs:
 
       - name: Seed demo data
         run: ./scripts/seed-demo.sh --lang es
+
+      - name: Verify backend readiness
+        run: curl -fsS http://127.0.0.1:8100/health/ready
+
+      - name: Run bounded API load smoke
+        run: python3 scripts/autoscaling/load_probe.py --url http://127.0.0.1:8100/health --requests 200 --concurrency 20 --max-error-rate 0.01 --max-p95-ms 2000
 
       - name: Set up Node.js
         uses: actions/setup-node@v5

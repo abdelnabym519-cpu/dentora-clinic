@@ -65,7 +65,7 @@ class Document(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(20), default="active")
 
     clinic: Mapped["Clinic"] = relationship()
-    patient: Mapped["Patient"] = relationship()
+    patient: Mapped["Patient"] = relationship(foreign_keys=[patient_id])
     uploader: Mapped["User"] = relationship()
     paired_document: Mapped["Document | None"] = relationship(
         "Document",
@@ -111,7 +111,7 @@ class MediaAttachment(Base, TimestampMixin):
     owner_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True))
     display_order: Mapped[int] = mapped_column(Integer, default=0)
 
-    document: Mapped["Document"] = relationship()
+    document: Mapped["Document"] = relationship(foreign_keys=[document_id])
 
     __table_args__ = (
         UniqueConstraint(

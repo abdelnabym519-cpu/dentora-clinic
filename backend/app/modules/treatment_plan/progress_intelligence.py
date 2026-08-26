@@ -93,8 +93,7 @@ def build_progress_intelligence(
     completed_times = [
         completed_at
         for completed_at in (
-            [item.completed_at for item in items]
-            + [session.completed_at for session in sessions]
+            [item.completed_at for item in items] + [session.completed_at for session in sessions]
         )
         if completed_at is not None
     ]

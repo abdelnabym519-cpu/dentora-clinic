@@ -67,4 +67,11 @@ def get_document_storage_backend(document: Any) -> StorageBackend:
     """
     extra_data = getattr(document, "extra_data", None) or {}
     backend = extra_data.get("storage_backend") if isinstance(extra_data, dict) else None
-    return get_storage_backend(str(backend) if backend else None)
+    if not backend:
+        return get_storage_backend()
+
+    backend_name = str(backend).strip().lower()
+    configured_backend = settings.STORAGE_BACKEND.strip().lower()
+    if backend_name == configured_backend:
+        return get_storage_backend()
+    return get_storage_backend(backend_name)

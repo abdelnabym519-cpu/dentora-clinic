@@ -60,6 +60,7 @@ async def test_local_backend_does_not_fake_presigned_url(
     assert response.status_code == 409
 
 
+@pytest.mark.usefixtures("test_clinic")
 @pytest.mark.asyncio
 async def test_presigned_download_requires_clinic_authorization(
     client: AsyncClient,

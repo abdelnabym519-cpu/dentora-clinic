@@ -18,7 +18,9 @@ from app.modules.patient_presentation_mode.service import (
 )
 
 
-def _summary(*, status: ReviewStatus = ReviewStatus.ACCEPTED, reviewed: bool = True) -> AICaseSummary:
+def _summary(
+    *, status: ReviewStatus = ReviewStatus.ACCEPTED, reviewed: bool = True
+) -> AICaseSummary:
     reviewed_at = datetime.now(UTC) if reviewed else None
     reviewed_by = uuid4() if reviewed else None
     return AICaseSummary(

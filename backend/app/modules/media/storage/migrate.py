@@ -77,6 +77,7 @@ class MediaStorageMigrator:
         result = MigrationResult(discovered=len(documents))
 
         for document in documents:
+            current_document_id = document.id
             try:
                 if dry_run:
                     await self._validate_source_set(document)
@@ -92,7 +93,7 @@ class MediaStorageMigrator:
                 await self.db.rollback()
                 result.failed += 1
                 if not dry_run:
-                    await self._record_failure(document.id, str(exc))
+                    await self._record_failure(current_document_id, str(exc))
         return result
 
     async def _variant_keys(self, document: Document) -> list[tuple[str, str | None]]:

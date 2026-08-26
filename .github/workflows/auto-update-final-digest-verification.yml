@@ -30,12 +30,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tag_sha=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TARGET_TAG}" | jq -r '.object.sha')
+          tag_json=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TARGET_TAG}")
+          tag_sha=$(jq -r '.object.sha' <<< "$tag_json")
+          latest_json=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest")
+          latest=$(jq -r '.tag_name' <<< "$latest_json")
+          backend_inspect=$(docker buildx imagetools inspect "ghcr.io/${GITHUB_REPOSITORY}-backend:${VERSION}")
+          frontend_inspect=$(docker buildx imagetools inspect "ghcr.io/${GITHUB_REPOSITORY}-frontend:${VERSION}")
+          backend=$(awk '/^Digest:/ {print $2; exit}' <<< "$backend_inspect")
+          frontend=$(awk '/^Digest:/ {print $2; exit}' <<< "$frontend_inspect")
+          printf 'tag=%s\nsha=%s\nlatest=%s\nbackend=%s\nfrontend=%s\n' "$TARGET_TAG" "$tag_sha" "$latest" "$backend" "$frontend"
           test "$tag_sha" = "$TARGET_SHA"
-          latest=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name')
           test "$latest" = "$TARGET_TAG"
-          backend=$(docker buildx imagetools inspect "ghcr.io/${GITHUB_REPOSITORY}-backend:${VERSION}" | awk '/^Digest:/ {print $2; exit}')
-          frontend=$(docker buildx imagetools inspect "ghcr.io/${GITHUB_REPOSITORY}-frontend:${VERSION}" | awk '/^Digest:/ {print $2; exit}')
           test "$backend" = "$EXPECTED_BACKEND_DIGEST"
           test "$frontend" = "$EXPECTED_FRONTEND_DIGEST"
-          printf 'tag=%s\nsha=%s\nbackend=%s\nfrontend=%s\n' "$TARGET_TAG" "$tag_sha" "$backend" "$frontend"

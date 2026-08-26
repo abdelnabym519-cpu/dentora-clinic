@@ -9,11 +9,9 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.case_intelligence.models import CaseSnapshotRecord
-from app.modules.dental_3d.change_detection import (
-    ChangeDetectionService,
-    compare_snapshot_payloads,
-)
-from app.modules.dental_3d.change_detection_router import router
+from app.modules.case_intelligence.router import router
+from app.modules.case_intelligence.service import CaseIntelligenceService
+from app.modules.dental_3d.change_detection import compare_snapshot_payloads
 from app.modules.patients.models import Patient
 
 
@@ -120,7 +118,7 @@ async def test_persisted_snapshots_are_compared_with_tenant_scope(
     db_session.add_all([baseline, followup])
     await db_session.commit()
 
-    result = await ChangeDetectionService.compare(
+    result = await CaseIntelligenceService.compare_versions(
         db_session,
         clinic_id=test_patient.clinic_id,
         patient_id=test_patient.id,
@@ -137,7 +135,7 @@ async def test_persisted_snapshots_are_compared_with_tenant_scope(
 
     foreign_clinic_id = UUID(int=test_patient.clinic_id.int ^ 1)
     with pytest.raises(KeyError, match="snapshot_not_found"):
-        await ChangeDetectionService.compare(
+        await CaseIntelligenceService.compare_versions(
             db_session,
             clinic_id=foreign_clinic_id,
             patient_id=test_patient.id,

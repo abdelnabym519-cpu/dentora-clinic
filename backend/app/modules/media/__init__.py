@@ -11,10 +11,18 @@ from app.core.plugins import BaseModule
 from app.database import async_session_maker
 
 from .models import Document, MediaAttachment
-from .router import router
+from .router import router as core_router
 from .service import DocumentService
+from .storage_router import router as storage_router
 
 logger = logging.getLogger(__name__)
+
+router = APIRouter()
+# Storage-aware routes are registered first so the authenticated streaming /
+# presigned download replaces the legacy full-buffer download without a
+# breaking URL change.  The rest of the established media API follows.
+router.include_router(storage_router)
+router.include_router(core_router)
 
 
 class MediaModule(BaseModule):
@@ -68,13 +76,7 @@ class MediaModule(BaseModule):
         }
 
     async def _on_patient_archived(self, data: dict) -> None:
-        """Cascade soft-archive of a patient's documents when they are
-        archived.
-
-        The event bus calls handlers as ``handler(data)`` and publishes
-        before the request commits, so this opens its own session and
-        commits independently (same pattern as the recalls handler).
-        """
+        """Cascade soft-archive documents when their patient is archived."""
         patient_id = data.get("patient_id")
         clinic_id = data.get("clinic_id")
         if not patient_id or not clinic_id:

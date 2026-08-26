@@ -13,7 +13,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Date, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -67,6 +67,12 @@ class Patient(Base, TimestampMixin):
     # ``back_populates`` — callers that need ``patient.appointments``
     # must query agenda explicitly.
     clinic: Mapped[Clinic] = relationship(back_populates="patients")
+
+    # ``id`` remains the public/global primary key.  The redundant composite
+    # uniqueness gives tenant-owned child tables a legal PostgreSQL target for
+    # (patient_id, clinic_id) foreign keys, preventing cross-clinic references
+    # at the database boundary without changing API identifiers.
+    __table_args__ = (UniqueConstraint("id", "clinic_id", name="uq_patients_id_clinic"),)
 
     @property
     def full_name(self) -> str:

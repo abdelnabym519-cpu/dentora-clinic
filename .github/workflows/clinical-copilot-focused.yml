@@ -18,6 +18,7 @@ concurrency:
   group: clinical-copilot-focused-${{ github.ref }}
   cancel-in-progress: true
 
+# Keep the final candidate's focused evidence on the same SHA as repository gates.
 jobs:
   focused:
     runs-on: ubuntu-latest

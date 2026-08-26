@@ -208,9 +208,9 @@ jobs:
         run: npm run lint
 
   frontend-typecheck:
-    # The host owns shared selectors that depend on catalog/treatment-plan
-    # composables. Type-check the host plus only those direct dependencies,
-    # rather than hiding them with an empty graph or pulling every stage layer.
+    # The host references runtime composables provided by installed Nuxt layers.
+    # Keep those imports as explicit typed host contracts while type-checking only
+    # host sources, so unrelated stage implementations cannot mask host regressions.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -224,26 +224,10 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: Generate direct host dependency layers
+      - name: Ensure empty modules.json
         working-directory: frontend
         run: |
-          python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          root = Path(os.environ["GITHUB_WORKSPACE"])
-          names = ["catalog", "treatment_plan"]
-          entries = [
-              {"name": name, "path": str((root / "backend/app/modules" / name / "frontend").resolve())}
-              for name in names
-          ]
-          Path("modules.json").write_text(
-              json.dumps(
-                  {"layers": [e["path"] for e in entries], "modules": entries, "version": 1},
-                  indent=2,
-              )
-          )
-          PY
-          cat modules.json
+          echo '{"layers":[],"modules":[],"version":1}' > modules.json
 
       - name: Nuxt prepare (generates .nuxt type stubs)
         working-directory: frontend

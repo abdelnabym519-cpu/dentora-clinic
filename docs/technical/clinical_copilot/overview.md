@@ -12,7 +12,7 @@ Clinical Copilot does not diagnose, prescribe, approve treatment, choose between
 
 ## Privacy
 
-Only structured evidence is sent to the provider. Direct-identifier keys and unrestricted free-text note fields are removed before transmission. Missing and stale inputs are preserved as explicit states rather than inferred.
+Only structured evidence is sent to the provider. The advice request accepts a finite `focus` enum rather than unrestricted clinical free text. Direct-identifier keys and unrestricted free-text note fields in upstream structured artifacts are removed before transmission. Missing and stale inputs are preserved as explicit states rather than inferred.
 
 ## Provenance
 
@@ -23,4 +23,4 @@ Every response contains provider/model provenance and an input digest. Every cla
 - `GET /api/v1/clinical-copilot/patients/{patient_id}/context`
 - `POST /api/v1/clinical-copilot/advise`
 
-Both endpoints are clinic-scoped and protected by RBAC plus the AI license feature gate.
+Both endpoints are clinic-scoped and protected by RBAC plus the AI license feature gate. Only the dentist role receives `clinical_copilot.use`; read-only readiness/provenance may be exposed to configured clinical roles.

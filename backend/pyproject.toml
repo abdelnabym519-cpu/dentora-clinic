@@ -101,6 +101,7 @@ risk_engine = "app.modules.risk_engine:RiskEngineModule"
 ai_treatment_planning = "app.modules.ai_treatment_planning:AITreatmentPlanningModule"
 treatment_simulation = "app.modules.treatment_simulation:TreatmentSimulationModule"
 ai_second_review = "app.modules.ai_second_review:AISecondReviewModule"
+clinical_copilot = "app.modules.clinical_copilot:ClinicalCopilotModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,0 +1,268 @@
+name: Auto Update Production Validation
+
+on:
+  push:
+    branches: ["ops/auto-update-production-validation"]
+    paths: [".github/workflows/auto-update-production-validation.yml"]
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  TARGET_SHA: 4c55baa7884a559c05b592c73a2e3f33eb32166c
+  TARGET_TAG: v2.0.1
+  REGISTRY: ghcr.io
+
+jobs:
+  client-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout final release validation SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+
+      - name: Prove checkout SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          echo "target=$TARGET_SHA actual=$actual"
+          [ "$actual" = "$TARGET_SHA" ]
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait until v2.0.1 is the public latest Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            tag=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name // empty' || true)
+            if [ "$tag" = "$TARGET_TAG" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "::error::Latest GitHub Release did not resolve to $TARGET_TAG"
+          exit 1
+
+      - name: Build real local v2.0.0 client images
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          BASE_SHA=$(git merge-base HEAD origin/main)
+          echo "v2.0.0 baseline=$BASE_SHA"
+          git worktree add /tmp/dentora-v200 "$BASE_SHA"
+          docker build -t dentora-validation-backend:2.0.0 /tmp/dentora-v200/backend
+          docker build -f /tmp/dentora-v200/frontend/Dockerfile.prod -t dentora-validation-frontend:2.0.0 /tmp/dentora-v200
+
+      - name: Start Client v2.0.0 and create preservation fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.client.example .env.client
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.env.client')
+          vals={
+            'PUBLIC_URL':'http://localhost',
+            'POSTGRES_DB':'dental_clinic',
+            'POSTGRES_USER':'dental',
+            'POSTGRES_PASSWORD':'dentora-validation-password',
+            'SECRET_KEY':'dentora-validation-secret-key',
+            'BUDGET_PUBLIC_SECRET_KEY':'dentora-validation-budget-secret',
+            'DENTORA_VERSION':'2.0.0',
+            'DENTORA_BACKEND_IMAGE':'dentora-validation-backend:2.0.0',
+            'DENTORA_FRONTEND_IMAGE':'dentora-validation-frontend:2.0.0',
+            'DENTORA_RELEASE_REPOSITORY':'abdelnabym519-cpu/dentora-clinic',
+            'LICENSE_SERVER_URL':'',
+            'LICENSE_PUBLIC_KEY_B64':'',
+            'LICENSE_MACHINE_FINGERPRINT':'production-validation',
+          }
+          lines=p.read_text().splitlines()
+          for k,v in vals.items():
+              for i,line in enumerate(lines):
+                  if line.startswith(k+'='):
+                      lines[i]=f'{k}={v}'; break
+              else: lines.append(f'{k}={v}')
+          p.write_text('\n'.join(lines)+'\n')
+          PY
+          docker compose --env-file .env.client -f docker-compose.client.yml up -d
+          ready=0
+          for i in $(seq 1 90); do
+            if docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=2).status==200" >/dev/null 2>&1 \
+              && docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          [ "$ready" = 1 ] || { docker compose --env-file .env.client -f docker-compose.client.yml ps; docker compose --env-file .env.client -f docker-compose.client.yml logs; exit 1; }
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python /app/scripts/seed_demo.py --lang en
+          cat > /tmp/create_fixture.py <<'PY'
+          import asyncio
+          from pathlib import Path
+          from uuid import UUID
+          from app.core.plugins.loader import discover_modules
+          from app.database import async_session_maker
+          from app.modules.media.models import Document
+          from app.seeds.demo_data import CLINIC_ID, USER_DENTIST_ID, get_patients_data
+          discover_modules()
+          DOC_ID=UUID('00000000-0000-4000-8000-000000000201')
+          PATIENT_ID=get_patients_data()[0]['id']
+          DATA=b'Dentora Auto Update production preservation sentinel v2.0.0\n'
+          async def main():
+              async with async_session_maker() as db:
+                  path=f'production-validation/{DOC_ID}.txt'
+                  full=Path('/app/storage')/path
+                  full.parent.mkdir(parents=True, exist_ok=True)
+                  full.write_bytes(DATA)
+                  db.add(Document(id=DOC_ID, clinic_id=CLINIC_ID, patient_id=PATIENT_ID,
+                      document_type='report', title='Production validation attachment', description='Auto Update preservation fixture',
+                      original_filename='production-validation.txt', storage_path=path, mime_type='text/plain', file_size=len(DATA),
+                      media_kind='document', tags=['production-validation'], extra_data={'version':'2.0.0'}, uploaded_by=USER_DENTIST_ID, status='active'))
+                  await db.commit()
+          asyncio.run(main())
+          PY
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/create_fixture.py
+          cat > /tmp/snapshot.py <<'PY'
+          import asyncio, hashlib, json
+          from pathlib import Path
+          from uuid import UUID
+          from sqlalchemy import func, select
+          from app.core.plugins.loader import discover_modules
+          from app.database import async_session_maker
+          from app.modules.media.models import Document
+          from app.modules.patients.models import Patient
+          from app.modules.patients_clinical.models import Allergy, MedicalContext, Medication, SystemicDisease
+          discover_modules()
+          DOC_ID=UUID('00000000-0000-4000-8000-000000000201')
+          async def main():
+              async with async_session_maker() as db:
+                  doc=await db.get(Document,DOC_ID); assert doc is not None
+                  patient=await db.get(Patient,doc.patient_id); assert patient is not None
+                  counts={}
+                  for model in (Allergy,MedicalContext,Medication,SystemicDisease):
+                      counts[model.__tablename__]=(await db.execute(select(func.count()).select_from(model).where(model.patient_id==patient.id))).scalar_one()
+                  patient_count=(await db.execute(select(func.count()).select_from(Patient))).scalar_one()
+                  data=(Path('/app/storage')/doc.storage_path).read_bytes()
+                  print(json.dumps({'patient_id':str(patient.id),'patient_name':patient.full_name,'patient_notes':patient.notes,
+                    'patient_count':patient_count,'clinical_counts':counts,'document_id':str(doc.id),'storage_path':doc.storage_path,
+                    'storage_sha256':hashlib.sha256(data).hexdigest(),'storage_size':len(data)},sort_keys=True))
+          asyncio.run(main())
+          PY
+          mkdir -p dentora-validation-evidence
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > dentora-validation-evidence/before.json
+          printf 'Dentora Auto Update production preservation sentinel v2.0.0\n' > dentora-validation-evidence/expected-storage.bin
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/production-validation/00000000-0000-4000-8000-000000000201.txt > dentora-validation-evidence/before-storage.bin
+          cmp dentora-validation-evidence/expected-storage.bin dentora-validation-evidence/before-storage.bin
+          grep '^DENTORA_' .env.client > dentora-validation-evidence/v200.env
+
+      - name: Real update v2.0.0 to v2.0.1 and prove DB/storage integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Check | tee dentora-validation-evidence/check.log
+          jq -e '.state == "update-available" and .installedVersion == "2.0.0" and .latestVersion == "2.0.1"' .dentora-update/status.json
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update | tee dentora-validation-evidence/update.log
+          cp .dentora-update/status.json dentora-validation-evidence/updated-status.json
+          jq -e '.state == "updated" and .installedVersion == "2.0.1"' .dentora-update/status.json
+          grep -q '^DENTORA_VERSION=2.0.1$' .env.client
+          grep -Eq '^DENTORA_BACKEND_IMAGE=ghcr\.io/abdelnabym519-cpu/dentora-clinic-backend@sha256:[a-f0-9]{64}$' .env.client
+          grep -Eq '^DENTORA_FRONTEND_IMAGE=ghcr\.io/abdelnabym519-cpu/dentora-clinic-frontend@sha256:[a-f0-9]{64}$' .env.client
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=3).status==200"
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/
+          docker compose --env-file .env.client -f docker-compose.client.yml logs backend | tee dentora-validation-evidence/backend-after-update.log
+          grep -q '\[entrypoint\] Running alembic upgrade heads' dentora-validation-evidence/backend-after-update.log
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > dentora-validation-evidence/after-update.json
+          cmp dentora-validation-evidence/before.json dentora-validation-evidence/after-update.json
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/production-validation/00000000-0000-4000-8000-000000000201.txt > dentora-validation-evidence/after-update-storage.bin
+          cmp dentora-validation-evidence/before-storage.bin dentora-validation-evidence/after-update-storage.bin
+          cmp dentora-validation-evidence/expected-storage.bin dentora-validation-evidence/after-update-storage.bin
+
+      - name: Prove rollback after-backup after-install after-health
+        shell: bash
+        run: |
+          set -euo pipefail
+          reset_baseline() {
+            python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.env.client'); lines=p.read_text().splitlines()
+          vals={'DENTORA_VERSION':'2.0.0','DENTORA_BACKEND_IMAGE':'dentora-validation-backend:2.0.0','DENTORA_FRONTEND_IMAGE':'dentora-validation-frontend:2.0.0'}
+          for k,v in vals.items():
+              for i,line in enumerate(lines):
+                  if line.startswith(k+'='): lines[i]=f'{k}={v}'; break
+          p.write_text('\n'.join(lines)+'\n')
+          PY
+            docker compose --env-file .env.client -f docker-compose.client.yml up -d
+            for i in $(seq 1 60); do
+              if docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=2).status==200" >/dev/null 2>&1 \
+                && docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/; then return 0; fi
+              sleep 2
+            done
+            return 1
+          }
+          for point in after-backup after-install after-health; do
+            reset_baseline
+            if pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update -SimulateFailureAt "$point" > "dentora-validation-evidence/${point}.log" 2>&1; then
+              echo "::error::$point was expected to fail"; exit 1
+            fi
+            cp .dentora-update/status.json "dentora-validation-evidence/${point}-status.json"
+            jq -e '.state == "rolled-back" and .installedVersion == "2.0.0"' .dentora-update/status.json
+            grep -q '^DENTORA_VERSION=2.0.0$' .env.client
+            grep -q '^DENTORA_BACKEND_IMAGE=dentora-validation-backend:2.0.0$' .env.client
+            grep -q '^DENTORA_FRONTEND_IMAGE=dentora-validation-frontend:2.0.0$' .env.client
+            docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=3).status==200"
+            docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/
+            docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > "dentora-validation-evidence/${point}-snapshot.json"
+            cmp dentora-validation-evidence/before.json "dentora-validation-evidence/${point}-snapshot.json"
+            docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/production-validation/00000000-0000-4000-8000-000000000201.txt > "dentora-validation-evidence/${point}-storage.bin"
+            cmp dentora-validation-evidence/before-storage.bin "dentora-validation-evidence/${point}-storage.bin"
+          done
+
+      - name: Prove recovery after a real interrupted update
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update > dentora-validation-evidence/interrupted-update.log 2>&1 &
+          updater_pid=$!
+          seen=0
+          for i in $(seq 1 600); do
+            if [ -f .dentora-update/status.json ] && jq -e '.state == "installing"' .dentora-update/status.json >/dev/null 2>&1; then seen=1; break; fi
+            if ! kill -0 "$updater_pid" 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          [ "$seen" = 1 ] || { cat dentora-validation-evidence/interrupted-update.log; echo "::error::Did not reach an interruptible installing state"; exit 1; }
+          kill -9 "$updater_pid" || true
+          wait "$updater_pid" 2>/dev/null || true
+          grep -q '^DENTORA_VERSION=2.0.1$' .env.client
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Recover | tee dentora-validation-evidence/recover.log
+          cp .dentora-update/status.json dentora-validation-evidence/recovered-status.json
+          jq -e '.state == "recovered" and .installedVersion == "2.0.0"' .dentora-update/status.json
+          grep -q '^DENTORA_VERSION=2.0.0$' .env.client
+          grep -q '^DENTORA_BACKEND_IMAGE=dentora-validation-backend:2.0.0$' .env.client
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=3).status==200"
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python - < /tmp/snapshot.py | tail -1 > dentora-validation-evidence/after-recovery.json
+          cmp dentora-validation-evidence/before.json dentora-validation-evidence/after-recovery.json
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/production-validation/00000000-0000-4000-8000-000000000201.txt > dentora-validation-evidence/after-recovery-storage.bin
+          cmp dentora-validation-evidence/before-storage.bin dentora-validation-evidence/after-recovery-storage.bin
+          docker compose --env-file .env.client -f docker-compose.client.yml ps > dentora-validation-evidence/final-compose-ps.txt
+
+      - name: Upload production validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-update-production-validation-final-sha
+          path: dentora-validation-evidence
+          retention-days: 30
+
+      - name: Cleanup validation client
+        if: always()
+        run: docker compose --env-file .env.client -f docker-compose.client.yml down -v --remove-orphans || true

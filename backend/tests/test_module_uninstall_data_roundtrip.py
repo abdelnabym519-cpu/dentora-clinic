@@ -36,13 +36,21 @@ def _dsn() -> str:
 async def _seed_clinic_hours_row(clinic_id) -> None:
     conn = await asyncpg.connect(_dsn())
     try:
+        tenant_id = await conn.fetchval(
+            "SELECT id FROM tenants WHERE slug = $1",
+            settings.TENANT_SLUG,
+        )
+        assert tenant_id is not None, "default tenant must exist after migrations"
+
         # Required parent: a clinic must exist before clinic_weekly_schedules
         # references it. Insert a minimal clinic row.
         await conn.execute(
-            "INSERT INTO clinics (id, name, tax_id, settings, created_at, updated_at) "
-            "VALUES ($1, $2, $3, $4::jsonb, NOW(), NOW()) "
+            "INSERT INTO clinics "
+            "(id, tenant_id, name, tax_id, settings, created_at, updated_at) "
+            "VALUES ($1, $2, $3, $4, $5::jsonb, NOW(), NOW()) "
             "ON CONFLICT (id) DO NOTHING",
             clinic_id,
+            tenant_id,
             "BackupTest Clinic",
             f"BKT-{str(clinic_id)[:8]}",
             "{}",

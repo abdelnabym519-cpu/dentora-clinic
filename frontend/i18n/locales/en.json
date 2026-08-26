@@ -30,6 +30,8 @@
     "toggleSidebar": "Toggle sidebar"
   },
   "auth": {
+    "clinicSwitched": "Clinic switched",
+    "clinicSwitchFailed": "Could not switch clinic",
     "login": "Log in",
     "logout": "Log out",
     "email": "Email",

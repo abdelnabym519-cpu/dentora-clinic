@@ -91,7 +91,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `recall.created` | `EventType.RECALL_CREATED` | `recalls` | — |
 | `recall.due` | `EventType.RECALL_DUE` | — | — |
 | `recall.snoozed` | `EventType.RECALL_SNOOZED` | `recalls` | — |
-| `tenant.resolved` | `EventType.TENANT_RESOLVED` | — | — |
+| `tenant.resolved` | `EventType.TENANT_RESOLVED` | `core:core` | — |
 | `treatment.completed` | `EventType.TREATMENT_COMPLETED` | — | — |
 | `treatment_plan.budget_sync_requested` | `EventType.TREATMENT_PLAN_BUDGET_SYNC_REQUESTED` | `treatment_plan` | `budget` |
 | `treatment_plan.closed` | `EventType.TREATMENT_PLAN_CLOSED` | `treatment_plan` | `patient_timeline` |
@@ -725,7 +725,9 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 ### `tenant.resolved`
 
 - **Constant:** `EventType.TENANT_RESOLVED`
-- **Publishers:** _none in tree — declared but unused_
+- **Publishers:**
+  - `core:core` — `backend/app/core/tenancy/resolver_impl.py:126`
+  - `core:core` — `backend/app/core/tenancy/single.py:56`
 - **Subscribers:** —
 
 ### `treatment.completed`

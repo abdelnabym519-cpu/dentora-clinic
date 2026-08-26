@@ -340,7 +340,11 @@ function isActive(to: string): boolean {
         <!-- Clinic name — client-only to avoid SSR/CSR hydration text mismatch
              ("Clínica" placeholder vs loaded clinic name). -->
         <ClientOnly>
-          <div class="ml-3 sm:ml-4 flex items-center gap-2 min-w-0">
+          <ClinicSwitcher />
+          <div
+            v-if="!auth.clinics.value || auth.clinics.value.length <= 1"
+            class="ml-3 sm:ml-4 flex items-center gap-2 min-w-0"
+          >
             <UIcon
               name="i-lucide-building-2"
               class="w-4 h-4 text-subtle shrink-0"

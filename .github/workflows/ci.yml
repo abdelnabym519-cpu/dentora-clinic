@@ -260,6 +260,7 @@ jobs:
     timeout-minutes: 20
     env:
       POSTGRES_PASSWORD: testpass
+      POSTGRES_HOST_PORT: "0"
       SECRET_KEY: ci-secret-key-for-e2e
 
     steps:

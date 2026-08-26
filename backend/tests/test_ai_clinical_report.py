@@ -74,8 +74,8 @@ def test_manifest_declares_read_and_dentist_generation() -> None:
     module = AIClinicalReportModule()
     manifest = module.get_manifest()
     assert module.get_permissions() == ["read", "generate"]
-    assert manifest.role_permissions["dentist"] == ["read", "generate"]
-    assert manifest.role_permissions["hygienist"] == ["read"]
+    assert manifest.role_permissions["dentist"] == ("read", "generate")
+    assert manifest.role_permissions["hygienist"] == ("read",)
     assert manifest.auto_install is False
     assert manifest.removable is False
 

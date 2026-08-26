@@ -99,6 +99,8 @@ case_intelligence = "app.modules.case_intelligence:CaseIntelligenceModule"
 ai_case_summary = "app.modules.ai_case_summary:AICaseSummaryModule"
 risk_engine = "app.modules.risk_engine:RiskEngineModule"
 ai_treatment_planning = "app.modules.ai_treatment_planning:AITreatmentPlanningModule"
+treatment_simulation = "app.modules.treatment_simulation:TreatmentSimulationModule"
+clinical_copilot = "app.modules.clinical_copilot:ClinicalCopilotModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

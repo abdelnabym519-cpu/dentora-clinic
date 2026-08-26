@@ -43,8 +43,10 @@ export const ALL_DECIDUOUS_NUMBERS = [
 // Condition Colors
 // ============================================================================
 
-/** Default colors for tooth conditions (fallback if not provided by API) */
-export const CONDITION_COLORS: Record<ToothCondition, string> = {
+type LegacyToothConditionColor = 'bridge_pontic' | 'bridge_abutment'
+
+/** Default colors for tooth conditions (fallback if not provided by API). */
+export const CONDITION_COLORS: Record<ToothCondition | LegacyToothConditionColor, string> = {
   healthy: '#FFFFFF',
   caries: '#EF4444',
   filling: '#3B82F6',
@@ -76,8 +78,10 @@ export const SURFACE_LABELS: Record<Surface, string> = {
 // Keyboard Shortcuts
 // ============================================================================
 
-/** Keyboard shortcuts for quick treatment selection (1-8 keys) */
-export const TREATMENT_SHORTCUTS: Record<string, TreatmentType> = {
+type LegacyTreatmentShortcut = 'filling' | 'root_canal'
+
+/** Keyboard shortcuts for quick treatment selection (1-8 keys). */
+export const TREATMENT_SHORTCUTS: Record<string, TreatmentType | LegacyTreatmentShortcut> = {
   1: 'extraction',
   2: 'filling',
   3: 'root_canal',

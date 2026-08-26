@@ -208,9 +208,9 @@ jobs:
         run: npm run lint
 
   frontend-typecheck:
-    # Guards against broken Vue/TS imports across module Nuxt layers
-    # (Fase B.6). `modules.json` is written by the backend at runtime;
-    # we stub an empty one here so Nuxt picks up only the host sources.
+    # The host references runtime composables provided by installed Nuxt layers.
+    # Keep those imports as explicit typed host contracts while type-checking only
+    # host sources, so unrelated stage implementations cannot mask host regressions.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -232,6 +232,10 @@ jobs:
       - name: Nuxt prepare (generates .nuxt type stubs)
         working-directory: frontend
         run: npx nuxi prepare
+
+      - name: Run typecheck
+        working-directory: frontend
+        run: npm run typecheck
 
   frontend-test:
     runs-on: ubuntu-latest

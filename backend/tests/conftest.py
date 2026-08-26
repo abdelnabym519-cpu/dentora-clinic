@@ -8,6 +8,7 @@ os.environ["TESTING"] = "true"
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -16,6 +17,7 @@ from app.config import settings
 # Import all models so SQLAlchemy can configure relationships
 from app.core.auth.models import Clinic, ClinicMembership, User  # noqa: F401
 from app.core.plugins.loader import load_modules
+from app.core.retrieval.models import RetrievalEmbedding, RetrievalQueryAudit  # noqa: F401
 from app.database import Base, get_db
 from app.database import engine as app_engine
 from app.main import app
@@ -124,6 +126,10 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     )
 
     async with test_engine.begin() as conn:
+        # Retrieval models use PostgreSQL's native vector type. CI/local test
+        # databases run the pgvector image; enabling the extension here keeps
+        # Base.metadata.create_all equivalent to the migration-owned schema.
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
 
     async with test_session_maker() as session:

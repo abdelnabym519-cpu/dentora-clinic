@@ -22,6 +22,8 @@ describe('useAuth composable', () => {
       expect(auth).toHaveProperty('logout')
       expect(auth).toHaveProperty('refresh')
       expect(auth).toHaveProperty('fetchUser')
+      expect(auth).toHaveProperty('switchClinic')
+      expect(auth).toHaveProperty('clinics')
       expect(auth).toHaveProperty('init')
     })
 

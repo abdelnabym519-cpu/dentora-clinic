@@ -39,9 +39,20 @@ class SingleTenantResolver:
 
     async def resolve(self, request: Request) -> TenantContext:
         logger.debug("SingleTenantResolver.resolve ignoring request")
+        await self._publish()
         return self._context
 
     async def resolve_by_slug(self, slug: str) -> TenantContext:
         if slug != DEFAULT_TENANT_SLUG:
             raise LookupError(f"Unknown tenant slug: {slug!r}")
+        await self._publish()
         return self._context
+
+    async def _publish(self) -> None:
+        try:
+            from app.core.events.bus import event_bus
+            from app.core.events.types import EventType
+
+            await event_bus.publish(EventType.TENANT_RESOLVED, {"tenant_slug": self._context.slug})
+        except Exception:  # noqa: BLE001 - resolution must never break on audit
+            logger.debug("tenant.resolved publish failed", exc_info=True)

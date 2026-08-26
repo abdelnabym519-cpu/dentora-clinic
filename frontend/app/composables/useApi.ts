@@ -57,6 +57,18 @@ export function useApi() {
       headers.Authorization = `Bearer ${auth.accessToken.value}`
     }
 
+    // Multi-clinic: pin every authenticated request to the user's
+    // selected clinic via the X-Clinic-Id header. The backend resolves
+    // the clinic context + role/permissions from this selection; if the
+    // user is not a member it answers 403. A single-clinic self-hosted
+    // install has exactly one option, so the header is harmless there.
+    if (!skipAuth) {
+      const selected = useSelectedClinicId()
+      if (selected.value) {
+        headers['X-Clinic-Id'] = selected.value
+      }
+    }
+
     const url = _withQuery(path, query)
 
     try {

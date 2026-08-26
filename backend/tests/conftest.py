@@ -2,6 +2,7 @@
 
 import os
 from collections.abc import AsyncGenerator
+from uuid import UUID
 
 # Set TESTING before importing settings
 os.environ["TESTING"] = "true"
@@ -16,6 +17,7 @@ from app.config import settings
 # Import all models so SQLAlchemy can configure relationships
 from app.core.auth.models import Clinic, ClinicMembership, User  # noqa: F401
 from app.core.plugins.loader import load_modules
+from app.core.tenancy.models import Tenant  # noqa: F401
 from app.database import Base, get_db
 from app.database import engine as app_engine
 from app.main import app
@@ -126,6 +128,18 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await conn.run_sync(Base.metadata.create_all)
 
     async with test_session_maker() as session:
+        # Seed the default tenant so the multi-tenant invariants hold:
+        # every clinic must belong to a tenant. Tests attach clinics to
+        # this tenant; it mirrors the production bootstrap.
+        default_tenant = Tenant(
+            id=UUID("00000000-0000-0000-0000-000000000001"),
+            slug="default",
+            display_name="Default Tenant",
+            is_active=True,
+            settings={},
+        )
+        session.add(default_tenant)
+        await session.commit()
         yield session
 
     async with test_engine.begin() as conn:
@@ -178,13 +192,15 @@ async def test_clinic(
     response = await client.get("/api/v1/auth/me", headers=auth_headers)
     user_id = response.json()["data"]["user"]["id"]
 
-    # Create clinic
+    # Create clinic (owned by the seeded default tenant)
     clinic = Clinic(
         id=uuid4(),
         name="Test Clinic",
         tax_id="B12345678",
         address={"street": "Test St", "city": "Madrid"},
         settings={"slot_duration_min": 15},
+        tenant_id=UUID("00000000-0000-0000-0000-000000000001"),
+        is_active=True,
     )
     db_session.add(clinic)
     await db_session.flush()

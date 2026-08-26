@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -25,6 +25,16 @@ class StageState(StrEnum):
     MISSING = "missing"
     STALE = "stale"
     UNAVAILABLE = "unavailable"
+
+
+class ClinicalCopilotFocus(StrEnum):
+    """Finite, non-free-text clinical review intents accepted by Copilot."""
+
+    CASE_REVIEW = "case_review"
+    RISK_CONTEXT = "risk_context"
+    TREATMENT_OPTIONS = "treatment_options"
+    SIMULATION_CONTEXT = "simulation_context"
+    SECOND_REVIEW = "second_review"
 
 
 class ClinicalStageStatus(BaseModel):
@@ -64,13 +74,7 @@ class ClinicalCopilotAsk(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     patient_id: UUID
-    focus: Literal[
-        "case_review",
-        "risk_context",
-        "treatment_options",
-        "simulation_context",
-        "second_review",
-    ] = "case_review"
+    focus: ClinicalCopilotFocus = ClinicalCopilotFocus.CASE_REVIEW
 
 
 class AdvisoryClaim(BaseModel):

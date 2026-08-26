@@ -17,11 +17,8 @@ from app.database import get_db
 from app.modules.copilot.models import CopilotSettings
 
 from .contracts import ClinicalCopilotAdvisory, ClinicalCopilotAsk, ClinicalCopilotContext
-from .service import (
-    ClinicalContextInsufficientError,
-    ClinicalCopilotOutputError,
-    ClinicalCopilotService,
-)
+from .guarded import ClinicalCopilotGuardedService, ClinicalCopilotInputError
+from .service import ClinicalContextInsufficientError, ClinicalCopilotOutputError
 
 router = APIRouter(dependencies=[Depends(require_license_feature("ai"))])
 
@@ -45,7 +42,7 @@ async def get_context(
     _: Annotated[None, Depends(require_permission("clinical_copilot.read"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ClinicalCopilotContext]:
-    context = await ClinicalCopilotService(db).build_context(
+    context = await ClinicalCopilotGuardedService(db).build_context(
         clinic_id=ctx.clinic_id,
         patient_id=patient_id,
     )
@@ -65,7 +62,7 @@ async def advise(
     model = configured.model if configured else app_settings.COPILOT_MODEL_CHAT_OPENAI
     try:
         provider = get_provider(provider_name)
-        result = await ClinicalCopilotService(db).advise(
+        result = await ClinicalCopilotGuardedService(db).advise(
             clinic_id=ctx.clinic_id,
             patient_id=body.patient_id,
             focus=body.focus,
@@ -75,6 +72,11 @@ async def advise(
             user_id=ctx.user_id,
             user_role=ctx.role,
         )
+    except ClinicalCopilotInputError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": str(exc)},
+        ) from exc
     except ClinicalContextInsufficientError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

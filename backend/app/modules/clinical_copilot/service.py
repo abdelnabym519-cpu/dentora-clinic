@@ -49,7 +49,7 @@ _DENIED_KEYS = {
 _FREE_TEXT_KEYS = {"free_text", "note", "notes", "clinical_notes", "description_raw"}
 
 
-class ClinicalContextInsufficient(ValueError):
+class ClinicalContextInsufficientError(ValueError):
     def __init__(self, context: ClinicalCopilotContext):
         self.context = context
         super().__init__("clinical_context_insufficient")
@@ -375,14 +375,9 @@ class ClinicalCopilotService:
     ) -> ClinicalCopilotAdvisory:
         context = await self.build_context(clinic_id=clinic_id, patient_id=patient_id)
         if not context.ready_for_advice:
-            raise ClinicalContextInsufficient(context)
+            raise ClinicalContextInsufficientError(context)
 
-        allowed_ids = {
-            ref
-            for stage in context.stages
-            for ref in stage.evidence_refs
-            if ref
-        }
+        allowed_ids = {ref for stage in context.stages for ref in stage.evidence_refs if ref}
         provider_payload = {
             "contract_version": context.contract_version,
             "question": question,

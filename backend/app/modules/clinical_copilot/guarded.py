@@ -12,7 +12,14 @@ from collections.abc import AsyncIterator
 from typing import Any
 from uuid import UUID
 
-from app.core.llm.base import Done, Provider, ProviderEvent, ProviderMessage, TextBlock, TextDelta
+from app.core.llm.base import (
+    Done,
+    Provider,
+    ProviderEvent,
+    ProviderMessage,
+    TextBlock,
+    TextDelta,
+)
 
 from .contracts import (
     ClinicalCopilotAdvisory,
@@ -56,7 +63,6 @@ def _project_provider_value(
     *,
     evidence_aliases: dict[str, str],
     identifier_aliases: dict[str, str],
-    parent_key: str | None = None,
 ) -> Any:
     """Project structured evidence to opaque provider-safe identifiers."""
     if isinstance(value, dict):
@@ -78,14 +84,15 @@ def _project_provider_value(
                 continue
             if lowered.endswith("_ids") and isinstance(item, list):
                 projected[str(key)] = [
-                    _opaque_alias(entry, identifier_aliases, "I") for entry in item if entry
+                    _opaque_alias(entry, identifier_aliases, "I")
+                    for entry in item
+                    if entry
                 ]
                 continue
             projected[str(key)] = _project_provider_value(
                 item,
                 evidence_aliases=evidence_aliases,
                 identifier_aliases=identifier_aliases,
-                parent_key=str(key),
             )
         return projected
     if isinstance(value, list):
@@ -94,7 +101,6 @@ def _project_provider_value(
                 item,
                 evidence_aliases=evidence_aliases,
                 identifier_aliases=identifier_aliases,
-                parent_key=parent_key,
             )
             for item in value
         ]
@@ -102,8 +108,12 @@ def _project_provider_value(
 
 
 def _provider_projection(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
-    raw_allowed = [str(item) for item in payload.get("allowed_evidence_ids", []) if item]
-    evidence_aliases = {raw: f"E{index:03d}" for index, raw in enumerate(raw_allowed, start=1)}
+    raw_allowed = [
+        str(item) for item in payload.get("allowed_evidence_ids", []) if item
+    ]
+    evidence_aliases = {
+        raw: f"E{index:03d}" for index, raw in enumerate(raw_allowed, start=1)
+    }
     identifier_aliases: dict[str, str] = {}
     projected = _project_provider_value(
         payload,
@@ -122,7 +132,9 @@ def _rehydrate_provider_output(value: Any, reverse_evidence: dict[str, str]) -> 
             if lowered in _EVIDENCE_SCALAR_KEYS and item is not None:
                 hydrated[str(key)] = reverse_evidence.get(str(item), str(item))
             elif lowered in _EVIDENCE_LIST_KEYS and isinstance(item, list):
-                hydrated[str(key)] = [reverse_evidence.get(str(entry), str(entry)) for entry in item]
+                hydrated[str(key)] = [
+                    reverse_evidence.get(str(entry), str(entry)) for entry in item
+                ]
             else:
                 hydrated[str(key)] = _rehydrate_provider_output(item, reverse_evidence)
         return hydrated
@@ -192,7 +204,9 @@ class ProviderBoundaryProxy:
                 yield TextDelta(text=raw_text)
             else:
                 yield TextDelta(
-                    text=_canonical(_rehydrate_provider_output(parsed, reverse_evidence))
+                    text=_canonical(
+                        _rehydrate_provider_output(parsed, reverse_evidence)
+                    )
                 )
             if terminal is not None:
                 yield terminal
@@ -200,12 +214,15 @@ class ProviderBoundaryProxy:
         return stream()
 
 
-def _enforce_cross_stage_readiness(context: ClinicalCopilotContext) -> ClinicalCopilotContext:
-    """Risk must be READY before Planning or downstream Simulation can be READY."""
+def _enforce_cross_stage_readiness(
+    context: ClinicalCopilotContext,
+) -> ClinicalCopilotContext:
+    """Risk must be READY before Planning and every downstream stage can be READY."""
     by_stage = {stage.stage: stage for stage in context.stages}
     risk = by_stage.get(StageName.RISK_ENGINE)
     planning = by_stage.get(StageName.TREATMENT_PLANNING)
     simulation = by_stage.get(StageName.TREATMENT_SIMULATION)
+    second_review = by_stage.get(StageName.AI_SECOND_REVIEW)
 
     if risk is not None and risk.state is not StageState.READY:
         if planning is not None and planning.state is StageState.READY:
@@ -214,6 +231,9 @@ def _enforce_cross_stage_readiness(context: ClinicalCopilotContext) -> ClinicalC
         if simulation is not None and simulation.state is StageState.READY:
             simulation.state = StageState.STALE
             simulation.reason = "treatment_simulation_planning_not_ready"
+        if second_review is not None and second_review.state is StageState.READY:
+            second_review.state = StageState.STALE
+            second_review.reason = "ai_second_review_simulation_not_ready"
 
     context.missing_or_stale = [
         f"{stage.stage}:{stage.state}:{stage.reason or 'not_ready'}"

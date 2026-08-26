@@ -1,0 +1,42 @@
+name: Clinical Copilot Queue Cleanup
+
+on:
+  push:
+    branches:
+      - phase/clinical-copilot
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: clinical-copilot-queue-cleanup
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Cancel superseded branch workflow runs
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const currentRun = Number(process.env.GITHUB_RUN_ID);
+            const currentSha = process.env.GITHUB_SHA;
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner,
+              repo,
+              branch: "phase/clinical-copilot",
+              per_page: 100,
+            });
+            for (const run of data.workflow_runs) {
+              if (!["queued", "in_progress"].includes(run.status)) continue;
+              if (run.id === currentRun || run.head_sha === currentSha) continue;
+              try {
+                await github.rest.actions.cancelWorkflowRun({ owner, repo, run_id: run.id });
+              } catch (error) {
+                if (![404, 409].includes(error.status)) throw error;
+              }
+            }

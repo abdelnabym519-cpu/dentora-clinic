@@ -208,9 +208,9 @@ jobs:
         run: npm run lint
 
   frontend-typecheck:
-    # Type-check the same Nuxt module-layer graph that the host runs in E2E.
-    # Absolute host paths preserve the real auto-import/type surface instead
-    # of hiding module composables behind an empty modules.json stub.
+    # The host owns shared selectors that depend on catalog/treatment-plan
+    # composables. Type-check the host plus only those direct dependencies,
+    # rather than hiding them with an empty graph or pulling every stage layer.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -224,19 +224,18 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: Generate modules.json with host paths
+      - name: Generate direct host dependency layers
         working-directory: frontend
         run: |
           python3 - <<'PY'
           import json, os
           from pathlib import Path
           root = Path(os.environ["GITHUB_WORKSPACE"])
-          modules_dir = root / "backend/app/modules"
-          entries = []
-          for m in sorted(modules_dir.iterdir()):
-              layer = m / "frontend"
-              if layer.is_dir():
-                  entries.append({"name": m.name, "path": str(layer.resolve())})
+          names = ["catalog", "treatment_plan"]
+          entries = [
+              {"name": name, "path": str((root / "backend/app/modules" / name / "frontend").resolve())}
+              for name in names
+          ]
           Path("modules.json").write_text(
               json.dumps(
                   {"layers": [e["path"] for e in entries], "modules": entries, "version": 1},

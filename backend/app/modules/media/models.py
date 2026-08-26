@@ -8,6 +8,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -26,13 +27,7 @@ if TYPE_CHECKING:
 
 
 class Document(Base, TimestampMixin):
-    """Document entity for patient files.
-
-    Covers PDFs, clinical photos, X-rays and any other patient asset.
-    The ``media_kind`` column drives UI behaviour (gallery vs document
-    list) while ``document_type`` keeps its administrative meaning
-    (consent, insurance, etc.) for the document-list use case.
-    """
+    """Document entity for patient files."""
 
     __tablename__ = "documents"
 
@@ -40,50 +35,35 @@ class Document(Base, TimestampMixin):
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
     patient_id: Mapped[UUID] = mapped_column(ForeignKey("patients.id"), index=True)
 
-    # Administrative classification (consent / insurance / report / ...).
     document_type: Mapped[str] = mapped_column(String(30))
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
 
-    # File metadata
     original_filename: Mapped[str] = mapped_column(String(255))
     storage_path: Mapped[str] = mapped_column(String(500), unique=True)
     mime_type: Mapped[str] = mapped_column(String(100))
     file_size: Mapped[int] = mapped_column(Integer)
 
-    # Media taxonomy. ``media_kind`` is the UI rail; ``media_category``
-    # and ``media_subtype`` only carry meaning for kind ∈ {photo, xray}.
-    # Validation is enforced service-side via ``photo_taxonomy``.
     media_kind: Mapped[str] = mapped_column(
         String(20), default="document", server_default="document"
     )
     media_category: Mapped[str | None] = mapped_column(String(20))
     media_subtype: Mapped[str | None] = mapped_column(String(40))
-
-    # Capture timestamp from EXIF (or manual override). Falls back to
-    # ``created_at`` when null in queries.
     captured_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # Before/after pairing. Self-referential, same patient guaranteed
-    # by service layer + CHECK below (self != id).
     paired_document_id: Mapped[UUID | None] = mapped_column(
         PG_UUID(as_uuid=True),
         ForeignKey("documents.id", ondelete="SET NULL"),
     )
 
-    # Free-form labels (["composite", "tooth-26"]) for power search.
     tags: Mapped[list[str]] = mapped_column(
         JSONB, nullable=False, default=list, server_default="[]"
     )
-
-    # Extensibility hatch (storage backend hints, thumbnail status, etc.).
     extra_data: Mapped[dict | None] = mapped_column(JSONB, default=dict)
 
-    # Audit
     uploaded_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
-    status: Mapped[str] = mapped_column(String(20), default="active")  # active, archived
+    status: Mapped[str] = mapped_column(String(20), default="active")
 
-    # Relationships
     clinic: Mapped["Clinic"] = relationship()
     patient: Mapped["Patient"] = relationship()
     uploader: Mapped["User"] = relationship()
@@ -95,6 +75,12 @@ class Document(Base, TimestampMixin):
     )
 
     __table_args__ = (
+        UniqueConstraint("id", "clinic_id", name="uq_documents_id_clinic"),
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            name="fk_documents_patient_clinic",
+        ),
         Index("idx_documents_clinic_patient", "clinic_id", "patient_id"),
         Index("idx_documents_type", "clinic_id", "document_type"),
         Index(
@@ -112,18 +98,7 @@ class Document(Base, TimestampMixin):
 
 
 class MediaAttachment(Base, TimestampMixin):
-    """Polymorphic link between a ``Document`` and an arbitrary owner.
-
-    The owning module declares its ``owner_type`` strings in
-    ``media.attachment_registry`` and provides a resolver that maps
-    ``owner_id -> patient_id``. The registry validates the link at
-    service time; we deliberately do **not** add a CHECK constraint on
-    ``owner_type`` because the taxonomy is dynamic (depends on which
-    modules are installed).
-
-    There is also no FK on ``owner_id`` — that would require polymorphic
-    FK trickery and break uninstall safety. Trust the service layer.
-    """
+    """Polymorphic link between a ``Document`` and an arbitrary owner."""
 
     __tablename__ = "media_attachments"
 
@@ -144,6 +119,12 @@ class MediaAttachment(Base, TimestampMixin):
             "owner_type",
             "owner_id",
             name="uq_media_attachments_doc_owner",
+        ),
+        ForeignKeyConstraint(
+            ["document_id", "clinic_id"],
+            ["documents.id", "documents.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_media_attachments_document_clinic",
         ),
         Index(
             "idx_media_attachments_owner",

@@ -25,6 +25,9 @@ dependencies = [
     "jinja2>=3.1.0",
     "apscheduler>=3.10.0",
     "aiofiles>=23.0.0",
+    # PostgreSQL vector retrieval foundation. The Python adapter stays thin;
+    # authoritative clinical data remains in normal PostgreSQL tables.
+    "pgvector>=0.5.0,<0.6",
     # Private S3-compatible media storage (AWS S3 / MinIO / compatible providers).
     "boto3>=1.35,<2.0",
     # Shipped IANA timezone database so zoneinfo works regardless of

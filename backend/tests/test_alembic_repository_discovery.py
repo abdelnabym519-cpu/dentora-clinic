@@ -16,11 +16,7 @@ MODULES_ROOT = BACKEND_ROOT / "app" / "modules"
 def _configured_locations() -> set[Path]:
     config = Config(str(ALEMBIC_INI))
     raw = config.get_main_option("version_locations")
-    return {
-        (BACKEND_ROOT / location).resolve()
-        for location in raw.split(":")
-        if location
-    }
+    return {(BACKEND_ROOT / location).resolve() for location in raw.split(":") if location}
 
 
 def test_static_cli_locations_match_runtime_discovery() -> None:

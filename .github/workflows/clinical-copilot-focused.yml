@@ -6,6 +6,8 @@ on:
       - phase/clinical-copilot
     paths:
       - .github/workflows/clinical-copilot-focused.yml
+      - backend/app/modules/clinical_copilot/**
+      - backend/tests/modules/clinical_copilot/**
 
 permissions:
   contents: read

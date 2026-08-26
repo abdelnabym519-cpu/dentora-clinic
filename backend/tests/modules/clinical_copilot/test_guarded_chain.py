@@ -54,18 +54,11 @@ def test_risk_failure_marks_every_downstream_stage_stale() -> None:
     by_stage = {stage.stage: stage for stage in guarded.stages}
 
     assert by_stage[StageName.TREATMENT_PLANNING].state is StageState.STALE
-    assert (
-        by_stage[StageName.TREATMENT_PLANNING].reason
-        == "treatment_planning_risk_not_ready"
-    )
+    assert by_stage[StageName.TREATMENT_PLANNING].reason == "treatment_planning_risk_not_ready"
     assert by_stage[StageName.TREATMENT_SIMULATION].state is StageState.STALE
     assert (
-        by_stage[StageName.TREATMENT_SIMULATION].reason
-        == "treatment_simulation_planning_not_ready"
+        by_stage[StageName.TREATMENT_SIMULATION].reason == "treatment_simulation_planning_not_ready"
     )
     assert by_stage[StageName.AI_SECOND_REVIEW].state is StageState.STALE
-    assert (
-        by_stage[StageName.AI_SECOND_REVIEW].reason
-        == "ai_second_review_simulation_not_ready"
-    )
+    assert by_stage[StageName.AI_SECOND_REVIEW].reason == "ai_second_review_simulation_not_ready"
     assert guarded.ready_for_advice is False

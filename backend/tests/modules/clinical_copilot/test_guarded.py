@@ -122,7 +122,10 @@ def test_risk_unavailable_cascades_fail_closed_to_planning_and_simulation() -> N
     assert by_stage[StageName.TREATMENT_PLANNING].state is StageState.STALE
     assert by_stage[StageName.TREATMENT_PLANNING].reason == "treatment_planning_risk_not_ready"
     assert by_stage[StageName.TREATMENT_SIMULATION].state is StageState.STALE
-    assert by_stage[StageName.TREATMENT_SIMULATION].reason == "treatment_simulation_planning_not_ready"
+    assert (
+        by_stage[StageName.TREATMENT_SIMULATION].reason
+        == "treatment_simulation_planning_not_ready"
+    )
     assert hardened.ready_for_advice is False
 
 
@@ -190,9 +193,7 @@ async def test_provider_boundary_uses_only_opaque_ids_and_exact_input_digest() -
     assert "OPTION-INTERNAL-42" not in serialized
     assert str(context.patient_id) not in serialized
     assert str(context.clinic_id) not in serialized
-    assert payload["evidence_chain"]["case_intelligence"]["evidence"] == [
-        {"evidence_id": "E001"}
-    ]
+    assert payload["evidence_chain"]["case_intelligence"]["evidence"] == [{"evidence_id": "E001"}]
     assert payload["evidence_chain"]["case_intelligence"]["option_id"] == "I001"
     assert provider.tools == []
 

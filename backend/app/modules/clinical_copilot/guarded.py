@@ -84,9 +84,7 @@ def _project_provider_value(
                 continue
             if lowered.endswith("_ids") and isinstance(item, list):
                 projected[str(key)] = [
-                    _opaque_alias(entry, identifier_aliases, "I")
-                    for entry in item
-                    if entry
+                    _opaque_alias(entry, identifier_aliases, "I") for entry in item if entry
                 ]
                 continue
             projected[str(key)] = _project_provider_value(
@@ -108,12 +106,8 @@ def _project_provider_value(
 
 
 def _provider_projection(payload: dict[str, Any]) -> tuple[dict[str, Any], dict[str, str]]:
-    raw_allowed = [
-        str(item) for item in payload.get("allowed_evidence_ids", []) if item
-    ]
-    evidence_aliases = {
-        raw: f"E{index:03d}" for index, raw in enumerate(raw_allowed, start=1)
-    }
+    raw_allowed = [str(item) for item in payload.get("allowed_evidence_ids", []) if item]
+    evidence_aliases = {raw: f"E{index:03d}" for index, raw in enumerate(raw_allowed, start=1)}
     identifier_aliases: dict[str, str] = {}
     projected = _project_provider_value(
         payload,
@@ -204,9 +198,7 @@ class ProviderBoundaryProxy:
                 yield TextDelta(text=raw_text)
             else:
                 yield TextDelta(
-                    text=_canonical(
-                        _rehydrate_provider_output(parsed, reverse_evidence)
-                    )
+                    text=_canonical(_rehydrate_provider_output(parsed, reverse_evidence))
                 )
             if terminal is not None:
                 yield terminal

@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import get_db
-from app.modules.patients.service import PatientService
+from app.modules.patients.composition import build_patient_service
 
 from .schemas import (
     AttachmentCreate,
@@ -84,7 +84,7 @@ async def upload_document(
     _: Annotated[None, Depends(require_permission("media.documents.write"))] = None,
     db: Annotated[AsyncSession, Depends(get_db)] = None,
 ) -> ApiResponse[DocumentResponse]:
-    patient = await PatientService.get_patient(db, ctx.clinic_id, patient_id)
+    patient = await build_patient_service(db).get_patient(ctx.clinic_id, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -123,7 +123,7 @@ async def list_patient_documents(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
 ) -> PaginatedApiResponse[DocumentResponse]:
-    patient = await PatientService.get_patient(db, ctx.clinic_id, patient_id)
+    patient = await build_patient_service(db).get_patient(ctx.clinic_id, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -180,7 +180,7 @@ async def upload_photo(
     one wraps the photo-aware path: thumbnail generation, EXIF capture
     extraction, taxonomy validation, optional pair link.
     """
-    patient = await PatientService.get_patient(db, ctx.clinic_id, patient_id)
+    patient = await build_patient_service(db).get_patient(ctx.clinic_id, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 
@@ -226,7 +226,7 @@ async def list_patient_photos(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=40, ge=1, le=200),
 ) -> PaginatedApiResponse[DocumentResponse]:
-    patient = await PatientService.get_patient(db, ctx.clinic_id, patient_id)
+    patient = await build_patient_service(db).get_patient(ctx.clinic_id, patient_id)
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
 

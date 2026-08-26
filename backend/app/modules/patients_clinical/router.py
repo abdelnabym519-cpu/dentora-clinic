@@ -18,6 +18,8 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.events import EventType, event_bus
 from app.core.schemas import ApiResponse
 from app.database import get_db
+from app.modules.patients.event_publisher import EventBusPatientEventPublisher
+from app.modules.patients.repository import SqlAlchemyPatientRepository
 from app.modules.patients.service import PatientService
 
 from .schemas import (
@@ -49,7 +51,11 @@ router = APIRouter()
 
 
 async def _ensure_patient(db: AsyncSession, clinic_id: UUID, patient_id: UUID) -> None:
-    patient = await PatientService.get_patient(db, clinic_id, patient_id)
+    patient_service = PatientService(
+        SqlAlchemyPatientRepository(db),
+        EventBusPatientEventPublisher(),
+    )
+    patient = await patient_service.get_patient(clinic_id, patient_id)
     if patient is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
 

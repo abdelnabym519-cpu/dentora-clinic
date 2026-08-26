@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dentora"
-version = "2.0.0"
+version = "2.0.1"
 description = "Open source dental clinic management software"
 readme = "README.md"
 requires-python = ">=3.11"

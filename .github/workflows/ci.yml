@@ -233,6 +233,10 @@ jobs:
         working-directory: frontend
         run: npx nuxi prepare
 
+      - name: Run typecheck
+        working-directory: frontend
+        run: npm run typecheck
+
   frontend-test:
     runs-on: ubuntu-latest
     steps:

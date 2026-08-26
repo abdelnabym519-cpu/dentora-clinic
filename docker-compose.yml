@@ -1,6 +1,8 @@
 services:
   db:
-    image: postgres:15-alpine
+    # pgvector 0.8.6 on PostgreSQL 15 keeps the existing database major
+    # while adding the vector extension required by retrieval migrations.
+    image: pgvector/pgvector:0.8.6-pg15-bookworm
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dental_clinic}
       POSTGRES_USER: ${POSTGRES_USER:-dental}

@@ -22,14 +22,16 @@ test.describe('agenda — quick patient create', () => {
   test.use({ role: 'receptionist' })
 
   test('receptionist creates a new patient from inside the New Appointment modal', async ({ loggedIn }) => {
-    await loggedIn.goto('/appointments')
+    await loggedIn.goto('/appointments', { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/appointments/, { timeout: 15_000 })
     // Wait for the page to be quiet — the schedule fires
     // ``GET /agenda/appointments?...`` on mount. Vue's ``@click`` handler
     // is bound only after hydration completes; clicking before that lets
     // the event reach the button DOM but the listener never runs, so the
     // modal silently does not open. ``networkidle`` is the cheapest
-    // ready signal we have here.
+    // ready signal we have here. ``goto`` intentionally waits only for
+    // DOMContentLoaded so an unrelated long-lived resource cannot time out
+    // before this explicit application-ready check runs.
     await loggedIn.waitForLoadState('networkidle')
 
     // Open "Nueva cita" via the header button. Desktop only — the mobile
@@ -122,7 +124,7 @@ test.describe('agenda — quick patient create', () => {
       url: 'http://localhost:3000'
     }])
 
-    await page.goto('/appointments')
+    await page.goto('/appointments', { waitUntil: 'domcontentloaded' })
     await page.waitForLoadState('networkidle')
 
     // Hygienist may not see the create button — skip if so, the gating
@@ -138,10 +140,6 @@ test.describe('agenda — quick patient create', () => {
     await expect(searchInput).toBeVisible({ timeout: 10_000 })
     await searchInput.fill('Nonexistent Patient X')
 
-    // Wait long enough for both the debounce (300ms) and a search
-    // response to settle before asserting absence.
-    await page.waitForTimeout(800)
-    const createRow = page.locator('[data-testid="patient-selector-create-row"]')
-    await expect(createRow).toHaveCount(0)
+    await expect(page.locator('[data-testid="patient-selector-create-row"]')).toHaveCount(0)
   })
 })

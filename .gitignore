@@ -2,11 +2,16 @@
 .env
 .env.local
 .env.*.local
+.env.client
 .dev.vars
 .secrets.*
 
 # Local license development material (private signing keys, admin secrets)
 .license-dev/
+
+# Per-install LAN HTTPS material generated on the clinic Mini PC.
+dentora-lan-ca.crt
+Dentora_Workstation_Kit/
 
 # Claude Code
 .claude/

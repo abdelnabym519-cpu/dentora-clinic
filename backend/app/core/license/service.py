@@ -115,6 +115,8 @@ class LicenseManager:
             payload = json.loads(raw)
         except (ValueError, InvalidSignature, json.JSONDecodeError) as exc:
             raise LicenseError("License lease signature is invalid") from exc
+        if not isinstance(payload, dict):
+            raise LicenseError("License lease payload is invalid")
         if payload.get("product") != "dentora" or payload.get("v") != 1:
             raise LicenseError("License lease is for another product or version")
         return payload
@@ -137,8 +139,16 @@ class LicenseManager:
         }
         if not settings.LICENSE_ENFORCEMENT:
             return {**base, "active": True, "state": "disabled"}
-        if not settings.LICENSE_SERVER_URL or not settings.LICENSE_PUBLIC_KEY_B64:
-            return {**base, "state": "misconfigured", "reason": "License service is not configured"}
+        if (
+            not settings.LICENSE_SERVER_URL
+            or not settings.LICENSE_PUBLIC_KEY_B64
+            or not settings.LICENSE_MACHINE_FINGERPRINT
+        ):
+            return {
+                **base,
+                "state": "misconfigured",
+                "reason": "License service is not configured",
+            }
 
         token = state.get("lease_token")
         if not token:
@@ -154,17 +164,34 @@ class LicenseManager:
             return {**base, "state": "invalid", "reason": "License machine mismatch"}
 
         now = utcnow()
-        refresh_after = parse_dt(payload.get("refresh_after"))
-        valid_until = parse_dt(payload.get("valid_until"))
-        license_expires_at = parse_dt(payload.get("license_expires_at"))
+        try:
+            refresh_after = parse_dt(payload.get("refresh_after"))
+            valid_until = parse_dt(payload.get("valid_until"))
+            license_expires_at = parse_dt(payload.get("license_expires_at"))
+        except (AttributeError, TypeError, ValueError):
+            return {
+                **base,
+                "state": "invalid",
+                "reason": "License lease timestamps are invalid",
+            }
         if not valid_until:
             return {**base, "state": "invalid", "reason": "License lease has no expiry"}
+
+        features = payload.get("features") or []
+        if not isinstance(features, list) or not all(
+            isinstance(feature, str) for feature in features
+        ):
+            return {
+                **base,
+                "state": "invalid",
+                "reason": "License lease features are invalid",
+            }
 
         common = {
             **base,
             "customer_name": payload.get("customer_name"),
             "plan": payload.get("plan"),
-            "features": payload.get("features") or [],
+            "features": features,
             "license_expires_at": license_expires_at.isoformat() if license_expires_at else None,
             "refresh_after": refresh_after.isoformat() if refresh_after else None,
             "valid_until": valid_until.isoformat(),
@@ -193,10 +220,21 @@ class LicenseManager:
 
     def _refresh_attempt_due(self, state: dict) -> bool:
         raw = state.get("last_refresh_attempt_at")
-        last = parse_dt(raw)
+        try:
+            last = parse_dt(raw)
+        except (AttributeError, TypeError, ValueError):
+            return True
         if not last:
             return True
         return utcnow() - last >= timedelta(minutes=settings.LICENSE_REFRESH_RETRY_MINUTES)
+
+    def _validate_server_lease(self, state: dict) -> dict:
+        status = self._status_from_state(state)
+        if not status.get("active"):
+            raise LicenseUnavailableError(
+                status.get("reason") or "License server returned an invalid lease"
+            )
+        return status
 
     async def _server_post(self, path: str, payload: dict) -> dict:
         url = settings.LICENSE_SERVER_URL.rstrip("/") + path
@@ -245,8 +283,9 @@ class LicenseManager:
                 "last_refresh_attempt_at": now,
                 "last_refresh_success_at": now,
             }
+            status = self._validate_server_lease(state)
             self._save_state(state)
-            return self._status_from_state(state)
+            return status
 
     async def refresh(self, state: dict | None = None) -> dict:
         async with self._lock:
@@ -272,13 +311,15 @@ class LicenseManager:
                 self._save_state(state)
                 raise
 
-            state["lease_token"] = data["lease_token"]
-            state["last_refresh_success_at"] = utcnow().isoformat()
-            state.pop("server_blocked_reason", None)
-            state.pop("server_blocked_status_code", None)
-            state.pop("server_blocked_at", None)
-            self._save_state(state)
-            return self._status_from_state(state)
+            candidate = dict(state)
+            candidate["lease_token"] = data["lease_token"]
+            candidate["last_refresh_success_at"] = utcnow().isoformat()
+            candidate.pop("server_blocked_reason", None)
+            candidate.pop("server_blocked_status_code", None)
+            candidate.pop("server_blocked_at", None)
+            status = self._validate_server_lease(candidate)
+            self._save_state(candidate)
+            return status
 
     async def get_status(self, *, allow_refresh: bool = True) -> dict:
         state = self._load_state()

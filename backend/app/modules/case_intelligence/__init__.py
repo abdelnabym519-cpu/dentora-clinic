@@ -3,13 +3,9 @@
 from fastapi import APIRouter
 
 from app.core.plugins import BaseModule
-from app.modules.dental_3d.change_detection import ChangeDetectionService
 
 from .models import CaseSnapshotRecord
 from .router import router
-from .service import CaseIntelligenceChangeDetectionProvider
-
-ChangeDetectionService.configure_provider(CaseIntelligenceChangeDetectionProvider())
 
 
 class CaseIntelligenceModule(BaseModule):

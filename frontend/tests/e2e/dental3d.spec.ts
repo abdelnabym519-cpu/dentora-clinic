@@ -45,7 +45,7 @@ function binaryStl(triangles = 4): Buffer {
 test.describe('dental 3D — patient summary card', () => {
   test.use({ role: 'admin' })
 
-  test('card + viewer surface on the patient summary', async ({ loggedIn }) => {
+  test('card enforces the patient-space rendering boundary on the patient summary', async ({ loggedIn }) => {
     const patientId = await getPatientId(loggedIn)
     await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
@@ -54,11 +54,14 @@ test.describe('dental 3D — patient summary card', () => {
     const card = loggedIn.locator('[data-testid="dental3d-card"]')
     await expect(card).toBeVisible({ timeout: 15_000 })
 
-    // 2. The viewer mounts client-side: either the WebGL canvas or the
-    //    explicit WebGL-unavailable fallback (deterministic either way).
-    const canvas = loggedIn.locator('[data-testid="dental3d-canvas"]')
-    const fallback = loggedIn.locator('[data-testid="dental3d-webgl-fallback"]')
-    await expect(canvas.or(fallback)).toBeVisible({ timeout: 15_000 })
+    // 2. Without an accepted patient-space alignment the viewer must not
+    //    render either clinical or synthetic geometry. The explicit safety
+    //    state is the contract, not a canvas/WebGL fallback.
+    await expect(
+      loggedIn.getByText(/No registered patient-space clinical geometry is available/i).first()
+    ).toBeVisible()
+    await expect(loggedIn.locator('[data-testid="dental3d-canvas"]')).toHaveCount(0)
+    await expect(loggedIn.locator('[data-testid="dental3d-webgl-fallback"]')).toHaveCount(0)
 
     // 3. The synthetic-geometry disclaimer stays visible by design.
     await expect(
@@ -70,7 +73,7 @@ test.describe('dental 3D — patient summary card', () => {
 test.describe('dental 3D — real mesh ingestion', () => {
   test.use({ role: 'admin' })
 
-  test('uploaded STL renders as scan geometry with a synthetic fallback contract', async ({ loggedIn }) => {
+  test('uploaded STL is listed but not rendered without accepted patient-space alignment', async ({ loggedIn }) => {
     // Second seeded patient: uploads persist across runs, and the
     // synthetic-disclaimer test above must keep seeing a mesh-free
     // first patient.
@@ -96,8 +99,8 @@ test.describe('dental 3D — real mesh ingestion', () => {
     })
     expect(content.ok(), `mesh download failed: ${content.status()}`).toBeTruthy()
 
-    // 3. The card surfaces scan geometry: mesh count + viewer badge
-    //    (WebGL canvas — swiftshader in CI) and the scan disclaimer.
+    // 3. The card surfaces the persisted scan metadata, but fail-closes the
+    //    renderer until a dentist-accepted patient-space alignment exists.
     await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
 
@@ -105,14 +108,14 @@ test.describe('dental 3D — real mesh ingestion', () => {
     await expect(loggedIn.locator('[data-testid="dental3d-mesh-count"]')).toBeVisible({
       timeout: 15_000
     })
-    await expect(loggedIn.locator('[data-testid="dental3d-canvas"]')).toBeVisible({
-      timeout: 15_000
-    })
-    await expect(loggedIn.locator('[data-testid="dental3d-mesh-badge"]')).toBeVisible({
-      timeout: 15_000
-    })
+    await expect(
+      loggedIn.getByText(/No registered patient-space clinical geometry is available/i).first()
+    ).toBeVisible()
+    await expect(loggedIn.locator('[data-testid="dental3d-canvas"]')).toHaveCount(0)
+    await expect(loggedIn.locator('[data-testid="dental3d-mesh-badge"]')).toHaveCount(0)
 
-    // 4. Loading must have settled without the error state.
+    // 4. Loading must have settled without the error state and the scan
+    //    remains clearly labelled as visualization-only metadata.
     await expect(loggedIn.locator('[data-testid="dental3d-mesh-error"]')).toHaveCount(0)
     await expect(
       loggedIn.getByText(/scan geometry for visualization|geometr.de escaneo/i).first()

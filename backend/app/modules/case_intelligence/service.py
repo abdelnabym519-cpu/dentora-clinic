@@ -20,7 +20,7 @@ from .source_provider import SqlAlchemyCaseSourceProvider
 
 
 class CaseIntelligenceService:
-    """Build/reuse append-only unified clinical case snapshots from authoritative sources."""
+    """Build/reuse append-only unified case snapshots from authoritative sources."""
 
     provider: CaseSourceProvider = SqlAlchemyCaseSourceProvider()
 
@@ -129,34 +129,4 @@ class CaseIntelligenceService:
                 "source_digest": row.source_digest,
                 "source_versions": row.source_versions,
             }
-        )
-
-
-class CaseIntelligenceChangeDetectionProvider:
-    """Owner-side adapter for the Dental 3D change-detection snapshot port."""
-
-    async def get_snapshot(
-        self,
-        db: AsyncSession,
-        *,
-        clinic_id: UUID,
-        patient_id: UUID,
-        version: int,
-    ):
-        from app.modules.dental_3d.change_detection import ChangeDetectionSnapshot
-
-        row = await db.scalar(
-            select(CaseSnapshotRecord).where(
-                CaseSnapshotRecord.clinic_id == clinic_id,
-                CaseSnapshotRecord.patient_id == patient_id,
-                CaseSnapshotRecord.snapshot_version == version,
-            )
-        )
-        if row is None:
-            raise KeyError("snapshot_not_found")
-        return ChangeDetectionSnapshot(
-            version=row.snapshot_version,
-            payload=dict(row.snapshot_data),
-            source_digest=row.source_digest,
-            source_versions=dict(row.source_versions or {}),
         )

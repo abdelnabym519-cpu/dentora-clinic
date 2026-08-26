@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.agents.redaction import Redactor
 from app.core.llm.base import Done, Provider, ProviderMessage, Role, TextBlock, TextDelta, ToolUse
 from app.modules.ai_treatment_planning.models import AITreatmentPlanningRecord
 from app.modules.case_intelligence.models import CaseSnapshotRecord
@@ -34,19 +35,39 @@ from .contracts import (
 )
 from .ports import SecondReviewReader, UnavailableSecondReviewReader
 
-_DENIED_KEYS = {
+_BLOCKED_EXACT = {
     "address",
     "birth_date",
+    "clinic_id",
     "date_of_birth",
     "email",
     "first_name",
+    "full_name",
+    "id",
     "last_name",
+    "mobile",
     "name",
+    "national_id",
+    "nif",
+    "dni",
+    "patient_id",
     "phone",
     "phone_number",
     "ssn",
+    "tax_id",
+    "telephone",
 }
-_FREE_TEXT_KEYS = {"free_text", "note", "notes", "clinical_notes", "description_raw"}
+_BLOCKED_FRAGMENTS = ("comment", "description_raw", "free_text", "narrative", "note")
+_SAFE_DERIVED_ID_KEYS = {
+    "checkpoint_id",
+    "evidence_id",
+    "evidence_ids",
+    "evidence_refs",
+    "factor_id",
+    "option_id",
+    "risk_factor_ids",
+    "step_id",
+}
 
 
 class ClinicalContextInsufficientError(ValueError):
@@ -67,26 +88,42 @@ def _digest(value: Any) -> str:
     return "sha256:" + hashlib.sha256(_canonical(value).encode()).hexdigest()
 
 
-def _redact_structured(value: Any) -> Any:
-    """Remove direct identifiers and unrestricted free text before provider transmission."""
+def _blocked_key(key: str) -> bool:
+    lowered = key.lower()
+    return (
+        lowered in _BLOCKED_EXACT
+        or (lowered.endswith("_id") and lowered not in _SAFE_DERIVED_ID_KEYS)
+        or any(fragment in lowered for fragment in _BLOCKED_FRAGMENTS)
+    )
+
+
+def _sanitize_structured(value: Any) -> Any:
+    """Drop direct identifiers and unrestricted narrative before any cloud projection."""
     if isinstance(value, dict):
         return {
-            str(key): _redact_structured(item)
+            str(key): _sanitize_structured(item)
             for key, item in value.items()
-            if str(key).lower() not in _DENIED_KEYS | _FREE_TEXT_KEYS
+            if not _blocked_key(str(key))
         }
     if isinstance(value, list):
-        return [_redact_structured(item) for item in value]
+        return [_sanitize_structured(item) for item in value]
     return value
 
 
+def _redact_structured(value: Any, *, redactor: Redactor | None = None) -> Any:
+    """Apply the existing agent redactor after the stricter clinical allow/deny boundary."""
+    active = redactor or Redactor(enabled=True)
+    return active.redact_result(_sanitize_structured(value))
+
+
 def _evidence_refs(payload: dict[str, Any]) -> list[str]:
+    """Collect only explicit evidence aliases, never source record or workflow identifiers."""
     refs: set[str] = set()
 
     def walk(value: Any) -> None:
         if isinstance(value, dict):
             for key, item in value.items():
-                if key in {"evidence_id", "source_record_id", "factor_id", "option_id"} and item:
+                if key == "evidence_id" and item:
                     refs.add(str(item))
                 elif key in {"evidence_ids", "evidence_refs"} and isinstance(item, list):
                     refs.update(str(ref) for ref in item if ref)
@@ -99,6 +136,17 @@ def _evidence_refs(payload: dict[str, Any]) -> list[str]:
     return sorted(refs)
 
 
+def _availability_state(availability: Any, missing_report: Any) -> tuple[StageState, str | None]:
+    if not isinstance(availability, dict) or not availability:
+        return StageState.MISSING, "case_snapshot_availability_missing"
+    values = {str(value) for value in availability.values()}
+    if "invalid_or_stale" in values:
+        return StageState.STALE, "case_snapshot_contains_stale_sources"
+    if values != {"available"} or bool(missing_report):
+        return StageState.MISSING, "case_snapshot_contains_missing_sources"
+    return StageState.READY, None
+
+
 class ClinicalCopilotService:
     def __init__(
         self,
@@ -109,7 +157,14 @@ class ClinicalCopilotService:
         self.db = db
         self.second_review_reader = second_review_reader or UnavailableSecondReviewReader()
 
-    async def build_context(self, *, clinic_id: UUID, patient_id: UUID) -> ClinicalCopilotContext:
+    async def build_context(
+        self,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        redactor: Redactor | None = None,
+    ) -> ClinicalCopilotContext:
+        active_redactor = redactor or Redactor(enabled=True)
         snapshot = await self.db.scalar(
             select(CaseSnapshotRecord)
             .where(
@@ -159,62 +214,79 @@ class ClinicalCopilotService:
                 )
             )
         else:
-            snapshot_data = _redact_structured(snapshot.snapshot_data)
-            availability = snapshot_data.get("availability", {}) if isinstance(snapshot_data, dict) else {}
-            stale = any(str(value) == "invalid_or_stale" for value in availability.values())
+            active_redactor.seed(snapshot.snapshot_data)
+            snapshot_data = _redact_structured(snapshot.snapshot_data, redactor=active_redactor)
+            availability = (
+                snapshot_data.get("availability", {}) if isinstance(snapshot_data, dict) else {}
+            )
+            missing_report = (
+                snapshot_data.get("missing_data_report", [])
+                if isinstance(snapshot_data, dict)
+                else []
+            )
+            state, reason = _availability_state(availability, missing_report)
             refs = _evidence_refs(snapshot_data if isinstance(snapshot_data, dict) else {})
             stages.append(
                 ClinicalStageStatus(
                     stage=StageName.CASE_INTELLIGENCE,
-                    state=StageState.STALE if stale else StageState.READY,
+                    state=state,
                     artifact_id=str(snapshot.id),
                     artifact_version=snapshot.snapshot_version,
                     generated_at=snapshot.generated_at,
                     source_digest=snapshot.source_digest,
                     evidence_refs=refs,
-                    reason="case_snapshot_contains_stale_sources" if stale else None,
+                    reason=reason,
                 )
             )
             catalog["case_intelligence"] = {
-                "artifact_id": str(snapshot.id),
                 "version": snapshot.snapshot_version,
                 "source_digest": snapshot.source_digest,
-                "missing_data_report": snapshot_data.get("missing_data_report", []),
+                "missing_data_report": missing_report,
                 "availability": availability,
                 "provenance": snapshot_data.get("provenance", []),
             }
 
-        risk_stale = False
         if risk is None:
             stages.append(
                 ClinicalStageStatus(
-                    stage=StageName.RISK_ENGINE, state=StageState.MISSING, reason="risk_result_missing"
+                    stage=StageName.RISK_ENGINE,
+                    state=StageState.MISSING,
+                    reason="risk_result_missing",
                 )
             )
         else:
-            if snapshot is None:
-                risk_stale = True
+            provenance_stale = snapshot is None or (
+                risk.case_snapshot_version != snapshot.snapshot_version
+                or risk.case_snapshot_contract_version != snapshot.contract_version
+                or risk.source_digest != snapshot.source_digest
+            )
+            if provenance_stale:
+                risk_state = StageState.STALE
+                risk_reason = "risk_result_does_not_match_current_case_snapshot"
+            elif risk.availability_state == "invalid_or_stale":
+                risk_state = StageState.STALE
+                risk_reason = "risk_context_invalid_or_stale"
+            elif risk.availability_state != "available":
+                risk_state = StageState.UNAVAILABLE
+                risk_reason = f"risk_context_{risk.availability_state}"
             else:
-                risk_stale = (
-                    risk.case_snapshot_version != snapshot.snapshot_version
-                    or risk.source_digest != snapshot.source_digest
-                )
-            risk_data = _redact_structured(risk.result_data)
+                risk_state = StageState.READY
+                risk_reason = None
+            risk_data = _redact_structured(risk.result_data, redactor=active_redactor)
             refs = _evidence_refs(risk_data)
             stages.append(
                 ClinicalStageStatus(
                     stage=StageName.RISK_ENGINE,
-                    state=StageState.STALE if risk_stale else StageState.READY,
+                    state=risk_state,
                     artifact_id=str(risk.id),
                     artifact_version=risk.result_version,
                     generated_at=risk.generated_at,
                     source_digest=risk.result_digest,
                     evidence_refs=refs,
-                    reason="risk_result_does_not_match_current_case_snapshot" if risk_stale else None,
+                    reason=risk_reason,
                 )
             )
             catalog["risk_engine"] = {
-                "artifact_id": str(risk.id),
                 "version": risk.result_version,
                 "availability_state": risk.availability_state,
                 "input_digest": risk.input_digest,
@@ -223,7 +295,7 @@ class ClinicalCopilotService:
                 "result": risk_data,
             }
 
-        planning_stale = False
+        planning_ready = False
         if planning is None:
             stages.append(
                 ClinicalStageStatus(
@@ -233,33 +305,46 @@ class ClinicalCopilotService:
                 )
             )
         else:
-            planning_stale = snapshot is None or risk is None
+            provenance_stale = snapshot is None or risk is None
             if snapshot is not None:
-                planning_stale = planning_stale or (
+                provenance_stale = provenance_stale or (
                     planning.case_snapshot_version != snapshot.snapshot_version
+                    or planning.case_snapshot_contract_version != snapshot.contract_version
                     or planning.case_source_digest != snapshot.source_digest
                 )
             if risk is not None:
-                planning_stale = planning_stale or (
-                    planning.risk_input_digest != risk.input_digest
+                provenance_stale = provenance_stale or (
+                    planning.risk_engine_version != risk.engine_version
+                    or planning.risk_policy_version != risk.policy_version
+                    or planning.risk_input_digest != risk.input_digest
                     or planning.risk_result_digest != risk.result_digest
                 )
-            planning_data = _redact_structured(planning.planning_data)
+            review_missing = (
+                planning.review_status != "accepted"
+                or planning.reviewed_at is None
+                or planning.reviewed_by is None
+            )
+            planning_ready = not provenance_stale and not review_missing
+            planning_data = _redact_structured(planning.planning_data, redactor=active_redactor)
             refs = _evidence_refs(planning_data)
+            reason = None
+            if provenance_stale:
+                reason = "treatment_plan_provenance_is_stale"
+            elif review_missing:
+                reason = "treatment_planning_not_accepted_or_reviewed"
             stages.append(
                 ClinicalStageStatus(
                     stage=StageName.TREATMENT_PLANNING,
-                    state=StageState.STALE if planning_stale else StageState.READY,
+                    state=StageState.READY if planning_ready else StageState.STALE,
                     artifact_id=str(planning.id),
                     artifact_version=planning.planning_version,
                     generated_at=planning.generated_at,
                     source_digest=planning.output_digest,
                     evidence_refs=refs,
-                    reason="treatment_plan_provenance_is_stale" if planning_stale else None,
+                    reason=reason,
                 )
             )
             catalog["ai_treatment_planning"] = {
-                "artifact_id": str(planning.id),
                 "version": planning.planning_version,
                 "output_digest": planning.output_digest,
                 "review_status": planning.review_status,
@@ -267,7 +352,7 @@ class ClinicalCopilotService:
                 "plan": planning_data,
             }
 
-        simulation_stale = False
+        simulation_ready = False
         if simulation is None:
             stages.append(
                 ClinicalStageStatus(
@@ -277,38 +362,48 @@ class ClinicalCopilotService:
                 )
             )
         else:
-            simulation_stale = snapshot is None or risk is None or planning is None
+            provenance_stale = (
+                snapshot is None or risk is None or planning is None or not planning_ready
+            )
             if snapshot is not None:
-                simulation_stale = simulation_stale or (
+                provenance_stale = provenance_stale or (
                     simulation.case_snapshot_version != snapshot.snapshot_version
+                    or simulation.case_snapshot_contract_version != snapshot.contract_version
                     or simulation.case_source_digest != snapshot.source_digest
                 )
             if risk is not None:
-                simulation_stale = simulation_stale or (
-                    simulation.risk_input_digest != risk.input_digest
+                provenance_stale = provenance_stale or (
+                    simulation.risk_engine_version != risk.engine_version
+                    or simulation.risk_policy_version != risk.policy_version
+                    or simulation.risk_input_digest != risk.input_digest
                     or simulation.risk_result_digest != risk.result_digest
                 )
             if planning is not None:
-                simulation_stale = simulation_stale or (
+                provenance_stale = provenance_stale or (
                     simulation.planning_id != planning.id
+                    or simulation.planning_version != planning.planning_version
                     or simulation.planning_output_digest != planning.output_digest
+                    or simulation.planning_reviewed_at != planning.reviewed_at
+                    or simulation.planning_reviewed_by != planning.reviewed_by
                 )
-            scene_data = _redact_structured(simulation.scene_data)
+            simulation_ready = not provenance_stale
+            scene_data = _redact_structured(simulation.scene_data, redactor=active_redactor)
             refs = _evidence_refs(scene_data)
             stages.append(
                 ClinicalStageStatus(
                     stage=StageName.TREATMENT_SIMULATION,
-                    state=StageState.STALE if simulation_stale else StageState.READY,
+                    state=StageState.READY if simulation_ready else StageState.STALE,
                     artifact_id=str(simulation.id),
                     artifact_version=simulation.simulation_version,
                     generated_at=simulation.generated_at,
                     source_digest=simulation.output_digest,
                     evidence_refs=refs,
-                    reason="treatment_simulation_provenance_is_stale" if simulation_stale else None,
+                    reason=None
+                    if simulation_ready
+                    else "treatment_simulation_provenance_is_stale",
                 )
             )
             catalog["treatment_simulation"] = {
-                "artifact_id": str(simulation.id),
                 "version": simulation.simulation_version,
                 "output_digest": simulation.output_digest,
                 "option_id": simulation.option_id,
@@ -324,23 +419,38 @@ class ClinicalCopilotService:
                 )
             )
         else:
-            second_review_stale = simulation is None or (
-                second_review.simulation_id != str(simulation.id)
+            provenance_stale = (
+                simulation is None
+                or not simulation_ready
+                or second_review.simulation_id != str(simulation.id)
                 or second_review.simulation_output_digest != simulation.output_digest
             )
+            review_missing = (
+                second_review.review_status != "accepted"
+                or second_review.reviewed_at is None
+                or not second_review.reviewed_by
+            )
+            second_review_ready = not provenance_stale and not review_missing
+            reason = None
+            if provenance_stale:
+                reason = "ai_second_review_provenance_is_stale"
+            elif review_missing:
+                reason = "ai_second_review_not_accepted_or_reviewed"
             stages.append(
                 ClinicalStageStatus(
                     stage=StageName.AI_SECOND_REVIEW,
-                    state=StageState.STALE if second_review_stale else StageState.READY,
+                    state=StageState.READY if second_review_ready else StageState.STALE,
                     artifact_id=second_review.artifact_id,
                     artifact_version=second_review.version,
                     generated_at=second_review.generated_at,
                     source_digest=second_review.source_digest,
                     evidence_refs=sorted(set(second_review.evidence_refs)),
-                    reason="ai_second_review_provenance_is_stale" if second_review_stale else None,
+                    reason=reason,
                 )
             )
-            catalog["ai_second_review"] = _redact_structured(second_review.payload)
+            catalog["ai_second_review"] = _redact_structured(
+                second_review.payload, redactor=active_redactor
+            )
 
         missing_or_stale = [
             f"{stage.stage}:{stage.state}:{stage.reason or 'not_ready'}"
@@ -368,23 +478,36 @@ class ClinicalCopilotService:
         *,
         clinic_id: UUID,
         patient_id: UUID,
-        question: str,
+        focus: str,
         provider: Provider,
         provider_name: str,
         model: str,
+        user_id: UUID,
+        user_role: str,
     ) -> ClinicalCopilotAdvisory:
-        context = await self.build_context(clinic_id=clinic_id, patient_id=patient_id)
+        if user_role != "dentist":
+            raise PermissionError("dentist_control_required")
+
+        redactor = Redactor(enabled=True)
+        context = await self.build_context(
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            redactor=redactor,
+        )
         if not context.ready_for_advice:
             raise ClinicalContextInsufficientError(context)
 
         allowed_ids = {ref for stage in context.stages for ref in stage.evidence_refs if ref}
-        provider_payload = {
-            "contract_version": context.contract_version,
-            "question": question,
-            "evidence_chain": context.evidence_catalog,
-            "allowed_evidence_ids": sorted(allowed_ids),
-            "missing_or_stale": context.missing_or_stale,
-        }
+        provider_payload = _redact_structured(
+            {
+                "contract_version": context.contract_version,
+                "focus": focus,
+                "evidence_chain": context.evidence_catalog,
+                "allowed_evidence_ids": sorted(allowed_ids),
+                "missing_or_stale": context.missing_or_stale,
+            },
+            redactor=redactor,
+        )
         system = (
             "You are Dentora Clinical Copilot. You are advisory only. Never diagnose, approve, "
             "select, prescribe, or autonomously decide treatment. Use only supplied structured "
@@ -395,6 +518,8 @@ class ClinicalCopilotService:
         messages = [
             ProviderMessage(role=Role.USER, content=[TextBlock(text=_canonical(provider_payload))])
         ]
+        messages = redactor.redact_outgoing(messages)
+
         chunks: list[str] = []
         async for event in provider.complete(
             system=system,
@@ -412,6 +537,8 @@ class ClinicalCopilotService:
 
         try:
             raw = json.loads("".join(chunks))
+            if set(raw) - {"claims", "limitations"}:
+                raise ClinicalCopilotOutputError("clinical_copilot_invalid_provider_output")
             claims = [AdvisoryClaim.model_validate(item) for item in raw.get("claims", [])]
             limitations = [str(item) for item in raw.get("limitations", [])]
         except (json.JSONDecodeError, TypeError, ValidationError) as exc:
@@ -428,6 +555,10 @@ class ClinicalCopilotService:
         if unsupported:
             raise ClinicalCopilotOutputError("clinical_copilot_unsupported_evidence_reference")
 
+        output_payload = {
+            "claims": [claim.model_dump(mode="json") for claim in claims],
+            "limitations": limitations,
+        }
         return ClinicalCopilotAdvisory(
             patient_id=patient_id,
             claims=claims,
@@ -436,6 +567,9 @@ class ClinicalCopilotService:
                 provider=provider_name,
                 model=model,
                 input_digest=context.input_digest,
+                output_digest=_digest(output_payload),
+                upstream=context.stages,
                 generated_at=datetime.now(UTC),
+                generated_by=user_id,
             ),
         )

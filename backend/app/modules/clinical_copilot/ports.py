@@ -20,6 +20,9 @@ class SecondReviewArtifact:
     source_digest: str
     simulation_id: str
     simulation_output_digest: str
+    review_status: str
+    reviewed_at: datetime | None
+    reviewed_by: UUID | None
     evidence_refs: list[str] = field(default_factory=list)
     payload: dict[str, Any] = field(default_factory=dict)
 

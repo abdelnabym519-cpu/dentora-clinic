@@ -68,10 +68,12 @@ async def advise(
         result = await ClinicalCopilotService(db).advise(
             clinic_id=ctx.clinic_id,
             patient_id=body.patient_id,
-            question=body.focus,
+            focus=body.focus,
             provider=provider,
             provider_name=provider_name,
             model=model,
+            user_id=ctx.user_id,
+            user_role=ctx.role,
         )
     except ClinicalContextInsufficientError as exc:
         raise HTTPException(

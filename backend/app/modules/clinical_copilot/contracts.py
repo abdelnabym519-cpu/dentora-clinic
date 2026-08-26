@@ -87,7 +87,10 @@ class ClinicalCopilotProvenance(BaseModel):
     model: str
     contract_version: str = CLINICAL_COPILOT_CONTRACT_VERSION
     input_digest: str
+    output_digest: str
+    upstream: list[ClinicalStageStatus]
     generated_at: datetime
+    generated_by: UUID
 
 
 class ClinicalCopilotAdvisory(BaseModel):

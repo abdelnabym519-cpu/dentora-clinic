@@ -1,0 +1,8 @@
+__pycache__/
+.pytest_cache/
+tests/
+models/
+*.pth
+*.nii
+*.nii.gz
+*.dcm

@@ -38,6 +38,26 @@ A module is a Python package that groups together:
 Each module declares its metadata through a **manifest** — a
 declarative dict embedded on the module class.
 
+### Clean Architecture boundary (mandatory — ADR 0019)
+
+Clean Architecture is a mandatory acceptance criterion for every new
+Dentora feature and module. The conceptual layers map onto the repo's
+module conventions — simple modules keep the flat file layout, complex
+modules graduate to explicit subpackages:
+
+| Conceptual layer | Flat layout (simple modules) | Subpackage layout (complex modules) |
+|---|---|---|
+| Domain | `schemas.py` (entities/VOs/invariants) | `domain/` |
+| Application | `service.py` (use cases, orchestration) | `application/` |
+| Infrastructure | `models.py`, migrations, provider adapters | `infrastructure/` |
+| Presentation | `router.py`, `tools.py`, `frontend/` layer | `presentation/` |
+
+Rules: dependencies point inward only; domain imports no frameworks
+(FastAPI, SQLAlchemy, Nuxt/Vue/Three.js, AI providers); external
+capabilities (AI/ML, storage, third-party) are reached through
+interfaces/ports the inner layers define. Full standard + phase
+acceptance checklist: [`docs/adr/0019-clean-architecture-standard.md`](../adr/0019-clean-architecture-standard.md).
+
 ### Official vs community
 
 The manifest field `category` determines the badge shown in the admin

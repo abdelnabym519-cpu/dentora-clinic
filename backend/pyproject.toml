@@ -25,6 +25,11 @@ dependencies = [
     "jinja2>=3.1.0",
     "apscheduler>=3.10.0",
     "aiofiles>=23.0.0",
+    # PostgreSQL vector retrieval foundation. The Python adapter stays thin;
+    # authoritative clinical data remains in normal PostgreSQL tables.
+    "pgvector>=0.5.0,<0.6",
+    # Private S3-compatible media storage (AWS S3 / MinIO / compatible providers).
+    "boto3>=1.35,<2.0",
     # Shipped IANA timezone database so zoneinfo works regardless of
     # which Python base image the backend runs on (Alpine ships with
     # no system tzdata by default).
@@ -40,6 +45,20 @@ dependencies = [
     # Image processing for media module: thumbnail generation + EXIF
     # extraction on upload. Drives the photo gallery UX.
     "Pillow>=10.0.0",
+    # dental_3d Phase 5.1: header-only DICOM validation/normalization.
+    # Keep pixel decoding out of the ingestion foundation; pydicom stays
+    # behind the module's infrastructure adapter (ADR 0023).
+    "pydicom>=3.0.2,<4.0",
+    # dental_3d patient-specific rigid registration. Open3D remains behind
+    # RegistrationPort; NumPy is declared because the adapter imports it.
+    "numpy>=1.26,<3.0",
+    "open3d-cpu>=0.19,<0.20; platform_system == 'Linux'",
+    "open3d>=0.19,<0.20; platform_system != 'Linux'",
+    # dental_3d deterministic implant-planning geometry. SciPy supplies
+    # bounded analytic minimization; trimesh builds parametric cylinders.
+    # No implant-placement AI model or research-only weights are loaded.
+    "scipy>=1.12,<2.0",
+    "trimesh>=4.4,<5.0",
     # migration_import module: zstd unwrap for DPMF files (.dpm.zst /
     # .dpm.zst.enc). cryptography (already above) handles AES-256-GCM
     # + scrypt for the DPME envelope.
@@ -77,6 +96,9 @@ recalls = "app.modules.recalls:RecallsModule"
 verifactu = "app.modules.verifactu:VerifactuModule"
 migration_import = "app.modules.migration_import:MigrationImportModule"
 copilot = "app.modules.copilot:CopilotModule"
+dental_3d = "app.modules.dental_3d:Dental3DModule"
+case_intelligence = "app.modules.case_intelligence:CaseIntelligenceModule"
+ai_case_summary = "app.modules.ai_case_summary:AICaseSummaryModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

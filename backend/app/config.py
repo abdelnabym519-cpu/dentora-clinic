@@ -1,5 +1,6 @@
 """Application configuration via environment variables."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -77,11 +78,55 @@ class Settings(BaseSettings):
     # to override; exists for non-standard container layouts.
     DENTORA_MODULE_PKG_ROOT: str = "/app/app/modules"
 
-    # Storage configuration
+    # Storage configuration. PostgreSQL stores metadata/references only;
+    # binary payloads are always delegated to the selected storage backend.
     STORAGE_BACKEND: str = "local"
     STORAGE_LOCAL_PATH: str = "/app/storage"
-    STORAGE_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
+    STORAGE_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # business upload limit, not a DB threshold
     STORAGE_ALLOWED_MIME_TYPES: str = "application/pdf,image/jpeg,image/png"
+    STORAGE_STREAM_CHUNK_SIZE: int = Field(default=1024 * 1024, ge=64 * 1024, le=8 * 1024 * 1024)
+
+    # S3-compatible object storage (AWS S3, MinIO, and compatible providers).
+    # Credentials stay environment-driven. Empty credentials intentionally use
+    # the standard AWS credential provider chain when no custom pair is set.
+    S3_ENDPOINT: str = ""
+    S3_REGION: str = ""
+    S3_BUCKET: str = ""
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    S3_PREFIX: str = ""
+    S3_PRESIGN_EXPIRE_SECONDS: int = Field(default=300, ge=60, le=86400)
+    S3_MULTIPART_PART_SIZE: int = Field(
+        default=8 * 1024 * 1024,
+        ge=5 * 1024 * 1024,
+        le=512 * 1024 * 1024,
+    )
+
+    # Dental 3D Phase 5.2 — optional, operator-managed CBCT nerve inference.
+    # Dentora does not bundle medical-model weights. An empty URL is an
+    # explicit, safe "missing_model" state rather than a simulated result.
+    DENTAL_3D_NERVE_INFERENCE_URL: str = ""
+    DENTAL_3D_NERVE_INFERENCE_TOKEN: str = ""
+    DENTAL_3D_NERVE_INFERENCE_TIMEOUT_SECONDS: float = Field(default=120.0, gt=0, le=3600)
+    DENTAL_3D_NERVE_MAX_INSTANCES: int = Field(default=512, ge=1, le=2048)
+    DENTAL_3D_NERVE_MAX_INPUT_BYTES: int = Field(
+        default=256 * 1024 * 1024, ge=1024, le=2 * 1024 * 1024 * 1024
+    )
+    DENTAL_3D_NERVE_LOW_CONFIDENCE_THRESHOLD: float = Field(default=0.6, ge=0, le=1)
+
+    # Patient-specific IOS→CBCT registration. DentalSegmentator remains an
+    # operator-managed service; no model weights or PyTorch ship in Dentora.
+    DENTAL_3D_DENTAL_SEGMENTATOR_URL: str = ""
+    DENTAL_3D_DENTAL_SEGMENTATOR_TOKEN: str = ""
+    DENTAL_3D_DENTAL_SEGMENTATOR_TIMEOUT_SECONDS: float = Field(default=900.0, gt=0, le=7200)
+    DENTAL_3D_REGISTRATION_MAX_INSTANCES: int = Field(default=512, ge=1, le=2048)
+    DENTAL_3D_REGISTRATION_MAX_INPUT_BYTES: int = Field(
+        default=256 * 1024 * 1024, ge=1024, le=2 * 1024 * 1024 * 1024
+    )
+    DENTAL_3D_REGISTRATION_VOXEL_SIZE_MM: float = Field(default=1.0, gt=0, le=10)
+    DENTAL_3D_REGISTRATION_GLOBAL_DISTANCE_MM: float = Field(default=3.0, gt=0, le=50)
+    DENTAL_3D_REGISTRATION_ICP_DISTANCE_MM: float = Field(default=1.5, gt=0, le=20)
+    DENTAL_3D_REGISTRATION_ICP_MAX_ITERATIONS: int = Field(default=50, ge=1, le=500)
 
     @property
     def storage_allowed_mime_types_list(self) -> list[str]:

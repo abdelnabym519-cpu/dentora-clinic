@@ -14,7 +14,17 @@ from datetime import date, datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -57,7 +67,16 @@ class MedicalContext(Base, TimestampMixin):
     last_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_updated_by: Mapped[UUID | None] = mapped_column(UUID(as_uuid=True))
 
-    patient: Mapped[Patient] = relationship()
+    patient: Mapped[Patient] = relationship(foreign_keys=[patient_id])
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_pc_medical_context_patient_clinic",
+        ),
+    )
 
 
 class Allergy(Base, TimestampMixin):
@@ -80,6 +99,15 @@ class Allergy(Base, TimestampMixin):
     reaction: Mapped[str | None] = mapped_column(String(500))
     notes: Mapped[str | None] = mapped_column(Text)
 
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_pc_allergy_patient_clinic",
+        ),
+    )
+
 
 class Medication(Base, TimestampMixin):
     """Medication the patient is currently taking (N:1)."""
@@ -99,6 +127,15 @@ class Medication(Base, TimestampMixin):
     frequency: Mapped[str | None] = mapped_column(String(100))
     start_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_pc_medication_patient_clinic",
+        ),
+    )
 
 
 class SystemicDisease(Base, TimestampMixin):
@@ -122,6 +159,15 @@ class SystemicDisease(Base, TimestampMixin):
     medications: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
 
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_pc_disease_patient_clinic",
+        ),
+    )
+
 
 class SurgicalHistory(Base, TimestampMixin):
     """Past surgery / procedure (N:1)."""
@@ -141,6 +187,15 @@ class SurgicalHistory(Base, TimestampMixin):
     complications: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
 
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_pc_surgery_patient_clinic",
+        ),
+    )
+
 
 class EmergencyContact(Base, TimestampMixin):
     """Emergency contact (1:1)."""
@@ -159,6 +214,15 @@ class EmergencyContact(Base, TimestampMixin):
     phone: Mapped[str] = mapped_column(String(20))
     email: Mapped[str | None] = mapped_column(String(255))
     is_legal_guardian: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_pc_emergency_patient_clinic",
+        ),
+    )
 
 
 class LegalGuardian(Base, TimestampMixin):
@@ -180,3 +244,12 @@ class LegalGuardian(Base, TimestampMixin):
     email: Mapped[str | None] = mapped_column(String(255))
     address: Mapped[str | None] = mapped_column(String(200))
     notes: Mapped[str | None] = mapped_column(Text)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["patient_id", "clinic_id"],
+            ["patients.id", "patients.clinic_id"],
+            ondelete="CASCADE",
+            name="fk_pc_guardian_patient_clinic",
+        ),
+    )

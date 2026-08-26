@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import ForeignKey, String, text
+from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -91,7 +91,7 @@ class ClinicMembership(Base, TimestampMixin):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
     role: Mapped[str] = mapped_column(
-        String(20)
+        String(64)
     )  # admin, dentist, hygienist, assistant, receptionist
     # Whether this member appears in the agenda, holds working hours and
     # can be assigned treatments. Decoupled from ``role`` so an admin can
@@ -106,3 +106,11 @@ class ClinicMembership(Base, TimestampMixin):
     # Relationships
     user: Mapped["User"] = relationship(back_populates="memberships")
     clinic: Mapped["Clinic"] = relationship(back_populates="memberships")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "clinic_id", name="uq_clinic_memberships_user_clinic"),
+        CheckConstraint(
+            "role IN ('admin', 'dentist', 'hygienist', 'assistant', 'receptionist')",
+            name="ck_clinic_memberships_role",
+        ),
+    )

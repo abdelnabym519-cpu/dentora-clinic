@@ -40,11 +40,23 @@ class PolicyTests(unittest.TestCase):
         decision = evaluate(policy(), ScalingSnapshot(2, 2, 20, 90), ScalingState(high_breaches=1), 1000)
         self.assertEqual(decision.action, ScaleAction.OUT)
 
+    def test_scale_out_obeys_cooldown(self) -> None:
+        state = ScalingState(high_breaches=1, last_scale_out_at=950)
+        decision = evaluate(policy(), ScalingSnapshot(2, 2, 85, 40), state, 1000)
+        self.assertEqual(decision.action, ScaleAction.NONE)
+        self.assertIn("cooldown", decision.reason)
+
     def test_scale_in_requires_all_replicas_healthy(self) -> None:
         state = ScalingState(low_breaches=2, last_scale_out_at=0)
         decision = evaluate(policy(), ScalingSnapshot(3, 2, 10, 10), state, 1000)
         self.assertEqual(decision.action, ScaleAction.NONE)
         self.assertIn("unhealthy", decision.reason)
+
+    def test_scale_in_obeys_cooldown(self) -> None:
+        state = ScalingState(low_breaches=2, last_scale_out_at=0, last_scale_in_at=800)
+        decision = evaluate(policy(), ScalingSnapshot(3, 3, 10, 10), state, 1000)
+        self.assertEqual(decision.action, ScaleAction.NONE)
+        self.assertIn("cooldown", decision.reason)
 
     def test_scale_in_obeys_stabilization(self) -> None:
         state = ScalingState(low_breaches=2, last_scale_out_at=900)

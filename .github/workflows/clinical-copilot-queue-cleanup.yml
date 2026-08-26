@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   cleanup:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Cancel superseded branch workflow runs
         uses: actions/github-script@v8

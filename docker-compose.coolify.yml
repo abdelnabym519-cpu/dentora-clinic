@@ -28,9 +28,7 @@ services:
       STORAGE_BACKEND: local
       STORAGE_LOCAL_PATH: /app/storage
       # Demo deployments set SEED_ON_STARTUP=1 in Coolify env so a wiped
-      # DB volume self-heals on next restart: alembic recreates the
-      # schema and seed_demo.py repopulates it (idempotent — no-op when
-      # the demo clinic already exists). Real production deployments
+      # DB volume self-heals on next restart. Real production deployments
       # leave it unset so seed never runs.
       SEED_ON_STARTUP: ${SEED_ON_STARTUP:-0}
       SEED_LANG: ${SEED_LANG:-es}
@@ -39,12 +37,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    cpus: ${DENTORA_API_CPUS:-1.0}
+    mem_limit: ${DENTORA_API_MEMORY_LIMIT:-768m}
+    mem_reservation: ${DENTORA_API_MEMORY_RESERVATION:-256m}
+    stop_grace_period: ${DENTORA_API_STOP_GRACE_PERIOD:-30s}
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2).status == 200 else 1)"]
+      interval: ${DENTORA_API_HEALTH_INTERVAL:-30s}
+      timeout: ${DENTORA_API_HEALTH_TIMEOUT:-5s}
+      retries: ${DENTORA_API_HEALTH_RETRIES:-3}
+      start_period: ${DENTORA_API_HEALTH_START_PERIOD:-60s}
     restart: unless-stopped
 
   frontend:

@@ -70,6 +70,7 @@ async def test_dicom_upload_download_preserves_raw_binary(
     assert download.headers["content-type"] == "application/dicom"
 
 
+@pytest.mark.usefixtures("test_clinic")
 @pytest.mark.asyncio
 async def test_dicom_upload_cannot_target_patient_in_another_clinic(
     client: AsyncClient,

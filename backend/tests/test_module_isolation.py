@@ -37,7 +37,7 @@ MODULES_ROOT = Path(_modules_pkg.__file__).resolve().parent
 REPO_ROOT = MODULES_ROOT.parents[2]
 
 CROSS_IMPORT_RE = re.compile(
-    r"^\s*(?:from\s+app\.modules\.([a-z_]+)|import\s+app\.modules\.([a-z_]+))",
+    r"^\s*(?:from\s+app\.modules\.([a-z0-9_]+)|import\s+app\.modules\.([a-z0-9_]+))",
     re.MULTILINE,
 )
 

@@ -9,6 +9,23 @@ architecture: the monolithic `clinical` module is gone, replaced by
 four purpose-built modules, and every official module now ships its
 frontend as a Nuxt layer under its own Python package.
 
+## [Unreleased]
+
+### Added
+
+- Dental 3D patient-specific alignment adds explicit-unit STL/PLY/OBJ to CBCT
+  rigid registration through DentalSegmentator, Open3D RANSAC, optional
+  TEASER++ initialization and iterative ICP. The append-only `AlignmentResult`
+  preserves the SE(3) matrix, DICOM/IOS frames, input digests, model identity,
+  technical metrics, safe failures and dentist review state. No clinical
+  threshold, treatment planning or new visualization is claimed.
+- Dental 3D Phase 5.2 adds a replaceable CBCT nerve-inference service
+  boundary, deterministic de-identified DICOM preprocessing, native-coordinate
+  structured findings, confidence/uncertainty and model provenance, plus
+  explicit no-detection and safe failure outcomes. No trained model weights
+  are bundled; an unconfigured service reports `missing_model` and never falls
+  back to demo anatomy.
+
 ## [2.2.1] - 2026-08-09
 
 ### Fixed

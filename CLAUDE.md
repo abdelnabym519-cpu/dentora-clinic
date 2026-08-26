@@ -28,6 +28,7 @@ Dentora is built as independent modules under `backend/app/modules/<name>/` with
 - Cross-module FKs are allowed **only** when the target is in `depends`. CI rejects migrations otherwise.
 - Each module owns its Alembic branch (`branch_labels = ("<name>",)`). Never thread one module's revisions through another's chain — uninstall safety depends on it (issue #56).
 - Permissions are namespaced: a module returns `resource.action` from `get_permissions()`; the registry prefixes with the module name.
+- **Clean Architecture is a mandatory acceptance criterion for every new Dentora feature and module** ([ADR 0019](./docs/adr/0019-clean-architecture-standard.md)). Dependency direction points inward: presentation → application → domain; infrastructure implements inner-layer interfaces. Domain stays framework-free (no FastAPI/SQLAlchemy/Nuxt/Three.js/AI providers); AI capabilities sit behind interfaces as replaceable adapters; clinical AI is decision-support only (dentist review required). Existing modules are refactored incrementally on-touch, never rewritten for aesthetics.
 
 **Before adding a feature, read `docs/technical/creating-modules.md`** — it is the source of truth for module structure, lifecycle, manifest, slots, events, tools/agents, and migrations.
 

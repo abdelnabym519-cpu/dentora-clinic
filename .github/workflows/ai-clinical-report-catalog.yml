@@ -1,0 +1,43 @@
+name: AI Clinical Report Catalog Helper
+
+on:
+  push:
+    branches:
+      - phase/ai-clinical-report
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: phase/ai-clinical-report
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -e '.[dev]'
+      - name: Run official catalog generator
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://dental:testpass@localhost:5432/stub
+          SECRET_KEY: catalog-helper-key
+          ENVIRONMENT: test
+          TESTING: 'true'
+        run: python scripts/generate_catalogs.py
+      - name: Commit generated catalogs when changed
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/modules-catalog.md docs/events-catalog.md
+          if git diff --cached --quiet; then
+            echo 'Catalogs already current'
+            exit 0
+          fi
+          git commit -m 'docs: regenerate module catalogs'
+          git push origin HEAD:phase/ai-clinical-report

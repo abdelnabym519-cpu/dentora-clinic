@@ -113,7 +113,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.AGENDA_VISIT_NOTE_UPDATED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:859`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:859`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -121,14 +121,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_CABINET_CHANGED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:796`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:796`
 - **Subscribers:** —
 
 ### `appointment.cancelled`
 
 - **Constant:** `EventType.APPOINTMENT_CANCELLED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:734`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:734`
 - **Subscribers:**
   - `copilot`
   - `notifications`
@@ -140,7 +140,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_CHECKED_IN`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:731`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:731`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -148,7 +148,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_COMPLETED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:733`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:733`
 - **Subscribers:**
   - `patient_timeline`
   - `recalls`
@@ -158,7 +158,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_CONFIRMED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:730`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:730`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -166,7 +166,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_IN_TREATMENT`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:732`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:732`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -174,7 +174,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_NO_SHOW`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:735`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:735`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -182,7 +182,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_SCHEDULED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:499`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:499`
 - **Subscribers:**
   - `notifications`
   - `patient_timeline`
@@ -193,14 +193,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.APPOINTMENT_STATUS_CHANGED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:725`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:725`
 - **Subscribers:** —
 
 ### `appointment.updated`
 
 - **Constant:** `EventType.APPOINTMENT_UPDATED`
 - **Publishers:**
-  - `agenda` — `backend/app/modules/agenda/service.py:626`
+  - `agenda` — `backend/app/modules/agenda/legacy.py:626`
 - **Subscribers:**
   - `schedules`
 
@@ -425,7 +425,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.INVOICE_ISSUED`
 - **Publishers:**
-  - `billing` — `backend/app/modules/billing/workflow.py:277`
+  - `billing` — `backend/app/modules/billing/legacy_workflow.py:277`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -433,7 +433,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.INVOICE_PAID`
 - **Publishers:**
-  - `billing` — `backend/app/modules/billing/workflow.py:461`
+  - `billing` — `backend/app/modules/billing/legacy_workflow.py:461`
 - **Subscribers:**
   - `patient_timeline`
   - `verifactu`
@@ -624,7 +624,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_ARCHIVED`
 - **Publishers:**
-  - `patients` — `backend/app/modules/patients/service.py:289`
+  - `patients` — `backend/app/modules/patients/event_publisher.py:36`
 - **Subscribers:**
   - `media`
   - `periodontogram`
@@ -634,7 +634,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_CREATED`
 - **Publishers:**
-  - `patients` — `backend/app/modules/patients/service.py:256`
+  - `patients` — `backend/app/modules/patients/event_publisher.py:13`
 - **Subscribers:**
   - `notifications`
 
@@ -642,7 +642,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_MEDICAL_UPDATED`
 - **Publishers:**
-  - `patients_clinical` — `backend/app/modules/patients_clinical/router.py:94`
+  - `patients_clinical` — `backend/app/modules/patients_clinical/router.py:100`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -650,7 +650,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PATIENT_UPDATED`
 - **Publishers:**
-  - `patients` — `backend/app/modules/patients/service.py:274`
+  - `patients` — `backend/app/modules/patients/event_publisher.py:26`
 - **Subscribers:** —
 
 ### `payment.allocated`

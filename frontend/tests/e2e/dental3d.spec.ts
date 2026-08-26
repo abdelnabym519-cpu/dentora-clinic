@@ -56,11 +56,12 @@ test.describe('dental 3D — patient summary card', () => {
 
     // 2. Without dentist-accepted patient-space registration the viewer must
     //    stay in its explicit safe-empty state; synthetic clinical geometry
-    //    is intentionally never rendered.
-    await expect(loggedIn.locator('[data-testid="dental3d-clinical-scene-empty"]')).toBeVisible({
+    //    is intentionally never rendered. Scope these assertions to this card
+    //    because Implant Planning intentionally hosts its own clinical viewer.
+    await expect(card.locator('[data-testid="dental3d-clinical-scene-empty"]')).toBeVisible({
       timeout: 15_000
     })
-    await expect(loggedIn.locator('[data-testid="dental3d-tres-canvas"]')).toHaveCount(0)
+    await expect(card.locator('[data-testid="dental3d-tres-canvas"]')).toHaveCount(0)
   })
 })
 
@@ -97,14 +98,15 @@ test.describe('dental 3D — real mesh ingestion', () => {
     await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
 
-    await expect(loggedIn.locator('[data-testid="dental3d-card"]')).toBeVisible({ timeout: 15_000 })
-    await expect(loggedIn.locator('[data-testid="dental3d-mesh-count"]')).toBeVisible({
+    const card = loggedIn.locator('[data-testid="dental3d-card"]')
+    await expect(card).toBeVisible({ timeout: 15_000 })
+    await expect(card.locator('[data-testid="dental3d-mesh-count"]')).toBeVisible({
       timeout: 15_000
     })
-    await expect(loggedIn.locator('[data-testid="dental3d-clinical-scene-empty"]')).toBeVisible({
+    await expect(card.locator('[data-testid="dental3d-clinical-scene-empty"]')).toBeVisible({
       timeout: 15_000
     })
-    await expect(loggedIn.locator('[data-testid="dental3d-tres-canvas"]')).toHaveCount(0)
+    await expect(card.locator('[data-testid="dental3d-tres-canvas"]')).toHaveCount(0)
 
     await expect(
       loggedIn.getByText(/scan geometry for visualization|geometr.de escaneo/i).first()

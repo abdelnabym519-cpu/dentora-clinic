@@ -15,7 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.agents.context import AgentContext, AgentMode
 from app.core.agents.models import Agent, AgentSession
 from app.core.agents.tools.registry import tool_registry
-from app.modules.patients.service import PatientService
+from app.modules.patients.composition import build_patient_service
+
+
+async def _create_patient(db: AsyncSession, clinic_id, data: dict):
+    return await build_patient_service(db).create_patient(clinic_id, data)
 
 
 async def _agent_session(db: AsyncSession, clinic_id) -> tuple:
@@ -114,9 +118,7 @@ async def test_search_is_clinic_scoped(db_session, test_clinic) -> None:
     other = Clinic(id=uuid4(), name="Other Clinic", tax_id="X99999999", settings={})
     db_session.add(other)
     await db_session.flush()
-    await PatientService.create_patient(
-        db_session, other.id, {"first_name": "Bruno", "last_name": "Otero"}
-    )
+    await _create_patient(db_session, other.id, {"first_name": "Bruno", "last_name": "Otero"})
     await db_session.flush()
 
     ctx = await _ctx(db_session, test_clinic.id, ["patients.read"])
@@ -303,9 +305,7 @@ async def _appointment_world(db: AsyncSession, clinic_id) -> dict:
     db.add(dentist)
     await db.flush()
     db.add(ClinicMembership(id=uuid4(), user_id=dentist.id, clinic_id=clinic_id, role="dentist"))
-    patient = await PatientService.create_patient(
-        db, clinic_id, {"first_name": "Carla", "last_name": "Citas"}
-    )
+    patient = await _create_patient(db, clinic_id, {"first_name": "Carla", "last_name": "Citas"})
     start = datetime(2031, 3, 3, 10, 0, tzinfo=UTC)
     appt = await AppointmentService.create_appointment(
         db,
@@ -548,7 +548,7 @@ def test_recall_tools_registered() -> None:
 @pytest.mark.asyncio
 async def test_recall_create_list_and_duplicate_guard(db_session, test_clinic) -> None:
     ctx = await _ctx(db_session, test_clinic.id, ["recalls.read", "recalls.write"])
-    patient = await PatientService.create_patient(
+    patient = await _create_patient(
         db_session, test_clinic.id, {"first_name": "Rita", "last_name": "Recall"}
     )
 
@@ -584,7 +584,7 @@ async def test_recall_create_list_and_duplicate_guard(db_session, test_clinic) -
 @pytest.mark.asyncio
 async def test_recall_list_excludes_do_not_contact(db_session, test_clinic) -> None:
     ctx = await _ctx(db_session, test_clinic.id, ["recalls.read", "recalls.write"])
-    patient = await PatientService.create_patient(
+    patient = await _create_patient(
         db_session,
         test_clinic.id,
         {"first_name": "Nuria", "last_name": "NoLlamar", "do_not_contact": True},
@@ -608,7 +608,7 @@ async def test_recall_attempt_snooze_complete(db_session, test_clinic) -> None:
         ["recalls.read", "recalls.write"],
         supervisor_id=supervisor.id,
     )
-    patient = await PatientService.create_patient(
+    patient = await _create_patient(
         db_session, test_clinic.id, {"first_name": "Aldo", "last_name": "Llamado"}
     )
     created = await tool_registry.call(
@@ -673,7 +673,7 @@ async def test_recall_tools_clinic_scoped(db_session, test_clinic) -> None:
     ctx = await _ctx(db_session, test_clinic.id, ["recalls.read", "recalls.write"])
     other_ctx = await _ctx(db_session, other.id, ["recalls.read", "recalls.write"])
 
-    patient = await PatientService.create_patient(
+    patient = await _create_patient(
         db_session, test_clinic.id, {"first_name": "Iris", "last_name": "Aislada"}
     )
     created = await tool_registry.call(
@@ -710,9 +710,7 @@ async def _money_world(db: AsyncSession, clinic_id) -> dict:
     from app.modules.budget.models import Budget
 
     user = await _supervisor(db)
-    patient = await PatientService.create_patient(
-        db, clinic_id, {"first_name": "Paco", "last_name": "Pagos"}
-    )
+    patient = await _create_patient(db, clinic_id, {"first_name": "Paco", "last_name": "Pagos"})
     budget = Budget(
         clinic_id=clinic_id,
         patient_id=patient.id,

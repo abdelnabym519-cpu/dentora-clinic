@@ -51,8 +51,18 @@ def upgrade() -> None:
         sa.Column("next_attempt_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("lease_expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("embedded_at", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.CheckConstraint(
             "status IN ('pending', 'processing', 'ready', 'stale', 'failed', 'deleted')",
             name="ck_retrieval_embeddings_status",
@@ -84,7 +94,14 @@ def upgrade() -> None:
     op.create_index(
         "ix_retrieval_embeddings_tenant_ready",
         "retrieval_embeddings",
-        ["clinic_id", "status", "embedding_model", "embedding_version", "patient_id", "source_type"],
+        [
+            "clinic_id",
+            "status",
+            "embedding_model",
+            "embedding_version",
+            "patient_id",
+            "source_type",
+        ],
     )
     op.create_index(
         "ix_retrieval_embeddings_hnsw_cosine",
@@ -107,7 +124,12 @@ def upgrade() -> None:
         sa.Column("embedding_version", sa.String(length=64), nullable=False),
         sa.Column("source_types", sa.JSON(), nullable=True),
         sa.Column("result_count", sa.Integer(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
         sa.CheckConstraint("result_count >= 0", name="ck_retrieval_query_audit_result_count"),
         sa.ForeignKeyConstraint(["clinic_id"], ["clinics.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(

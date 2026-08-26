@@ -20,7 +20,7 @@ from .source_provider import SqlAlchemyCaseSourceProvider
 
 
 class CaseIntelligenceService:
-    """Build/reuse append-only unified case snapshots from authoritative sources."""
+    """Build/reuse append-only unified clinical case snapshots from authoritative sources."""
 
     provider: CaseSourceProvider = SqlAlchemyCaseSourceProvider()
 
@@ -142,7 +142,7 @@ class CaseIntelligenceChangeDetectionProvider:
         clinic_id: UUID,
         patient_id: UUID,
         version: int,
-    ) -> ChangeDetectionSnapshot:
+    ):
         from app.modules.dental_3d.change_detection import ChangeDetectionSnapshot
 
         row = await db.scalar(

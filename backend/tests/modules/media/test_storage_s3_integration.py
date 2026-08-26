@@ -49,9 +49,10 @@ async def test_live_private_s3_round_trip_presigned_and_multipart() -> None:
         assert info.size == len(payload)
         assert info.checksum_sha256 == payload_sha
         assert await storage.retrieve(stored_key) == payload
-        assert b"".join(
-            [chunk async for chunk in storage.iter_chunks(stored_key, chunk_size=7)]
-        ) == payload
+        assert (
+            b"".join([chunk async for chunk in storage.iter_chunks(stored_key, chunk_size=7)])
+            == payload
+        )
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             anonymous = await client.get(
@@ -110,9 +111,7 @@ async def test_live_private_s3_round_trip_presigned_and_multipart() -> None:
                 assert part_upload.status_code == 200
                 etag = part_upload.headers.get("etag")
                 assert etag
-                completed_parts.append(
-                    CompletedPart(part_number=part_number, etag=etag)
-                )
+                completed_parts.append(CompletedPart(part_number=part_number, etag=etag))
 
             multipart_info = await storage.complete_multipart_upload(
                 upload,

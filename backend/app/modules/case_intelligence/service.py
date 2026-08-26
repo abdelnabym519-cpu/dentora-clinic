@@ -144,15 +144,18 @@ class CaseIntelligenceChangeDetectionProvider:
         patient_id: UUID,
         version: int,
     ) -> ChangeDetectionSnapshot:
-        snapshot = await CaseIntelligenceService.get_version(
-            db,
-            clinic_id=clinic_id,
-            patient_id=patient_id,
-            version=version,
+        row = await db.scalar(
+            select(CaseSnapshotRecord).where(
+                CaseSnapshotRecord.clinic_id == clinic_id,
+                CaseSnapshotRecord.patient_id == patient_id,
+                CaseSnapshotRecord.snapshot_version == version,
+            )
         )
+        if row is None:
+            raise KeyError("snapshot_not_found")
         return ChangeDetectionSnapshot(
-            version=snapshot.case_snapshot_version,
-            payload=snapshot.model_dump(mode="json"),
-            source_digest=snapshot.source_digest,
-            source_versions=dict(snapshot.source_versions),
+            version=row.snapshot_version,
+            payload=dict(row.snapshot_data),
+            source_digest=row.source_digest,
+            source_versions=dict(row.source_versions or {}),
         )

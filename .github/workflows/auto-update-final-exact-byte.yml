@@ -1,0 +1,143 @@
+name: Auto Update Final Exact Byte
+
+on:
+  push:
+    branches: ["ops/auto-update-production-validation"]
+    paths: [".github/workflows/auto-update-final-exact-byte.yml"]
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  TARGET_SHA: c4fc7b0c9000e6e10f6f363a2cb70d5d06acc44f
+  TARGET_TAG: v2.0.1
+  REGISTRY: ghcr.io
+
+jobs:
+  exact-byte-storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout final SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+
+      - name: Prove SHA and public release
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$TARGET_SHA"
+          tag=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name')
+          test "$tag" = "$TARGET_TAG"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and start real v2.0.0 baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          BASE_SHA=$(git merge-base HEAD origin/main)
+          git worktree add /tmp/dentora-v200 "$BASE_SHA"
+          docker build -t dentora-validation-backend:2.0.0 /tmp/dentora-v200/backend
+          docker build -f /tmp/dentora-v200/frontend/Dockerfile.prod -t dentora-validation-frontend:2.0.0 /tmp/dentora-v200
+          cp .env.client.example .env.client
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.env.client')
+          vals={
+            'PUBLIC_URL':'http://localhost','POSTGRES_DB':'dental_clinic','POSTGRES_USER':'dental',
+            'POSTGRES_PASSWORD':'dentora-validation-password','SECRET_KEY':'dentora-validation-secret-key',
+            'BUDGET_PUBLIC_SECRET_KEY':'dentora-validation-budget-secret','DENTORA_VERSION':'2.0.0',
+            'DENTORA_BACKEND_IMAGE':'dentora-validation-backend:2.0.0','DENTORA_FRONTEND_IMAGE':'dentora-validation-frontend:2.0.0',
+            'DENTORA_RELEASE_REPOSITORY':'abdelnabym519-cpu/dentora-clinic','LICENSE_SERVER_URL':'','LICENSE_PUBLIC_KEY_B64':'',
+            'LICENSE_MACHINE_FINGERPRINT':'production-validation'}
+          lines=p.read_text().splitlines()
+          for k,v in vals.items():
+              for i,line in enumerate(lines):
+                  if line.startswith(k+'='): lines[i]=f'{k}={v}'; break
+              else: lines.append(f'{k}={v}')
+          p.write_text('\n'.join(lines)+'\n')
+          PY
+          docker compose --env-file .env.client -f docker-compose.client.yml up -d
+          for i in $(seq 1 90); do
+            if docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend python -c "import urllib.request; assert urllib.request.urlopen('http://localhost:8000/health/ready',timeout=2).status==200" >/dev/null 2>&1 && docker compose --env-file .env.client -f docker-compose.client.yml exec -T frontend wget -q -O /dev/null http://127.0.0.1:3000/; then break; fi
+            sleep 2
+          done
+          mkdir -p dentora-validation-evidence
+          printf 'Dentora exact-byte final SHA sentinel v2.0.0\n' > dentora-validation-evidence/expected.bin
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend sh -c 'mkdir -p /app/storage/final-validation && printf "Dentora exact-byte final SHA sentinel v2.0.0\n" > /app/storage/final-validation/sentinel.bin'
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/final-validation/sentinel.bin > dentora-validation-evidence/before.bin
+          cmp dentora-validation-evidence/expected.bin dentora-validation-evidence/before.bin
+
+      - name: Real update and exact-byte compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Check > dentora-validation-evidence/check.log 2>&1
+          jq -e '.state == "update-available" and .installedVersion == "2.0.0" and .latestVersion == "2.0.1"' .dentora-update/status.json
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update > dentora-validation-evidence/update.log 2>&1
+          jq -e '.state == "updated" and .installedVersion == "2.0.1"' .dentora-update/status.json
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/final-validation/sentinel.bin > dentora-validation-evidence/after-update.bin
+          cmp dentora-validation-evidence/before.bin dentora-validation-evidence/after-update.bin
+          cmp dentora-validation-evidence/expected.bin dentora-validation-evidence/after-update.bin
+
+      - name: Rollback exact-byte compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.env.client'); lines=p.read_text().splitlines()
+          vals={'DENTORA_VERSION':'2.0.0','DENTORA_BACKEND_IMAGE':'dentora-validation-backend:2.0.0','DENTORA_FRONTEND_IMAGE':'dentora-validation-frontend:2.0.0'}
+          for k,v in vals.items():
+              for i,line in enumerate(lines):
+                  if line.startswith(k+'='): lines[i]=f'{k}={v}'; break
+          p.write_text('\n'.join(lines)+'\n')
+          PY
+          docker compose --env-file .env.client -f docker-compose.client.yml up -d
+          if pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update -SimulateFailureAt after-install > dentora-validation-evidence/rollback.log 2>&1; then exit 1; fi
+          jq -e '.state == "rolled-back" and .installedVersion == "2.0.0"' .dentora-update/status.json
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/final-validation/sentinel.bin > dentora-validation-evidence/after-rollback.bin
+          cmp dentora-validation-evidence/before.bin dentora-validation-evidence/after-rollback.bin
+
+      - name: Interruption recovery exact-byte compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Update > dentora-validation-evidence/interrupted.log 2>&1 &
+          pid=$!
+          seen=0
+          for i in $(seq 1 600); do
+            if [ -f .dentora-update/status.json ] && jq -e '.state == "installing"' .dentora-update/status.json >/dev/null 2>&1; then seen=1; break; fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          test "$seen" = 1
+          kill -9 "$pid" || true
+          wait "$pid" 2>/dev/null || true
+          pwsh -NoProfile -File scripts/client-update.ps1 -Mode Recover > dentora-validation-evidence/recover.log 2>&1
+          jq -e '.state == "recovered" and .installedVersion == "2.0.0"' .dentora-update/status.json
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend cat /app/storage/final-validation/sentinel.bin > dentora-validation-evidence/after-recovery.bin
+          cmp dentora-validation-evidence/before.bin dentora-validation-evidence/after-recovery.bin
+          cmp dentora-validation-evidence/expected.bin dentora-validation-evidence/after-recovery.bin
+          docker compose --env-file .env.client -f docker-compose.client.yml ps > dentora-validation-evidence/final-compose-ps.txt
+
+      - name: Upload exact-byte evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-update-final-exact-byte
+          path: dentora-validation-evidence
+          retention-days: 30
+
+      - name: Cleanup
+        if: always()
+        run: docker compose --env-file .env.client -f docker-compose.client.yml down -v --remove-orphans || true

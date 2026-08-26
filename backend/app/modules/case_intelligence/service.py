@@ -10,10 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.events import event_bus
 from app.core.events.types import EventType
-from app.modules.dental_3d.change_detection import (
-    ChangeDetectionResponse,
-    build_change_detection_response,
-)
+from app.modules.dental_3d.change_detection import ChangeDetectionSnapshot
 from app.modules.patients.models import Patient
 
 from .aggregation import CaseAggregator
@@ -122,45 +119,6 @@ class CaseIntelligenceService:
             raise KeyError("snapshot_not_found")
         return cls._to_contract(row)
 
-    @classmethod
-    async def compare_versions(
-        cls,
-        db: AsyncSession,
-        *,
-        clinic_id: UUID,
-        patient_id: UUID,
-        baseline_version: int,
-        followup_version: int,
-    ) -> ChangeDetectionResponse:
-        """Compare immutable versions while Case Intelligence owns all persistence reads."""
-
-        if followup_version <= baseline_version:
-            raise ValueError("followup_version must be greater than baseline_version")
-
-        baseline = await cls.get_version(
-            db,
-            clinic_id=clinic_id,
-            patient_id=patient_id,
-            version=baseline_version,
-        )
-        followup = await cls.get_version(
-            db,
-            clinic_id=clinic_id,
-            patient_id=patient_id,
-            version=followup_version,
-        )
-        return build_change_detection_response(
-            patient_id=patient_id,
-            baseline_version=baseline_version,
-            followup_version=followup_version,
-            baseline_payload=baseline.model_dump(mode="json"),
-            followup_payload=followup.model_dump(mode="json"),
-            baseline_source_digest=baseline.source_digest,
-            followup_source_digest=followup.source_digest,
-            baseline_source_versions=dict(baseline.source_versions),
-            followup_source_versions=dict(followup.source_versions),
-        )
-
     @staticmethod
     def _to_contract(row: CaseSnapshotRecord) -> CaseSnapshot:
         payload = dict(row.snapshot_data)
@@ -172,4 +130,29 @@ class CaseIntelligenceService:
                 "source_digest": row.source_digest,
                 "source_versions": row.source_versions,
             }
+        )
+
+
+class CaseIntelligenceChangeDetectionProvider:
+    """Owner-side adapter for the Dental 3D change-detection snapshot port."""
+
+    async def get_snapshot(
+        self,
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        version: int,
+    ) -> ChangeDetectionSnapshot:
+        snapshot = await CaseIntelligenceService.get_version(
+            db,
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            version=version,
+        )
+        return ChangeDetectionSnapshot(
+            version=snapshot.case_snapshot_version,
+            payload=snapshot.model_dump(mode="json"),
+            source_digest=snapshot.source_digest,
+            source_versions=dict(snapshot.source_versions),
         )

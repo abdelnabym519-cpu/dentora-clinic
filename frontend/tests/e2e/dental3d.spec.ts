@@ -45,7 +45,7 @@ function binaryStl(triangles = 4): Buffer {
 test.describe('dental 3D — patient summary card', () => {
   test.use({ role: 'admin' })
 
-  test('card + viewer surface on the patient summary', async ({ loggedIn }) => {
+  test('card + safe empty clinical viewer surface on the patient summary', async ({ loggedIn }) => {
     const patientId = await getPatientId(loggedIn)
     await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
@@ -54,27 +54,22 @@ test.describe('dental 3D — patient summary card', () => {
     const card = loggedIn.locator('[data-testid="dental3d-card"]')
     await expect(card).toBeVisible({ timeout: 15_000 })
 
-    // 2. The viewer mounts client-side: either the WebGL canvas or the
-    //    explicit WebGL-unavailable fallback (deterministic either way).
-    const canvas = loggedIn.locator('[data-testid="dental3d-canvas"]')
-    const fallback = loggedIn.locator('[data-testid="dental3d-webgl-fallback"]')
-    await expect(canvas.or(fallback)).toBeVisible({ timeout: 15_000 })
-
-    // 3. The synthetic-geometry disclaimer stays visible by design.
-    await expect(
-      loggedIn.getByText(/synthetic demo geometry|geometría sintética/i).first()
-    ).toBeVisible()
+    // 2. Without dentist-accepted patient-space registration the viewer must
+    //    stay in its explicit safe-empty state; synthetic clinical geometry
+    //    is intentionally never rendered.
+    await expect(loggedIn.locator('[data-testid="dental3d-clinical-scene-empty"]')).toBeVisible({
+      timeout: 15_000
+    })
+    await expect(loggedIn.locator('[data-testid="dental3d-tres-canvas"]')).toHaveCount(0)
   })
 })
 
 test.describe('dental 3D — real mesh ingestion', () => {
   test.use({ role: 'admin' })
 
-  test('uploaded STL renders as scan geometry with a synthetic fallback contract', async ({ loggedIn }) => {
-    // Second seeded patient: uploads persist across runs, and the
-    // synthetic-disclaimer test above must keep seeing a mesh-free
-    // first patient.
+  test('uploaded STL is stored and authorized for download without bypassing registration', async ({ loggedIn }) => {
     const patientId = await getPatientId(loggedIn, 1)
+    const scan = binaryStl()
 
     // 1. Ingest a real mesh through the module API (storage via media).
     const upload = await loggedIn.context().request.post(
@@ -82,7 +77,7 @@ test.describe('dental 3D — real mesh ingestion', () => {
       {
         headers: await authHeaders(loggedIn),
         multipart: {
-          file: { name: 'e2e-scan.stl', mimeType: 'model/stl', buffer: binaryStl() }
+          file: { name: 'e2e-scan.stl', mimeType: 'model/stl', buffer: scan }
         }
       }
     )
@@ -90,14 +85,15 @@ test.describe('dental 3D — real mesh ingestion', () => {
     const mesh = ((await upload.json()) as { data: { document_id: string, url: string } }).data
     expect(mesh.url).toContain(`/api/v1/media/documents/${mesh.document_id}/download`)
 
-    // 2. The mesh content downloads through media's authorized route.
+    // 2. The exact mesh content downloads through media's authorized route.
     const content = await loggedIn.context().request.get(`${API_BASE}${mesh.url}`, {
       headers: await authHeaders(loggedIn)
     })
     expect(content.ok(), `mesh download failed: ${content.status()}`).toBeTruthy()
+    expect(await content.body()).toEqual(scan)
 
-    // 3. The card surfaces scan geometry: mesh count + viewer badge
-    //    (WebGL canvas — swiftshader in CI) and the scan disclaimer.
+    // 3. The card discovers the persisted scan, but patient-space rendering
+    //    still requires an explicitly accepted registration/alignment.
     await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
 
@@ -105,15 +101,11 @@ test.describe('dental 3D — real mesh ingestion', () => {
     await expect(loggedIn.locator('[data-testid="dental3d-mesh-count"]')).toBeVisible({
       timeout: 15_000
     })
-    await expect(loggedIn.locator('[data-testid="dental3d-canvas"]')).toBeVisible({
+    await expect(loggedIn.locator('[data-testid="dental3d-clinical-scene-empty"]')).toBeVisible({
       timeout: 15_000
     })
-    await expect(loggedIn.locator('[data-testid="dental3d-mesh-badge"]')).toBeVisible({
-      timeout: 15_000
-    })
+    await expect(loggedIn.locator('[data-testid="dental3d-tres-canvas"]')).toHaveCount(0)
 
-    // 4. Loading must have settled without the error state.
-    await expect(loggedIn.locator('[data-testid="dental3d-mesh-error"]')).toHaveCount(0)
     await expect(
       loggedIn.getByText(/scan geometry for visualization|geometr.de escaneo/i).first()
     ).toBeVisible()

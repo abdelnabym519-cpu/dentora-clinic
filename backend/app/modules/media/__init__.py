@@ -13,8 +13,13 @@ from app.database import async_session_maker
 from .models import Document, MediaAttachment
 from .router import router
 from .service import DocumentService
+from .storage_router import router as storage_router
 
 logger = logging.getLogger(__name__)
+
+# Scalable delivery endpoints are additive; the existing media routes remain
+# unchanged for compatibility with current frontend and integrations.
+router.include_router(storage_router)
 
 
 class MediaModule(BaseModule):
@@ -68,8 +73,7 @@ class MediaModule(BaseModule):
         }
 
     async def _on_patient_archived(self, data: dict) -> None:
-        """Cascade soft-archive of a patient's documents when they are
-        archived.
+        """Cascade soft-archive of a patient's documents when they are archived.
 
         The event bus calls handlers as ``handler(data)`` and publishes
         before the request commits, so this opens its own session and

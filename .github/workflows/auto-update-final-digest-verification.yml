@@ -1,0 +1,41 @@
+name: Auto Update Final Digest Verification
+
+on:
+  push:
+    branches: ["ops/auto-update-production-validation"]
+    paths: [".github/workflows/auto-update-final-digest-verification.yml"]
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  TARGET_SHA: c4fc7b0c9000e6e10f6f363a2cb70d5d06acc44f
+  TARGET_TAG: v2.0.1
+  VERSION: 2.0.1
+  EXPECTED_BACKEND_DIGEST: sha256:0b1b2f6bd3d00d78ea8e96333f163f9e2920f79f0a8bd6c6cda73134449b7ba9
+  EXPECTED_FRONTEND_DIGEST: sha256:078e40e0d71bc028f184e3694d69385ab2f645b2ea06e16385adcdd74c01f3e5
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify tag, latest release, and OCI manifest digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag_sha=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/tags/${TARGET_TAG}" | jq -r '.object.sha')
+          test "$tag_sha" = "$TARGET_SHA"
+          latest=$(curl -fsSL -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest" | jq -r '.tag_name')
+          test "$latest" = "$TARGET_TAG"
+          backend=$(docker buildx imagetools inspect "ghcr.io/${GITHUB_REPOSITORY}-backend:${VERSION}" | awk '/^Digest:/ {print $2; exit}')
+          frontend=$(docker buildx imagetools inspect "ghcr.io/${GITHUB_REPOSITORY}-frontend:${VERSION}" | awk '/^Digest:/ {print $2; exit}')
+          test "$backend" = "$EXPECTED_BACKEND_DIGEST"
+          test "$frontend" = "$EXPECTED_FRONTEND_DIGEST"
+          printf 'tag=%s\nsha=%s\nbackend=%s\nfrontend=%s\n' "$TARGET_TAG" "$tag_sha" "$backend" "$frontend"

@@ -146,9 +146,7 @@ async def test_s3_round_trip_streaming_checksum_prefix_and_delete() -> None:
 
     key = await storage.store(payload, "clinic-a/patient-a/scan.stl")
     assert key == "clinic-a/patient-a/scan.stl"
-    assert client.objects["private-media/clinic-a/patient-a/scan.stl"][1] == {
-        "sha256": checksum
-    }
+    assert client.objects["private-media/clinic-a/patient-a/scan.stl"][1] == {"sha256": checksum}
 
     info = await storage.stat(key)
     assert info.key == key
@@ -182,12 +180,15 @@ async def test_s3_file_upload_presigned_and_multipart_contract(tmp_path: Path) -
     source = tmp_path / "model.stl"
     source.write_bytes(payload)
 
-    assert await storage.store_file(
-        source,
-        key,
-        content_type="model/stl",
-        checksum_sha256=checksum,
-    ) == key
+    assert (
+        await storage.store_file(
+            source,
+            key,
+            content_type="model/stl",
+            checksum_sha256=checksum,
+        )
+        == key
+    )
     assert (await storage.stat(key)).checksum_sha256 == checksum
 
     upload_url = await storage.presign_upload(
@@ -229,7 +230,10 @@ async def test_s3_file_upload_presigned_and_multipart_contract(tmp_path: Path) -
 
     info = await storage.complete_multipart_upload(
         upload,
-        parts=[CompletedPart(part_number=2, etag="etag-2"), CompletedPart(part_number=1, etag="etag-1")],
+        parts=[
+            CompletedPart(part_number=2, etag="etag-2"),
+            CompletedPart(part_number=1, etag="etag-1"),
+        ],
     )
     assert info.size == len(payload)
     assert client.completed[-1]["MultipartUpload"]["Parts"] == [

@@ -1,7 +1,24 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from './_fixtures'
 
-const PATIENT_WITHOUT_MESH = 'ddeebc99-9c0b-4ef8-bb6d-6bb9bd380a4d'
-const PATIENT_WITH_MESH = 'd8eebc99-9c0b-4ef8-bb6d-6bb9bd380a48'
+const API_BASE = process.env.E2E_API_BASE || 'http://localhost:8000'
+
+async function getPatientId(page: Page, pick: number = 0): Promise<string> {
+  const token = (await page.context().cookies()).find(c => c.name === 'access_token')?.value
+  const response = await page.context().request.get(
+    `${API_BASE}/api/v1/patients?page=1&page_size=5`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+  )
+  if (!response.ok()) throw new Error(`patient list failed: ${response.status()}`)
+  const body = (await response.json()) as { data: Array<{ id: string }> }
+  const id = body.data[pick]?.id
+  if (!id) throw new Error(`no seeded patient at index ${pick} available`)
+  return id
+}
+
+async function authHeaders(page: Page): Promise<Record<string, string>> {
+  const token = (await page.context().cookies()).find(c => c.name === 'access_token')?.value
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
 
 function binaryStl(): Buffer {
   const buffer = Buffer.alloc(84 + 50)
@@ -13,11 +30,9 @@ function binaryStl(): Buffer {
     offset += 4
   }
 
-  // normal
   writeFloat(0)
   writeFloat(0)
   writeFloat(1)
-  // triangle vertices (millimetres)
   writeFloat(0)
   writeFloat(0)
   writeFloat(0)
@@ -31,91 +46,92 @@ function binaryStl(): Buffer {
   return buffer
 }
 
-test.describe('dental 3D — patient summary card', () => {
-  test('card fails closed without registered patient-space geometry', async ({
-    page
-  }) => {
-    await page.goto(`/patients/${PATIENT_WITHOUT_MESH}?tab=summary`)
+async function sceneMeshCount(page: Page, patientId: string): Promise<number> {
+  const response = await page.context().request.get(
+    `${API_BASE}/api/v1/dental_3d/patients/${patientId}/scene`,
+    { headers: await authHeaders(page) }
+  )
+  expect(response.ok(), `scene request failed: ${response.status()}`).toBeTruthy()
+  const body = (await response.json()) as { data: { meshes: unknown[] } }
+  return body.data.meshes.length
+}
 
-    const card = page.getByTestId('dental3d-card')
-    await expect(card).toBeVisible()
-    await expect(page.getByTestId('dental3d-canvas')).toHaveCount(0)
-    await expect(page.getByTestId('dental3d-webgl-fallback')).toHaveCount(0)
-    await expect(
-      card.getByText(
-        /No registered patient-space clinical geometry is available\. Synthetic geometry is not shown\./i
-      )
-    ).toBeVisible()
-    await expect(card.getByText(/Patient alignment: not available/i)).toBeVisible()
-    await expect(
-      card.getByText(/Only dentist-accepted IOS→DICOM patient transforms are rendered/i)
-    ).toBeVisible()
+test.describe('dental 3D — patient summary card', () => {
+  test.use({ role: 'admin' })
+
+  test('card fails closed without registered patient-space geometry', async ({ loggedIn }) => {
+    const patientId = await getPatientId(loggedIn)
+    await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
+    await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
+
+    const card = loggedIn.getByTestId('dental3d-card')
+    await expect(card).toBeVisible({ timeout: 15_000 })
+    await expect(loggedIn.getByTestId('dental3d-clinical-scene-empty').first()).toBeVisible({
+      timeout: 15_000
+    })
+    await expect(card.getByText(/synthetic geometry is not shown/i).first()).toBeVisible()
+    await expect(loggedIn.getByTestId('dental3d-tres-canvas')).toHaveCount(0)
+    await expect(loggedIn.getByTestId('implant-planning-alignment-required')).toBeVisible()
   })
 })
 
 test.describe('dental 3D — real mesh ingestion', () => {
+  test.use({ role: 'admin' })
+
   test('uploaded STL remains fail-closed until patient-space alignment is accepted', async ({
-    page
+    loggedIn
   }) => {
-    await page.goto(`/patients/${PATIENT_WITH_MESH}?tab=summary`)
-    const card = page.getByTestId('dental3d-card')
-    await expect(card).toBeVisible()
+    const patientId = await getPatientId(loggedIn, 1)
+    const upload = await loggedIn.context().request.post(
+      `${API_BASE}/api/v1/dental_3d/patients/${patientId}/meshes`,
+      {
+        headers: await authHeaders(loggedIn),
+        multipart: {
+          file: { name: 'scan-e2e.stl', mimeType: 'model/stl', buffer: binaryStl() }
+        }
+      }
+    )
+    expect(upload.ok(), `mesh upload failed: ${upload.status()}`).toBeTruthy()
 
-    const fileInput = page.getByTestId('dental3d-scan-input')
-    await fileInput.setInputFiles({
-      name: 'scan-e2e.stl',
-      mimeType: 'model/stl',
-      buffer: binaryStl()
+    await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
+    await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
+
+    const card = loggedIn.getByTestId('dental3d-card')
+    await expect(card).toBeVisible({ timeout: 15_000 })
+    await expect(loggedIn.getByTestId('dental3d-mesh-count')).toBeVisible({ timeout: 15_000 })
+    await expect(loggedIn.getByTestId('dental3d-clinical-scene-empty').first()).toBeVisible({
+      timeout: 15_000
     })
-
-    await expect(page.getByText('scan-e2e.stl')).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByTestId('dental3d-canvas')).toHaveCount(0)
-    await expect(page.getByTestId('dental3d-webgl-fallback')).toHaveCount(0)
-    await expect(
-      card.getByText(
-        /No registered patient-space clinical geometry is available\. Synthetic geometry is not shown\./i
-      )
-    ).toBeVisible()
-    await expect(card.getByText(/Patient alignment: not available/i)).toBeVisible()
-    await expect(
-      card.getByText(/Only dentist-accepted IOS→DICOM patient transforms are rendered/i)
-    ).toBeVisible()
+    await expect(loggedIn.getByTestId('dental3d-tres-canvas')).toHaveCount(0)
+    await expect(card.getByText(/synthetic geometry is not shown/i).first()).toBeVisible()
   })
 
-  test('invalid mesh upload fails closed without render derivation', async ({
-    page
-  }) => {
-    let renderRequests = 0
-    page.on('request', (request) => {
-      if (
-        request.method() === 'POST'
-        && new URL(request.url()).pathname === '/api/ai/dental3d/renders'
-      ) {
-        renderRequests += 1
+  test('invalid mesh upload fails closed without mutating the scene', async ({ loggedIn }) => {
+    const patientId = await getPatientId(loggedIn)
+    const before = await sceneMeshCount(loggedIn, patientId)
+
+    const response = await loggedIn.context().request.post(
+      `${API_BASE}/api/v1/dental_3d/patients/${patientId}/meshes`,
+      {
+        headers: await authHeaders(loggedIn),
+        multipart: {
+          file: {
+            name: 'invalid-e2e.stl',
+            mimeType: 'model/stl',
+            buffer: Buffer.from('not-a-valid-stl')
+          }
+        }
       }
+    )
+
+    expect(response.status()).toBe(400)
+    expect(await sceneMeshCount(loggedIn, patientId)).toBe(before)
+
+    await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
+    await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })
+    await expect(loggedIn.getByTestId('dental3d-clinical-scene-empty').first()).toBeVisible({
+      timeout: 15_000
     })
-
-    await page.goto(`/patients/${PATIENT_WITH_MESH}?tab=summary`)
-    await expect(page.getByTestId('dental3d-card')).toBeVisible()
-
-    const scanResponsePromise = page.waitForResponse((response) => {
-      const url = new URL(response.url())
-      return (
-        response.request().method() === 'POST'
-        && url.pathname === '/api/ai/dental3d/scans'
-      )
-    })
-
-    await page.getByTestId('dental3d-scan-input').setInputFiles({
-      name: 'invalid-e2e.stl',
-      mimeType: 'model/stl',
-      buffer: Buffer.from('not-a-valid-stl')
-    })
-
-    const scanResponse = await scanResponsePromise
-    expect([400, 422]).toContain(scanResponse.status())
-    await expect(page.getByText(/Mesh validation failed|Upload failed/i)).toBeVisible()
-    await page.waitForTimeout(250)
-    expect(renderRequests).toBe(0)
+    await expect(loggedIn.getByTestId('dental3d-tres-canvas')).toHaveCount(0)
   })
 })

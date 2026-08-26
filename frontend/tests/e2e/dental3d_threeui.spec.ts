@@ -84,10 +84,20 @@ test.describe('dental 3D — real mesh ingestion', () => {
     const mesh = ((await upload.json()) as { data: { document_id: string, url: string } }).data
     expect(mesh.url).toContain(`/api/v1/media/documents/${mesh.document_id}/download`)
 
-    const content = await loggedIn.context().request.get(`${API_BASE}${mesh.url}`, {
-      headers: await authHeaders(loggedIn)
-    })
-    expect(content.ok(), `mesh download failed: ${content.status()}`).toBeTruthy()
+    // FastAPI request-scoped DB dependencies commit during dependency teardown,
+    // which can finish just after the 201 response bytes become observable to
+    // an immediately concurrent APIRequestContext call. Keep the storage
+    // round-trip assertion, but require the created document to become readable
+    // within a short bounded window instead of racing the teardown callback.
+    await expect.poll(
+      async () => {
+        const content = await loggedIn.context().request.get(`${API_BASE}${mesh.url}`, {
+          headers: await authHeaders(loggedIn)
+        })
+        return content.status()
+      },
+      { timeout: 5_000, intervals: [50, 100, 250, 500] }
+    ).toBe(200)
 
     await loggedIn.goto(`/patients/${patientId}`, { waitUntil: 'domcontentloaded' })
     await loggedIn.waitForURL(/\/patients\/[0-9a-f-]+/, { timeout: 20_000 })

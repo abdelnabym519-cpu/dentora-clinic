@@ -1,0 +1,15 @@
+[Unit]
+Description=Dentora API autoscaling controller
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/dentora
+ExecStart=/usr/bin/python3 -m scripts.autoscaling.controller --policy infra/autoscaling/policy.json --compose-file docker-compose.prod.yml --env-file .env
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

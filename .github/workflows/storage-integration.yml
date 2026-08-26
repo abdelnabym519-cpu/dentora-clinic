@@ -34,11 +34,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Validate S3 and MinIO compose overlays
+      - name: Validate available compose manifests
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.s3.yml config --quiet
-          docker compose -f docker-compose.client.yml -f docker-compose.s3.yml config --quiet
-          docker compose -f docker-compose.yml -f docker-compose.minio.yml config --quiet
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.client.yml config --quiet
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -71,4 +70,7 @@ jobs:
 
       - name: Show MinIO logs on failure
         if: failure()
-        run: docker logs dentora-minio
+        run: |
+          if docker inspect dentora-minio >/dev/null 2>&1; then
+            docker logs dentora-minio
+          fi

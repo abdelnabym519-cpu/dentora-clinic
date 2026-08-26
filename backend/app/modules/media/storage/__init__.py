@@ -66,6 +66,11 @@ def _get_storage_backend(backend: str) -> StorageBackend:
     raise ValueError(f"Unknown storage backend: {backend}")
 
 
+# Preserve the public factory's established cache-control API while keeping
+# canonicalization outside the cached implementation.
+setattr(get_storage_backend, "cache_clear", _get_storage_backend.cache_clear)
+
+
 def get_document_storage_backend(document: Any) -> StorageBackend:
     """Resolve a per-document migration hint or the configured default backend.
 

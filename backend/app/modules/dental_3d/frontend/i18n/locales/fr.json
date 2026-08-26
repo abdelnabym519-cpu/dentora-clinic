@@ -1,0 +1,67 @@
+{
+  "dental_3d": {
+    "card": {
+      "title": "Dentaire 3D",
+      "subtitle": "{count} dents dans l'aperçu 3D",
+      "flagged": "{count} avec constatations",
+      "error": "L'aperçu 3D est indisponible pour le moment.",
+      "disclaimer": "Géométrie synthétique de démonstration — données non cliniques",
+      "meshCount": "{count} maillages de scan",
+      "upload": "Téléverser un scan (.stl / .obj)",
+      "uploading": "Téléversement du scan…",
+      "uploadError": "Le scan n'a pas pu être téléversé. Vérifiez que le fichier est un STL ou OBJ valide.",
+      "scanDisclaimer": "Géométrie de scan à titre de visualisation — pas un outil de diagnostic"
+    },
+    "viewer": {
+      "hint": "Glisser pour pivoter · molette pour zoomer",
+      "webglUnavailable": "WebGL n'est pas disponible dans ce navigateur ; l'aperçu 3D ne peut pas être affiché.",
+      "meshLoading": "Chargement du scan…",
+      "meshError": "Scan impossible à charger — aperçu synthétique affiché",
+      "meshBadge": "Géométrie de scan",
+      "segmentationOverlay": "Repères de segmentation",
+      "nerveOverlay": "Trajet du nerf (simulé)"
+    },
+    "segmentation": {
+      "title": "Segmentation dentaire",
+      "none": "pas encore exécutée",
+      "run": "Lancer la segmentation",
+      "running": "Analyse…",
+      "runError": "La segmentation n'a pas pu être exécutée.",
+      "segmented": "{count} segmentées",
+      "uncertain": "{count} incertaines",
+      "missing": "{count} absentes",
+      "method": "Méthode : {method}",
+      "nonClinical": "aide à la décision non clinique, validation du dentiste requise",
+      "uncertainTeeth": "Dents incertaines : {teeth}",
+      "reviewPending": "en attente de validation du dentiste",
+      "reviewAccepted": "validée — acceptée",
+      "reviewRejected": "validée — rejetée",
+      "accept": "Accepter",
+      "reject": "Rejeter"
+    },
+    "nerve": {
+      "title": "Nerf mandibulaire",
+      "none": "pas encore exécuté",
+      "run": "Détecter le trajet du nerf",
+      "running": "Modélisation…",
+      "runError": "La détection du nerf n'a pas pu être exécutée.",
+      "pathways": "{count} trajets",
+      "near": "{count} proches",
+      "watch": "{count} à surveiller",
+      "method": "Méthode : {method}",
+      "simulated": "assistée par IA / simulée — vérification du dentiste requise",
+      "confidence": "Confiance {value}",
+      "uncertainModel": "modèle générique (sans géométrie patient)",
+      "detectedModel": "arc soutenu par le scan",
+      "nearTeeth": "Dents proches (estimation IA) : {teeth}",
+      "watchTeeth": "Dents à surveiller (estimation IA) : {teeth}",
+      "estimated": "proximité estimée par IA, pas un verdict de sécurité",
+      "reviewPending": "en attente de vérification du dentiste",
+      "reviewAccepted": "vérifié — accepté",
+      "reviewRejected": "vérifié — rejeté",
+      "accept": "Accepter",
+      "reject": "Rejeter",
+      "showPathway": "Trajet"
+    }
+  }
+}

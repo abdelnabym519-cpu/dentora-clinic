@@ -228,6 +228,10 @@ class EventType:
     # deep_pockets_count}``. Reserved for patient_timeline integration.
     PERIODONTOGRAM_SNAPSHOT_CLOSED = "periodontogram.snapshot.closed"
 
+    # Case Intelligence materialization audit event. Payload is deliberately
+    # limited to identifiers, contract/snapshot version and source digest.
+    CASE_INTELLIGENCE_SNAPSHOT_CREATED = "case_intelligence.snapshot.created"
+
     # Recalls events (recalls module — patient call-back workflow, issue #62)
     # Foundation for a future outreach module that will subscribe to react
     # with WhatsApp/SMS/email automation. Recalls itself never sends.

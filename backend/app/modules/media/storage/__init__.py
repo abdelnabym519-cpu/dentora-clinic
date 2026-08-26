@@ -37,14 +37,22 @@ def set_test_storage_path(path: str | None) -> None:
     """Set storage path for tests and clear cached backend instances."""
     global _test_storage_path
     _test_storage_path = path
-    get_storage_backend.cache_clear()
+    _get_storage_backend.cache_clear()
+
+
+def get_storage_backend(backend_name: str | None = None) -> StorageBackend:
+    """Get one configured storage backend singleton by logical backend name.
+
+    Canonicalize the logical backend name before entering the cached factory so
+    implicit defaults (``None``) and explicit document hints (for example
+    ``"local"``) resolve to the same backend instance.
+    """
+    backend = (backend_name or settings.STORAGE_BACKEND).strip().lower()
+    return _get_storage_backend(backend)
 
 
 @lru_cache
-def get_storage_backend(backend_name: str | None = None) -> StorageBackend:
-    """Get one configured storage backend singleton by logical backend name."""
-    backend = (backend_name or settings.STORAGE_BACKEND).strip().lower()
-
+def _get_storage_backend(backend: str) -> StorageBackend:
     if backend == "local":
         if settings.TESTING and _test_storage_path is None:
             path = tempfile.mkdtemp(prefix="dentora_test_storage_")

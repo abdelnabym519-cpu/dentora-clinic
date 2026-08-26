@@ -43,12 +43,13 @@ def set_test_storage_path(path: str | None) -> None:
 @lru_cache
 def get_storage_backend(backend_name: str | None = None) -> StorageBackend:
     """Get one configured storage backend singleton by logical backend name."""
+    global _test_storage_path
+
     backend = (backend_name or settings.STORAGE_BACKEND).strip().lower()
 
     if backend == "local":
         if settings.TESTING and _test_storage_path is None:
-            path = tempfile.mkdtemp(prefix="dentora_test_storage_")
-            return LocalStorageBackend(path)
+            _test_storage_path = tempfile.mkdtemp(prefix="dentora_test_storage_")
         path = _test_storage_path or settings.STORAGE_LOCAL_PATH
         return LocalStorageBackend(path)
 
@@ -59,12 +60,12 @@ def get_storage_backend(backend_name: str | None = None) -> StorageBackend:
 
 
 def get_document_storage_backend(document: Any) -> StorageBackend:
-    """Resolve a per-document migration hint or the configured default backend.
+    """Resolve the backend recorded on a document, preserving legacy local rows.
 
-    The migration tool records ``extra_data.storage_backend=s3`` only after
-    checksum verification. Rows without a hint continue to follow
-    ``STORAGE_BACKEND``, preserving existing behaviour and clean cutovers.
+    Existing rows predate backend hints and therefore represent files in
+    ``/app/storage``. New rows record the backend in ``extra_data`` so a
+    non-destructive local-to-object migration can be gradual and retryable.
     """
     extra_data = getattr(document, "extra_data", None) or {}
     backend = extra_data.get("storage_backend") if isinstance(extra_data, dict) else None
-    return get_storage_backend(str(backend) if backend else None)
+    return get_storage_backend(str(backend) if backend else "local")

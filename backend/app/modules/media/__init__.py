@@ -40,7 +40,7 @@ class MediaModule(BaseModule):
                 "attachments.write",
             ],
             "assistant": ["*"],
-            "receptionist": ["*"],
+            "receptionist": [],
         },
         "frontend": {
             "layer_path": "frontend",

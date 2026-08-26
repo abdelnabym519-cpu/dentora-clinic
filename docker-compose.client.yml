@@ -81,7 +81,10 @@ services:
   caddy:
     image: caddy:2-alpine
     ports:
+      # Caddy is the only service exposed to the clinic LAN. Port 80 is kept
+      # for the automatic HTTP -> HTTPS redirect when PUBLIC_URL uses https.
       - "80:80"
+      - "443:443"
     environment:
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
     volumes:

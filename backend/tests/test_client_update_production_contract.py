@@ -59,10 +59,10 @@ def test_release_workflow_reconciles_stale_tag_and_verifies_exact_source_sha() -
     workflow = _read(".github/workflows/release.yml")
     assert 'SOURCE_SHA="$(git rev-parse HEAD)"' in workflow
     assert 'gh release delete "$TAG" --cleanup-tag --yes' in workflow
-    assert 'Removing stale $TAG at $TAG_SHA; expected $SOURCE_SHA' in workflow
+    assert "Removing stale $TAG at $TAG_SHA; expected $SOURCE_SHA" in workflow
     assert 'ACTUAL_TAG_SHA="$(gh api' in workflow
     assert '[[ "$ACTUAL_TAG_SHA" == "$SOURCE_SHA" ]]' in workflow
-    assert 'Published tag $TAG points to $ACTUAL_TAG_SHA, expected $SOURCE_SHA' in workflow
+    assert "Published tag $TAG points to $ACTUAL_TAG_SHA, expected $SOURCE_SHA" in workflow
 
 
 def test_release_runs_real_update_rollback_and_recovery_validation() -> None:

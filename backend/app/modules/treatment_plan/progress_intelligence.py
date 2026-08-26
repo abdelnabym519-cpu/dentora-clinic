@@ -20,7 +20,7 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.schemas import ApiResponse
 from app.database import get_db
 
-from .models import PlannedTreatmentItem, TreatmentPlan
+from .models import TreatmentPlan
 from .service import TreatmentPlanService
 
 router = APIRouter()

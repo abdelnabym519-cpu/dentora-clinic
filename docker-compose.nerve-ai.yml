@@ -1,0 +1,33 @@
+services:
+  backend:
+    environment:
+      DENTAL_3D_NERVE_INFERENCE_URL: http://nerve-inference:8080/v1/nerve-detection
+      DENTAL_3D_NERVE_INFERENCE_TOKEN: ${DENTORA_NERVE_SERVICE_TOKEN:-}
+      DENTAL_3D_NERVE_INFERENCE_TIMEOUT_SECONDS: ${DENTAL_3D_NERVE_INFERENCE_TIMEOUT_SECONDS:-2400}
+    depends_on:
+      nerve-inference:
+        condition: service_healthy
+
+  nerve-inference:
+    build: ./nerve-inference-service
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DENTORA_NERVE_MODEL_DIR: /models/model
+      DENTORA_NERVE_SERVICE_TOKEN: ${DENTORA_NERVE_SERVICE_TOKEN:-}
+      DENTORA_NERVE_DEVICE: ${DENTORA_NERVE_DEVICE:-cpu}
+      DENTORA_NERVE_CPU_THREADS: ${DENTORA_NERVE_CPU_THREADS:-12}
+      DENTORA_NERVE_MAX_REQUEST_BYTES: ${DENTORA_NERVE_MAX_REQUEST_BYTES:-268435456}
+      DENTORA_NERVE_MIN_COMPONENT_VOXELS: ${DENTORA_NERVE_MIN_COMPONENT_VOXELS:-1}
+      DENTORA_NERVE_LOW_CONFIDENCE_THRESHOLD: ${DENTAL_3D_NERVE_LOW_CONFIDENCE_THRESHOLD:-0.6}
+      DENTORA_NERVE_COMMERCIAL_USE_APPROVED: ${DENTORA_NERVE_COMMERCIAL_USE_APPROVED:-false}
+    volumes:
+      - "${DENTORA_NERVE_MODEL_HOST_DIR:?Set DENTORA_NERVE_MODEL_HOST_DIR}:/models/model:ro"
+    ports:
+      - "127.0.0.1:8181:8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health', timeout=2).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped

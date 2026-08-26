@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from numbers import Real
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 CHANGE_DETECTION_CONTRACT_VERSION = "1.0"
 
@@ -77,6 +78,30 @@ class ChangeDetectionResponse(BaseModel):
             "Clinical interpretation and confirmation remain the clinician's responsibility.",
         ]
     )
+
+
+class ChangeDetectionSnapshot(BaseModel):
+    """Module-neutral immutable snapshot input supplied through the persistence port."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: int = Field(ge=1)
+    payload: dict[str, Any]
+    source_digest: str
+    source_versions: dict[str, str]
+
+
+class ChangeDetectionSnapshotProvider(Protocol):
+    """Persistence port implemented by the module that owns Case Intelligence snapshots."""
+
+    async def get_snapshot(
+        self,
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        version: int,
+    ) -> ChangeDetectionSnapshot: ...
 
 
 def _is_number(value: Any) -> bool:
@@ -269,3 +294,52 @@ def build_change_detection_response(
         change_count=len(changes),
         changes=changes,
     )
+
+
+class ChangeDetectionService:
+    """Application service consuming snapshots only through an injected owner-side port."""
+
+    provider: ChangeDetectionSnapshotProvider | None = None
+
+    @classmethod
+    def configure_provider(cls, provider: ChangeDetectionSnapshotProvider) -> None:
+        cls.provider = provider
+
+    @classmethod
+    async def compare(
+        cls,
+        db: AsyncSession,
+        *,
+        clinic_id: UUID,
+        patient_id: UUID,
+        baseline_version: int,
+        followup_version: int,
+    ) -> ChangeDetectionResponse:
+        if followup_version <= baseline_version:
+            raise ValueError("followup_version must be greater than baseline_version")
+        if cls.provider is None:
+            raise RuntimeError("change detection snapshot provider is not configured")
+
+        baseline = await cls.provider.get_snapshot(
+            db,
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            version=baseline_version,
+        )
+        followup = await cls.provider.get_snapshot(
+            db,
+            clinic_id=clinic_id,
+            patient_id=patient_id,
+            version=followup_version,
+        )
+        return build_change_detection_response(
+            patient_id=patient_id,
+            baseline_version=baseline.version,
+            followup_version=followup.version,
+            baseline_payload=baseline.payload,
+            followup_payload=followup.payload,
+            baseline_source_digest=baseline.source_digest,
+            followup_source_digest=followup.source_digest,
+            baseline_source_versions=dict(baseline.source_versions),
+            followup_source_versions=dict(followup.source_versions),
+        )

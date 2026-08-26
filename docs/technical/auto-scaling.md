@@ -44,9 +44,7 @@ These values are conservative foundation defaults, not measured production capac
 
 ## Health and traffic safety
 
-Existing `/health` remains the backwards-compatible liveness endpoint and `/health/ready` remains the database readiness endpoint. `/livez` and `/readyz` are aliases for standard probe naming.
-
-Production/Coolify backend container health checks use readiness. Scale-in is blocked unless every observed replica is healthy. Caddy uses dynamic A/AAAA discovery for `backend`, round-robin balancing, retry, and passive failure memory.
+The existing `/health` endpoint is the process liveness probe and `/health/ready` is the database-backed readiness probe. Production/Coolify backend container health checks use readiness. Scale-in is blocked unless every observed replica is healthy. Caddy uses dynamic A/AAAA discovery for `backend`, round-robin balancing, retry, and passive failure memory.
 
 ## Running the controller
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -59,8 +59,18 @@ class ClinicalCopilotContext(BaseModel):
 
 
 class ClinicalCopilotAsk(BaseModel):
+    """Finite intent only; unrestricted clinical free text never crosses the provider boundary."""
+
+    model_config = ConfigDict(extra="forbid")
+
     patient_id: UUID
-    question: str = Field(min_length=1, max_length=4000)
+    focus: Literal[
+        "case_review",
+        "risk_context",
+        "treatment_options",
+        "simulation_context",
+        "second_review",
+    ] = "case_review"
 
 
 class AdvisoryClaim(BaseModel):

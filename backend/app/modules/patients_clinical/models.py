@@ -67,7 +67,7 @@ class MedicalContext(Base, TimestampMixin):
     last_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_updated_by: Mapped[UUID | None] = mapped_column(UUID(as_uuid=True))
 
-    patient: Mapped[Patient] = relationship()
+    patient: Mapped[Patient] = relationship(foreign_keys=[patient_id])
 
     __table_args__ = (
         ForeignKeyConstraint(

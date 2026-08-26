@@ -6,6 +6,7 @@ This module provides:
 - Budget synchronization via event bus
 - Appointment treatment tracking
 - Media attachments for before/after documentation
+- Read-only treatment progress intelligence
 """
 
 from typing import Any
@@ -21,12 +22,14 @@ from .models import (
     TreatmentPlan,
 )
 from .owner_resolvers import register as _register_attachment_owners
+from .progress_intelligence import router as progress_intelligence_router
 from .router import router
 
 # Register the ``plan_item`` attachment owner_type with media at import
 # time. Safe because ``media`` is in ``manifest.depends`` and Python
 # import order resolves it first.
 _register_attachment_owners()
+router.include_router(progress_intelligence_router)
 
 
 class TreatmentPlanModule(BaseModule):
@@ -38,6 +41,7 @@ class TreatmentPlanModule(BaseModule):
     - Budget generation and synchronization
     - Event-driven communication with other modules
     - Media attachments for treatment documentation
+    - Deterministic treatment progress intelligence
     """
 
     manifest = {

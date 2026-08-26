@@ -30,7 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15-alpine
+        # Pin the database extension as well as PostgreSQL major so vector
+        # migrations/tests are deterministic across runners.
+        image: pgvector/pgvector:0.8.6-pg15-bookworm
         env:
           POSTGRES_DB: dental_clinic_test
           POSTGRES_USER: dental

@@ -98,9 +98,7 @@ async def generate_second_review(
 
     case = llm_input["case"]
     allowed_evidence = set(case["evidence"])
-    allowed_risk = {
-        factor["factor_id"] for factor in llm_input["risk_context"]["factors"]
-    }
+    allowed_risk = {factor["factor_id"] for factor in llm_input["risk_context"]["factors"]}
     allowed_planning = set(llm_input["planning"]["allowed_refs"])
     allowed_simulation = set(llm_input["simulation"]["allowed_refs"])
 

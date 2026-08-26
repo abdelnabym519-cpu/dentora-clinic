@@ -39,9 +39,7 @@ class SqlAlchemySecondReviewRepository:
         await self.db.refresh(row)
         return row
 
-    async def get_latest(
-        self, *, clinic_id: UUID, patient_id: UUID
-    ) -> AISecondReviewRecord | None:
+    async def get_latest(self, *, clinic_id: UUID, patient_id: UUID) -> AISecondReviewRecord | None:
         return await self.db.scalar(
             select(AISecondReviewRecord)
             .where(
@@ -52,9 +50,7 @@ class SqlAlchemySecondReviewRepository:
             .limit(1)
         )
 
-    async def get_history(
-        self, *, clinic_id: UUID, patient_id: UUID
-    ) -> list[AISecondReviewRecord]:
+    async def get_history(self, *, clinic_id: UUID, patient_id: UUID) -> list[AISecondReviewRecord]:
         return list(
             (
                 await self.db.scalars(

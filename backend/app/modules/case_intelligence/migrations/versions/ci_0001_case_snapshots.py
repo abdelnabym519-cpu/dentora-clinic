@@ -1,7 +1,8 @@
 """case_intelligence append-only unified case snapshots.
 
 Revision ID: ci_0001
-Revises: d3d_0006
+Revises: 0001
+Depends on: d3d_0006
 Create Date: 2026-08-25
 """
 
@@ -13,9 +14,9 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "ci_0001"
-down_revision: str | None = "d3d_0006"
+down_revision: str | None = "0001"
 branch_labels: str | Sequence[str] | None = None
-depends_on: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = "d3d_0006"
 
 
 def upgrade() -> None:

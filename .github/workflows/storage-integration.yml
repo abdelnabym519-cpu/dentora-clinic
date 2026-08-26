@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: write
+
 jobs:
   snapshot-storage:
     runs-on: ubuntu-latest
@@ -33,6 +36,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: phase/change-detection
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -46,15 +52,17 @@ jobs:
       - name: Regenerate catalogs with official generator
         run: python backend/scripts/generate_catalogs.py
 
-      - name: Capture generated catalogs
-        uses: actions/upload-artifact@v4
-        with:
-          name: change-detection-generated-catalogs
-          path: |
-            docs/modules-catalog.md
-            docs/events-catalog.md
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit regenerated catalogs
+        run: |
+          if git diff --quiet -- docs/modules-catalog.md docs/events-catalog.md; then
+            echo "Catalogs already fresh"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/modules-catalog.md docs/events-catalog.md
+          git commit -m "docs(change-detection): regenerate module catalogs"
+          git push origin HEAD:phase/change-detection
 
       - name: Run persisted snapshot integration test
         working-directory: backend

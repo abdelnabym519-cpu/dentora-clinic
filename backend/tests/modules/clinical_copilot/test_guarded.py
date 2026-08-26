@@ -123,8 +123,7 @@ def test_risk_unavailable_cascades_fail_closed_to_planning_and_simulation() -> N
     assert by_stage[StageName.TREATMENT_PLANNING].reason == "treatment_planning_risk_not_ready"
     assert by_stage[StageName.TREATMENT_SIMULATION].state is StageState.STALE
     assert (
-        by_stage[StageName.TREATMENT_SIMULATION].reason
-        == "treatment_simulation_planning_not_ready"
+        by_stage[StageName.TREATMENT_SIMULATION].reason == "treatment_simulation_planning_not_ready"
     )
     assert hardened.ready_for_advice is False
 

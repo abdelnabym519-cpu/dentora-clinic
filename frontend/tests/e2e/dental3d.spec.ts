@@ -33,7 +33,7 @@ function binaryStl(): Buffer {
 
 test.describe('dental 3D — patient summary card', () => {
   test('card fails closed without registered patient-space geometry', async ({
-    page,
+    page
   }) => {
     await page.goto(`/patients/${PATIENT_WITHOUT_MESH}?tab=summary`)
 
@@ -43,19 +43,19 @@ test.describe('dental 3D — patient summary card', () => {
     await expect(page.getByTestId('dental3d-webgl-fallback')).toHaveCount(0)
     await expect(
       card.getByText(
-        /No registered patient-space clinical geometry is available\. Synthetic geometry is not shown\./i,
-      ),
+        /No registered patient-space clinical geometry is available\. Synthetic geometry is not shown\./i
+      )
     ).toBeVisible()
     await expect(card.getByText(/Patient alignment: not available/i)).toBeVisible()
     await expect(
-      card.getByText(/Only dentist-accepted IOS→DICOM patient transforms are rendered/i),
+      card.getByText(/Only dentist-accepted IOS→DICOM patient transforms are rendered/i)
     ).toBeVisible()
   })
 })
 
 test.describe('dental 3D — real mesh ingestion', () => {
   test('uploaded STL remains fail-closed until patient-space alignment is accepted', async ({
-    page,
+    page
   }) => {
     await page.goto(`/patients/${PATIENT_WITH_MESH}?tab=summary`)
     const card = page.getByTestId('dental3d-card')
@@ -65,7 +65,7 @@ test.describe('dental 3D — real mesh ingestion', () => {
     await fileInput.setInputFiles({
       name: 'scan-e2e.stl',
       mimeType: 'model/stl',
-      buffer: binaryStl(),
+      buffer: binaryStl()
     })
 
     await expect(page.getByText('scan-e2e.stl')).toBeVisible({ timeout: 15_000 })
@@ -73,17 +73,17 @@ test.describe('dental 3D — real mesh ingestion', () => {
     await expect(page.getByTestId('dental3d-webgl-fallback')).toHaveCount(0)
     await expect(
       card.getByText(
-        /No registered patient-space clinical geometry is available\. Synthetic geometry is not shown\./i,
-      ),
+        /No registered patient-space clinical geometry is available\. Synthetic geometry is not shown\./i
+      )
     ).toBeVisible()
     await expect(card.getByText(/Patient alignment: not available/i)).toBeVisible()
     await expect(
-      card.getByText(/Only dentist-accepted IOS→DICOM patient transforms are rendered/i),
+      card.getByText(/Only dentist-accepted IOS→DICOM patient transforms are rendered/i)
     ).toBeVisible()
   })
 
   test('invalid mesh upload fails closed without render derivation', async ({
-    page,
+    page
   }) => {
     let renderRequests = 0
     page.on('request', (request) => {
@@ -109,7 +109,7 @@ test.describe('dental 3D — real mesh ingestion', () => {
     await page.getByTestId('dental3d-scan-input').setInputFiles({
       name: 'invalid-e2e.stl',
       mimeType: 'model/stl',
-      buffer: Buffer.from('not-a-valid-stl'),
+      buffer: Buffer.from('not-a-valid-stl')
     })
 
     const scanResponse = await scanResponsePromise

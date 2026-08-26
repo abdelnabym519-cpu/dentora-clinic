@@ -84,9 +84,7 @@ class DatabaseSecondReviewReader(SecondReviewReader):
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def get_latest(
-        self, *, clinic_id: UUID, patient_id: UUID
-    ) -> SecondReviewArtifact | None:
+    async def get_latest(self, *, clinic_id: UUID, patient_id: UUID) -> SecondReviewArtifact | None:
         record = await self.db.scalar(
             select(AISecondReviewRecord)
             .where(
@@ -118,11 +116,7 @@ def _claim_section(
     upstream: list[ClinicalStageStatus],
 ) -> ReportSectionName:
     evidence_ids = set(claim.evidence_ids)
-    matched = {
-        stage.stage
-        for stage in upstream
-        if evidence_ids.intersection(stage.evidence_refs)
-    }
+    matched = {stage.stage for stage in upstream if evidence_ids.intersection(stage.evidence_refs)}
     if not matched:
         raise ClinicalReportAssemblyError("ai_clinical_report_ungrounded_claim")
     if len(matched) > 1:
@@ -195,9 +189,7 @@ class AIClinicalReportService:
             second_review_reader=DatabaseSecondReviewReader(self.db),
         )
 
-    async def readiness(
-        self, *, clinic_id: UUID, patient_id: UUID
-    ) -> AIClinicalReportReadiness:
+    async def readiness(self, *, clinic_id: UUID, patient_id: UUID) -> AIClinicalReportReadiness:
         context = await self._copilot().build_context(
             clinic_id=clinic_id,
             patient_id=patient_id,

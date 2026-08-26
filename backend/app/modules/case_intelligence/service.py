@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.events import event_bus
 from app.core.events.types import EventType
-from app.modules.dental_3d.change_detection import ChangeDetectionSnapshot
 from app.modules.patients.models import Patient
 
 from .aggregation import CaseAggregator
@@ -144,6 +143,8 @@ class CaseIntelligenceChangeDetectionProvider:
         patient_id: UUID,
         version: int,
     ) -> ChangeDetectionSnapshot:
+        from app.modules.dental_3d.change_detection import ChangeDetectionSnapshot
+
         row = await db.scalar(
             select(CaseSnapshotRecord).where(
                 CaseSnapshotRecord.clinic_id == clinic_id,

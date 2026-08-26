@@ -16,12 +16,14 @@ from app.modules.ai_second_review.privacy import build_second_review_llm_input
 from app.modules.ai_second_review.service import AISecondReviewService, SecondReviewSafetyError
 from app.modules.ai_treatment_planning.contracts import (
     AITreatmentPlanningResult,
-    ModelProvenance as PlanningModelProvenance,
     PlanningCaseReference,
     PlanningContent,
     PlanningStep,
     ReviewStatus,
     TreatmentOption,
+)
+from app.modules.ai_treatment_planning.contracts import (
+    ModelProvenance as PlanningModelProvenance,
 )
 from app.modules.case_intelligence.contracts import (
     AvailabilityStatus,

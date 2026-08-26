@@ -201,7 +201,9 @@ class RetrievalService:
                 or source.source_id != item.source_id
                 or source.chunk_key != item.chunk_key
             ):
-                await self._repository.mark_failed(row, "source loader ownership/reference mismatch")
+                await self._repository.mark_failed(
+                    row, "source loader ownership/reference mismatch"
+                )
                 continue
             try:
                 self._validate_source(source)
@@ -232,7 +234,11 @@ class RetrievalService:
     def _validate_source(source: EmbeddingSource) -> None:
         if not source.text.strip():
             raise ValueError("embedding source text must not be empty")
-        if not source.source_type.strip() or not source.source_id.strip() or not source.chunk_key.strip():
+        if (
+            not source.source_type.strip()
+            or not source.source_id.strip()
+            or not source.chunk_key.strip()
+        ):
             raise ValueError("embedding source reference fields must not be empty")
 
     @staticmethod

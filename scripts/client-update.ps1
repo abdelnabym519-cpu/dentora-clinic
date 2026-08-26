@@ -103,6 +103,20 @@ function Assert-ImmutableImageReference([string]$Reference, [string]$Repository,
         throw "Release image is not an authorized immutable GHCR digest: $Reference"
     }
 }
+function Convert-ReleaseImageReference([string]$Reference, [string]$Repository, [string]$ImageName, [string]$Version) {
+    $base = "ghcr.io/$Repository-$ImageName"
+    $digestOnly = "^$([regex]::Escape("${base}@sha256:"))([a-f0-9]{64})$"
+    $tagged = "^$([regex]::Escape("${base}:$Version@sha256:"))([a-f0-9]{64})$"
+    if ($Reference -match $digestOnly) {
+        $normalized = $Reference
+    } elseif ($Reference -match $tagged) {
+        $normalized = "${base}@sha256:$($matches[1])"
+    } else {
+        throw "Release image is not an authorized immutable GHCR digest for version ${Version}: $Reference"
+    }
+    Assert-ImmutableImageReference $normalized $Repository $ImageName
+    return $normalized
+}
 function Assert-ReleaseManifest($Json, $Release, [string]$Repository) {
     Assert-ReleaseDescriptor $Release
     if ($Json.schema -ne 1 -or !$Json.version -or !$Json.tag -or !$Json.images.backend -or !$Json.images.frontend) {
@@ -112,8 +126,9 @@ function Assert-ReleaseManifest($Json, $Release, [string]$Repository) {
     if ((Convert-Version ([string]$Json.version)) -ne (Convert-Version ([string]$Release.tag_name))) {
         throw 'Release manifest version does not match the GitHub tag.'
     }
-    Assert-ImmutableImageReference ([string]$Json.images.backend) $Repository 'backend'
-    Assert-ImmutableImageReference ([string]$Json.images.frontend) $Repository 'frontend'
+    $version = [string]$Json.version
+    $Json.images.backend = Convert-ReleaseImageReference ([string]$Json.images.backend) $Repository 'backend' $version
+    $Json.images.frontend = Convert-ReleaseImageReference ([string]$Json.images.frontend) $Repository 'frontend' $version
 }
 function Get-Release([string]$Repository) {
     if ($Repository -ne $OfficialRepository) { throw "Unauthorized release repository: $Repository" }

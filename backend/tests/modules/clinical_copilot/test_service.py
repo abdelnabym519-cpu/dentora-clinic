@@ -76,6 +76,7 @@ def _chain(
     snapshot_id = uuid4()
     planning_id = uuid4()
     simulation_id = uuid4()
+    internal_trace_uuid = uuid4()
     source_digest = "sha256:" + "1" * 64
     risk_input = "sha256:" + "2" * 64
     risk_output = "sha256:" + "3" * 64
@@ -154,7 +155,11 @@ def _chain(
         planning_reviewed_by=planning.reviewed_by,
         output_digest=simulation_output,
         option_id="OPTION-1",
-        scene_data={"evidence_ids": ["SIM-1"], "predicted_outcome": False},
+        scene_data={
+            "evidence_ids": ["SIM-1"],
+            "predicted_outcome": False,
+            "trace_reference": str(internal_trace_uuid),
+        },
     )
     review = None
     if second_review:
@@ -228,14 +233,18 @@ async def test_incomplete_case_intelligence_fails_closed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_unavailable_risk_context_fails_closed() -> None:
-    clinic_id, patient_id, rows, review = _chain(risk_availability="unavailable")
+@pytest.mark.parametrize(
+    ("availability", "expected_state"),
+    [("unavailable", StageState.UNAVAILABLE), ("invalid_or_stale", StageState.STALE)],
+)
+async def test_unusable_risk_context_fails_closed(availability, expected_state) -> None:
+    clinic_id, patient_id, rows, review = _chain(risk_availability=availability)
     context = await ClinicalCopilotService(
         FakeDB(rows), second_review_reader=ReviewReader(review)
     ).build_context(clinic_id=clinic_id, patient_id=patient_id)
 
     risk = next(stage for stage in context.stages if stage.stage is StageName.RISK_ENGINE)
-    assert risk.state is StageState.UNAVAILABLE
+    assert risk.state is expected_state
     assert context.ready_for_advice is False
 
 
@@ -251,6 +260,46 @@ async def test_unreviewed_treatment_planning_fails_closed() -> None:
     )
     assert planning.state is StageState.STALE
     assert planning.reason == "treatment_planning_not_accepted_or_reviewed"
+    assert context.ready_for_advice is False
+
+
+@pytest.mark.asyncio
+async def test_accepted_planning_requires_complete_reviewer_provenance() -> None:
+    clinic_id, patient_id, rows, review = _chain()
+    rows[2].reviewed_by = None
+    rows[3].planning_reviewed_by = None
+
+    context = await ClinicalCopilotService(
+        FakeDB(rows), second_review_reader=ReviewReader(review)
+    ).build_context(clinic_id=clinic_id, patient_id=patient_id)
+
+    planning = next(
+        stage for stage in context.stages if stage.stage is StageName.TREATMENT_PLANNING
+    )
+    assert planning.state is StageState.STALE
+    assert planning.reason == "treatment_planning_not_accepted_or_reviewed"
+    assert context.ready_for_advice is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mismatch", ["version", "reviewer"])
+async def test_simulation_requires_matching_planning_review_provenance(mismatch) -> None:
+    clinic_id, patient_id, rows, review = _chain()
+    simulation = rows[3]
+    if mismatch == "version":
+        simulation.planning_version += 1
+    else:
+        simulation.planning_reviewed_by = uuid4()
+
+    context = await ClinicalCopilotService(
+        FakeDB(rows), second_review_reader=ReviewReader(review)
+    ).build_context(clinic_id=clinic_id, patient_id=patient_id)
+
+    stage = next(
+        item for item in context.stages if item.stage is StageName.TREATMENT_SIMULATION
+    )
+    assert stage.state is StageState.STALE
+    assert stage.reason == "treatment_simulation_provenance_is_stale"
     assert context.ready_for_advice is False
 
 
@@ -292,6 +341,7 @@ async def test_stale_upstream_provenance_blocks_advice() -> None:
 @pytest.mark.asyncio
 async def test_advice_is_grounded_redacted_tool_free_and_provenanced() -> None:
     clinic_id, patient_id, rows, review = _chain()
+    internal_trace_uuid = rows[3].scene_data["trace_reference"]
     provider = FakeProvider(
         {
             "claims": [
@@ -315,6 +365,8 @@ async def test_advice_is_grounded_redacted_tool_free_and_provenanced() -> None:
     assert "CASE-1" not in provider.last_user_text
     assert str(patient_id) not in provider.last_user_text
     assert str(clinic_id) not in provider.last_user_text
+    assert internal_trace_uuid not in provider.last_user_text
+    assert "REF_" in provider.last_user_text
     assert result.provenance.generated_by == args["user_id"]
     assert result.provenance.output_digest.startswith("sha256:")
     assert [stage.stage for stage in result.provenance.upstream] == list(StageName)
@@ -328,6 +380,23 @@ async def test_advice_is_grounded_redacted_tool_free_and_provenanced() -> None:
             "evidence_id": "E001",
         }
     ) == {"risk": "high", "evidence_id": "E001"}
+
+
+def test_internal_uuid_values_are_opaque_even_under_safe_or_neutral_keys() -> None:
+    evidence_uuid = str(uuid4())
+    neutral_uuid = str(uuid4())
+    redacted = _redact_structured(
+        {
+            "evidence_id": evidence_uuid,
+            "trace_reference": neutral_uuid,
+        }
+    )
+
+    serialized = json.dumps(redacted)
+    assert evidence_uuid not in serialized
+    assert neutral_uuid not in serialized
+    assert redacted["evidence_id"].startswith("REF_")
+    assert redacted["trace_reference"].startswith("REF_")
 
 
 @pytest.mark.asyncio

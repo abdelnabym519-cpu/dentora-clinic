@@ -91,7 +91,7 @@ class ClinicMembership(Base, TimestampMixin):
     user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
     clinic_id: Mapped[UUID] = mapped_column(ForeignKey("clinics.id"), index=True)
     role: Mapped[str] = mapped_column(
-        String(20)
+        String(64)
     )  # admin, dentist, hygienist, assistant, receptionist
     # Whether this member appears in the agenda, holds working hours and
     # can be assigned treatments. Decoupled from ``role`` so an admin can

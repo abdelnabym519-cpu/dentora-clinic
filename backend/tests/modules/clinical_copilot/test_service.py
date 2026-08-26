@@ -11,7 +11,7 @@ from app.core.llm.base import Done, TextDelta, ToolUse
 from app.modules.clinical_copilot.contracts import StageName, StageState
 from app.modules.clinical_copilot.ports import SecondReviewArtifact
 from app.modules.clinical_copilot.service import (
-    ClinicalContextInsufficient,
+    ClinicalContextInsufficientError,
     ClinicalCopilotOutputError,
     ClinicalCopilotService,
     _redact_structured,
@@ -171,7 +171,7 @@ async def test_stale_upstream_provenance_blocks_advice() -> None:
 
     clinic_id, patient_id, rows, review = _chain(stale_risk=True)
     service = ClinicalCopilotService(FakeDB(rows), second_review_reader=ReviewReader(review))
-    with pytest.raises(ClinicalContextInsufficient):
+    with pytest.raises(ClinicalContextInsufficientError):
         await service.advise(
             clinic_id=clinic_id,
             patient_id=patient_id,
@@ -186,7 +186,12 @@ async def test_stale_upstream_provenance_blocks_advice() -> None:
 async def test_advice_is_grounded_redacted_and_tool_free() -> None:
     clinic_id, patient_id, rows, review = _chain()
     provider = FakeProvider(
-        {"claims": [{"text": "Review the simulated option.", "evidence_ids": ["SIM-1"]}], "limitations": []}
+        {
+            "claims": [
+                {"text": "Review the simulated option.", "evidence_ids": ["SIM-1"]}
+            ],
+            "limitations": [],
+        }
     )
     result = await ClinicalCopilotService(
         FakeDB(rows), second_review_reader=ReviewReader(review)
@@ -206,7 +211,9 @@ async def test_advice_is_grounded_redacted_and_tool_free() -> None:
     assert "Must not leave Dentora" not in provider.last_user_text
     assert "private note" not in provider.last_user_text
 
-    assert _redact_structured({"name": "PHI", "notes": "free", "risk": "high"}) == {"risk": "high"}
+    assert _redact_structured({"name": "PHI", "notes": "free", "risk": "high"}) == {
+        "risk": "high"
+    }
 
 
 @pytest.mark.asyncio
@@ -231,7 +238,10 @@ async def test_provider_tool_use_and_unknown_evidence_are_rejected() -> None:
             patient_id=patient_id,
             question="Review this",
             provider=FakeProvider(
-                {"claims": [{"text": "Unsupported", "evidence_ids": ["MADE-UP"]}], "limitations": []}
+                {
+                    "claims": [{"text": "Unsupported", "evidence_ids": ["MADE-UP"]}],
+                    "limitations": [],
+                }
             ),
             provider_name="fake",
             model="fake-model",

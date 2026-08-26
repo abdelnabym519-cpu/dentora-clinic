@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     libpangocairo-1.0-0 \
     libgdk-pixbuf-2.0-0 \
     libffi-dev \
+    libgl1 \
+    libgomp1 \
     shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 

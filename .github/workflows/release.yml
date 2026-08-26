@@ -240,6 +240,7 @@ jobs:
           set -euo pipefail
           TAG="${{ needs.release-meta.outputs.tag }}"
           VERSION="${{ needs.release-meta.outputs.version }}"
+          SOURCE_SHA="$(git rev-parse HEAD)"
           mkdir -p release-assets
           : > release-assets/images.env
           for image in backend frontend; do
@@ -257,7 +258,7 @@ jobs:
           jq -n \
             --arg version "$VERSION" \
             --arg tag "$TAG" \
-            --arg sourceSha "$GITHUB_SHA" \
+            --arg sourceSha "$SOURCE_SHA" \
             --arg backend "$backend" \
             --arg frontend "$frontend" \
             '{schema: 1, version: $version, tag: $tag, sourceSha: $sourceSha, images: {backend: $backend, frontend: $frontend}}' \
@@ -289,15 +290,54 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ needs.release-meta.outputs.tag }}"
+          SOURCE_SHA="$(git rev-parse HEAD)"
           ASSETS=(release-assets/dentora-release-manifest.json release-assets/dentora-release-manifest.json.sha256)
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --notes-file notes.md --title "$TAG"
-            gh release upload "$TAG" "${ASSETS[@]}" --clobber
-          elif [[ "$GITHUB_REF_TYPE" == "branch" ]]; then
-            gh release create "$TAG" "${ASSETS[@]}" --target "$GITHUB_SHA" --title "$TAG" --notes-file notes.md --generate-notes
-          else
-            gh release create "$TAG" "${ASSETS[@]}" --title "$TAG" --notes-file notes.md --generate-notes --verify-tag
+          RELEASE_EXISTS=false
+          if gh release view "$TAG" >/dev/null 2>&1; then RELEASE_EXISTS=true; fi
+
+          TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq '.object.sha' 2>/dev/null || true)"
+          IS_RELEASE_BRANCH=false
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF_TYPE" == "branch" && "$GITHUB_REF_NAME" == "release/$TAG" ]]; then
+            IS_RELEASE_BRANCH=true
           fi
+
+          if [[ "$IS_RELEASE_BRANCH" == "true" ]]; then
+            if [[ -n "$TAG_SHA" && "$TAG_SHA" != "$SOURCE_SHA" ]]; then
+              echo "::warning::Removing stale $TAG at $TAG_SHA; expected $SOURCE_SHA"
+              if [[ "$RELEASE_EXISTS" == "true" ]]; then
+                gh release delete "$TAG" --cleanup-tag --yes
+              else
+                gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}"
+              fi
+              RELEASE_EXISTS=false
+              TAG_SHA=""
+            elif [[ -z "$TAG_SHA" && "$RELEASE_EXISTS" == "true" ]]; then
+              echo "::warning::Removing Release $TAG because its tag ref is missing"
+              gh release delete "$TAG" --yes
+              RELEASE_EXISTS=false
+            fi
+
+            if [[ "$RELEASE_EXISTS" == "true" ]]; then
+              gh release edit "$TAG" --notes-file notes.md --title "$TAG"
+              gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            else
+              gh release create "$TAG" "${ASSETS[@]}" --target "$SOURCE_SHA" --title "$TAG" --notes-file notes.md --generate-notes
+            fi
+          else
+            [[ -n "$TAG_SHA" ]] || { echo "::error::Release tag $TAG does not exist"; exit 1; }
+            [[ "$TAG_SHA" == "$SOURCE_SHA" ]] || { echo "::error::Release tag $TAG points to $TAG_SHA, expected $SOURCE_SHA"; exit 1; }
+            if [[ "$RELEASE_EXISTS" == "true" ]]; then
+              gh release edit "$TAG" --notes-file notes.md --title "$TAG"
+              gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            else
+              gh release create "$TAG" "${ASSETS[@]}" --title "$TAG" --notes-file notes.md --generate-notes --verify-tag
+            fi
+          fi
+
+          ACTUAL_TAG_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq '.object.sha')"
+          [[ "$ACTUAL_TAG_SHA" == "$SOURCE_SHA" ]] || { echo "::error::Published tag $TAG points to $ACTUAL_TAG_SHA, expected $SOURCE_SHA"; exit 1; }
+          RELEASE_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" --jq '.tag_name')"
+          [[ "$RELEASE_TAG" == "$TAG" ]] || { echo "::error::Published Release tag mismatch: $RELEASE_TAG"; exit 1; }
 
   client-validation:
     needs: [release, release-meta]

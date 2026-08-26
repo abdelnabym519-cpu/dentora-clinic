@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import ForeignKey, String, text
+from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -106,3 +106,11 @@ class ClinicMembership(Base, TimestampMixin):
     # Relationships
     user: Mapped["User"] = relationship(back_populates="memberships")
     clinic: Mapped["Clinic"] = relationship(back_populates="memberships")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "clinic_id", name="uq_clinic_memberships_user_clinic"),
+        CheckConstraint(
+            "role IN ('admin', 'dentist', 'hygienist', 'assistant', 'receptionist')",
+            name="ck_clinic_memberships_role",
+        ),
+    )

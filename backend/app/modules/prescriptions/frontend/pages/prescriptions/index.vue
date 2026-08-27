@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import type { Prescription, PrescriptionItem } from '../../composables/usePrescriptions'
+import type { Prescription, PrescriptionDelivery, PrescriptionItem } from '../../composables/usePrescriptions'
 
 interface PatientBrief { id: string, first_name: string, last_name: string, record_number?: string | null }
 interface PatientPage { data: PatientBrief[] }
 
 const api = useApi()
 const prescriptionsApi = usePrescriptions()
+const { can } = usePermissions()
 const prescriptions = ref<Prescription[]>([])
+const deliveriesByPrescription = ref<Record<string, PrescriptionDelivery[]>>({})
 const patientSearch = ref('')
 const patients = ref<PatientBrief[]>([])
 const selectedPatient = ref<PatientBrief | null>(null)
@@ -29,9 +31,22 @@ const emptyItem = (): PrescriptionItem => ({
 
 const items = ref<PrescriptionItem[]>([emptyItem()])
 
+function latestDelivery(id: string): PrescriptionDelivery | undefined {
+  return deliveriesByPrescription.value[id]?.[0]
+}
+
+async function loadDeliveryHistory(rx: Prescription) {
+  if (rx.status !== 'issued' && rx.status !== 'voided') return
+  const response = await prescriptionsApi.deliveries(rx.id)
+  deliveriesByPrescription.value[rx.id] = response.data
+}
+
 async function loadPrescriptions() {
   const response = await prescriptionsApi.list(selectedPatient.value?.id)
   prescriptions.value = response.data
+  if (can('prescriptions.audit')) {
+    await Promise.all(prescriptions.value.map(loadDeliveryHistory))
+  }
 }
 
 async function searchPatients() {
@@ -75,9 +90,25 @@ async function createDraft() {
 
 async function issue(rx: Prescription) {
   busy.value = true
+  error.value = ''
   try {
     await prescriptionsApi.issue(rx.id)
     await loadPrescriptions()
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Could not issue prescription'
+  } finally {
+    busy.value = false
+  }
+}
+
+async function retryWhatsApp(rx: Prescription) {
+  busy.value = true
+  error.value = ''
+  try {
+    await prescriptionsApi.retryWhatsApp(rx.id)
+    if (can('prescriptions.audit')) await loadDeliveryHistory(rx)
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Could not queue WhatsApp delivery'
   } finally {
     busy.value = false
   }
@@ -127,7 +158,7 @@ onMounted(() => {
         Electronic Prescriptions
       </h1>
       <p class="text-sm text-gray-500">
-        Create, issue and audit prescriptions for the selected clinic.
+        Create, issue, deliver by WhatsApp and audit prescriptions for the selected clinic.
       </p>
     </header>
 
@@ -216,6 +247,9 @@ onMounted(() => {
             <button v-if="rx.status === 'draft'" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="cancel(rx)">
               Cancel
             </button>
+            <button v-if="rx.status === 'issued' && can('prescriptions.issue')" :data-testid="`whatsapp-retry-${rx.id}`" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="retryWhatsApp(rx)">
+              Send / retry WhatsApp
+            </button>
             <button v-if="rx.status === 'issued'" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="voidRx(rx)">
               Void
             </button>
@@ -226,6 +260,25 @@ onMounted(() => {
             {{ item.medication_name }} — {{ item.dose }}, {{ item.frequency }}, {{ item.duration }}, {{ item.route }} × {{ item.quantity }}
           </li>
         </ul>
+        <div v-if="can('prescriptions.audit') && (rx.status === 'issued' || rx.status === 'voided')" class="mt-3 rounded bg-gray-50 p-3 text-xs" :data-testid="`whatsapp-delivery-${rx.id}`">
+          <template v-if="latestDelivery(rx.id)">
+            <strong>WhatsApp:</strong>
+            {{ latestDelivery(rx.id)?.status }}
+            <span v-if="latestDelivery(rx.id)?.attempts">
+              · attempts {{ latestDelivery(rx.id)?.attempts }}/{{ latestDelivery(rx.id)?.max_attempts }}
+            </span>
+            <span v-if="latestDelivery(rx.id)?.delivered_at">
+              · delivered {{ latestDelivery(rx.id)?.delivered_at }}
+            </span>
+            <span v-if="latestDelivery(rx.id)?.read_at">
+              · read {{ latestDelivery(rx.id)?.read_at }}
+            </span>
+            <p v-if="latestDelivery(rx.id)?.error_message" class="mt-1 text-red-600">
+              {{ latestDelivery(rx.id)?.error_message }}
+            </p>
+          </template>
+          <span v-else>WhatsApp: no delivery attempt recorded.</span>
+        </div>
         <p v-if="rx.status !== 'draft'" class="mt-2 text-xs text-gray-500">
           Issued/terminal prescription content is immutable.
         </p>

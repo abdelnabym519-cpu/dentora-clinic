@@ -228,7 +228,6 @@ async def test_missing_second_review_fails_closed_and_stays_explicit() -> None:
     assert context.ready_for_advice is False
 
 
-
 @pytest.mark.asyncio
 async def test_installed_second_review_without_artifact_is_missing() -> None:
     clinic_id, patient_id, rows, _ = _chain(second_review=False)

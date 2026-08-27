@@ -7,8 +7,8 @@ by Alembic at import time and is awkward to import from tests.
 from __future__ import annotations
 
 import importlib.util
-from functools import lru_cache
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 

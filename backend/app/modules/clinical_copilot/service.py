@@ -575,9 +575,7 @@ class ClinicalCopilotService:
                 break
 
         try:
-            generated = _GeneratedCopilotOutput.model_validate(
-                json.loads("".join(chunks))
-            )
+            generated = _GeneratedCopilotOutput.model_validate(json.loads("".join(chunks)))
             claims = generated.claims
             limitations = generated.limitations
         except (json.JSONDecodeError, TypeError, ValidationError) as exc:

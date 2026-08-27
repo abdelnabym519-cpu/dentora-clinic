@@ -26,7 +26,7 @@ from .contracts import (
     PlanningContent,
     ReviewStatus,
 )
-from .generator import PlanningGenerationError, generate_planning_options
+from .generator import generate_planning_options
 from .models import AITreatmentPlanningRecord
 from .ports import PlanningGeneratorPort, PlanningRepositoryPort
 from .privacy import build_planning_llm_input

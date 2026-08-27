@@ -115,10 +115,7 @@ def build_redacted_llm_input(snapshot: CaseSnapshot) -> tuple[dict[str, Any], st
 def build_provider_llm_input(payload: dict[str, Any]) -> dict[str, Any]:
     """Return the provider-facing view without mutating canonical audit input."""
     provider_payload = dict(payload)
-    provider_payload["evidence"] = {
-        evidence_id: {}
-        for evidence_id in payload["evidence"]
-    }
+    provider_payload["evidence"] = {evidence_id: {} for evidence_id in payload["evidence"]}
     return provider_payload
 
 

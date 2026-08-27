@@ -24,7 +24,7 @@ from .contracts import (
     SummaryContent,
     UnifiedCaseReference,
 )
-from .generator import SummaryGenerationError, generate_summary
+from .generator import generate_summary
 from .models import AICaseSummaryRecord
 from .privacy import build_provider_llm_input, build_redacted_llm_input
 

@@ -47,7 +47,6 @@ def get_provider(name: str, *, api_key: str | None = None) -> Provider:
     )
 
 
-
 def get_default_model(name: str) -> str:
     """Return the configured default chat model for a provider."""
     if name == "openai":
@@ -55,6 +54,5 @@ def get_default_model(name: str) -> str:
     if name == "ollama":
         return settings.COPILOT_MODEL_CHAT_OLLAMA
     raise LLMConfigError(
-        f"Unsupported LLM provider: {name!r} "
-        f"(supported: {', '.join(SUPPORTED_PROVIDERS)})"
+        f"Unsupported LLM provider: {name!r} (supported: {', '.join(SUPPORTED_PROVIDERS)})"
     )

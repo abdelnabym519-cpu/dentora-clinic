@@ -37,7 +37,7 @@ from .contracts import (
     SecondReviewContent,
     SecondReviewStatus,
 )
-from .generator import SecondReviewGenerationError, generate_second_review
+from .generator import generate_second_review
 from .models import AISecondReviewRecord
 from .ports import (
     ReviewedArtifactReaderPort,

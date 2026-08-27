@@ -67,9 +67,7 @@ class CopilotSettingsService:
             if requested_provider not in SUPPORTED_PROVIDERS:
                 raise ValueError(f"Unsupported LLM provider: {requested_provider}")
             if requested_provider == "openai" and not app_settings.OPENAI_API_KEY:
-                raise ValueError(
-                    "OpenAI provider selected but OPENAI_API_KEY is not configured"
-                )
+                raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
             if data.get("model") is None:
                 row.model = get_default_model(requested_provider)
         for field in (

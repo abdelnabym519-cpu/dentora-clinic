@@ -12,7 +12,7 @@ class ElectronicPrescriptionModule(BaseModule):
     manifest = {
         "name": "prescriptions",
         "version": "1.0.0",
-        "summary": "Tenant-isolated auditable electronic prescription lifecycle.",
+        "summary": "Tenant-isolated, auditable electronic prescription lifecycle.",
         "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",

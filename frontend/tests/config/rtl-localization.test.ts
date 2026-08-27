@@ -93,7 +93,7 @@ describe('Arabic localization and RTL contracts', () => {
 
       const config = readFileSync(pair.configPath, 'utf8')
       const arabicFile = basename(pair.arabicPath)
-      if (!config.includes("code: 'ar'") || !config.includes(`file: '${arabicFile}'`)) {
+      if (!config.includes('code: \'ar\'') || !config.includes(`file: '${arabicFile}'`)) {
         failures.push(`${pair.moduleName}: ${arabicFile} is not registered in ${dirname(pair.configPath)}/nuxt.config.ts`)
       }
     }

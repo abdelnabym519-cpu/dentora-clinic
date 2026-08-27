@@ -16,7 +16,7 @@ class ElectronicPrescriptionModule(BaseModule):
         "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["patients"],
+        "depends": ["patients", "notifications"],
         "installable": True,
         "auto_install": True,
         "removable": False,

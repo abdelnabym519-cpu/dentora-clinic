@@ -15,18 +15,170 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: phase/arabic-rtl-final-ui
-      - name: Apply pending closure patch
+      - name: Apply closure fixes
         shell: bash
         run: |
-          if [ ! -f .github/closure-fix.patch ]; then
-            echo "No pending closure patch"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              if old in text:
+                  p.write_text(text.replace(old, new))
+
+          # Host-run CI resolves built-in layers outside frontend/. Give Node,
+          # TypeScript and Vite the same dependency tree without rewriting
+          # package export paths.
+          ci = Path('.github/workflows/ci.yml')
+          text = ci.read_text()
+          install = '''      - name: Install dependencies\n        working-directory: frontend\n        run: npm install\n\n      - name: Generate modules.json with host paths\n'''
+          linked = '''      - name: Install dependencies\n        working-directory: frontend\n        run: npm install\n\n      - name: Link frontend dependencies for host module layers\n        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"\n\n      - name: Generate modules.json with host paths\n'''
+          text = text.replace(install, linked)
+          e2e_install = '''      - name: Install frontend deps + Playwright browsers\n        working-directory: frontend\n        run: |\n          npm install\n          npx playwright install --with-deps chromium\n\n      - name: Generate modules.json with host paths\n'''
+          e2e_linked = '''      - name: Install frontend deps + Playwright browsers\n        working-directory: frontend\n        run: |\n          npm install\n          npx playwright install --with-deps chromium\n\n      - name: Link frontend dependencies for host module layers\n        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"\n\n      - name: Generate modules.json with host paths\n'''
+          text = text.replace(e2e_install, e2e_linked)
+          ci.write_text(text)
+
+          # Layer-local imports must resolve relative to their own layer, not
+          # the host application's ~/ alias.
+          import_fixes = {
+              'backend/app/modules/odontogram/frontend/composables/useOdontogramUI.ts': [("from '~/composables/useOdontogram'", "from './useOdontogram'")],
+              'backend/app/modules/reports/frontend/pages/reports/budgets.vue': [("from '~/composables/useReports'", "from '../../composables/useReports'")],
+              'backend/app/modules/reports/frontend/pages/reports/scheduling.vue': [("from '~/composables/useReports'", "from '../../composables/useReports'")],
+              'backend/app/modules/treatment_plan/frontend/components/treatment-plans/PipelineTabPanel.vue': [("from '~/composables/usePipeline'", "from '../../composables/usePipeline'")],
+              'backend/app/modules/treatment_plan/frontend/pages/treatment-plans/index.vue': [("from '~/composables/usePipeline'", "from '../../composables/usePipeline'")],
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/producer.vue': [("from '~/composables/useVerifactu'", "from '../../../composables/useVerifactu'")],
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/vat-mapping.vue': [("from '~/composables/useVerifactu'", "from '../../../composables/useVerifactu'")],
+          }
+          for path, pairs in import_fixes.items():
+              for old, new in pairs:
+                  replace(path, old, new)
+
+          replace(
+              'backend/app/modules/patients/frontend/components/patient/ClinicalTab.vue',
+              "import type { ClinicalMode } from '../clinical/ClinicalModeToggle.vue'\n",
+              "type ClinicalMode = 'history' | 'diagnosis' | 'plans' | 'appointments'\n",
+          )
+
+          # Nuxt UI v4 semantic color names. Scope these replacements to the
+          # files reported by the real typecheck gate.
+          color_files = [
+              'backend/app/modules/catalog/frontend/composables/useVatTypes.ts',
+              'backend/app/modules/migration_import/frontend/components/settings/DataMigrationPage.vue',
+              'backend/app/modules/treatment_plan/frontend/composables/useTreatmentPlans.ts',
+              'backend/app/modules/verifactu/frontend/components/verifactu/InvoiceVerifactuSlot.vue',
+              'backend/app/modules/verifactu/frontend/components/verifactu/RejectedGlobalBanner.vue',
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/certificate.vue',
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/index.vue',
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/producer.vue',
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/queue.vue',
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/records.vue',
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/vat-mapping.vue',
+          ]
+          colors = {
+              'red': 'error',
+              'green': 'success',
+              'gray': 'neutral',
+              'amber': 'warning',
+              'orange': 'warning',
+              'yellow': 'warning',
+              'blue': 'info',
+          }
+          for path in color_files:
+              p = Path(path)
+              lines = p.read_text().splitlines(keepends=True)
+              out = []
+              for line in lines:
+                  if 'color=' in line or 'color:' in line or 'toast' in line:
+                      for old, new in colors.items():
+                          line = line.replace(f'color="{old}"', f'color="{new}"')
+                          line = line.replace(f"color: '{old}'", f"color: '{new}'")
+                          if ':color=' in line:
+                              line = line.replace(f"'{old}'", f"'{new}'")
+                  out.append(line)
+              p.write_text(''.join(out))
+
+          # Dynamic color helpers need narrow semantic return types.
+          replace(
+              'backend/app/modules/catalog/frontend/pages/settings/catalog/index.vue',
+              "function getVatTypeBadgeColor(vatType: VatTypeBrief | undefined): string {\n  if (!vatType) return 'neutral'\n  // Color based on rate: 0% = green, < 10% = yellow, >= 10% = red\n  if (vatType.rate === 0) return 'green'\n  if (vatType.rate < 10) return 'yellow'\n  return 'red'\n}",
+              "function getVatTypeBadgeColor(vatType: VatTypeBrief | undefined): 'neutral' | 'success' | 'warning' | 'error' {\n  if (!vatType) return 'neutral'\n  if (vatType.rate === 0) return 'success'\n  if (vatType.rate < 10) return 'warning'\n  return 'error'\n}",
+          )
+          replace(
+              'backend/app/modules/clinical_notes/frontend/components/PatientClinicalNotesByPlan.vue',
+              "function sourceBadgeColor(source: 'plan' | 'treatment' | 'visit'): string {",
+              "function sourceBadgeColor(source: 'plan' | 'treatment' | 'visit'): 'primary' | 'success' | 'secondary' {",
+          )
+          replace(
+              'backend/app/modules/migration_import/frontend/components/settings/DataMigrationPage.vue',
+              "function scoreBadgeColor(score: number | null): string {\n  if (score === null) return 'gray'\n  if (score >= 0.9) return 'green'\n  if (score >= 0.8) return 'blue'\n  return 'amber'\n}",
+              "function scoreBadgeColor(score: number | null): 'neutral' | 'success' | 'info' | 'warning' {\n  if (score === null) return 'neutral'\n  if (score >= 0.9) return 'success'\n  if (score >= 0.8) return 'info'\n  return 'warning'\n}",
+          )
+          replace(
+              'backend/app/modules/patients_clinical/frontend/composables/usePatientAlerts.ts',
+              "function getSeverityColor(severity: PatientAlert['severity']): string {\n    const colors: Record<PatientAlert['severity'], string> = {\n      critical: 'red',\n      high: 'orange',\n      medium: 'amber',\n      low: 'blue'\n    }\n    return colors[severity] || 'gray'\n  }",
+              "function getSeverityColor(severity: PatientAlert['severity']): 'error' | 'warning' | 'info' | 'neutral' {\n    const colors: Record<PatientAlert['severity'], 'error' | 'warning' | 'info' | 'neutral'> = {\n      critical: 'error',\n      high: 'warning',\n      medium: 'warning',\n      low: 'info'\n    }\n    return colors[severity] || 'neutral'\n  }",
+          )
+          replace(
+              'backend/app/modules/reports/frontend/pages/reports/budgets.vue',
+              "function getStatusBadgeColor(status: string): string {",
+              "function getStatusBadgeColor(status: string): 'neutral' | 'success' | 'error' | 'info' | 'warning' {",
+          )
+          replace(
+              'backend/app/modules/treatment_plan/frontend/components/treatment-plans/PipelineTabPanel.vue',
+              "function statusBadgeColor(status: string): string {",
+              "function statusBadgeColor(status: string): 'neutral' | 'warning' | 'success' | 'info' | 'error' {",
+          )
+          replace(
+              'backend/app/modules/treatment_plan/frontend/components/treatment-plans/TreatmentPlanDetail.vue',
+              "function getBudgetStatusColor(status: string): string {\n  const colors: Record<string, string> = {",
+              "function getBudgetStatusColor(status: string): 'neutral' | 'success' | 'info' | 'error' {\n  const colors: Record<string, 'neutral' | 'success' | 'info' | 'error'> = {",
+          )
+          replace(
+              'backend/app/modules/treatment_plan/frontend/components/treatment-plans/TreatmentPlanStatusBadge.vue',
+              "const colorMap: Record<TreatmentPlanStatus, string> = {\n  draft: 'gray',\n  active: 'blue',\n  completed: 'green',\n  archived: 'neutral',\n  cancelled: 'red'\n}\n\nconst color = computed(() => colorMap[props.status] || 'gray')",
+              "const colorMap: Record<TreatmentPlanStatus, 'neutral' | 'info' | 'success' | 'error'> = {\n  draft: 'neutral',\n  active: 'info',\n  completed: 'success',\n  archived: 'neutral',\n  cancelled: 'error'\n}\n\nconst color = computed(() => colorMap[props.status] || 'neutral')",
+          )
+          replace(
+              'backend/app/modules/odontogram/frontend/components/odontogram/TreatmentEditModal.vue',
+              "color: 'neutral' },",
+              "color: 'neutral' as const },",
+          )
+          replace(
+              'backend/app/modules/odontogram/frontend/components/odontogram/TreatmentEditModal.vue',
+              "color: 'warning' }",
+              "color: 'warning' as const }",
+          )
+          replace(
+              'backend/app/modules/verifactu/frontend/components/verifactu/InvoiceVerifactuPanel.vue',
+              "const stateColor = computed(() => {\n  if (!data.value) return 'gray'\n  if (data.value.state === 'accepted') return 'green'\n  if (data.value.state === 'rejected') return 'red'\n  if (data.value.state === 'accepted_with_errors') return 'amber'\n  return 'gray'\n})",
+              "const stateColor = computed<'neutral' | 'success' | 'error' | 'warning'>(() => {\n  if (!data.value) return 'neutral'\n  if (data.value.state === 'accepted') return 'success'\n  if (data.value.state === 'rejected') return 'error'\n  if (data.value.state === 'accepted_with_errors') return 'warning'\n  return 'neutral'\n})",
+          )
+          replace(
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/vat-mapping.vue',
+              "function classificationColor(code: string): 'green' | 'amber' | 'gray' {\n  if (code.startsWith('S')) return 'green'\n  if (code.startsWith('E')) return 'amber'\n  return 'gray'\n}",
+              "function classificationColor(code: string): 'success' | 'warning' | 'neutral' {\n  if (code.startsWith('S')) return 'success'\n  if (code.startsWith('E')) return 'warning'\n  return 'neutral'\n}",
+          )
+          replace(
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/index.vue',
+              "if (days < 0) return { color: 'red', message: t('verifactu.status.certificateExpired') }",
+              "if (days < 0) return { color: 'error' as const, message: t('verifactu.status.certificateExpired') }",
+          )
+          replace(
+              'backend/app/modules/verifactu/frontend/pages/settings/verifactu/index.vue',
+              "if (days < 60) return { color: days < 15 ? 'red' : 'amber', message: t('verifactu.status.certificateExpiringSoon', { days }) }",
+              "if (days < 60) return { color: days < 15 ? 'error' as const : 'warning' as const, message: t('verifactu.status.certificateExpiringSoon', { days }) }",
+          )
+          PY
+
+          git diff --check
+          if git diff --quiet; then
+            echo "No source changes required"
             exit 0
           fi
-          git apply --check .github/closure-fix.patch
-          git apply .github/closure-fix.patch
-          rm .github/closure-fix.patch
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "fix(frontend): resolve closure typecheck blockers"
+          git commit -m "fix(frontend): resolve module-layer type blockers"
           git push origin HEAD:phase/arabic-rtl-final-ui

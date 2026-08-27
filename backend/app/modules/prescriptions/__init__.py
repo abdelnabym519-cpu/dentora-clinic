@@ -11,12 +11,12 @@ from .router import router
 class ElectronicPrescriptionModule(BaseModule):
     manifest = {
         "name": "prescriptions",
-        "version": "1.1.0",
-        "summary": "Tenant-isolated prescriptions with auditable WhatsApp delivery.",
+        "version": "1.0.0",
+        "summary": "Tenant-isolated auditable electronic prescription lifecycle.",
         "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["patients", "notifications"],
+        "depends": ["patients"],
         "installable": True,
         "auto_install": True,
         "removable": False,

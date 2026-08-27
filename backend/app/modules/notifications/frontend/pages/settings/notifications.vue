@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { NotificationTypeSettings, SmtpSettingsUpdate, SmtpTestRequest } from '~~/app/types'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { isAdmin } = usePermissions()
 const auth = useAuth()
 const {
@@ -44,11 +44,11 @@ const smtpForm = ref<SmtpSettingsUpdate>({
 const smtpTestEmail = ref('')
 
 // Provider options
-const providerOptions = [
+const providerOptions = computed(() => [
   { value: 'smtp', label: 'SMTP' },
-  { value: 'console', label: 'Console (desarrollo)' },
-  { value: 'disabled', label: 'Deshabilitado' }
-]
+  { value: 'console', label: t('notifications.smtp.providerConsole') },
+  { value: 'disabled', label: t('notifications.smtp.providerDisabled') }
+])
 
 // Initialize local settings from fetched settings
 watch(settings, (newSettings) => {
@@ -224,7 +224,7 @@ if (!isAdmin.value) {
             class="text-subtle hover:text-muted dark:text-subtle dark:hover:text-subtle"
           >
             <UIcon
-              name="i-lucide-arrow-left"
+              :name="locale === 'ar' ? 'i-lucide-arrow-right' : 'i-lucide-arrow-left'"
               class="w-5 h-5"
             />
           </NuxtLink>
@@ -290,7 +290,7 @@ if (!isAdmin.value) {
           <table class="w-full">
             <thead>
               <tr class="border-b border-default">
-                <th class="text-left py-3 px-4 font-medium text-muted dark:text-subtle">
+                <th class="text-start py-3 px-4 font-medium text-muted dark:text-subtle">
                   {{ t('notifications.notificationType') }}
                 </th>
                 <th class="text-center py-3 px-4 font-medium text-muted dark:text-subtle w-24">
@@ -442,21 +442,21 @@ if (!isAdmin.value) {
           >
             <div>
               <span class="text-muted">{{ t('notifications.smtp.host') }}:</span>
-              <span class="ml-2 text-default">{{ smtpSettings.host }}:{{ smtpSettings.port }}</span>
+              <span class="ms-2 text-default">{{ smtpSettings.host }}:{{ smtpSettings.port }}</span>
             </div>
             <div>
               <span class="text-muted">{{ t('notifications.smtp.fromEmail') }}:</span>
-              <span class="ml-2 text-default">{{ smtpSettings.from_email || '-' }}</span>
+              <span class="ms-2 text-default">{{ smtpSettings.from_email || '-' }}</span>
             </div>
             <div>
               <span class="text-muted">{{ t('notifications.smtp.security') }}:</span>
-              <span class="ml-2 text-default">
-                {{ smtpSettings.use_ssl ? 'SSL' : smtpSettings.use_tls ? 'TLS' : 'None' }}
+              <span class="ms-2 text-default">
+                {{ smtpSettings.use_ssl ? 'SSL' : smtpSettings.use_tls ? 'TLS' : t('notifications.smtp.securityNone') }}
               </span>
             </div>
             <div>
               <span class="text-muted">{{ t('notifications.smtp.username') }}:</span>
-              <span class="ml-2 text-default">{{ smtpSettings.username || '-' }}</span>
+              <span class="ms-2 text-default">{{ smtpSettings.username || '-' }}</span>
             </div>
           </div>
 
@@ -626,7 +626,7 @@ if (!isAdmin.value) {
                 <UFormField :label="t('notifications.smtp.fromName')">
                   <UInput
                     v-model="smtpForm.from_name"
-                    placeholder="Mi Clinica Dental"
+                    :placeholder="t('notifications.smtp.fromNamePlaceholder')"
                   />
                 </UFormField>
               </div>

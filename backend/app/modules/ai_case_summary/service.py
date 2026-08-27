@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.llm.base import Provider
-from app.core.llm.factory import get_provider
+from app.core.llm.factory import get_default_model, get_provider
 from app.modules.case_intelligence.contracts import digest_value
 from app.modules.case_intelligence.service import CaseIntelligenceService
 from app.modules.patients.models import Patient
@@ -26,7 +26,7 @@ from .contracts import (
 )
 from .generator import SummaryGenerationError, generate_summary
 from .models import AICaseSummaryRecord
-from .privacy import build_redacted_llm_input
+from .privacy import build_provider_llm_input, build_redacted_llm_input
 
 PROVIDER_CONTRACT_VERSION = "core.llm.Provider/1"
 
@@ -50,17 +50,16 @@ class AICaseSummaryService:
             db, clinic_id=clinic_id, patient_id=patient_id, user_id=user_id
         )
         llm_input, input_digest = build_redacted_llm_input(snapshot)
+        provider_llm_input = build_provider_llm_input(llm_input)
         provider_name = provider_name or settings.COPILOT_PROVIDER_DEFAULT
         if model is None:
-            if provider_name != "openai":
-                raise SummaryGenerationError("no_default_model_for_provider")
-            model = settings.COPILOT_MODEL_CHAT_OPENAI
+            model = get_default_model(provider_name)
         provider = provider or cls.provider_factory(provider_name)
 
         generated = await generate_summary(
             provider=provider,
             model=model,
-            llm_input=llm_input,
+            llm_input=provider_llm_input,
             max_tokens=settings.COPILOT_MAX_TOKENS,
         )
         output_payload = generated.content.model_dump(mode="json")

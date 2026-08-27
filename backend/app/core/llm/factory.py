@@ -10,7 +10,7 @@ from __future__ import annotations
 from app.config import settings
 from app.core.llm.base import LLMConfigError, Provider
 
-SUPPORTED_PROVIDERS = ("openai",)
+SUPPORTED_PROVIDERS = ("openai", "ollama")
 
 
 def get_provider(name: str, *, api_key: str | None = None) -> Provider:
@@ -19,6 +19,11 @@ def get_provider(name: str, *, api_key: str | None = None) -> Provider:
     Raises :class:`LLMConfigError` for unsupported names so a clinic can
     never select a provider this deployment cannot serve.
     """
+    if name == "ollama":
+        from app.core.llm.ollama_provider import OllamaProvider
+
+        return OllamaProvider(base_url=settings.OLLAMA_BASE_URL)
+
     if name == "openai":
         from app.core.llm.openai_provider import OpenAIProvider
 
@@ -39,4 +44,17 @@ def get_provider(name: str, *, api_key: str | None = None) -> Provider:
 
     raise LLMConfigError(
         f"Unsupported LLM provider: {name!r} (supported: {', '.join(SUPPORTED_PROVIDERS)})"
+    )
+
+
+
+def get_default_model(name: str) -> str:
+    """Return the configured default chat model for a provider."""
+    if name == "openai":
+        return settings.COPILOT_MODEL_CHAT_OPENAI
+    if name == "ollama":
+        return settings.COPILOT_MODEL_CHAT_OLLAMA
+    raise LLMConfigError(
+        f"Unsupported LLM provider: {name!r} "
+        f"(supported: {', '.join(SUPPORTED_PROVIDERS)})"
     )

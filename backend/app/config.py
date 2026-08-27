@@ -155,8 +155,10 @@ class Settings(BaseSettings):
     # provider.)
     OPENAI_API_KEY: str = ""
     AI_GATEWAY_BASE_URL: str = ""
+    OLLAMA_BASE_URL: str = "http://host.docker.internal:11434/v1/"
     COPILOT_PROVIDER_DEFAULT: str = "openai"
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
+    COPILOT_MODEL_CHAT_OLLAMA: str = "qwen3:8b"
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
 

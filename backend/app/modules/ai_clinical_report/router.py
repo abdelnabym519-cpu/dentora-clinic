@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings as app_settings
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.license.dependencies import require_license_feature
-from app.core.llm import LLMConfigError, get_provider
+from app.core.llm import LLMConfigError, get_default_model, get_provider
 from app.core.schemas import ApiResponse
 from app.database import get_db
 from app.modules.clinical_copilot.guarded import (
@@ -64,7 +64,7 @@ async def generate(
     _enforce_dentist_control(ctx.role)
     configured = await db.get(CopilotSettings, ctx.clinic_id)
     provider_name = configured.provider if configured else app_settings.COPILOT_PROVIDER_DEFAULT
-    model = configured.model if configured else app_settings.COPILOT_MODEL_CHAT_OPENAI
+    model = configured.model if configured else get_default_model(provider_name)
     try:
         provider = get_provider(provider_name)
         report = await AIClinicalReportService(db).generate(

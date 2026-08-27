@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.llm.base import Provider
-from app.core.llm.factory import get_provider
+from app.core.llm.factory import get_default_model, get_provider
 from app.modules.case_intelligence.contracts import digest_value
 from app.modules.case_intelligence.service import CaseIntelligenceService
 from app.modules.risk_engine.contracts import RISK_ENGINE_VERSION, RISK_POLICY_VERSION
@@ -61,9 +61,7 @@ class AITreatmentPlanningService:
 
         provider_name = provider_name or settings.COPILOT_PROVIDER_DEFAULT
         if model is None:
-            if provider_name != "openai":
-                raise PlanningGenerationError("no_default_model_for_provider")
-            model = settings.COPILOT_MODEL_CHAT_OPENAI
+            model = get_default_model(provider_name)
         provider = provider or cls.provider_factory(provider_name)
         generated = await cls.generator(
             provider=provider,

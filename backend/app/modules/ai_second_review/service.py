@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.llm.base import Provider
-from app.core.llm.factory import get_provider
+from app.core.llm.factory import get_default_model, get_provider
 from app.modules.ai_treatment_planning.contracts import ReviewStatus
 from app.modules.ai_treatment_planning.service import AITreatmentPlanningService
 from app.modules.case_intelligence.contracts import digest_value
@@ -115,9 +115,7 @@ class AISecondReviewService:
         )
         provider_name = provider_name or settings.COPILOT_PROVIDER_DEFAULT
         if model is None:
-            if provider_name != "openai":
-                raise SecondReviewGenerationError("no_default_model_for_provider")
-            model = settings.COPILOT_MODEL_CHAT_OPENAI
+            model = get_default_model(provider_name)
         provider = provider or cls.provider_factory(provider_name)
         generated = await cls.generator(
             provider=provider,

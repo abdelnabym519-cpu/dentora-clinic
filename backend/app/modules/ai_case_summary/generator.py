@@ -15,7 +15,7 @@ from .contracts import SummaryClaim, SummaryContent, SummaryDataGap
 
 SYSTEM_PROMPT = """You produce an advisory dental case summary from ONE structured Dentora CaseSnapshot projection.
 Return JSON only, with exactly: {"claims": [...], "data_gaps": [...]}.
-Each claim must have claim_id, text, evidence_ids. Use only facts present in the input and only evidence ids that the input provides. Do not diagnose, issue a clinical verdict, recommend treatment, assign risk scores/bands, invent thresholds, infer missing anatomy, or fill unavailable/stale data. Data with status not_available or invalid_or_stale must be represented in data_gaps rather than converted into a clinical fact. Keep claims concise and factual. The output is advisory and requires dentist review."""
+Each claim must have claim_id, text, evidence_ids. Use only facts present in the input and only evidence ids that the input provides. Do not diagnose, issue a clinical verdict, recommend treatment, assign risk scores/bands, invent thresholds, infer missing anatomy, or fill unavailable/stale data. Data with status not_available or invalid_or_stale must be represented in data_gaps rather than converted into a clinical fact. Keep claims concise and factual and return no more than 8 claims. The output is advisory and requires dentist review."""
 
 
 class _GeneratedGap(BaseModel):
@@ -34,7 +34,7 @@ class _GeneratedClaim(BaseModel):
 
 class _GeneratedOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    claims: list[_GeneratedClaim] = Field(default_factory=list)
+    claims: list[_GeneratedClaim] = Field(default_factory=list, max_length=8)
     data_gaps: list[_GeneratedGap] = Field(default_factory=list)
 
 
@@ -57,7 +57,12 @@ async def generate_summary(
     output_tokens: int | None = None
     messages = [ProviderMessage(Role.USER, [TextBlock(canonical_json(llm_input))])]
     async for event in provider.complete(
-        system=SYSTEM_PROMPT, messages=messages, tools=[], model=model, max_tokens=max_tokens
+        system=SYSTEM_PROMPT,
+        messages=messages,
+        tools=[],
+        model=model,
+        max_tokens=max_tokens,
+        response_schema=_GeneratedOutput.model_json_schema(),
     ):
         if isinstance(event, TextDelta):
             text_parts.append(event.text)

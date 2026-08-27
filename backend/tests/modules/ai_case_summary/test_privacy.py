@@ -1,7 +1,10 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from app.modules.ai_case_summary.privacy import build_redacted_llm_input
+from app.modules.ai_case_summary.privacy import (
+    build_provider_llm_input,
+    build_redacted_llm_input,
+)
 from app.modules.case_intelligence.contracts import (
     AvailabilityStatus,
     CaseIdentity,
@@ -93,3 +96,21 @@ def test_llm_projection_excludes_identifiers_and_free_text() -> None:
     assert payload["sections"]["nerve"]["status"] == "invalid_or_stale"
     assert set(payload["evidence"]) == {"E001", "E002"}
     assert digest.startswith("sha256:")
+
+
+def test_provider_projection_preserves_evidence_ids_without_mutating_audit_payload() -> None:
+    payload, _ = build_redacted_llm_input(_snapshot())
+    provider_payload = build_provider_llm_input(payload)
+
+    assert set(provider_payload["evidence"]) == set(payload["evidence"])
+    assert all(value == {} for value in provider_payload["evidence"].values())
+
+    # Canonical audit/provenance input remains complete and unchanged.
+    assert all(
+        set(value) == {"source_module", "source_version", "validation_state"}
+        for value in payload["evidence"].values()
+    )
+
+    # No clinical sections or data gaps are removed from the provider view.
+    assert provider_payload["sections"] == payload["sections"]
+    assert provider_payload["missing_data_report"] == payload["missing_data_report"]

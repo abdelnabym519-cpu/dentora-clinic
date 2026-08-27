@@ -53,6 +53,8 @@ async def test_generator_requires_traceable_claims_and_complete_gaps() -> None:
     assert result.content.claims[0].evidence_ids == ["E001"]
     assert result.content.data_gaps[0].reason == "nerve_analysis_not_accepted"
     assert provider.calls[0]["tools"] == []
+    assert provider.calls[0]["response_schema"]["type"] == "object"
+    assert provider.calls[0]["response_schema"]["properties"]["claims"]["maxItems"] == 8
 
 
 @pytest.mark.asyncio

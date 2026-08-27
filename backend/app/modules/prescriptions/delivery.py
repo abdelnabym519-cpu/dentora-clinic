@@ -60,9 +60,7 @@ async def list_whatsapp_deliveries(
     )
     prescription_id = str(rx.id)
     return [
-        row
-        for row in rows
-        if (row.context_data or {}).get("_prescription_id") == prescription_id
+        row for row in rows if (row.context_data or {}).get("_prescription_id") == prescription_id
     ]
 
 

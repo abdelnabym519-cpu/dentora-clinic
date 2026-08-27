@@ -208,9 +208,8 @@ jobs:
         run: npm run lint
 
   frontend-typecheck:
-    # Guards against broken Vue/TS imports across module Nuxt layers
-    # (Fase B.6). `modules.json` is written by the backend at runtime;
-    # we stub an empty one here so Nuxt picks up only the host sources.
+    # Real Nuxt/Vue/TypeScript validation across the host app and all
+    # built-in module frontend layers. Keep this as a permanent CI gate.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -224,14 +223,73 @@ jobs:
         working-directory: frontend
         run: npm install
 
-      - name: Ensure empty modules.json
+      - name: Generate modules.json with host paths
         working-directory: frontend
         run: |
-          echo '{"layers":[],"modules":[],"version":1}' > modules.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          modules_dir = root / "backend/app/modules"
+          entries = []
+          for m in sorted(modules_dir.iterdir()):
+              layer = m / "frontend"
+              if layer.is_dir():
+                  entries.append({"name": m.name, "path": str(layer.resolve())})
+          Path("modules.json").write_text(
+              json.dumps(
+                  {"layers": [e["path"] for e in entries], "modules": entries, "version": 1},
+                  indent=2,
+              )
+          )
+          PY
 
-      - name: Nuxt prepare (generates .nuxt type stubs)
+      - name: Run Nuxt typecheck
         working-directory: frontend
-        run: npx nuxi prepare
+        run: npm run typecheck
+
+  frontend-build:
+    # Production Nuxt build gate using the same built-in module layers
+    # as the running application.
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Generate modules.json with host paths
+        working-directory: frontend
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          modules_dir = root / "backend/app/modules"
+          entries = []
+          for m in sorted(modules_dir.iterdir()):
+              layer = m / "frontend"
+              if layer.is_dir():
+                  entries.append({"name": m.name, "path": str(layer.resolve())})
+          Path("modules.json").write_text(
+              json.dumps(
+                  {"layers": [e["path"] for e in entries], "modules": entries, "version": 1},
+                  indent=2,
+              )
+          )
+          PY
+
+      - name: Build production frontend
+        working-directory: frontend
+        run: npm run build
 
   frontend-test:
     runs-on: ubuntu-latest

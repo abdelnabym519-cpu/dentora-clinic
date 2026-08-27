@@ -135,6 +135,7 @@ async def queue_whatsapp_delivery(
     # approved template remains visible and retryable in prescription history.
     if message.status == "skipped":
         message.channel = "whatsapp"
+        message.to_address = patient.phone or ""
         message.context_data = context
         message.dedup_key = dedup_key
         await db.commit()

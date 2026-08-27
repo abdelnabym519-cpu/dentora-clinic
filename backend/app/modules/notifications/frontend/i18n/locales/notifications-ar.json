@@ -15,6 +15,12 @@
       "skipped": "تم التجاوز",
       "delivered": "تم التسليم",
       "read": "تمت القراءة"
+    },
+    "smtp": {
+      "providerConsole": "وحدة التحكم (للتطوير)",
+      "providerDisabled": "معطّل",
+      "securityNone": "بدون تشفير",
+      "fromNamePlaceholder": "عيادتي لطب الأسنان"
     }
   }
 }

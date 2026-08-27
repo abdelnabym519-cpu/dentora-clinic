@@ -126,7 +126,7 @@ onMounted(refresh)
             </td>
             <td class="py-2 px-2">
               <UBadge
-                :color="r.state === 'accepted' ? 'green' : r.state === 'rejected' ? 'red' : 'gray'"
+                :color="r.state === 'accepted' ? 'success' : r.state === 'rejected' ? 'error' : 'neutral'"
                 variant="subtle"
               >
                 {{ t(`verifactu.recordState.${r.state}`) }}

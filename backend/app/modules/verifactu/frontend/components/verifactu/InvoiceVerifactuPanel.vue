@@ -13,12 +13,12 @@ const data = computed(() => {
   return (cd.ES ?? null) as Record<string, string> | null
 })
 
-const stateColor = computed(() => {
-  if (!data.value) return 'gray'
-  if (data.value.state === 'accepted') return 'green'
-  if (data.value.state === 'rejected') return 'red'
-  if (data.value.state === 'accepted_with_errors') return 'amber'
-  return 'gray'
+const stateColor = computed<'neutral' | 'success' | 'error' | 'warning'>(() => {
+  if (!data.value) return 'neutral'
+  if (data.value.state === 'accepted') return 'success'
+  if (data.value.state === 'rejected') return 'error'
+  if (data.value.state === 'accepted_with_errors') return 'warning'
+  return 'neutral'
 })
 </script>
 

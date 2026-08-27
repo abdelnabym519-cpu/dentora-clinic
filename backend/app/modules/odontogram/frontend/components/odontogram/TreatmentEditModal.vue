@@ -55,8 +55,8 @@ const treatmentColor = computed(() => {
 
 // All status options
 const allStatusOptions = [
-  { value: 'existing' as TreatmentStatus, label: () => t('odontogram.status.existing'), color: 'neutral' },
-  { value: 'planned' as TreatmentStatus, label: () => t('odontogram.status.planned'), color: 'warning' }
+  { value: 'existing' as TreatmentStatus, label: () => t('odontogram.status.existing'), color: 'neutral' as const },
+  { value: 'planned' as TreatmentStatus, label: () => t('odontogram.status.planned'), color: 'warning' as const }
 ]
 
 // Status options filtered by treatment type

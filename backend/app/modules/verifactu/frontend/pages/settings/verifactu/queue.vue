@@ -40,13 +40,13 @@ async function retry(item: VerifactuQueueItem) {
     await retryRecord(item.id)
     toast?.add({
       title: t('verifactu.queue.regeneratedToast'),
-      color: 'green'
+      color: 'success'
     })
     await refresh()
   } catch (e: unknown) {
     toast?.add({
       title: errorMessage(e, 'Error'),
-      color: 'red'
+      color: 'error'
     })
   } finally {
     retryingId.value = null
@@ -81,7 +81,7 @@ async function process() {
   processing.value = true
   try {
     const r = await processNow()
-    toast?.add({ title: t('verifactu.queue.processed', { n: r.processed }), color: 'green' })
+    toast?.add({ title: t('verifactu.queue.processed', { n: r.processed }), color: 'success' })
     await refresh()
   } finally {
     processing.value = false

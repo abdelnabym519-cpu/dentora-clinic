@@ -4,7 +4,7 @@ import type {
   BudgetByProfessional,
   BudgetByTreatment,
   BudgetByStatus
-} from '~/composables/useReports'
+} from '../../composables/useReports'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -123,7 +123,7 @@ function formatPercent(value: number): string {
 }
 
 // Get status badge color
-function getStatusBadgeColor(status: string): string {
+function getStatusBadgeColor(status: string): 'neutral' | 'success' | 'error' | 'info' | 'warning' {
   const colors: Record<string, 'neutral' | 'success' | 'error' | 'info' | 'warning'> = {
     draft: 'neutral',
     accepted: 'success',

@@ -54,7 +54,7 @@ export function useVatTypes() {
       toast.add({
         title: t('common.error'),
         description: errorMessage(e, t('vatTypes.loadError')),
-        color: 'red'
+        color: 'error'
       })
     } finally {
       isLoading.value = false
@@ -73,14 +73,14 @@ export function useVatTypes() {
       toast.add({
         title: t('common.success'),
         description: t('vatTypes.created'),
-        color: 'green'
+        color: 'success'
       })
       return response.data
     } catch (e) {
       toast.add({
         title: t('common.error'),
         description: errorMessage(e, t('vatTypes.createError')),
-        color: 'red'
+        color: 'error'
       })
       return null
     }
@@ -105,14 +105,14 @@ export function useVatTypes() {
       toast.add({
         title: t('common.success'),
         description: t('vatTypes.updated'),
-        color: 'green'
+        color: 'success'
       })
       return response.data
     } catch (e) {
       toast.add({
         title: t('common.error'),
         description: errorMessage(e, t('vatTypes.updateError')),
-        color: 'red'
+        color: 'error'
       })
       return null
     }
@@ -130,14 +130,14 @@ export function useVatTypes() {
       toast.add({
         title: t('common.success'),
         description: t('vatTypes.deleted'),
-        color: 'green'
+        color: 'success'
       })
       return true
     } catch (e) {
       toast.add({
         title: t('common.error'),
         description: errorMessage(e, t('vatTypes.deleteError')),
-        color: 'red'
+        color: 'error'
       })
       return false
     }

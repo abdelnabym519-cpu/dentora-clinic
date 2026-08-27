@@ -133,7 +133,7 @@ async function save() {
       billing_address: editAddress.value,
       expected_updated_at: invoice.value.updated_at ?? null
     })
-    toast?.add({ title: t('verifactu.billingParty.saved'), color: 'green' })
+    toast?.add({ title: t('verifactu.billingParty.saved'), color: 'success' })
     editOpen.value = false
     await fetchInvoice(invoice.value.id)
     await fetchLiveRecord()
@@ -141,7 +141,7 @@ async function save() {
     const msg = errorStatus(e) === 409
       ? t('verifactu.billingParty.concurrentEdit')
       : errorMessage(e, t('verifactu.billingParty.saveFailed'))
-    toast?.add({ title: msg, color: 'red' })
+    toast?.add({ title: msg, color: 'error' })
   } finally {
     saving.value = false
   }
@@ -154,11 +154,11 @@ async function regenerate() {
   regenerating.value = true
   try {
     await retryRecord(recordId)
-    toast?.add({ title: t('verifactu.queue.regeneratedToast'), color: 'green' })
+    toast?.add({ title: t('verifactu.queue.regeneratedToast'), color: 'success' })
     if (invoice.value?.id) await fetchInvoice(invoice.value.id)
     await fetchLiveRecord()
   } catch (e: unknown) {
-    toast?.add({ title: errorMessage(e, t('verifactu.billingParty.saveFailed')), color: 'red' })
+    toast?.add({ title: errorMessage(e, t('verifactu.billingParty.saveFailed')), color: 'error' })
   } finally {
     regenerating.value = false
   }
@@ -173,7 +173,7 @@ function goToClinic() {
   <div class="space-y-3">
     <UAlert
       v-if="isRejected"
-      color="red"
+      color="error"
       variant="soft"
       icon="i-lucide-alert-triangle"
       :title="t('verifactu.invoiceBanner.rejectedTitle')"
@@ -214,7 +214,7 @@ function goToClinic() {
 
     <UAlert
       v-if="isAccepted && invoice?.pdf_stale"
-      color="amber"
+      color="warning"
       variant="soft"
       icon="i-lucide-file-warning"
       :title="t('verifactu.invoiceBanner.pdfStaleTitle')"

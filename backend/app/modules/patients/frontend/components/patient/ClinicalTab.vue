@@ -9,7 +9,7 @@
  * - appointments: View and manage patient appointments
  */
 
-import type { ClinicalMode } from '../clinical/ClinicalModeToggle.vue'
+type ClinicalMode = 'history' | 'diagnosis' | 'plans' | 'appointments'
 import type { TreatmentPlan } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 

@@ -31,6 +31,22 @@ export interface Prescription {
   void_reason?: string | null
 }
 
+export interface PrescriptionDelivery {
+  id: string
+  channel: string
+  status: string
+  to_address: string
+  attempts: number
+  max_attempts: number
+  provider?: string | null
+  provider_message_id?: string | null
+  error_message?: string | null
+  created_at: string
+  sent_at?: string | null
+  delivered_at?: string | null
+  read_at?: string | null
+}
+
 interface ApiOk<T> { data: T }
 
 export function usePrescriptions() {
@@ -50,6 +66,12 @@ export function usePrescriptions() {
   const issue = async (id: string): Promise<ApiOk<Prescription>> =>
     await api.post<ApiOk<Prescription>>(`/api/v1/prescriptions/${id}/issue`, {})
 
+  const retryWhatsApp = async (id: string): Promise<ApiOk<PrescriptionDelivery>> =>
+    await api.post<ApiOk<PrescriptionDelivery>>(`/api/v1/prescriptions/${id}/whatsapp-delivery`, {})
+
+  const deliveries = async (id: string): Promise<ApiOk<PrescriptionDelivery[]>> =>
+    await api.get<ApiOk<PrescriptionDelivery[]>>(`/api/v1/prescriptions/${id}/deliveries`)
+
   const cancel = async (id: string, reason: string): Promise<ApiOk<Prescription>> =>
     await api.post<ApiOk<Prescription>>(`/api/v1/prescriptions/${id}/cancel`, { reason })
 
@@ -59,5 +81,5 @@ export function usePrescriptions() {
   const audit = async (id: string) =>
     await api.get<ApiOk<Array<Record<string, unknown>>>>(`/api/v1/prescriptions/${id}/audit`)
 
-  return { list, create, update, issue, cancel, voidPrescription, audit }
+  return { list, create, update, issue, retryWhatsApp, deliveries, cancel, voidPrescription, audit }
 }

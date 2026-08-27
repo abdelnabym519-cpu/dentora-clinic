@@ -20,6 +20,11 @@ export function useAuth() {
   // State
   const user = useState<User | null>('auth:user', () => null)
   const permissions = useState<string[]>('auth:permissions', () => [])
+  // Clinic memberships returned by /me. Drives the clinic switcher.
+  const clinics = useState<Array<{ id: string, name: string, role: string }>>(
+    'auth:clinics',
+    () => []
+  )
   // Cookie lifetime matches refresh token; JWT expiry is enforced by the
   // backend, and a 401 triggers refresh in useApi. Matching the access
   // cookie's maxAge to the 15min JWT TTL caused premature logouts.
@@ -56,8 +61,40 @@ export function useAuth() {
     accessToken.value = response.access_token
     refreshToken.value = response.refresh_token
 
-    // Fetch user info after login
+    // Fetch user info after login (also sets the default selected
+    // clinic from the membership list).
     await fetchUser()
+  }
+
+  /**
+   * Switch the active clinic. Calls the backend to mint a token bound to
+   * the chosen clinic and returns the role/permissions for it.
+   */
+  async function switchClinic(clinicId: string): Promise<boolean> {
+    if (!accessToken.value) return false
+    try {
+      const response = await $fetch<ApiResponse<{
+        user: User
+        clinics: Array<{ id: string, name: string, role: string }>
+        permissions: string[]
+        access_token: string
+      }>>('/api/v1/auth/select-clinic', {
+        baseURL: apiBaseUrl.value,
+        method: 'POST',
+        body: { clinic_id: clinicId },
+        headers: { Authorization: `Bearer ${accessToken.value}` }
+      })
+      accessToken.value = response.data.access_token
+      user.value = response.data.user
+      permissions.value = response.data.permissions
+      clinics.value = response.data.clinics
+      const selected = useSelectedClinicId()
+      selected.value = clinicId
+      return true
+    } catch (error) {
+      console.error('Failed to switch clinic:', error)
+      return false
+    }
   }
 
   async function logout(): Promise<void> {
@@ -65,6 +102,9 @@ export function useAuth() {
     refreshToken.value = null
     user.value = null
     permissions.value = []
+    clinics.value = []
+    const selected = useSelectedClinicId()
+    selected.value = null
     // SSR: skip router.push — calling it from middleware can crash the
     // response. The global auth middleware redirects to /login once it
     // sees isAuthenticated === false.
@@ -111,6 +151,11 @@ export function useAuth() {
         })
         user.value = me.data.user
         permissions.value = me.data.permissions
+        clinics.value = me.data.clinics
+        const selected = useSelectedClinicId()
+        if (!selected.value && me.data.clinics.length > 0) {
+          selected.value = me.data.clinics[0]?.id ?? null
+        }
         return true
       } catch {
         await logout()
@@ -144,6 +189,14 @@ export function useAuth() {
       })
       user.value = response.data.user
       permissions.value = response.data.permissions
+      clinics.value = response.data.clinics
+      // Default the selected clinic to the user's first membership
+      // unless they already chose one.
+      const selected = useSelectedClinicId()
+      const stillMember = response.data.clinics.some(c => c.id === selected.value)
+      if (!selected.value || !stillMember) {
+        selected.value = response.data.clinics[0]?.id ?? null
+      }
     } catch (error: unknown) {
       const fetchError = error as { statusCode?: number }
       // Only try refresh on 401 (expired token), not on other errors
@@ -184,12 +237,14 @@ export function useAuth() {
   return {
     user: readonly(user),
     permissions: readonly(permissions),
+    clinics: readonly(clinics),
     accessToken: readonly(accessToken),
     isAuthenticated,
     login,
     logout,
     refresh,
     fetchUser,
+    switchClinic,
     init
   }
 }

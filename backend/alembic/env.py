@@ -43,6 +43,7 @@ from app.core.plugins.db_models import (  # noqa: F401
     ModuleOperationLog,
     ModuleRecord,
 )
+from app.core.tenancy.models import Tenant  # noqa: F401
 from app.database import Base
 from app.modules.agenda.models import Appointment, AppointmentTreatment, Cabinet  # noqa: F401
 from app.modules.billing.models import (  # noqa: F401

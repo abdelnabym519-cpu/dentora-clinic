@@ -9,6 +9,25 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str
 
+    # Multi-tenant / multi-clinic
+    # ---------------------------
+    # TENANT_SLUG identifies the *sole* tenant served by a self-hosted
+    # installation. In shared-PostgreSQL multi-tenant mode the active
+    # tenant is resolved per request (host / X-Tenant-Id / JWT) and this
+    # value is only used as the bootstrap key + as the slug a brand-new
+    # database is seeded with. It MUST remain ``"default"`` for ordinary
+    # single-clinic installs so upgrades are a no-op.
+    TENANT_SLUG: str = "default"
+    # When true, a request that carries no tenant hint resolves to
+    # ``TENANT_SLUG`` instead of 404. Self-hosted = true. A SaaS control
+    # plane flips this to false so unknown hosts are rejected.
+    TENANT_DEFAULT_FALLBACK: bool = True
+    # Header the resolver inspects for an explicit tenant selection.
+    TENANT_HEADER: str = "X-Tenant-Id"
+    # Header the auth layer inspects for an explicit clinic selection
+    # (a user may belong to several clinics within a tenant).
+    CLINIC_HEADER: str = "X-Clinic-Id"
+
     # Security
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15

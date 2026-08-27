@@ -39,7 +39,7 @@ export default defineNuxtConfig({
     '@cornerstonejs/tools': resolve(__dirname, 'node_modules/@cornerstonejs/tools'),
     '@cornerstonejs/dicom-image-loader': resolve(__dirname, 'node_modules/@cornerstonejs/dicom-image-loader'),
     '@tresjs/core': resolve(__dirname, 'node_modules/@tresjs/core'),
-    '@nuxt/ui': resolve(__dirname, 'node_modules/@nuxt/ui'),
+    '#host-nuxt-ui': resolve(__dirname, 'node_modules/@nuxt/ui'),
     'three': resolve(__dirname, 'node_modules/three'),
     'three-mesh-bvh': resolve(__dirname, 'node_modules/three-mesh-bvh'),
     'marked': resolve(__dirname, 'node_modules/marked'),

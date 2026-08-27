@@ -152,6 +152,7 @@ class ProviderBoundaryProxy:
         tools: list[dict],
         model: str,
         max_tokens: int,
+        response_schema: dict[str, Any] | None = None,
     ) -> AsyncIterator[ProviderEvent]:
         if len(messages) != 1 or len(messages[0].content) != 1:
             raise ClinicalCopilotInputError("provider_boundary_message_shape_invalid")
@@ -183,6 +184,7 @@ class ProviderBoundaryProxy:
                 tools=tools,
                 model=model,
                 max_tokens=max_tokens,
+                response_schema=response_schema,
             ):
                 if isinstance(event, TextDelta):
                     chunks.append(event.text)

@@ -4,6 +4,7 @@ import type { Prescription, PrescriptionDelivery, PrescriptionItem } from '../..
 interface PatientBrief { id: string, first_name: string, last_name: string, record_number?: string | null }
 interface PatientPage { data: PatientBrief[] }
 
+const { t } = useI18n()
 const api = useApi()
 const prescriptionsApi = usePrescriptions()
 const { can } = usePermissions()
@@ -33,6 +34,14 @@ const items = ref<PrescriptionItem[]>([emptyItem()])
 
 function latestDelivery(id: string): PrescriptionDelivery | undefined {
   return deliveriesByPrescription.value[id]?.[0]
+}
+
+function statusLabel(status: string): string {
+  return t(`prescriptions.status.${status}`, status)
+}
+
+function deliveryStatusLabel(status?: string): string {
+  return status ? t(`prescriptions.deliveryStatus.${status}`, status) : ''
 }
 
 async function loadDeliveryHistory(rx: Prescription) {
@@ -81,8 +90,8 @@ async function createDraft() {
     await prescriptionsApi.create(selectedPatient.value.id, items.value)
     items.value = [emptyItem()]
     await loadPrescriptions()
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Could not create prescription'
+  } catch {
+    error.value = t('prescriptions.errors.create')
   } finally {
     busy.value = false
   }
@@ -94,8 +103,8 @@ async function issue(rx: Prescription) {
   try {
     await prescriptionsApi.issue(rx.id)
     await loadPrescriptions()
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Could not issue prescription'
+  } catch {
+    error.value = t('prescriptions.errors.issue')
   } finally {
     busy.value = false
   }
@@ -107,8 +116,8 @@ async function retryWhatsApp(rx: Prescription) {
   try {
     await prescriptionsApi.retryWhatsApp(rx.id)
     if (can('prescriptions.audit')) await loadDeliveryHistory(rx)
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Could not queue WhatsApp delivery'
+  } catch {
+    error.value = t('prescriptions.errors.whatsapp')
   } finally {
     busy.value = false
   }
@@ -117,10 +126,13 @@ async function retryWhatsApp(rx: Prescription) {
 async function cancel(rx: Prescription) {
   if (!transitionReason.value.trim()) return
   busy.value = true
+  error.value = ''
   try {
     await prescriptionsApi.cancel(rx.id, transitionReason.value)
     transitionReason.value = ''
     await loadPrescriptions()
+  } catch {
+    error.value = t('prescriptions.errors.cancel')
   } finally {
     busy.value = false
   }
@@ -129,10 +141,13 @@ async function cancel(rx: Prescription) {
 async function voidRx(rx: Prescription) {
   if (!transitionReason.value.trim()) return
   busy.value = true
+  error.value = ''
   try {
     await prescriptionsApi.voidPrescription(rx.id, transitionReason.value)
     transitionReason.value = ''
     await loadPrescriptions()
+  } catch {
+    error.value = t('prescriptions.errors.void')
   } finally {
     busy.value = false
   }
@@ -155,34 +170,40 @@ onMounted(() => {
   >
     <header>
       <h1 class="text-2xl font-semibold">
-        Electronic Prescriptions
+        {{ t('prescriptions.title') }}
       </h1>
       <p class="text-sm text-gray-500">
-        Create, issue, deliver by WhatsApp and audit prescriptions for the selected clinic.
+        {{ t('prescriptions.subtitle') }}
       </p>
     </header>
 
-    <section class="rounded-xl border p-4 space-y-4" data-testid="prescription-create">
+    <section
+      class="rounded-xl border p-4 space-y-4"
+      data-testid="prescription-create"
+    >
       <h2 class="font-semibold">
-        New prescription
+        {{ t('prescriptions.new') }}
       </h2>
       <div class="relative">
         <label class="block text-sm font-medium">
-          Patient
+          {{ t('prescriptions.patient') }}
         </label>
         <input
           v-model="patientSearch"
           data-testid="prescription-patient-search"
           class="mt-1 w-full rounded border px-3 py-2"
-          placeholder="Search patient"
+          :placeholder="t('prescriptions.searchPatient')"
           @input="searchPatients"
         >
-        <div v-if="patients.length" class="absolute z-10 mt-1 w-full rounded border bg-white shadow">
+        <div
+          v-if="patients.length"
+          class="absolute z-10 mt-1 w-full rounded border bg-white shadow"
+        >
           <button
             v-for="patient in patients"
             :key="patient.id"
             type="button"
-            class="block w-full px-3 py-2 text-left hover:bg-gray-50"
+            class="block w-full px-3 py-2 text-start hover:bg-gray-50"
             :data-testid="`prescription-patient-${patient.id}`"
             @click="selectPatient(patient)"
           >
@@ -191,24 +212,36 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-for="(item, index) in items" :key="index" class="grid gap-3 rounded border p-3 md:grid-cols-3">
-        <input v-model="item.medication_name" :data-testid="`medication-name-${index}`" class="rounded border px-3 py-2" placeholder="Medication">
-        <input v-model="item.strength" class="rounded border px-3 py-2" placeholder="Strength">
-        <input v-model="item.dose" :data-testid="`dose-${index}`" class="rounded border px-3 py-2" placeholder="Dose">
-        <input v-model="item.frequency" :data-testid="`frequency-${index}`" class="rounded border px-3 py-2" placeholder="Frequency">
-        <input v-model="item.duration" :data-testid="`duration-${index}`" class="rounded border px-3 py-2" placeholder="Duration">
-        <input v-model="item.route" :data-testid="`route-${index}`" class="rounded border px-3 py-2" placeholder="Route">
-        <input v-model.number="item.quantity" :data-testid="`quantity-${index}`" type="number" min="1" class="rounded border px-3 py-2" placeholder="Quantity">
-        <input v-model="item.quantity_unit" class="rounded border px-3 py-2" placeholder="Quantity unit">
-        <input v-model="item.instructions" class="rounded border px-3 py-2" placeholder="Instructions">
-        <button type="button" class="text-sm text-red-600" @click="removeItem(index)">
-          Remove
+      <div
+        v-for="(item, index) in items"
+        :key="index"
+        class="grid gap-3 rounded border p-3 md:grid-cols-3"
+      >
+        <input v-model="item.medication_name" :data-testid="`medication-name-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.medication')">
+        <input v-model="item.strength" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.strength')">
+        <input v-model="item.dose" :data-testid="`dose-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.dose')">
+        <input v-model="item.frequency" :data-testid="`frequency-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.frequency')">
+        <input v-model="item.duration" :data-testid="`duration-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.duration')">
+        <input v-model="item.route" :data-testid="`route-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.route')">
+        <input v-model.number="item.quantity" :data-testid="`quantity-${index}`" type="number" min="1" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.quantity')">
+        <input v-model="item.quantity_unit" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.quantityUnit')">
+        <input v-model="item.instructions" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.instructions')">
+        <button
+          type="button"
+          class="text-sm text-red-600"
+          @click="removeItem(index)"
+        >
+          {{ t('prescriptions.remove') }}
         </button>
       </div>
 
-      <div class="flex gap-3">
-        <button type="button" class="rounded border px-3 py-2" @click="addItem">
-          Add medication
+      <div class="flex flex-wrap gap-3">
+        <button
+          type="button"
+          class="rounded border px-3 py-2"
+          @click="addItem"
+        >
+          {{ t('prescriptions.addMedication') }}
         </button>
         <button
           type="button"
@@ -217,70 +250,90 @@ onMounted(() => {
           :disabled="busy || !selectedPatient"
           @click="createDraft"
         >
-          Create draft
+          {{ t('prescriptions.createDraft') }}
         </button>
       </div>
-      <p v-if="error" class="text-sm text-red-600">
+      <p
+        v-if="error"
+        class="text-sm text-red-600"
+        role="alert"
+      >
         {{ error }}
       </p>
     </section>
 
     <section class="space-y-3">
       <h2 class="font-semibold">
-        Prescriptions
+        {{ t('prescriptions.history') }}
       </h2>
-      <input v-model="transitionReason" data-testid="prescription-transition-reason" class="w-full rounded border px-3 py-2" placeholder="Reason for cancel / void">
-      <div v-for="rx in prescriptions" :key="rx.id" class="rounded-xl border p-4" :data-testid="`prescription-${rx.id}`">
+      <input
+        v-model="transitionReason"
+        data-testid="prescription-transition-reason"
+        class="w-full rounded border px-3 py-2"
+        :placeholder="t('prescriptions.transitionReason')"
+      >
+      <p
+        v-if="!prescriptions.length"
+        class="rounded-xl border border-dashed p-4 text-sm text-gray-500"
+      >
+        {{ t('prescriptions.empty') }}
+      </p>
+      <div
+        v-for="rx in prescriptions"
+        :key="rx.id"
+        class="rounded-xl border p-4"
+        :data-testid="`prescription-${rx.id}`"
+      >
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <strong>
+            <strong dir="ltr" class="inline-block">
               {{ rx.identifier }}
             </strong>
-            <span class="ml-2 rounded bg-gray-100 px-2 py-1 text-xs" :data-testid="`prescription-status-${rx.id}`">
-              {{ rx.status }}
+            <span class="ms-2 rounded bg-gray-100 px-2 py-1 text-xs" :data-testid="`prescription-status-${rx.id}`">
+              {{ statusLabel(rx.status) }}
             </span>
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button v-if="rx.status === 'draft'" :data-testid="`issue-${rx.id}`" type="button" class="rounded bg-green-600 px-3 py-1 text-white" :disabled="busy" @click="issue(rx)">
-              Issue
+              {{ t('prescriptions.issue') }}
             </button>
             <button v-if="rx.status === 'draft'" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="cancel(rx)">
-              Cancel
+              {{ t('prescriptions.cancel') }}
             </button>
             <button v-if="rx.status === 'issued' && can('prescriptions.issue')" :data-testid="`whatsapp-retry-${rx.id}`" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="retryWhatsApp(rx)">
-              Send / retry WhatsApp
+              {{ t('prescriptions.sendWhatsApp') }}
             </button>
             <button v-if="rx.status === 'issued'" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="voidRx(rx)">
-              Void
+              {{ t('prescriptions.void') }}
             </button>
           </div>
         </div>
-        <ul class="mt-3 list-disc pl-5 text-sm">
-          <li v-for="item in rx.items" :key="item.id || `${item.medication_name}-${item.dose}`">
+        <ul class="mt-3 list-disc ps-5 text-sm">
+          <li v-for="item in rx.items" :key="item.id || `${item.medication_name}-${item.dose}`" dir="auto">
             {{ item.medication_name }} — {{ item.dose }}, {{ item.frequency }}, {{ item.duration }}, {{ item.route }} × {{ item.quantity }}
           </li>
         </ul>
         <div v-if="can('prescriptions.audit') && (rx.status === 'issued' || rx.status === 'voided')" class="mt-3 rounded bg-gray-50 p-3 text-xs" :data-testid="`whatsapp-delivery-${rx.id}`">
           <template v-if="latestDelivery(rx.id)">
-            <strong>WhatsApp:</strong>
-            {{ latestDelivery(rx.id)?.status }}
+            <strong>{{ t('prescriptions.whatsapp') }}:</strong>
+            {{ deliveryStatusLabel(latestDelivery(rx.id)?.status) }}
             <span v-if="latestDelivery(rx.id)?.attempts">
-              · attempts {{ latestDelivery(rx.id)?.attempts }}/{{ latestDelivery(rx.id)?.max_attempts }}
+              · {{ t('prescriptions.attempts', { attempts: latestDelivery(rx.id)?.attempts, max: latestDelivery(rx.id)?.max_attempts }) }}
             </span>
             <span v-if="latestDelivery(rx.id)?.delivered_at">
-              · delivered {{ latestDelivery(rx.id)?.delivered_at }}
+              · {{ t('prescriptions.delivered') }} <bdi dir="ltr">{{ latestDelivery(rx.id)?.delivered_at }}</bdi>
             </span>
             <span v-if="latestDelivery(rx.id)?.read_at">
-              · read {{ latestDelivery(rx.id)?.read_at }}
+              · {{ t('prescriptions.read') }} <bdi dir="ltr">{{ latestDelivery(rx.id)?.read_at }}</bdi>
             </span>
-            <p v-if="latestDelivery(rx.id)?.error_message" class="mt-1 text-red-600">
+            <p v-if="latestDelivery(rx.id)?.error_message" class="mt-1 text-red-600" role="alert" dir="auto">
               {{ latestDelivery(rx.id)?.error_message }}
             </p>
           </template>
-          <span v-else>WhatsApp: no delivery attempt recorded.</span>
+          <span v-else>{{ t('prescriptions.noDeliveryAttempt') }}</span>
         </div>
         <p v-if="rx.status !== 'draft'" class="mt-2 text-xs text-gray-500">
-          Issued/terminal prescription content is immutable.
+          {{ t('prescriptions.immutable') }}
         </p>
       </div>
     </section>

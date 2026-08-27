@@ -10,11 +10,13 @@ from app.core.auth.dependencies import ClinicContext, get_clinic_context, requir
 from app.core.schemas import ApiResponse
 from app.database import get_db
 
+from .delivery import list_whatsapp_deliveries, queue_whatsapp_delivery
 from .domain import MedicationItem, PrescriptionError, PrescriptionStatus
 from .repository import SqlAlchemyPatientAccess, SqlAlchemyPrescriptionRepository
 from .schemas import (
     AuditEventResponse,
     PrescriptionCreate,
+    PrescriptionDeliveryResponse,
     PrescriptionResponse,
     PrescriptionUpdate,
     TransitionRequest,
@@ -53,6 +55,24 @@ def _http_error(exc: PrescriptionError) -> HTTPException:
     if detail == "prescription not found":
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=detail)
     return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+
+
+def _delivery_response(message) -> PrescriptionDeliveryResponse:
+    return PrescriptionDeliveryResponse(
+        id=message.id,
+        channel=message.channel,
+        status=message.status,
+        to_address=message.to_address,
+        attempts=message.attempts,
+        max_attempts=message.max_attempts,
+        provider=message.provider,
+        provider_message_id=message.provider_message_id,
+        error_message=message.error_message,
+        created_at=message.created_at,
+        sent_at=message.sent_at,
+        delivered_at=message.delivered_at,
+        read_at=message.read_at,
+    )
 
 
 @router.post("", response_model=ApiResponse[PrescriptionResponse], status_code=201)
@@ -144,9 +164,55 @@ async def issue_prescription(
             clinic_id=ctx.clinic_id,
             actor_id=ctx.user_id,
         )
+        # Automatic, consent-aware WhatsApp delivery. The notification gateway
+        # persists an outbox row; network delivery/retry happens asynchronously.
+        await queue_whatsapp_delivery(db, rx, actor_user_id=ctx.user_id)
     except PrescriptionError as exc:
         raise _http_error(exc) from exc
     return ApiResponse(data=PrescriptionResponse.from_domain(rx))
+
+
+@router.post(
+    "/{prescription_id}/whatsapp-delivery",
+    response_model=ApiResponse[PrescriptionDeliveryResponse],
+)
+async def retry_prescription_whatsapp_delivery(
+    prescription_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[None, Depends(require_permission("prescriptions.issue"))],
+) -> ApiResponse[PrescriptionDeliveryResponse]:
+    """Queue/retry WhatsApp after configuration or consent has been corrected."""
+    try:
+        rx = await _use_cases(db).get(
+            prescription_id, tenant_id=ctx.tenant_id, clinic_id=ctx.clinic_id
+        )
+        rx.assert_owned_by(ctx.user_id)
+        message = await queue_whatsapp_delivery(db, rx, actor_user_id=ctx.user_id)
+    except PrescriptionError as exc:
+        raise _http_error(exc) from exc
+    return ApiResponse(data=_delivery_response(message))
+
+
+@router.get(
+    "/{prescription_id}/deliveries",
+    response_model=ApiResponse[list[PrescriptionDeliveryResponse]],
+)
+async def prescription_delivery_history(
+    prescription_id: UUID,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _: Annotated[None, Depends(require_permission("prescriptions.audit"))],
+) -> ApiResponse[list[PrescriptionDeliveryResponse]]:
+    """Delivery audit trail including provider status and receipt timestamps."""
+    try:
+        rx = await _use_cases(db).get(
+            prescription_id, tenant_id=ctx.tenant_id, clinic_id=ctx.clinic_id
+        )
+    except PrescriptionError as exc:
+        raise _http_error(exc) from exc
+    history = await list_whatsapp_deliveries(db, rx)
+    return ApiResponse(data=[_delivery_response(message) for message in history])
 
 
 @router.post("/{prescription_id}/cancel", response_model=ApiResponse[PrescriptionResponse])

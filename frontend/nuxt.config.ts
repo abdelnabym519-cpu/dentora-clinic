@@ -80,6 +80,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-15',
 
   vite: {
+    worker: {
+      format: 'es'
+    },
     optimizeDeps: {
       include: [
         'nprogress',

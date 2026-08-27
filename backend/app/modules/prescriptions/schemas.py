@@ -89,6 +89,22 @@ class PrescriptionResponse(BaseModel):
         )
 
 
+class PrescriptionDeliveryResponse(BaseModel):
+    id: UUID
+    channel: str
+    status: str
+    to_address: str
+    attempts: int
+    max_attempts: int
+    provider: str | None
+    provider_message_id: str | None
+    error_message: str | None
+    created_at: datetime
+    sent_at: datetime | None
+    delivered_at: datetime | None
+    read_at: datetime | None
+
+
 class AuditEventResponse(BaseModel):
     id: UUID
     actor_user_id: UUID

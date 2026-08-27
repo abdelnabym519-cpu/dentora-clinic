@@ -13,8 +13,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "risk_0001"
-down_revision: str | None = "acs_0001"
-branch_labels: str | Sequence[str] | None = None
+down_revision: str | None = "0001"
+branch_labels: str | Sequence[str] | None = ("risk_engine",)
 depends_on: str | Sequence[str] | None = None
 
 

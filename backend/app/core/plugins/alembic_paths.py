@@ -7,6 +7,7 @@ by Alembic at import time and is awkward to import from tests.
 from __future__ import annotations
 
 import importlib.util
+from functools import lru_cache
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -58,6 +59,7 @@ def _alembic_cfg_path() -> Path:
     return Path(__file__).resolve().parents[3] / "alembic.ini"
 
 
+@lru_cache(maxsize=1)
 def _load_script_directory():
     cfg_path = _alembic_cfg_path()
     if not cfg_path.is_file():

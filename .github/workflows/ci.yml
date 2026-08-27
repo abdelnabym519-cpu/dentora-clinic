@@ -223,6 +223,9 @@ jobs:
         working-directory: frontend
         run: npm install
 
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
+
       - name: Generate modules.json with host paths
         working-directory: frontend
         run: |
@@ -265,6 +268,9 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm install
+
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
 
       - name: Generate modules.json with host paths
         working-directory: frontend
@@ -365,6 +371,9 @@ jobs:
         run: |
           npm install
           npx playwright install --with-deps chromium
+
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
 
       - name: Generate modules.json with host paths
         # The backend writes `modules.json` with `/module_layers/...`

@@ -31,22 +31,6 @@ export default defineNuxtConfig({
 
   extends: moduleLayers,
 
-  // Built-in module layers live outside the frontend root. Resolve their
-  // host-owned runtime dependencies through the frontend installation so
-  // Nuxt/Vite and the generated TypeScript configs use the same packages.
-  alias: {
-    '@cornerstonejs/core': resolve(__dirname, 'node_modules/@cornerstonejs/core'),
-    '@cornerstonejs/tools': resolve(__dirname, 'node_modules/@cornerstonejs/tools'),
-    '@cornerstonejs/dicom-image-loader': resolve(__dirname, 'node_modules/@cornerstonejs/dicom-image-loader'),
-    '@tresjs/core': resolve(__dirname, 'node_modules/@tresjs/core'),
-    '#host-nuxt-ui': resolve(__dirname, 'node_modules/@nuxt/ui'),
-    'three': resolve(__dirname, 'node_modules/three'),
-    'three-mesh-bvh': resolve(__dirname, 'node_modules/three-mesh-bvh'),
-    'marked': resolve(__dirname, 'node_modules/marked'),
-    'isomorphic-dompurify': resolve(__dirname, 'node_modules/isomorphic-dompurify'),
-    'vue-draggable-plus': resolve(__dirname, 'node_modules/vue-draggable-plus')
-  },
-
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',

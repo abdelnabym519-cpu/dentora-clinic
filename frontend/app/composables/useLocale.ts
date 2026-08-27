@@ -10,6 +10,7 @@ export function useLocale() {
       name: l.name
     }))
   )
+  const isRtl = computed(() => locale.value === 'ar')
 
   async function changeLocale(code: CodeLang): Promise<void> {
     if (import.meta.client) {
@@ -22,6 +23,7 @@ export function useLocale() {
     locale,
     currentLocale: computed(() => locale.value),
     availableLocales,
+    isRtl,
     changeLocale
   }
 }

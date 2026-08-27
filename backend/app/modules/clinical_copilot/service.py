@@ -177,6 +177,7 @@ class ClinicalCopilotService:
         second_review_reader: SecondReviewReader | None = None,
     ) -> None:
         self.db = db
+        self.second_review_contract_available = second_review_reader is not None
         self.second_review_reader = second_review_reader or UnavailableSecondReviewReader()
 
     async def build_context(
@@ -436,8 +437,16 @@ class ClinicalCopilotService:
             stages.append(
                 ClinicalStageStatus(
                     stage=StageName.AI_SECOND_REVIEW,
-                    state=StageState.UNAVAILABLE,
-                    reason="ai_second_review_contract_unavailable",
+                    state=(
+                        StageState.MISSING
+                        if self.second_review_contract_available
+                        else StageState.UNAVAILABLE
+                    ),
+                    reason=(
+                        "ai_second_review_missing"
+                        if self.second_review_contract_available
+                        else "ai_second_review_contract_unavailable"
+                    ),
                 )
             )
         else:

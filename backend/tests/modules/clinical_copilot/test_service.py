@@ -219,6 +219,21 @@ async def test_missing_second_review_fails_closed_and_stays_explicit() -> None:
     assert context.ready_for_advice is False
 
 
+
+@pytest.mark.asyncio
+async def test_installed_second_review_without_artifact_is_missing() -> None:
+    clinic_id, patient_id, rows, _ = _chain(second_review=False)
+    context = await ClinicalCopilotService(
+        FakeDB(rows), second_review_reader=ReviewReader(None)
+    ).build_context(clinic_id=clinic_id, patient_id=patient_id)
+
+    second_review = context.stages[-1]
+    assert second_review.stage is StageName.AI_SECOND_REVIEW
+    assert second_review.state is StageState.MISSING
+    assert second_review.reason == "ai_second_review_missing"
+    assert context.ready_for_advice is False
+
+
 @pytest.mark.asyncio
 async def test_incomplete_case_intelligence_fails_closed() -> None:
     clinic_id, patient_id, rows, review = _chain(incomplete_case=True)

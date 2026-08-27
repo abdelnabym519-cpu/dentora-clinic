@@ -99,6 +99,7 @@ async def queue_whatsapp_delivery(
         raise PrescriptionError("patient is not available in the selected clinic")
 
     attempt = len(history) + 1
+    dedup_key = f"prescription:{rx.id}:whatsapp:{attempt}"
     context = {
         "patient_name": patient.full_name,
         "prescription_identifier": rx.identifier,
@@ -118,7 +119,7 @@ async def queue_whatsapp_delivery(
         force_send=True,
         triggered_by_event="prescription.issued",
         triggered_by_user_id=actor_user_id,
-        dedup_key=f"prescription:{rx.id}:whatsapp:{attempt}",
+        dedup_key=dedup_key,
     )
     if message is None:
         # A concurrent identical enqueue won the unique dedup race. Re-read the
@@ -127,4 +128,15 @@ async def queue_whatsapp_delivery(
         if refreshed:
             return refreshed[0]
         raise RuntimeError("prescription WhatsApp delivery deduplication failed")
+
+    # NotificationGateway's generic skip record predates channel-specific
+    # delivery auditing and defaults skipped rows to email without context.
+    # Normalize only this prescription-owned row so a missing phone/opt-in/
+    # approved template remains visible and retryable in prescription history.
+    if message.status == "skipped":
+        message.channel = "whatsapp"
+        message.context_data = context
+        message.dedup_key = dedup_key
+        await db.commit()
+        await db.refresh(message)
     return message

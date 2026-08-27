@@ -48,6 +48,7 @@ from app.modules.catalog.models import (  # noqa: F401
     TreatmentOdontogramMapping,
 )
 from app.modules.clinical_notes.models import ClinicalNote  # noqa: F401
+from app.modules.dental_3d.models import DentalScene  # noqa: F401
 from app.modules.media.models import Document, MediaAttachment  # noqa: F401
 from app.modules.odontogram.models import (  # noqa: F401
     OdontogramHistory,

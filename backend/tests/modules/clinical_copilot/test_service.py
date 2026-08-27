@@ -45,7 +45,16 @@ class FakeProvider:
         self.tools = None
         self.called = False
 
-    def complete(self, *, system, messages, tools, model, max_tokens):
+    def complete(
+        self,
+        *,
+        system,
+        messages,
+        tools,
+        model,
+        max_tokens,
+        response_schema=None,
+    ):
         self.called = True
         self.last_user_text = messages[0].content[0].text
         self.tools = tools

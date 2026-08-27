@@ -37,6 +37,7 @@ class RecordingProvider:
         tools: list[dict],
         model: str,
         max_tokens: int,
+        response_schema: dict | None = None,
     ) -> AsyncIterator[ProviderEvent]:
         self.called = True
         self.last_user_text = messages[0].content[0].text

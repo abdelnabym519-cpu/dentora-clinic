@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -78,6 +78,13 @@ class ClinicalContextInsufficientError(ValueError):
 
 class ClinicalCopilotOutputError(ValueError):
     pass
+
+
+class _GeneratedCopilotOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    claims: list[AdvisoryClaim] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
 
 
 def _canonical(value: Any) -> str:
@@ -558,6 +565,7 @@ class ClinicalCopilotService:
             tools=[],
             model=model,
             max_tokens=1200,
+            response_schema=_GeneratedCopilotOutput.model_json_schema(),
         ):
             if isinstance(event, TextDelta):
                 chunks.append(event.text)
@@ -567,16 +575,17 @@ class ClinicalCopilotService:
                 break
 
         try:
-            raw = json.loads("".join(chunks))
-            if set(raw) - {"claims", "limitations"}:
-                raise ClinicalCopilotOutputError("clinical_copilot_invalid_provider_output")
-            claims = [AdvisoryClaim.model_validate(item) for item in raw.get("claims", [])]
-            limitations = [str(item) for item in raw.get("limitations", [])]
+            generated = _GeneratedCopilotOutput.model_validate(
+                json.loads("".join(chunks))
+            )
+            claims = generated.claims
+            limitations = generated.limitations
         except (json.JSONDecodeError, TypeError, ValidationError) as exc:
             raise ClinicalCopilotOutputError("clinical_copilot_invalid_provider_output") from exc
 
         if not claims:
             raise ClinicalCopilotOutputError("clinical_copilot_claims_required")
+
         unsupported = {
             evidence_id
             for claim in claims

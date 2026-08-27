@@ -79,6 +79,7 @@ async def generate_second_review(
         tools=[],
         model=model,
         max_tokens=max_tokens,
+        response_schema=_GeneratedOutput.model_json_schema(),
     ):
         if isinstance(event, TextDelta):
             text_parts.append(event.text)

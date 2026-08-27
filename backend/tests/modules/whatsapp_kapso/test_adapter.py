@@ -36,6 +36,22 @@ def _msg(clinic_id, *, kind="template", **kw):
     return OutboundMessage(**base)
 
 
+def test_named_components_exclude_internal_metadata():
+    components = kapso_client.build_named_components(
+        {
+            "patient_name": "Ana",
+            "prescription_identifier": "RX-1",
+            "_prescription_id": "internal-id",
+            "locale": "es",
+        }
+    )
+    params = components[0]["parameters"]
+    assert {p["parameter_name"] for p in params} == {
+        "patient_name",
+        "prescription_identifier",
+    }
+
+
 @pytest.mark.asyncio
 async def test_template_send_returns_wamid(db_session, test_clinic, monkeypatch):
     await _settings(db_session, test_clinic.id)

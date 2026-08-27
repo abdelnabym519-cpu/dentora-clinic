@@ -1,0 +1,32 @@
+name: Catalog Diagnostic
+
+on:
+  push:
+    branches:
+      - feat/prescription-whatsapp-production
+
+jobs:
+  catalog-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -e ".[dev]"
+
+      - name: Generate catalogs and show exact diff
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://dental:testpass@localhost:5432/stub
+          SECRET_KEY: catalog-diagnostic-stub
+          ENVIRONMENT: test
+          TESTING: "true"
+        run: |
+          python scripts/generate_catalogs.py
+          git diff -- ../docs/modules-catalog.md ../docs/events-catalog.md

@@ -31,15 +31,15 @@ describe('Arabic localization and RTL contracts', () => {
   })
 
   it('maps Arabic into Nuxt UI and exposes document direction at SSR level', () => {
-    expect(appSource).toContain("import { ar, en, es, fr, pt } from '@nuxt/ui/locale'")
-    expect(appSource).toContain("locale.value === 'ar' ? 'rtl' : 'ltr'")
+    expect(appSource).toContain('import { ar, en, es, fr, pt } from \'@nuxt/ui/locale\'')
+    expect(appSource).toContain('locale.value === \'ar\' ? \'rtl\' : \'ltr\'')
     expect(appSource).toContain('dir: documentDirection.value')
   })
 
   it('mirrors the application shell for RTL instead of pinning it to the left', () => {
-    expect(layoutSource).toContain("isRtl.value ? 'right-0' : 'left-0'")
-    expect(layoutSource).toContain("isRtl.value ? 'md:mr-16' : 'md:ml-16'")
-    expect(layoutSource).toContain(":side=\"isRtl ? 'right' : 'left'\"")
+    expect(layoutSource).toContain('isRtl.value ? \'right-0\' : \'left-0\'')
+    expect(layoutSource).toContain('isRtl.value ? \'md:mr-16\' : \'md:ml-16\'')
+    expect(layoutSource).toContain(':side="isRtl ? \'right\' : \'left\'"')
     expect(layoutSource).toContain('i-lucide-panel-right-open')
     expect(layoutSource).toContain('i-lucide-panel-right-close')
   })

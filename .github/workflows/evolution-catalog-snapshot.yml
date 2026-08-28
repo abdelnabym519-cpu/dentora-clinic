@@ -1,0 +1,42 @@
+name: Evolution catalog snapshot
+
+on:
+  push:
+    branches: [feature/evolution-whatsapp]
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -e ".[dev]"
+
+      - name: Generate catalogs
+        run: python backend/scripts/generate_catalogs.py
+        env:
+          DATABASE_URL: postgresql+asyncpg://stub:stub@localhost:5432/stub
+          SECRET_KEY: catalog-snapshot-stub-key-32chars-minimum
+          ENVIRONMENT: test
+          TESTING: "true"
+
+      - name: Print generated catalogs as base64
+        shell: bash
+        run: |
+          echo "MODULES_B64_BEGIN"
+          base64 -w0 docs/modules-catalog.md
+          echo
+          echo "MODULES_B64_END"
+          echo "EVENTS_B64_BEGIN"
+          base64 -w0 docs/events-catalog.md
+          echo
+          echo "EVENTS_B64_END"

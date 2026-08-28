@@ -130,6 +130,25 @@ def _repetition_penalty(text: str) -> float:
     return penalty
 
 
+def _collapse_repeated_utterance(text: str) -> str:
+    """Collapse exact consecutive STT loops while preserving one spoken command."""
+    compact = re.sub(r"\s+", " ", text).strip()
+    words = re.findall(r"[^\W_]+", compact, flags=re.UNICODE)
+    if len(words) < 4:
+        return compact
+
+    normalized = [word.casefold() for word in words]
+    for repeats in range(4, 1, -1):
+        if len(normalized) % repeats:
+            continue
+        width = len(normalized) // repeats
+        chunk = normalized[:width]
+        if all(normalized[index * width : (index + 1) * width] == chunk for index in range(repeats)):
+            return " ".join(words[:width])
+
+    return compact
+
+
 def _candidate_score(candidate: TranscriptionCandidate) -> float:
     return candidate.average_log_probability - _repetition_penalty(candidate.text)
 
@@ -176,7 +195,7 @@ async def transcribe(audio: UploadFile = File(...)) -> dict:
 
         selected, elapsed = _transcribe_with_short_audio_fallback(path)
         return {
-            "text": selected.text,
+            "text": _collapse_repeated_utterance(selected.text),
             "language": selected.language,
             "language_probability": selected.language_probability,
             "duration_seconds": selected.duration_seconds,

@@ -3,6 +3,10 @@ import type { CodeLang } from '~/types'
 
 export function useLocale() {
   const { locale, setLocale, locales } = useI18n()
+  const localeCookie = useCookie<CodeLang | null>(STORAGE_KEYS.LOCALE_COOKIE, {
+    path: '/',
+    sameSite: 'lax'
+  })
 
   const availableLocales = computed(() =>
     (locales.value as Array<{ code: CodeLang, name: string }>).map(l => ({
@@ -13,6 +17,7 @@ export function useLocale() {
   const isRtl = computed(() => locale.value === 'ar')
 
   async function changeLocale(code: CodeLang): Promise<void> {
+    localeCookie.value = code
     if (import.meta.client) {
       localStorage.setItem(STORAGE_KEYS.LOCALE, code)
     }

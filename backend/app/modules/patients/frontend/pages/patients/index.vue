@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Patient, PatientCreate, PaginatedResponse, ApiResponse } from '~~/app/types'
+import type { Patient, PaginatedResponse, ApiResponse } from '~~/app/types'
 import { PATIENT_STATUS_ROLE, type PatientStatus } from '~~/app/config/severity'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
@@ -177,7 +177,7 @@ function debtFilterCtx() {
 // --- Create modal (preserved) -------------------------------------------
 const isCreateModalOpen = ref(false)
 const isSubmitting = ref(false)
-const newPatient = reactive<PatientCreate>({
+const newPatient = reactive({
   first_name: '',
   last_name: '',
   phone: '',

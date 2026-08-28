@@ -76,8 +76,8 @@ onMounted(async () => {
       fetchTreatments(props.patientId)
     ])
     // If there are dates, select the most recent one by default
-    if (timelineDates.value.length > 0) {
-      const mostRecent = timelineDates.value[timelineDates.value.length - 1]
+    const mostRecent = timelineDates.value.at(-1)
+    if (mostRecent) {
       await fetchOdontogramAtDate(props.patientId, mostRecent.date)
     }
   } finally {

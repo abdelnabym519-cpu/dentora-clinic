@@ -20,7 +20,7 @@ from .photo_taxonomy import (
     MEDIA_KIND_XRAY,
     validate_media_classification,
 )
-from .storage import get_storage_backend
+from .storage import get_document_storage_backend, get_storage_backend
 from .thumbnails import is_thumbnailable, store_thumbnails
 from .validation import get_file_extension
 
@@ -151,6 +151,7 @@ class DocumentService:
             captured_at=captured_at,
             paired_document_id=paired_document_id,
             tags=list(tags or []),
+            extra_data={"storage_backend": storage.backend_name},
             uploaded_by=user_id,
         )
         db.add(document)
@@ -226,7 +227,7 @@ class DocumentService:
 
     @staticmethod
     async def download_document(document: Document) -> bytes:
-        storage = get_storage_backend()
+        storage = get_document_storage_backend(document)
         return await storage.retrieve(document.storage_path)
 
     @staticmethod

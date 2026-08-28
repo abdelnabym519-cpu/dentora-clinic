@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TreatmentStatus } from '~~/app/types'
-import { STATUS_STYLES } from './ToothSVGPaths'
+import { STATUS_STYLES } from '~~/app/config/odontogramConstants'
 
 const props = defineProps<{
   viewBox: string
@@ -51,7 +51,7 @@ const implantTransform = computed(() => {
 })
 
 // Get status styling
-const statusStyle = computed(() => STATUS_STYLES[props.status] || STATUS_STYLES.existing)
+const statusStyle = computed(() => STATUS_STYLES[props.status])
 </script>
 
 <template>

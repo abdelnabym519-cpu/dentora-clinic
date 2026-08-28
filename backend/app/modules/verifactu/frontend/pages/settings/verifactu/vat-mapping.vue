@@ -5,7 +5,7 @@
 // admin pin its AEAT ``CalificacionOperacion`` / ``OperacionExenta``
 // override. When no override is set, the verifactu hook falls back to
 // the rate-based heuristic.
-import type { VatClassificationItem } from '~/composables/useVerifactu'
+import type { VatClassificationItem } from '../../../composables/useVerifactu'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorMessage } from '~~/app/utils/error'
 
@@ -33,11 +33,13 @@ const CLASSIFICATIONS = [
   { value: 'N2', label: 'N2 — No sujeta (por reglas de localización)' }
 ] as const
 
-const AUTO_VALUE = '__auto__'
+const AUTO_VALUE = '__auto__' as const
+type ClassificationValue = typeof CLASSIFICATIONS[number]['value']
+type RowSelection = ClassificationValue | typeof AUTO_VALUE
 
 interface Row {
   data: VatClassificationItem
-  selected: string // override classification or AUTO_VALUE
+  selected: RowSelection // override classification or AUTO_VALUE
   notes: string
   dirty: boolean
 }
@@ -47,7 +49,7 @@ const rows = ref<Row[]>([])
 function rowFromItem(it: VatClassificationItem): Row {
   return {
     data: it,
-    selected: it.override_classification || AUTO_VALUE,
+    selected: (it.override_classification as ClassificationValue | null) || AUTO_VALUE,
     notes: it.override_notes || '',
     dirty: false
   }
@@ -73,10 +75,10 @@ function effectiveSource(row: Row): 'auto' | 'override' {
   return row.selected === AUTO_VALUE ? 'auto' : 'override'
 }
 
-function classificationColor(code: string): 'green' | 'amber' | 'gray' {
-  if (code.startsWith('S')) return 'green'
-  if (code.startsWith('E')) return 'amber'
-  return 'gray'
+function classificationColor(code: string): 'success' | 'warning' | 'neutral' {
+  if (code.startsWith('S')) return 'success'
+  if (code.startsWith('E')) return 'warning'
+  return 'neutral'
 }
 
 async function save(row: Row) {
@@ -99,9 +101,9 @@ async function save(row: Row) {
       row.data = updated
     }
     row.dirty = false
-    toast?.add({ title: t('verifactu.vatMapping.saved'), color: 'green' })
+    toast?.add({ title: t('verifactu.vatMapping.saved'), color: 'success' })
   } catch (e: unknown) {
-    toast?.add({ title: errorMessage(e, t('verifactu.vatMapping.saveFailed')), color: 'red' })
+    toast?.add({ title: errorMessage(e, t('verifactu.vatMapping.saveFailed')), color: 'error' })
   } finally {
     saving.value = null
   }
@@ -130,7 +132,7 @@ onMounted(refresh)
     </header>
 
     <UAlert
-      color="blue"
+      color="info"
       variant="soft"
       icon="i-lucide-info"
       :title="t('verifactu.vatMapping.legalIntroTitle')"

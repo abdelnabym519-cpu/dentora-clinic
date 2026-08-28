@@ -186,7 +186,7 @@ watch(() => props.initialPlanId, (newId) => {
       :patient-id="patientId"
       :readonly="readonly"
       @updated="handlePlanUpdated"
-      @activate="fetchPatientPlans(patientId)"
+      @activate="loadPatientPlans"
       @generate-budget="handleDetailGenerateBudget"
       @schedule="router.push(`/appointments?patient_id=${patientId}`)"
       @cancelled="handlePlanCancelled"

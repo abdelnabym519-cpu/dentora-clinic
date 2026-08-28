@@ -41,7 +41,7 @@ async function loadCurrentView() {
     await fetchSnapshot(timeline.value.draft.id)
   } else if (timeline.value && timeline.value.dates.length > 0) {
     const last = timeline.value.dates[timeline.value.dates.length - 1]
-    await fetchSnapshot(last.snapshot_id)
+    if (last) await fetchSnapshot(last.snapshot_id)
   } else {
     currentSnapshot.value = null
   }

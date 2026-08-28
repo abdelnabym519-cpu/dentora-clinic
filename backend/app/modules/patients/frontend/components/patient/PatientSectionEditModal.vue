@@ -4,9 +4,7 @@ import type {
   PatientExtendedUpdate,
   EmergencyContact,
   LegalGuardian,
-  MedicalHistory,
-  PatientAddress,
-  PatientBillingAddress
+  MedicalHistory
 } from '~~/app/types'
 
 type SectionType = 'demographics' | 'emergency' | 'guardian' | 'billing' | 'medical'
@@ -65,7 +63,7 @@ const demographicsForm = reactive({
     postal_code: '',
     province: '',
     country: 'ES'
-  } as PatientAddress
+  }
 })
 
 // Form data for emergency contact
@@ -85,7 +83,7 @@ const billingForm = reactive({
     postal_code: '',
     province: '',
     country: 'ES'
-  } as PatientBillingAddress
+  }
 })
 
 // Gender options
@@ -119,13 +117,19 @@ function initializeForm() {
     demographicsForm.date_of_birth = props.patient.date_of_birth || ''
     demographicsForm.notes = props.patient.notes || ''
     demographicsForm.do_not_contact = props.patient.do_not_contact ?? false
-    demographicsForm.gender = props.patient.gender
+    demographicsForm.gender = props.patient.gender ?? undefined
     demographicsForm.national_id = props.patient.national_id || ''
-    demographicsForm.national_id_type = props.patient.national_id_type
+    demographicsForm.national_id_type = props.patient.national_id_type ?? undefined
     demographicsForm.profession = props.patient.profession || ''
     demographicsForm.workplace = props.patient.workplace || ''
     demographicsForm.preferred_language = props.patient.preferred_language || 'es'
-    demographicsForm.address = props.patient.address || { street: '', city: '', postal_code: '', province: '', country: 'ES' }
+    Object.assign(demographicsForm.address, {
+      street: props.patient.address?.street ?? '',
+      city: props.patient.address?.city ?? '',
+      postal_code: props.patient.address?.postal_code ?? '',
+      province: props.patient.address?.province ?? '',
+      country: props.patient.address?.country ?? 'ES'
+    })
   } else if (props.section === 'emergency') {
     emergencyForm.value = props.patient.emergency_contact ? { ...props.patient.emergency_contact } : null
   } else if (props.section === 'guardian') {
@@ -134,7 +138,13 @@ function initializeForm() {
     billingForm.billing_name = props.patient.billing_name || ''
     billingForm.billing_tax_id = props.patient.billing_tax_id || ''
     billingForm.billing_email = props.patient.billing_email || ''
-    billingForm.billing_address = props.patient.billing_address || { street: '', city: '', postal_code: '', province: '', country: 'ES' }
+    Object.assign(billingForm.billing_address, {
+      street: props.patient.billing_address?.street ?? '',
+      city: props.patient.billing_address?.city ?? '',
+      postal_code: props.patient.billing_address?.postal_code ?? '',
+      province: props.patient.billing_address?.province ?? '',
+      country: props.patient.billing_address?.country ?? 'ES'
+    })
   }
 }
 

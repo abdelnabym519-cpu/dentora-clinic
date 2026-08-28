@@ -6,6 +6,21 @@
       "placeholder": "Type a reply…",
       "replyError": "Could not send the reply",
       "windowClosed": "The 24h window is closed. Use a template to reopen the conversation."
+    },
+    "status": {
+      "queued": "Queued",
+      "sending": "Sending",
+      "sent": "Sent",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "delivered": "Delivered",
+      "read": "Read"
+    },
+    "smtp": {
+      "providerConsole": "Console (development)",
+      "providerDisabled": "Disabled",
+      "securityNone": "None",
+      "fromNamePlaceholder": "My Dental Clinic"
     }
   }
 }

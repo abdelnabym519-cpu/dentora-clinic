@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings as app_settings
 from app.core.agents.models import Agent, AgentAuditLog
 from app.core.llm.base import ContentBlock
+from app.core.llm.factory import SUPPORTED_PROVIDERS, get_default_model
 
 from .models import CopilotConversation, CopilotMessage, CopilotNudge, CopilotSettings
 from .serde import content_to_json
@@ -31,7 +32,7 @@ class CopilotSettingsService:
         row = CopilotSettings(
             clinic_id=clinic_id,
             provider=app_settings.COPILOT_PROVIDER_DEFAULT,
-            model=app_settings.COPILOT_MODEL_CHAT_OPENAI,
+            model=get_default_model(app_settings.COPILOT_PROVIDER_DEFAULT),
             redaction_enabled=app_settings.COPILOT_REDACTION_DEFAULT,
             period_start=datetime.now(UTC).date().replace(day=1),
         )
@@ -61,8 +62,14 @@ class CopilotSettingsService:
         # Validate only when the caller is changing the provider; otherwise a
         # digest-only PATCH would fail on clinics whose stored provider is
         # "openai" but whose deployment has no key (the digest is no-LLM).
-        if data.get("provider") == "openai" and not app_settings.OPENAI_API_KEY:
-            raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
+        requested_provider = data.get("provider")
+        if requested_provider is not None:
+            if requested_provider not in SUPPORTED_PROVIDERS:
+                raise ValueError(f"Unsupported LLM provider: {requested_provider}")
+            if requested_provider == "openai" and not app_settings.OPENAI_API_KEY:
+                raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
+            if data.get("model") is None:
+                row.model = get_default_model(requested_provider)
         for field in (
             "provider",
             "model",

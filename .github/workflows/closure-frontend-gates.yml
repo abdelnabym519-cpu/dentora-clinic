@@ -1,0 +1,44 @@
+name: Closure Frontend Gates
+
+on:
+  push:
+    branches: [phase/arabic-rtl-final-ui]
+  workflow_dispatch:
+
+jobs:
+  frontend-gates:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
+      - name: Generate modules.json with host paths
+        working-directory: frontend
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          modules_dir = root / "backend/app/modules"
+          entries = []
+          for m in sorted(modules_dir.iterdir()):
+              layer = m / "frontend"
+              if layer.is_dir():
+                  entries.append({"name": m.name, "path": str(layer.resolve())})
+          Path("modules.json").write_text(json.dumps({"layers": [e["path"] for e in entries], "modules": entries, "version": 1}, indent=2))
+          PY
+      - name: Real Nuxt typecheck
+        working-directory: frontend
+        run: npm run typecheck
+      - name: Production build
+        working-directory: frontend
+        run: npm run build

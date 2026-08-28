@@ -213,7 +213,7 @@ function populateFromEditItem() {
   form.quantity = item.quantity
   form.vat_type_id = item.vat_type_id
   form.tooth_number = item.tooth_number
-  form.surfaces = item.surfaces || []
+  form.surfaces = [...(item.surfaces ?? [])]
   form.discount_type = item.discount_type
   form.discount_value = item.discount_value
 

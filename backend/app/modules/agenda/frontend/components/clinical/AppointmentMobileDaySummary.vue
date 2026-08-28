@@ -170,7 +170,7 @@ function minDurationLabel(value: number): string {
           class="w-3.5 h-3.5"
         />
         <span class="tnum">
-          {{ t('appointments.freeSlots.nextFreeAt', 'Próximo {time}', {
+          {{ t('appointments.freeSlots.nextFreeAt', {
             time: formatNextFreeTime(summary.nextFreeStart)
           }) }}
           <span class="text-subtle">
@@ -186,7 +186,7 @@ function minDurationLabel(value: number): string {
           class="w-3.5 h-3.5"
         />
         <span class="tnum">
-          {{ t('appointments.freeSlots.gapsAtLeast', '{count} huecos ≥ {min} min', {
+          {{ t('appointments.freeSlots.gapsAtLeast', {
             count: summary.qualifyingGapsCount,
             min: minDurationMin
           }) }}

@@ -12,25 +12,37 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 |--------|---------|----------|---------|---------|-----------|-------------|-------|----------|----------|
 | `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
 | `agenda` | 0.4.0 | official | patients, catalog, odontogram | auto | no | 4 | 11 | 0 | yes |
+| `ai_case_summary` | 1.0.0 | official | case_intelligence, patients | manual | no | 3 | 0 | 0 | no |
+| `ai_clinical_report` | 1.0.0 | official | clinical_copilot, ai_second_review, copilot | manual | no | 2 | 0 | 0 | no |
+| `ai_second_review` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, patients | manual | no | 3 | 0 | 0 | no |
+| `ai_treatment_planning` | 1.0.0 | official | case_intelligence, risk_engine, patients | manual | no | 3 | 0 | 0 | no |
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
 | `booking` | 0.1.0 | community | patients, agenda, schedules | auto | yes | 2 | 0 | 0 | yes |
 | `budget` | 0.1.0 | official | patients, catalog, odontogram | auto | no | 5 | 9 | 4 | yes |
+| `case_intelligence` | 1.0.0 | official | patients, patients_clinical, odontogram, periodontogram, patient_timeline, media, dental_3d | manual | no | 1 | 1 | 0 | no |
 | `catalog` | 0.1.0 | official | — | auto | no | 3 | 0 | 0 | yes |
+| `clinical_copilot` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, copilot | manual | no | 2 | 0 | 0 | no |
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
+| `dental_3d` | 0.9.0 | official | patients, odontogram, media | manual | yes | 2 | 0 | 0 | yes |
 | `media` | 0.2.0 | official | patients | auto | no | 4 | 7 | 1 | yes |
 | `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
 | `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
 | `odontogram` | 0.3.0 | official | patients, catalog | auto | no | 4 | 7 | 0 | yes |
+| `orthodontic_simulator` | 0.1.0 | official | patients, dental_3d | manual | yes | 2 | 0 | 0 | yes |
+| `patient_presentation_mode` | 1.0.0 | official | patients, case_intelligence, ai_case_summary | manual | no | 1 | 0 | 0 | no |
 | `patient_timeline` | 0.1.0 | official | patients | auto | no | 1 | 0 | 35 | yes |
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
 | `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
 | `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 2 | yes |
 | `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
+| `prescriptions` | 1.0.0 | official | patients, notifications | auto | no | 6 | 0 | 0 | yes |
 | `recalls` | 0.1.0 | official | patients, agenda | auto | yes | 3 | 4 | 5 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments | auto | no | 3 | 0 | 0 | yes |
+| `risk_engine` | 1.0.0 | official | case_intelligence, patients, dental_3d | manual | no | 3 | 0 | 0 | no |
 | `schedules` | 0.1.0 | official | agenda | auto | yes | 8 | 0 | 3 | yes |
 | `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media | auto | no | 5 | 13 | 7 | yes |
+| `treatment_simulation` | 1.0.0 | official | dental_3d, case_intelligence, risk_engine, ai_treatment_planning, patients | manual | no | 2 | 0 | 0 | no |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
 | `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
 
@@ -82,6 +94,77 @@ Appointments, scheduling, cabinets.
   - `appointment.updated`
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/agenda/CLAUDE.md`](../backend/app/modules/agenda/CLAUDE.md)
+
+### `ai_case_summary` — v1.0.0
+
+Advisory, evidence-traceable AI summaries derived from redacted CaseSnapshot inputs with explicit availability semantics and mandatory dentist review.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `case_intelligence`, `patients`
+- **Frontend layer:** —
+- **Permissions:**
+  - `ai_case_summary.generate`
+  - `ai_case_summary.read`
+  - `ai_case_summary.review`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/ai_case_summary/CLAUDE.md`](../backend/app/modules/ai_case_summary/CLAUDE.md)
+
+### `ai_clinical_report` — v1.0.0
+
+Draft-only AI clinical reports assembled from the reviewed cross-stage clinical evidence chain, with strict provenance and no canonical record mutation.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `clinical_copilot`, `ai_second_review`, `copilot`
+- **Frontend layer:** —
+- **Permissions:**
+  - `ai_clinical_report.generate`
+  - `ai_clinical_report.read`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/ai_clinical_report/CLAUDE.md`](../backend/app/modules/ai_clinical_report/CLAUDE.md)
+
+### `ai_second_review` — v1.0.0
+
+Evidence-traceable advisory second review of a dentist-accepted AI Treatment Planning option and deterministic Treatment Simulation, with fail-closed stale artifact validation and mandatory dentist review.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `treatment_simulation`, `patients`
+- **Frontend layer:** —
+- **Permissions:**
+  - `ai_second_review.generate`
+  - `ai_second_review.read`
+  - `ai_second_review.review`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/ai_second_review/CLAUDE.md`](../backend/app/modules/ai_second_review/CLAUDE.md)
+
+### `ai_treatment_planning` — v1.0.0
+
+Advisory AI-generated treatment options grounded in redacted CaseSnapshot evidence and deterministic Risk Engine context, with append-only provenance and mandatory dentist review; never writes a canonical treatment plan automatically.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `case_intelligence`, `risk_engine`, `patients`
+- **Frontend layer:** —
+- **Permissions:**
+  - `ai_treatment_planning.generate`
+  - `ai_treatment_planning.read`
+  - `ai_treatment_planning.review`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/ai_treatment_planning/CLAUDE.md`](../backend/app/modules/ai_treatment_planning/CLAUDE.md)
 
 ### `billing` — v0.1.0
 
@@ -155,6 +238,23 @@ Dental treatment quotes, versioning, signatures.
   - `treatment_plan.treatment_removed`
 - **Module CLAUDE.md:** [`backend/app/modules/budget/CLAUDE.md`](../backend/app/modules/budget/CLAUDE.md)
 
+### `case_intelligence` — v1.0.0
+
+Deterministic, versioned unified clinical case snapshots with explicit availability, provenance, evidence references and append-only persistence; informational infrastructure only, with no diagnosis, risk scoring or AI narrative.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `patients`, `patients_clinical`, `odontogram`, `periodontogram`, `patient_timeline`, `media`, `dental_3d`
+- **Frontend layer:** —
+- **Permissions:**
+  - `case_intelligence.read`
+- **Events emitted:**
+  - `case_intelligence.snapshot.created`
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/case_intelligence/CLAUDE.md`](../backend/app/modules/case_intelligence/CLAUDE.md)
+
 ### `catalog` — v0.1.0
 
 Treatment catalog, categories, VAT types.
@@ -172,6 +272,23 @@ Treatment catalog, categories, VAT types.
 - **Events emitted:** —
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/catalog/CLAUDE.md`](../backend/app/modules/catalog/CLAUDE.md)
+
+### `clinical_copilot` — v1.0.0
+
+Read-only clinical advisory over Case Intelligence, Risk Engine, AI Treatment Planning, Treatment Simulation, and AI Second Review provenance.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `treatment_simulation`, `copilot`
+- **Frontend layer:** —
+- **Permissions:**
+  - `clinical_copilot.read`
+  - `clinical_copilot.use`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/clinical_copilot/CLAUDE.md`](../backend/app/modules/clinical_copilot/CLAUDE.md)
 
 ### `clinical_notes` — v0.2.0
 
@@ -219,6 +336,23 @@ Conversational AI agent over Dentora, scoped to the caller's permissions.
 - **Events consumed:**
   - `appointment.cancelled`
 - **Module CLAUDE.md:** [`backend/app/modules/copilot/CLAUDE.md`](../backend/app/modules/copilot/CLAUDE.md)
+
+### `dental_3d` — v0.9.0
+
+Dental 3D — 3D dentition preview on the patient summary with real mesh ingestion (STL/PLY/OBJ via the media module), patient-space ThreeUI and a non-clinical automatic tooth-segmentation foundation with dentist review, plus CBCT/DICOM ingestion and a replaceable, non-clinical real nerve-inference boundary with native-coordinate findings and explicit unavailable/failure states, plus patient-specific rigid IOS-to-CBCT registration with explicit geometry provenance and review, plus WebGL2/TresJS and Cornerstone CBCT/MPR clinical presentation, and deterministic prosthetic-guided implant planning with explicit patient-space provenance, immutable revisions, fail-closed missing-data checks and dentist review, plus deterministic longitudinal Change Detection over registered Case Intelligence snapshots with traceable deltas and mandatory clinician review.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=True
+- **Depends:** `patients`, `odontogram`, `media`
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `dental_3d.read`
+  - `dental_3d.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/dental_3d/CLAUDE.md`](../backend/app/modules/dental_3d/CLAUDE.md)
 
 ### `media` — v0.2.0
 
@@ -332,6 +466,39 @@ Dental charting, tooth state, clinical treatments.
   - `odontogram.treatment.status_changed`
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/odontogram/CLAUDE.md`](../backend/app/modules/odontogram/CLAUDE.md)
+
+### `orthodontic_simulator` — v0.1.0
+
+Local deterministic orthodontic movement sandbox over reviewed per-tooth Dental3D geometry. Non-predictive, non-clinical and fail-closed when geometry, scale or coordinate-frame provenance is unavailable.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=True
+- **Depends:** `patients`, `dental_3d`
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `orthodontic_simulator.read`
+  - `orthodontic_simulator.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/orthodontic_simulator/CLAUDE.md`](../backend/app/modules/orthodontic_simulator/CLAUDE.md)
+
+### `patient_presentation_mode` — v1.0.0
+
+Clinician-controlled patient presentation of accepted, current, evidence-traceable case summaries without clinical-record mutation.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `patients`, `case_intelligence`, `ai_case_summary`
+- **Frontend layer:** —
+- **Permissions:**
+  - `patient_presentation_mode.read`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/patient_presentation_mode/CLAUDE.md`](../backend/app/modules/patient_presentation_mode/CLAUDE.md)
 
 ### `patient_timeline` — v0.1.0
 
@@ -468,6 +635,27 @@ SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices.
   - `patient.archived`
 - **Module CLAUDE.md:** [`backend/app/modules/periodontogram/CLAUDE.md`](../backend/app/modules/periodontogram/CLAUDE.md)
 
+### `prescriptions` — v1.0.0
+
+Tenant-isolated, auditable electronic prescription lifecycle.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=True · removable=False
+- **Depends:** `patients`, `notifications`
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `prescriptions.audit`
+  - `prescriptions.cancel`
+  - `prescriptions.issue`
+  - `prescriptions.read`
+  - `prescriptions.void`
+  - `prescriptions.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/prescriptions/CLAUDE.md`](../backend/app/modules/prescriptions/CLAUDE.md)
+
 ### `recalls` — v0.1.0
 
 Patient recalls: schedule call-backs, work the monthly call list, log attempts, auto-link booked appointments.
@@ -512,6 +700,24 @@ Cross-module reporting: billing, budgets, scheduling.
 - **Events emitted:** —
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/reports/CLAUDE.md`](../backend/app/modules/reports/CLAUDE.md)
+
+### `risk_engine` — v1.0.0
+
+Deterministic observed-fact risk decision support and fail-closed patient-space 3D Risk Map with explicit availability, provenance and mandatory dentist review.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `case_intelligence`, `patients`, `dental_3d`
+- **Frontend layer:** —
+- **Permissions:**
+  - `risk_engine.generate`
+  - `risk_engine.read`
+  - `risk_engine.review`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/risk_engine/CLAUDE.md`](../backend/app/modules/risk_engine/CLAUDE.md)
 
 ### `schedules` — v0.1.0
 
@@ -577,6 +783,23 @@ Patient treatment plans with budget + odontogram sync.
   - `budget.superseded`
   - `odontogram.treatment.performed`
 - **Module CLAUDE.md:** [`backend/app/modules/treatment_plan/CLAUDE.md`](../backend/app/modules/treatment_plan/CLAUDE.md)
+
+### `treatment_simulation` — v1.0.0
+
+Deterministic, non-predictive visualization of a dentist-accepted AI Treatment Planning option over the existing Dental Digital Twin, patient-space evidence, and Risk Map with append-only provenance and stale-input protection.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `dental_3d`, `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `patients`
+- **Frontend layer:** —
+- **Permissions:**
+  - `treatment_simulation.generate`
+  - `treatment_simulation.read`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/treatment_simulation/CLAUDE.md`](../backend/app/modules/treatment_simulation/CLAUDE.md)
 
 ### `verifactu` — v0.1.0
 

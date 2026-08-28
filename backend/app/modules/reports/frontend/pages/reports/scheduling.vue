@@ -9,7 +9,7 @@ import type {
   PunctualityStats,
   SchedulingSummary,
   WaitingTimeStats
-} from '~/composables/useReports'
+} from '../../composables/useReports'
 
 const { t } = useI18n()
 const router = useRouter()

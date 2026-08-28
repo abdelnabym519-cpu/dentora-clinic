@@ -25,9 +25,7 @@ CHANNEL = "whatsapp"
 
 class EvolutionService:
     @staticmethod
-    async def get_settings(
-        db: AsyncSession, clinic_id: UUID
-    ) -> WhatsappEvolutionSettings | None:
+    async def get_settings(db: AsyncSession, clinic_id: UUID) -> WhatsappEvolutionSettings | None:
         return (
             await db.execute(
                 select(WhatsappEvolutionSettings).where(
@@ -50,9 +48,7 @@ class EvolutionService:
         ).scalar_one_or_none()
 
     @staticmethod
-    async def _channel_row(
-        db: AsyncSession, clinic_id: UUID
-    ) -> ClinicChannelSettings | None:
+    async def _channel_row(db: AsyncSession, clinic_id: UUID) -> ClinicChannelSettings | None:
         return (
             await db.execute(
                 select(ClinicChannelSettings).where(
@@ -63,9 +59,7 @@ class EvolutionService:
         ).scalar_one_or_none()
 
     @staticmethod
-    async def _sync_channel_selector(
-        db: AsyncSession, settings: WhatsappEvolutionSettings
-    ) -> None:
+    async def _sync_channel_selector(db: AsyncSession, settings: WhatsappEvolutionSettings) -> None:
         """Synchronize the generic channel selector without causing provider cutover early.
 
         A clinic that currently uses Kapso keeps that selector while Evolution
@@ -169,9 +163,7 @@ class EvolutionService:
         return settings
 
     @staticmethod
-    async def test_connection(
-        db: AsyncSession, clinic_id: UUID
-    ) -> tuple[bool, str | None]:
+    async def test_connection(db: AsyncSession, clinic_id: UUID) -> tuple[bool, str | None]:
         settings = await EvolutionService.get_settings(db, clinic_id)
         if settings is None or not settings.api_key_encrypted:
             raise ValueError("Evolution API is not configured")
@@ -205,8 +197,7 @@ class EvolutionService:
             raise ValueError("Evolution API is not configured")
         public_base = client.normalize_base_url(dentora_public_base_url)
         webhook_url = (
-            f"{public_base}/api/v1/whatsapp_evolution/webhook/"
-            f"{quote(str(settings.id), safe='')}"
+            f"{public_base}/api/v1/whatsapp_evolution/webhook/{quote(str(settings.id), safe='')}"
         )
         api_key = decrypt_password(settings.api_key_encrypted)
         token = decrypt_password(settings.webhook_token_encrypted)
@@ -246,9 +237,7 @@ class EvolutionService:
                 event_type=event_type[:64],
                 provider_message_id=provider_message_id,
             )
-            .on_conflict_do_nothing(
-                constraint="uq_whatsapp_evolution_webhook_hash"
-            )
+            .on_conflict_do_nothing(constraint="uq_whatsapp_evolution_webhook_hash")
             .returning(WhatsappEvolutionWebhookReceipt.id)
         )
         return (await db.execute(statement)).scalar_one_or_none() is not None

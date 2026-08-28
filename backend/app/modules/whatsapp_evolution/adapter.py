@@ -28,9 +28,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def _active_settings(
-    db: AsyncSession, clinic_id: UUID
-) -> WhatsappEvolutionSettings | None:
+async def _active_settings(db: AsyncSession, clinic_id: UUID) -> WhatsappEvolutionSettings | None:
     return (
         await db.execute(
             select(WhatsappEvolutionSettings).where(

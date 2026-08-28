@@ -39,9 +39,7 @@ def test_messages_upsert_extracts_only_individual_inbound_text():
             },
         ]
     }
-    assert webhooks.inbound_texts(payload) == [
-        webhooks.InboundText("in1", "34600111222", "Hola")
-    ]
+    assert webhooks.inbound_texts(payload) == [webhooks.InboundText("in1", "34600111222", "Hola")]
 
 
 def test_messages_upsert_uses_phone_alt_for_lid():

@@ -37,9 +37,7 @@ async def _configured_evolution(db, clinic_id):
 
 
 @pytest.mark.asyncio
-async def test_clinic_selected_evolution_allows_opted_in_proactive_text(
-    db_session, test_patient
-):
+async def test_clinic_selected_evolution_allows_opted_in_proactive_text(db_session, test_patient):
     await _configured_evolution(db_session, test_patient.clinic_id)
     prefs = SimpleNamespace(
         whatsapp_enabled=True,

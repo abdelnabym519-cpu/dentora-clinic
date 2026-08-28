@@ -434,9 +434,7 @@ class NotificationGateway:
         return ["email"]
 
     @staticmethod
-    async def _adapter_for_channel(
-        db: AsyncSession, clinic_id: UUID, channel: Channel | str
-    ):
+    async def _adapter_for_channel(db: AsyncSession, clinic_id: UUID, channel: Channel | str):
         """Resolve the clinic-selected adapter and fail closed when disabled."""
         resolved_channel = Channel(channel)
         selected = (

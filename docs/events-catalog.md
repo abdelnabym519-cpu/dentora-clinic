@@ -397,7 +397,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_FAILED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:573`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:571`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -405,7 +405,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_SENT`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:571`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:569`
 - **Subscribers:**
   - `patient_timeline`
 

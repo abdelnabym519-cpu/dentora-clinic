@@ -134,7 +134,9 @@ async def webhook(
 
     token = request.headers.get("X-Dentora-Webhook-Token")
     if not EvolutionService.verify_webhook_token(settings, token):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid webhook token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid webhook token"
+        )
 
     payload_instance = webhooks.payload_instance(payload)
     if payload_instance and payload_instance != settings.instance_name:

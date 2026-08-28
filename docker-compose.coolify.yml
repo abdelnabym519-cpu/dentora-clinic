@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dental_clinic}
       POSTGRES_USER: ${POSTGRES_USER:-dental}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Coolify}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,11 +20,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      SERVICE_FQDN_BACKEND_8000: ${BACKEND_FQDN}
+      SERVICE_FQDN_BACKEND_8000: ${BACKEND_FQDN:?Set BACKEND_FQDN in Coolify}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dental}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-dental_clinic}
-      SECRET_KEY: ${SECRET_KEY}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in Coolify}
+      BUDGET_PUBLIC_SECRET_KEY: ${BUDGET_PUBLIC_SECRET_KEY:?Set BUDGET_PUBLIC_SECRET_KEY in Coolify}
       ENVIRONMENT: production
-      ALLOWED_ORIGINS: ${FRONTEND_URL}
+      ALLOWED_ORIGINS: ${FRONTEND_URL:?Set FRONTEND_URL in Coolify}
       STORAGE_BACKEND: local
       DENTAL_3D_NERVE_INFERENCE_URL: ${DENTAL_3D_NERVE_INFERENCE_URL:-}
       DENTAL_3D_NERVE_INFERENCE_TOKEN: ${DENTAL_3D_NERVE_INFERENCE_TOKEN:-}
@@ -43,9 +44,7 @@ services:
       DENTAL_3D_REGISTRATION_ICP_MAX_ITERATIONS: ${DENTAL_3D_REGISTRATION_ICP_MAX_ITERATIONS:-50}
       STORAGE_LOCAL_PATH: /app/storage
       # Demo deployments set SEED_ON_STARTUP=1 in Coolify env so a wiped
-      # DB volume self-heals on next restart: alembic recreates the
-      # schema and seed_demo.py repopulates it (idempotent — no-op when
-      # the demo clinic already exists). Real production deployments
+      # DB volume self-heals on next restart. Real production deployments
       # leave it unset so seed never runs.
       SEED_ON_STARTUP: ${SEED_ON_STARTUP:-0}
       SEED_LANG: ${SEED_LANG:-es}
@@ -67,10 +66,10 @@ services:
       context: .
       dockerfile: frontend/Dockerfile.prod
       args:
-        API_BASE_URL: ${BACKEND_URL}
+        API_BASE_URL: ${BACKEND_URL:?Set BACKEND_URL in Coolify}
     environment:
-      SERVICE_FQDN_FRONTEND_3000: ${FRONTEND_FQDN}
-      NUXT_PUBLIC_API_BASE_URL: ${BACKEND_URL}
+      SERVICE_FQDN_FRONTEND_3000: ${FRONTEND_FQDN:?Set FRONTEND_FQDN in Coolify}
+      NUXT_PUBLIC_API_BASE_URL: ${BACKEND_URL:?Set BACKEND_URL in Coolify}
     depends_on:
       backend:
         condition: service_started

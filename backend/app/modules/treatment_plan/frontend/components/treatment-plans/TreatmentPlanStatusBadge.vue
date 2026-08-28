@@ -8,7 +8,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const colorMap: Record<TreatmentPlanStatus, 'neutral' | 'info' | 'success' | 'error'> = {
+const colorMap: Record<TreatmentPlanStatus, 'neutral' | 'info' | 'success' | 'warning' | 'error'> = {
   draft: 'neutral',
   active: 'info',
   completed: 'success',

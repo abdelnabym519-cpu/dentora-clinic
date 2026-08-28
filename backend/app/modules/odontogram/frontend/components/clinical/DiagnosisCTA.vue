@@ -22,6 +22,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const selectedDraftId = ref<string>('')
+const singleDraft = computed(() => props.draftPlans.length === 1 ? props.draftPlans[0] : undefined)
 
 // Options for dropdown when multiple drafts exist
 const draftOptions = computed(() =>
@@ -61,12 +62,12 @@ function handleContinue() {
 
       <!-- 1 draft: Continue that plan -->
       <UButton
-        v-else-if="draftPlans.length === 1"
+        v-else-if="singleDraft"
         color="primary"
         icon="i-lucide-arrow-right"
-        @click="emit('continue', draftPlans[0].id)"
+        @click="emit('continue', singleDraft.id)"
       >
-        {{ t('clinical.diagnosis.continuePlan', { name: draftPlans[0].title || t('treatmentPlans.untitledPlan') }) }}
+        {{ t('clinical.diagnosis.continuePlan', { name: singleDraft.title || t('treatmentPlans.untitledPlan') }) }}
       </UButton>
 
       <!-- N drafts: Dropdown to select -->

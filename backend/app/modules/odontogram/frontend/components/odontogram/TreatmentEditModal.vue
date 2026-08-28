@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Surface, ToothTreatmentView, TreatmentStatus } from '~~/app/types'
-import { TREATMENT_COLORS, isSurfaceTreatment, getAllowedStatusesForTreatment } from '~~/app/config/odontogramConstants'
+import { getTreatmentColor, isSurfaceTreatment, getAllowedStatusesForTreatment } from '~~/app/config/odontogramConstants'
 import { getTreatmentDisplayName } from '~~/app/utils/treatmentView'
 
 const props = defineProps<{
@@ -50,7 +50,7 @@ const treatmentLabel = computed(() => {
 // Treatment color
 const treatmentColor = computed(() => {
   if (!props.treatment) return '#9CA3AF'
-  return TREATMENT_COLORS[props.treatment.treatment_type] || '#9CA3AF'
+  return getTreatmentColor(props.treatment.treatment_type)
 })
 
 // All status options

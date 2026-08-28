@@ -282,9 +282,9 @@ export function useTreatmentCatalog() {
   function getCategoryLabel(categoryKey: string, overrideLocale?: string): string {
     const loc = overrideLocale || locale.value
     if (useCatalog.value) {
-      const treatments = treatmentsByCategory.value[categoryKey]
-      if (treatments && treatments.length > 0) {
-        return treatments[0].category_names[loc] || treatments[0].category_names.es || treatments[0].category_names.en || categoryKey
+      const first = treatmentsByCategory.value[categoryKey]?.[0]
+      if (first) {
+        return first.category_names[loc] || first.category_names.es || first.category_names.en || categoryKey
       }
     }
 

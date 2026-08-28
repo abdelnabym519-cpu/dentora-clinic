@@ -18,7 +18,7 @@ const {
   deleteOverride
 } = useProfessionalHours()
 
-const selectedProfessional = ref<string | null>(null)
+const selectedProfessional = ref<string | undefined>(undefined)
 
 const isAdmin = computed(() => can(PERMISSIONS.schedules.professionalRead) || can(PERMISSIONS.schedules.professionalWrite))
 const canWrite = computed(() => {

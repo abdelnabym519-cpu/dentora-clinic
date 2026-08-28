@@ -171,12 +171,17 @@ function hasTreatment(type: string, status?: TreatmentStatus): boolean {
   )
 }
 
-function getTreatmentOfType(type: string): Treatment | undefined {
+function getTreatmentOfType(type: string): ToothTreatmentView | undefined {
   return toothTreatments.value.find(t => t.treatment_type === type)
 }
 
-function getImplantFill(_treatment: Treatment): string {
-  return TREATMENT_COLORS.implant || '#10B981'
+function getImplantFill(_treatment: ToothTreatmentView): string {
+  return getTreatmentColor('implant')
+}
+
+function getTreatmentOpacity(type: string): number {
+  const treatment = getTreatmentOfType(type)
+  return treatment ? (STATUS_STYLES[treatment.status]?.opacity ?? 1) : 1
 }
 
 // ============================================================================
@@ -193,7 +198,7 @@ const pulpFillTreatments = computed(() => {
 const hasPulpTreatment = computed(() => pulpFillTreatments.value.length > 0)
 
 // Get the primary pulp treatment (first one with pulp_fill rule)
-function getPulpTreatment(): Treatment | undefined {
+function getPulpTreatment(): ToothTreatmentView | undefined {
   return pulpFillTreatments.value[0]
 }
 
@@ -275,7 +280,7 @@ const occlusalSurfaceTreatments = computed(() => {
 })
 
 // Get occlusal visualization config for a treatment
-function getOcclusalConfig(treatment: Treatment) {
+function getOcclusalConfig(treatment: ToothTreatmentView) {
   const normalized = normalizeTreatmentType(treatment.treatment_type)
   return OCCLUSAL_VISUALIZATION[normalized]
 }
@@ -299,7 +304,7 @@ const patternFillTreatments = computed(() => {
 })
 
 // Get pattern config for a treatment (available for future use)
-function _getPatternConfig(treatment: Treatment) {
+function _getPatternConfig(treatment: ToothTreatmentView) {
   const normalized = normalizeTreatmentType(treatment.treatment_type)
   return PATTERN_CONFIG[normalized]
 }
@@ -503,8 +508,8 @@ const hasPlannedLateralTreatments = computed(() => {
           >
             <path
               :d="TREATMENT_OVERLAYS.rootCanal.indicator"
-              :fill="TREATMENT_COLORS.root_canal"
-              :opacity="STATUS_STYLES[getTreatmentOfType('root_canal')!.status].opacity"
+              :fill="getTreatmentColor('root_canal')"
+              :opacity="getTreatmentOpacity('root_canal')"
               stroke="none"
             />
           </g>
@@ -516,8 +521,8 @@ const hasPlannedLateralTreatments = computed(() => {
           >
             <path
               :d="TREATMENT_OVERLAYS.post.shaft"
-              :fill="TREATMENT_COLORS.post"
-              :opacity="STATUS_STYLES[getTreatmentOfType('post')!.status].opacity"
+              :fill="getTreatmentColor('post')"
+              :opacity="getTreatmentOpacity('post')"
               stroke="#6B7280"
               stroke-width="0.5"
             />

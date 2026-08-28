@@ -92,23 +92,21 @@ function onSettingChange() {
 }
 
 // Get setting value with fallback
-function getSettingValue(key: string, field: keyof NotificationTypeSettings): boolean | number {
+type EditableNotificationField = 'enabled' | 'auto_send' | 'hours_before'
+
+function getSettingValue(key: string, field: EditableNotificationField): boolean | number {
   const setting = localSettings.value[key]
-  if (!setting) {
-    // Return defaults
-    if (field === 'enabled') return true
-    if (field === 'auto_send') return true
-    if (field === 'hours_before') return 24
-  }
-  return setting[field] as boolean | number
+  if (!setting) return field === 'hours_before' ? 24 : true
+  if (field === 'hours_before') return setting.hours_before ?? 24
+  return setting[field]
 }
 
 // Update local setting
-function updateLocalSetting(key: string, field: keyof NotificationTypeSettings, value: boolean | number) {
-  if (!localSettings.value[key]) {
-    localSettings.value[key] = { auto_send: true, enabled: true }
-  }
-  (localSettings.value[key] as Record<string, boolean | number>)[field] = value
+function updateLocalSetting(key: string, field: EditableNotificationField, value: boolean | number) {
+  const setting = localSettings.value[key] ?? { auto_send: true, enabled: true }
+  localSettings.value[key] = setting
+  if (field === 'hours_before') setting.hours_before = Number(value)
+  else setting[field] = Boolean(value)
   onSettingChange()
 }
 

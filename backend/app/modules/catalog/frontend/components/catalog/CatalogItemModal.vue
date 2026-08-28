@@ -6,6 +6,7 @@ import type {
   TreatmentCatalogItemUpdate,
   TreatmentCatalogItemCreate,
   PricingStrategy,
+  PricingStrategy,
   PricingStrategy
 } from '~~/app/types'
 import {
@@ -14,6 +15,10 @@ import {
   VISUALIZATION_RULES,
   isSurfaceTreatment
 } from '~~/app/config/odontogramConstants'
+import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
+import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
+import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
+import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
 import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
 import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
 import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
@@ -144,8 +149,12 @@ watch(
         is_active: newItem.is_active
       }
       if (newItem.odontogram_mapping) {
-        odontogramType.value = newItem.odontogram_mapping.odontogram_treatment_type
-        clinicalCategory.value = newItem.odontogram_mapping.clinical_category
+        odontogramType.value = ALL_TREATMENT_TYPES.find(
+          type => type === newItem.odontogram_mapping?.odontogram_treatment_type
+        )
+        clinicalCategory.value = TREATMENT_CATEGORIES.find(
+          category => category.key === newItem.odontogram_mapping?.clinical_category
+        )?.key
       } else {
         odontogramType.value = undefined
         clinicalCategory.value = undefined
@@ -489,7 +498,7 @@ function handleClose() {
               <UFormField :label="t('catalog.materialNotes')">
                 <UTextarea
                   v-model="formData.material_notes"
-                  rows="2"
+                  :rows="2"
                   :placeholder="t('catalog.materialNotesPlaceholder')"
                 />
               </UFormField>

@@ -16,6 +16,7 @@
 import type { PatientExtended, PatientLedger, PatientLedgerEntry, PaymentMethod } from '~~/app/types'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { DropdownMenuItem } from '@nuxt/ui'
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { TotalLine } from '~~/app/components/shared/EntityTotalsCard.vue'
 import type { SemanticRole } from '~~/app/config/severity'
 import { PERMISSIONS } from '~~/app/config/permissions'

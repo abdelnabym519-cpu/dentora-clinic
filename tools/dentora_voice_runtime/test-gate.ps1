@@ -15,6 +15,7 @@ $ModulesJson = Join-Path $Frontend "modules.json"
 $CreatedJunction = $false
 $SavedModulesJson = $null
 $HadModulesJson = Test-Path $ModulesJson
+$VoiceBaseSha = "e35500a00998879af9bfe7e0cab6792e7b9d268e"
 
 function Invoke-Checked([string]$Label, [scriptblock]$Command) {
     Write-Host ""
@@ -42,10 +43,26 @@ function Wait-Http([string]$Url, [string]$Label, [int]$Attempts = 90) {
     throw "$Label did not become reachable at $Url"
 }
 
+function Write-Utf8NoBom([string]$Path, [string]$Text) {
+    $Encoding = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $Text, $Encoding)
+}
+
 Set-Location $RepoRoot
 $branch = (& git branch --show-current).Trim()
-if ($branch -ne "feat/dentora-voice") {
-    throw "Wrong branch: $branch. Checkout feat/dentora-voice before validation."
+$head = (& git rev-parse HEAD).Trim()
+$mergeBase = (& git merge-base HEAD $VoiceBaseSha).Trim()
+if ($mergeBase -ne $VoiceBaseSha) {
+    throw "Wrong validation lineage: merge-base is $mergeBase, expected $VoiceBaseSha."
+}
+if ($branch -and $branch -ne "feat/dentora-voice") {
+    throw "Wrong branch: $branch. Use feat/dentora-voice or an isolated detached worktree from it."
+}
+if ($branch) {
+    Write-Host "Validation branch: $branch @ $head"
+}
+else {
+    Write-Host "Validation detached worktree: $head"
 }
 
 if (Test-Path $BackendPython -PathType Leaf) {
@@ -78,11 +95,12 @@ try {
             }
         }
     }
-    @{
+    $ModulesConfig = @{
         layers = @($moduleEntries | ForEach-Object { $_.path })
         modules = $moduleEntries
         version = 1
-    } | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 $ModulesJson
+    } | ConvertTo-Json -Depth 5
+    Write-Utf8NoBom $ModulesJson $ModulesConfig
 
     Write-Host "Starting isolated local Dentora services required by backend/E2E validation..."
     Invoke-Checked "Docker db/backend/frontend startup" { docker compose up -d db backend frontend }
@@ -152,7 +170,7 @@ try {
 }
 finally {
     if ($HadModulesJson) {
-        $SavedModulesJson | Set-Content -Encoding UTF8 $ModulesJson
+        Write-Utf8NoBom $ModulesJson $SavedModulesJson
     }
     elseif (Test-Path $ModulesJson) {
         Remove-Item $ModulesJson -Force

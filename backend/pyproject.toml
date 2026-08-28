@@ -106,6 +106,7 @@ ai_second_review = "app.modules.ai_second_review:AISecondReviewModule"
 clinical_copilot = "app.modules.clinical_copilot:ClinicalCopilotModule"
 prescriptions = "app.modules.prescriptions:ElectronicPrescriptionModule"
 orthodontic_simulator = "app.modules.orthodontic_simulator:OrthodonticSimulatorModule"
+voice = "app.modules.voice:VoiceModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

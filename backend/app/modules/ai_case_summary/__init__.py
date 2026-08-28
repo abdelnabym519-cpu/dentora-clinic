@@ -1,4 +1,4 @@
-"""Traceable AI case summaries derived only from Case Intelligence snapshots."""
+"""Traceable AI case summaries and evidence-grounded treatment-planning drafts."""
 
 from fastapi import APIRouter
 
@@ -6,6 +6,10 @@ from app.core.plugins import BaseModule
 
 from .models import AICaseSummaryRecord
 from .router import router
+from .treatment_models import AITreatmentPlanRecord
+from .treatment_router import router as treatment_router
+
+router.include_router(treatment_router)
 
 
 class AICaseSummaryModule(BaseModule):
@@ -33,7 +37,7 @@ class AICaseSummaryModule(BaseModule):
     }
 
     def get_models(self) -> list:
-        return [AICaseSummaryRecord]
+        return [AICaseSummaryRecord, AITreatmentPlanRecord]
 
     def get_router(self) -> APIRouter:
         return router

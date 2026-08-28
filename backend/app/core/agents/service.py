@@ -94,14 +94,24 @@ class AuditService:
         status: str,
         execution_time_ms: int,
     ) -> AgentAuditLog:
+        # Backward-compatible privacy hook: existing surfaces keep their
+        # historical audit payloads because ``audit_sanitizer`` defaults
+        # to None. Voice opts in and redacts transcript-derived PHI before
+        # persistence; the actual tool handler already received real values.
+        audit_arguments = arguments
+        audit_result = result
+        if ctx.audit_sanitizer is not None:
+            audit_arguments = ctx.audit_sanitizer(arguments)
+            audit_result = ctx.audit_sanitizer(result) if result is not None else None
+
         log = AgentAuditLog(
             agent_id=ctx.agent_id,
             session_id=ctx.session_id,
             clinic_id=ctx.clinic_id,
             supervisor_id=ctx.supervisor_id,
             tool_name=tool_name,
-            tool_arguments=arguments,
-            result=result,
+            tool_arguments=audit_arguments,
+            result=audit_result,
             error=error,
             status=status,
             execution_time_ms=execution_time_ms,

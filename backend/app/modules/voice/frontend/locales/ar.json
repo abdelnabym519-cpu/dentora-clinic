@@ -1,0 +1,30 @@
+{
+  "voice": {
+    "title": "Dentora Voice",
+    "close": "إغلاق",
+    "listen": "استماع",
+    "stop": "إيقاف",
+    "reset": "إعادة",
+    "localOnly": "التعرّف على الصوت يعمل محليًا فقط عبر loopback على هذا الجهاز.",
+    "states": {
+      "idle": "جاهز",
+      "listening": "يستمع…",
+      "processing": "يحوّل الصوت إلى نص محليًا…",
+      "executing": "ينفذ…",
+      "success": "تم",
+      "error": "تعذر تنفيذ الأمر",
+      "confirmation_required": "مطلوب تأكيد",
+      "clarification_required": "مطلوب توضيح"
+    },
+    "errors": {
+      "voice_target_unavailable": "العنصر المطلوب غير متاح في هذه الشاشة.",
+      "patient_context_required": "افتح مريضًا أو اذكر اسم المريض.",
+      "patient_not_found": "لم يتم العثور على مريض مطابق.",
+      "ambiguous_patient": "يوجد أكثر من مريض مطابق. اذكر بيانات أوضح.",
+      "cbct_not_available": "لا يوجد فحص CBCT متاح لهذا المريض.",
+      "segmentation_not_available": "لا توجد نتيجة تقسيم أسنان متاحة.",
+      "nerve_not_available": "لا توجد نتيجة عصب متاحة.",
+      "voice_command_failed": "تعذر إكمال الأمر الصوتي."
+    }
+  }
+}

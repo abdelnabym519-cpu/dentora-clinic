@@ -44,6 +44,37 @@ def test_messages_upsert_extracts_only_individual_inbound_text():
     ]
 
 
+def test_messages_upsert_uses_phone_alt_for_lid():
+    payload = {
+        "data": {
+            "key": {
+                "id": "lid1",
+                "remoteJid": "219743428550712@lid",
+                "remoteJidAlt": "34600111222@s.whatsapp.net",
+                "fromMe": False,
+            },
+            "message": {"conversation": "Hola desde LID"},
+        }
+    }
+    assert webhooks.inbound_texts(payload) == [
+        webhooks.InboundText("lid1", "34600111222", "Hola desde LID")
+    ]
+
+
+def test_messages_upsert_ignores_unresolved_lid_instead_of_treating_it_as_phone():
+    payload = {
+        "data": {
+            "key": {
+                "id": "lid2",
+                "remoteJid": "219743428550712@lid",
+                "fromMe": False,
+            },
+            "message": {"conversation": "No phone mapping"},
+        }
+    }
+    assert webhooks.inbound_texts(payload) == []
+
+
 def test_event_and_instance_normalization():
     assert webhooks.normalize_event_name("MESSAGES_UPDATE") == "messages.update"
     assert webhooks.payload_instance({"instance": "clinic-a"}) == "clinic-a"

@@ -1,5 +1,4 @@
 from pathlib import Path
-import re
 
 
 def dedupe_exact_imports(path: str) -> None:
@@ -18,8 +17,8 @@ def dedupe_exact_imports(path: str) -> None:
 
 catalog = Path('backend/app/modules/catalog/frontend/components/catalog/CatalogItemModal.vue')
 text = catalog.read_text()
-text = re.sub(r'(\n\s*PricingStrategy,){2,}', '\n  PricingStrategy,', text)
-# Normalize any accidental repeated identical config type imports in one pass.
+while '  PricingStrategy,\n  PricingStrategy' in text:
+    text = text.replace('  PricingStrategy,\n  PricingStrategy', '  PricingStrategy')
 config_import = "import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'\n"
 while text.count(config_import) > 1:
     first = text.find(config_import)

@@ -12,8 +12,6 @@ test.describe('Dentora Voice', () => {
         ondataavailable: ((event: { data: Blob }) => void) | null = null
         onstop: (() => void) | null = null
 
-        constructor(_stream: MediaStream, _options?: MediaRecorderOptions) {}
-
         start() {
           this.state = 'recording'
         }

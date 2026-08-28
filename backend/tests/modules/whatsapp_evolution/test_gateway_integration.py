@@ -9,6 +9,7 @@ from app.modules.notifications.channels import Channel
 from app.modules.notifications.gateway import NotificationGateway
 from app.modules.notifications.models import ClinicChannelSettings, CommunicationMessage
 from app.modules.whatsapp_evolution.models import WhatsappEvolutionSettings
+from app.modules.whatsapp_kapso.models import WhatsappKapsoSettings
 
 
 async def _configured_evolution(db, clinic_id):
@@ -86,6 +87,45 @@ async def test_proactive_text_still_requires_whatsapp_opt_in(db_session, test_pa
         "text",
     )
     assert resolved is None
+
+
+@pytest.mark.asyncio
+async def test_disabled_clinic_selector_fails_closed(db_session, test_patient):
+    db_session.add(
+        ClinicChannelSettings(
+            clinic_id=test_patient.clinic_id,
+            channel="whatsapp",
+            adapter_name="whatsapp_evolution",
+            is_enabled=False,
+            is_verified=False,
+        )
+    )
+    await db_session.commit()
+
+    adapter = await NotificationGateway._adapter_for_channel(
+        db_session, test_patient.clinic_id, Channel.WHATSAPP
+    )
+    assert adapter is None
+
+
+@pytest.mark.asyncio
+async def test_legacy_kapso_clinic_is_not_shadowed_by_evolution_adapter(db_session, test_patient):
+    db_session.add(
+        WhatsappKapsoSettings(
+            clinic_id=test_patient.clinic_id,
+            api_key_encrypted=encrypt_password("kapso-key"),
+            phone_number_id="PNID-LEGACY",
+            webhook_secret_encrypted=encrypt_password("kapso-webhook-secret"),
+            is_active=True,
+        )
+    )
+    await db_session.commit()
+
+    adapter = await NotificationGateway._adapter_for_channel(
+        db_session, test_patient.clinic_id, Channel.WHATSAPP
+    )
+    assert adapter is not None
+    assert adapter.adapter_name == "whatsapp_kapso"
 
 
 @pytest.mark.asyncio

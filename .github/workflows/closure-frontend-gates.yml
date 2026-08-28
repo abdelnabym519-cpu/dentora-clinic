@@ -3,6 +3,7 @@ name: Closure Frontend Gates
 on:
   push:
     branches: [phase/arabic-rtl-final-ui]
+  workflow_dispatch:
 
 jobs:
   frontend-gates:

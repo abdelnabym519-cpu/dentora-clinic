@@ -125,7 +125,9 @@ class OrthodonticSimulatorService:
             and alignment.source_frame.unit == "mm"
             and alignment.provenance is not None
         )
-        translation_eligible = bool(per_tooth) and reviewed_count == len(per_tooth) and accepted_alignment
+        translation_eligible = (
+            bool(per_tooth) and reviewed_count == len(per_tooth) and accepted_alignment
+        )
 
         # Dental3D currently has no trusted per-tooth local-frame field. Never
         # infer one from crown shape, PCA or a whole-arch registration.
@@ -200,7 +202,10 @@ class OrthodonticSimulatorService:
                 "Patient-specific translation is unavailable until reviewed per-tooth geometry "
                 "and an accepted millimetre coordinate frame are present."
             )
-        if any(item.has_rotation for item in request.movements) and not capability.rotation_eligible:
+        if (
+            any(item.has_rotation for item in request.movements)
+            and not capability.rotation_eligible
+        ):
             raise SimulatorSafetyError(
                 "Tip, torque and rotation require a trusted tooth-local frame; none is available."
             )

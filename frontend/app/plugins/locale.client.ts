@@ -45,9 +45,6 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   }
 
   window.addEventListener('beforeunload', syncStoredLocaleToCookie)
-  nuxtApp.hook('app:beforeUnmount', () => {
-    window.removeEventListener('beforeunload', syncStoredLocaleToCookie)
-  })
 
   watch(i18n.locale, (locale) => {
     localeCookie.value = locale as CodeLang

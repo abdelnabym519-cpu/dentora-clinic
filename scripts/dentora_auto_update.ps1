@@ -6,7 +6,8 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $EnvFile = Join-Path $Root ".env.client"
 $Compose = Join-Path $Root "docker-compose.client.yml"
 $Journal = Join-Path $Root ".dentora-update-journal.json"
-$Runtime = Join-Path $env:TEMP "DentoraAutoUpdate"
+$TempRoot = if ([string]::IsNullOrWhiteSpace($env:TEMP)) { [IO.Path]::GetTempPath() } else { $env:TEMP }
+$Runtime = Join-Path $TempRoot "DentoraAutoUpdate"
 Set-Location $Root
 
 function Get-Env([string]$Name) {
@@ -16,14 +17,20 @@ function Get-Env([string]$Name) {
     return ""
 }
 function Get-Version([string]$Base = $Root) {
-    $text = [IO.File]::ReadAllText((Join-Path $Base "backend\pyproject.toml"))
+    $path = Join-Path (Join-Path $Base "backend") "pyproject.toml"
+    $text = [IO.File]::ReadAllText($path)
     $m = [Regex]::Match($text, '(?m)^version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"\s*$')
     if (-not $m.Success) { throw "Could not determine Dentora version." }
     return $m.Groups[1].Value
 }
 function Assert-Admin {
-    $p = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw "Administrator privileges are required." }
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        $p = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+        if (-not $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw "Administrator privileges are required." }
+        return
+    }
+    $uid = & id -u
+    if ($LASTEXITCODE -ne 0 -or [string]$uid -ne "0") { throw "Root privileges are required on non-Windows validation hosts." }
 }
 function Invoke-Compose([string[]]$Args) {
     & docker compose --env-file $EnvFile -f $Compose @Args
@@ -31,12 +38,12 @@ function Invoke-Compose([string[]]$Args) {
 }
 function Wait-Health {
     $url = Get-Env "PUBLIC_URL"; if ([string]::IsNullOrWhiteSpace($url)) { $url = "http://localhost" }
-    $health = $url.TrimEnd('/') + "/health"
+    $health = $url.TrimEnd('/') + "/health/ready"
     for ($i = 0; $i -lt 45; $i++) {
         try { if ((Invoke-WebRequest -UseBasicParsing -Uri $health -TimeoutSec 4).StatusCode -eq 200) { return } } catch { }
         Start-Sleep -Seconds 2
     }
-    throw "Dentora did not become healthy."
+    throw "Dentora did not become ready."
 }
 function Write-Journal([hashtable]$Value) {
     $tmp = "$Journal.$PID.tmp"
@@ -71,7 +78,7 @@ function Download-Update {
     return @{ Dir=$dir; Package=$package; Descriptor=$descriptor }
 }
 function New-Backup {
-    $script = Join-Path $Root "scripts\dentora_backup_restore.ps1"
+    $script = Join-Path (Join-Path $Root "scripts") "dentora_backup_restore.ps1"
     $output = & $script -Action backup 2>&1
     if ($LASTEXITCODE -ne 0) { throw "Mandatory pre-update backup failed." }
     $line = @($output | Where-Object { [string]$_ -match '^Artifact:\s+(.+\.zip)$' }) | Select-Object -Last 1
@@ -84,7 +91,7 @@ function Recover {
     if (-not (Test-Path ([string]$j.snapshot))) { throw "Rollback snapshot is missing. Dentora remains fail-closed." }
     Copy-Item (Join-Path ([string]$j.snapshot) '*') $Root -Recurse -Force
     Invoke-Compose @("up", "-d", "--build", "db", "backend", "frontend", "caddy")
-    if (Test-Path ([string]$j.backup)) { & (Join-Path $Root "scripts\dentora_backup_restore.ps1") -Action restore -ArtifactPath ([string]$j.backup) }
+    if (Test-Path ([string]$j.backup)) { & (Join-Path (Join-Path $Root "scripts") "dentora_backup_restore.ps1") -Action restore -ArtifactPath ([string]$j.backup) }
     Wait-Health
     Remove-Item $Journal -Force
 }

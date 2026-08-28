@@ -66,6 +66,27 @@ class S3StorageBackend(StorageBackend):
         method = getattr(self._client, method_name)
         return await asyncio.to_thread(method, **kwargs)
 
+    async def _persist_sha256_metadata(
+        self,
+        path: str,
+        checksum: str,
+        *,
+        content_type: str | None,
+    ) -> StorageObjectInfo:
+        """Persist the full-object SHA256 after a streaming multipart upload."""
+        key = self._key(path)
+        kwargs: dict[str, object] = {
+            "Bucket": self.config.bucket,
+            "Key": key,
+            "CopySource": {"Bucket": self.config.bucket, "Key": key},
+            "Metadata": {"dentora-sha256": checksum},
+            "MetadataDirective": "REPLACE",
+        }
+        if content_type:
+            kwargs["ContentType"] = content_type
+        await self._call("copy_object", **kwargs)
+        return await self.stat(path)
+
     async def store(self, data: bytes, path: str) -> str:
         """Compatibility byte API routed through bounded/multipart upload logic."""
 
@@ -149,12 +170,17 @@ class S3StorageBackend(StorageBackend):
                         data=bytes(buffer),
                     )
                 )
-            result = await self.complete_multipart_upload(upload, parts)
+            await self.complete_multipart_upload(upload, parts)
+            persisted = await self._persist_sha256_metadata(
+                path,
+                checksum,
+                content_type=content_type,
+            )
             return StorageObjectInfo(
-                path=result.path,
-                size=total,
-                etag=result.etag,
-                checksum_sha256=checksum,
+                path=persisted.path,
+                size=persisted.size,
+                etag=persisted.etag,
+                checksum_sha256=persisted.checksum_sha256,
             )
         except Exception:
             if upload is not None:

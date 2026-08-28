@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from urllib.parse import urlsplit
 
 _MIN_S3_PART_SIZE = 5 * 1024 * 1024
 
@@ -24,6 +25,27 @@ def _positive_int(name: str, default: int) -> int:
     if value <= 0:
         raise ValueError(f"{name} must be positive")
     return value
+
+
+def _validated_endpoint() -> str | None:
+    endpoint = _optional("S3_ENDPOINT")
+    if endpoint is None:
+        return None
+    parsed = urlsplit(endpoint)
+    invalid = (
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or bool(parsed.query)
+        or bool(parsed.fragment)
+    )
+    if invalid:
+        raise ValueError("S3_ENDPOINT must be a plain http(s) service URL")
+    environment = os.getenv("ENVIRONMENT", "development").strip().lower()
+    if environment == "production" and parsed.scheme != "https":
+        raise ValueError("S3_ENDPOINT must use HTTPS in production")
+    return endpoint
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,7 +95,7 @@ class S3StorageConfig:
             raise ValueError("S3_PREFIX contains an unsafe path component")
 
         return cls(
-            endpoint_url=_optional("S3_ENDPOINT"),
+            endpoint_url=_validated_endpoint(),
             region_name=os.getenv("S3_REGION", "us-east-1").strip() or "us-east-1",
             bucket=bucket,
             access_key=access_key,

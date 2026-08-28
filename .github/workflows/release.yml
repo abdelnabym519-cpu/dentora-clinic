@@ -1,197 +1,280 @@
 name: Release
 
-# Tag -> publish images to ghcr.io -> publish the GitHub Release.
-#
-# Each architecture builds on its own native runner and pushes by digest;
-# a merge job then stitches them into one manifest list per image. The
-# obvious alternative — one runner, QEMU, `platforms: amd64,arm64` — puts
-# the Nuxt build under emulation, where a 4 GB heap is a coin flip.
-
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to (re)publish, e.g. v2.0.0"
+        description: "Existing SemVer tag. Run this workflow from the same tag ref."
         required: true
 
-permissions:
-  contents: write
-  packages: write
+permissions: {}
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
+  release-meta:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+      source_sha: ${{ steps.meta.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_TAG:-}" ]; then TAG="$INPUT_TAG"; else TAG="$GITHUB_REF_NAME"; fi
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Invalid release tag: $TAG"; exit 1; }
+          git rev-parse --verify "refs/tags/$TAG" >/dev/null
+          TAG_SHA=$(git rev-parse "$TAG^{commit}")
+          SOURCE_SHA=$(git rev-parse HEAD)
+          [ "$TAG_SHA" = "$SOURCE_SHA" ] || { echo "::error::Tag $TAG points to $TAG_SHA but workflow source is $SOURCE_SHA"; exit 1; }
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+  quality:
+    needs: release-meta
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  storage:
+    needs: release-meta
+    uses: ./.github/workflows/storage-integration.yml
+    permissions:
+      contents: read
+
+  devops:
+    needs: release-meta
+    uses: ./.github/workflows/devops-gates.yml
+    permissions:
+      contents: read
+
   build:
+    needs: [release-meta, quality, storage, devops]
     strategy:
       fail-fast: false
       matrix:
-        image:
+        include:
           - name: backend
             context: ./backend
             dockerfile: ./backend/Dockerfile
+            arch: amd64
+            runner: ubuntu-latest
           - name: frontend
-            # Needs the repo root: the Nuxt build copies module layers
-            # out of backend/app/modules (see frontend/Dockerfile.prod).
             context: .
             dockerfile: ./frontend/Dockerfile.prod
-        platform:
-          - arch: amd64
+            arch: amd64
             runner: ubuntu-latest
-          - arch: arm64
+          - name: frontend
+            context: .
+            dockerfile: ./frontend/Dockerfile.prod
+            arch: arm64
             runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ inputs.tag || github.ref }}
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
+          ref: ${{ needs.release-meta.outputs.tag }}
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: ${{ matrix.image.context }}
-          file: ${{ matrix.image.dockerfile }}
-          platforms: linux/${{ matrix.platform.arch }}
-          # No tags here: tagging happens once, in the merge job, so a
-          # half-finished matrix never leaves :latest pointing at one arch.
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.image.name }},push-by-digest=true,name-canonical=true,push=true
-          cache-from: type=gha,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
-
-      - name: Record the digest
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.name }},push-by-digest=true,name-canonical=true,push=true
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}-${{ matrix.arch }}
+      - name: Record platform digest
         run: |
           mkdir -p /tmp/digests
-          echo "${{ steps.build.outputs.digest }}" \
-            > "/tmp/digests/${{ matrix.image.name }}-${{ matrix.platform.arch }}"
-
-      - uses: actions/upload-artifact@v4
+          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.name }}-${{ matrix.arch }}"
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: digest-${{ matrix.image.name }}-${{ matrix.platform.arch }}
+          name: release-digest-${{ matrix.name }}-${{ matrix.arch }}
           path: /tmp/digests/*
           retention-days: 1
 
-  merge:
-    needs: build
+  merge-attest:
+    needs: [build, release-meta]
     runs-on: ubuntu-latest
     strategy:
-      # One image failing should not cancel the other's diagnosis.
       fail-fast: false
       matrix:
         name: [backend, frontend]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: digest-${{ matrix.name }}-*
+          pattern: release-digest-${{ matrix.name }}-*
           path: /tmp/digests
           merge-multiple: true
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.name }}
           tags: |
-            type=semver,pattern={{version}},value=${{ inputs.tag || github.ref_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.ref_name }}
+            type=semver,pattern={{version}},value=${{ needs.release-meta.outputs.tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-meta.outputs.tag }}
             type=raw,value=latest
-
-      - name: Create the manifest list
+      - id: final
+        name: Create final supported-platform manifest
         run: |
+          set -euo pipefail
           IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}"
+          mkdir -p /tmp/final
           SOURCES=""
-          for f in /tmp/digests/*; do
-            SOURCES="$SOURCES ${IMAGE}@$(cat "$f")"
-          done
+          for f in /tmp/digests/${{ matrix.name }}-*; do SOURCES="$SOURCES ${IMAGE}@$(cat "$f")"; done
           # shellcheck disable=SC2086
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $SOURCES
-
-      - name: Check both architectures made it
+            --metadata-file /tmp/final/metadata.json $SOURCES
+          DIGEST=$(jq -r '."containerimage.descriptor".digest' /tmp/final/metadata.json)
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          echo "$DIGEST" > "/tmp/final/${{ matrix.name }}"
+      - name: Verify supported architectures, SBOM and provenance
         run: |
-          IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}"
-          TAG="${{ inputs.tag || github.ref_name }}"
-          # Parse it — `--raw` pretty-prints, so grepping for
-          # "architecture":"amd64" misses the space after the colon and
-          # fails a manifest that is perfectly fine.
-          MANIFEST=$(docker buildx imagetools inspect "${IMAGE}:${TAG#v}" --raw)
-          for arch in amd64 arm64; do
-            echo "$MANIFEST" | jq -e --arg a "$arch" \
-              '[.manifests[]?.platform | select(.os == "linux" and .architecture == $a)] | length > 0' >/dev/null \
-              || { echo "::error::$IMAGE is missing linux/$arch"; exit 1; }
+          set -euo pipefail
+          IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}@${{ steps.final.outputs.digest }}"
+          MANIFEST=$(docker buildx imagetools inspect "$IMAGE" --raw)
+          if [ "${{ matrix.name }}" = backend ]; then arches="amd64"; else arches="amd64 arm64"; fi
+          for arch in $arches; do
+            echo "$MANIFEST" | jq -e --arg a "$arch" '[.manifests[]?.platform | select(.os=="linux" and .architecture==$a)] | length > 0' >/dev/null
+            docker buildx imagetools inspect "$IMAGE" --format "{{json (index .SBOM \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
+            docker buildx imagetools inspect "$IMAGE" --format "{{json (index .Provenance \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
           done
-          echo "$IMAGE ships amd64 and arm64."
+      - name: Attest final OCI digest with GitHub
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.name }}
+          subject-digest: ${{ steps.final.outputs.digest }}
+          push-to-registry: true
+      - name: Verify GitHub attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh attestation verify
+          oci://${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}@${{ steps.final.outputs.digest }}
+          -R ${GITHUB_REPOSITORY}
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: final-release-digest-${{ matrix.name }}
+          path: /tmp/final/${{ matrix.name }}
+          retention-days: 1
 
   release:
-    needs: merge
+    needs: [release-meta, merge-attest]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ needs.release-meta.outputs.tag }}
+          persist-credentials: false
           fetch-depth: 0
-
-      - name: Extract the CHANGELOG section for this version
-        id: notes
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: final-release-digest-*
+          path: /tmp/final
+          merge-multiple: true
+      - name: Create and verify immutable release manifest
         run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
-          VERSION="${TAG#v}"
-          # Everything between "## [<version>]" and the next "## [" heading.
+          set -euo pipefail
+          TAG="${{ needs.release-meta.outputs.tag }}"
+          VERSION="${{ needs.release-meta.outputs.version }}"
+          SOURCE_SHA="${{ needs.release-meta.outputs.source_sha }}"
+          [ "$(git rev-parse HEAD)" = "$SOURCE_SHA" ]
+          backend_digest=$(cat /tmp/final/backend)
+          frontend_digest=$(cat /tmp/final/frontend)
+          mkdir -p release-assets
+          jq -n \
+            --arg version "$VERSION" --arg tag "$TAG" --arg sourceSha "$SOURCE_SHA" \
+            --arg backend "${REGISTRY}/${GITHUB_REPOSITORY}-backend@$backend_digest" \
+            --arg frontend "${REGISTRY}/${GITHUB_REPOSITORY}-frontend@$frontend_digest" \
+            '{schema:2,version:$version,tag:$tag,sourceSha:$sourceSha,images:{backend:$backend,frontend:$frontend},platforms:{backend:["linux/amd64"],frontend:["linux/amd64","linux/arm64"]},supplyChain:{sbom:true,provenance:true,githubAttestation:true},gates:{ci:"passed",storage:"passed",devops:"passed"}}' \
+            > release-assets/dentora-release-manifest.json
+          (cd release-assets && sha256sum dentora-release-manifest.json > dentora-release-manifest.json.sha256)
+          (cd release-assets && sha256sum -c dentora-release-manifest.json.sha256)
+          jq -e --arg sha "$SOURCE_SHA" '.schema==2 and .sourceSha==$sha and (.images.backend|test("@sha256:[0-9a-f]{64}$")) and (.images.frontend|test("@sha256:[0-9a-f]{64}$")) and .supplyChain.sbom and .supplyChain.provenance and .supplyChain.githubAttestation' release-assets/dentora-release-manifest.json >/dev/null
+      - name: Create release notes
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.release-meta.outputs.tag }}"
+          VERSION="${{ needs.release-meta.outputs.version }}"
           awk -v v="$VERSION" '
-            $0 ~ "^## \\[" v "\\]" { inside = 1; next }
-            inside && /^## \[/     { exit }
-            inside                 { print }
+            $0 ~ "^## \\[" v "\\]" { inside=1; next }
+            inside && /^## \[/ { exit }
+            inside { print }
           ' CHANGELOG.md > notes.md
-          if [ ! -s notes.md ]; then
-            echo "No CHANGELOG section for $VERSION — falling back to generated notes only."
-            : > notes.md
-          fi
-          # These three are pulled from main, not from $TAG: a backfilled
-          # release predates them, and they are operational files whose
-          # latest version is the one you want. DENTORA_VERSION in .env
-          # is what pins the release you actually run.
-          RAW="https://raw.githubusercontent.com/${{ github.repository }}/main"
+          RAW="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${TAG}"
           {
             echo ""
-            echo "## Install"
+            echo "## Verified immutable images"
             echo ""
+            echo "The attached release manifest binds this tag and exact source SHA to backend/frontend OCI digests."
+            echo ""
+            echo "## Install"
             echo '```bash'
             echo "curl -O $RAW/docker-compose.prod.yml"
             echo "curl -O $RAW/Caddyfile"
             echo "curl -o .env $RAW/.env.prod.example"
-            echo "# set PUBLIC_URL, POSTGRES_PASSWORD, SECRET_KEY"
-            echo "# and DENTORA_VERSION=$VERSION to pin this release, then:"
+            echo "# set PUBLIC_URL, DENTORA_VERSION=$VERSION, POSTGRES_PASSWORD, SECRET_KEY, BUDGET_PUBLIC_SECRET_KEY"
             echo "docker compose -f docker-compose.prod.yml up -d"
             echo '```'
-            echo ""
-            echo "Images (amd64 + arm64): \`ghcr.io/${{ github.repository }}-backend:$VERSION\` · \`ghcr.io/${{ github.repository }}-frontend:$VERSION\`"
           } >> notes.md
-
-      - name: Publish the release
+      - name: Publish draft only after all assets are present, then make final
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ inputs.tag || github.ref_name }}"
+          set -euo pipefail
+          TAG="${{ needs.release-meta.outputs.tag }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists; refusing to mutate a published release"
+            exit 1
+          fi
           gh release create "$TAG" \
-            --title "$TAG" \
-            --notes-file notes.md \
-            --generate-notes \
-            --verify-tag \
-            || gh release edit "$TAG" --notes-file notes.md
+            release-assets/dentora-release-manifest.json \
+            release-assets/dentora-release-manifest.json.sha256 \
+            --draft --verify-tag --title "$TAG" --notes-file notes.md --generate-notes
+          (cd release-assets && sha256sum -c dentora-release-manifest.json.sha256)
+          gh release edit "$TAG" --draft=false

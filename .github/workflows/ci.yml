@@ -1,24 +1,32 @@
 name: CI
 
 on:
+  workflow_call:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
 jobs:
   backend-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
 
       - name: Install ruff
-        run: pip install ruff
+        run: pip install ruff==0.16.5
 
       - name: Run ruff check
         run: ruff check backend/
@@ -42,55 +50,46 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     env:
       DATABASE_URL: postgresql+asyncpg://dental:testpass@localhost:5432/dental_clinic_test
       SECRET_KEY: test-secret-key-for-ci
       ENVIRONMENT: test
       TESTING: "true"
-
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.11"
-
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
       - name: Install dependencies
         working-directory: backend
-        run: |
-          pip install -e ".[dev]"
-
+        run: pip install -e ".[dev]"
       - name: Run tests (default set)
         working-directory: backend
-        run: |
-          python -m pytest -v --tb=short
-
+        run: python -m pytest -v --tb=short
       - name: Alembic round-trip (base → head → base → head)
         working-directory: backend
-        run: |
-          python -m pytest -v -m alembic_roundtrip --tb=short
+        run: python -m pytest -v -m alembic_roundtrip --tb=short
 
   manifest-consistency:
-    # Static manifest sanity — every entry point in pyproject.toml must
-    # resolve, declare a valid manifest, and its role permissions must
-    # match the ROLE_PERMISSIONS table. Runs without a database so we
-    # get a quick signal on PRs that touch modules.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.11"
-
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
       - name: Install dependencies
         working-directory: backend
-        run: |
-          pip install -e ".[dev]"
-
+        run: pip install -e ".[dev]"
       - name: Validate manifests
         working-directory: backend
         env:
@@ -98,33 +97,29 @@ jobs:
           SECRET_KEY: ci-stub
           ENVIRONMENT: test
           TESTING: "true"
-        run: |
-          python -m pytest tests/test_module_manifest.py \
-                           tests/test_module_manifests_consistency.py \
-                           tests/test_manifest_validator.py \
-                           tests/test_module_loader.py \
-                           tests/test_module_docs.py \
-                           -v --tb=short
+        run: >-
+          python -m pytest tests/test_module_manifest.py
+          tests/test_module_manifests_consistency.py
+          tests/test_manifest_validator.py
+          tests/test_module_loader.py
+          tests/test_module_docs.py
+          -v --tb=short
 
   catalog-freshness:
-    # Verifies docs/modules-catalog.md and docs/events-catalog.md are
-    # in sync with the manifests + EventType enum + event_bus.publish
-    # callsites. Authors regenerate locally with:
-    #   python backend/scripts/generate_catalogs.py
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.11"
-
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
       - name: Install dependencies
         working-directory: backend
-        run: |
-          pip install -e ".[dev]"
-
+        run: pip install -e ".[dev]"
       - name: Check catalogs are fresh
         working-directory: backend
         env:
@@ -132,103 +127,89 @@ jobs:
           SECRET_KEY: ci-stub
           ENVIRONMENT: test
           TESTING: "true"
-        run: |
-          python scripts/generate_catalogs.py --check
-
+        run: python scripts/generate_catalogs.py --check
       - name: Check docs coverage (--strict)
-        # ADR 0009 / issue #75. Every module must ship technical docs and,
-        # if it has Nuxt pages, screen MDs in both locales. Backfilled in
-        # fase 6 (commit that introduced this --strict flip).
         working-directory: backend
         env:
           DATABASE_URL: postgresql+asyncpg://dental:testpass@localhost:5432/stub
           SECRET_KEY: ci-stub
           ENVIRONMENT: test
           TESTING: "true"
-        run: |
-          python scripts/check_docs_coverage.py --strict
+        run: python scripts/check_docs_coverage.py --strict
 
   docs-layout:
-    # Enforces the docs/ taxonomy from root CLAUDE.md "Documentation policy".
-    # Fails if a new markdown file is dropped at docs/ root, an unknown
-    # folder is added under docs/, or an image is placed outside
-    # docs/screenshots or docs/diagrams.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.11"
-
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
       - name: Check docs layout
         run: python scripts/check_docs_layout.py
 
   docs-portal-build:
-    # Smoke test: the VitePress documentation portal (ADR 0009) builds
-    # cleanly. Runs on every PR — fast (under a minute) and surfaces
-    # broken markdown / sidebar config before deploy.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "20"
-
+          cache: npm
+          cache-dependency-path: docs/portal/package-lock.json
       - name: Install portal dependencies
         working-directory: docs/portal
-        run: npm install --no-audit --no-fund
-
+        run: npm ci --no-audit --no-fund
       - name: Build portal
         working-directory: docs/portal
         run: npm run build
-
       - name: Verify dist/ output
         run: test -f docs/portal/.vitepress/dist/index.html
 
   frontend-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "20"
-
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         working-directory: frontend
-        run: npm install
-
+        run: npm ci
       - name: Run ESLint
         working-directory: frontend
         run: npm run lint
 
   frontend-typecheck:
-    # Guards against broken Vue/TS imports across module Nuxt layers
-    # (Fase B.6). `modules.json` is written by the backend at runtime;
-    # we stub an empty one here so Nuxt picks up only the host sources.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "20"
-
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         working-directory: frontend
-        run: npm install
-
+        run: npm ci
       - name: Ensure empty modules.json
         working-directory: frontend
-        run: |
-          echo '{"layers":[],"modules":[],"version":1}' > modules.json
-
+        run: echo '{"layers":[],"modules":[],"version":1}' > modules.json
       - name: Nuxt prepare (generates .nuxt type stubs)
         working-directory: frontend
         run: npx nuxi prepare
@@ -236,35 +217,33 @@ jobs:
   frontend-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "20"
-
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Install dependencies
         working-directory: frontend
-        run: npm install
-
+        run: npm ci
       - name: Run tests
         working-directory: frontend
         run: npm run test
 
   e2e:
-    # Browser E2E smoke. Boots db + backend via docker compose, runs
-    # Nuxt on the host (simpler than juggling the container's bind
-    # mount + host npm), drives it with Playwright on the host. Slow
-    # (~6 min). Required on main + PRs.
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
       POSTGRES_PASSWORD: testpass
+      POSTGRES_HOST_PORT: "0"
       SECRET_KEY: ci-secret-key-for-e2e
-
     steps:
-      - uses: actions/checkout@v5
-
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
       - name: Write .env
         run: |
           cat > .env <<EOF
@@ -272,14 +251,12 @@ jobs:
           SECRET_KEY=${SECRET_KEY}
           ENVIRONMENT=development
           EOF
-
       - name: Boot db + backend
         run: docker compose up -d db backend
-
-      - name: Wait for backend health
+      - name: Wait for backend readiness
         run: |
           for i in $(seq 1 60); do
-            if curl -sf http://127.0.0.1:8100/health > /dev/null; then
+            if curl -sf http://127.0.0.1:8100/health/ready > /dev/null; then
               echo "backend ready"
               exit 0
             fi
@@ -289,29 +266,22 @@ jobs:
           docker compose ps
           docker compose logs backend
           exit 1
-
       - name: Run migrations
         run: docker compose exec -T backend alembic upgrade heads
-
       - name: Seed demo data
         run: ./scripts/seed-demo.sh --lang es
-
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: "20"
-
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
       - name: Install frontend deps + Playwright browsers
         working-directory: frontend
         run: |
-          npm install
+          npm ci
           npx playwright install --with-deps chromium
-
       - name: Generate modules.json with host paths
-        # The backend writes `modules.json` with `/module_layers/...`
-        # paths that only resolve inside the frontend container. For
-        # the host-run Nuxt dev server we regenerate it with absolute
-        # host paths pointing at `backend/app/modules/<name>/frontend`.
         working-directory: frontend
         run: |
           python3 - <<'PY'
@@ -332,7 +302,6 @@ jobs:
           )
           PY
           cat modules.json
-
       - name: Start Nuxt dev in background
         working-directory: frontend
         env:
@@ -344,7 +313,6 @@ jobs:
         run: |
           nohup npm run dev > /tmp/nuxt.log 2>&1 &
           echo "nuxt started (pid $!)"
-
       - name: Wait for frontend
         run: |
           for i in $(seq 1 120); do
@@ -354,32 +322,28 @@ jobs:
             sleep 2
           done
           curl -sf -o /dev/null -w "final status: %{http_code}\n" http://localhost:3000/login
-
       - name: Run E2E
         working-directory: frontend
         env:
           E2E_API_BASE: http://127.0.0.1:8100
         run: npx playwright test --reporter=list
-
       - name: Upload Nuxt log on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: nuxt-dev-log
           path: /tmp/nuxt.log
           retention-days: 7
-
       - name: Upload report on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: playwright-report
           path: frontend/playwright-report
           retention-days: 7
-
       - name: Upload test-results on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: playwright-test-results
           path: frontend/test-results

@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim@sha256:1042b61448fef4ba92d16a8c7eb4996d027568ce64792a7877fd88511e0af7c6
 
 WORKDIR /app
 
@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     libpangocairo-1.0-0 \
     libgdk-pixbuf-2.0-0 \
     libffi-dev \
+    libgl1 \
+    libgomp1 \
     shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
@@ -29,7 +31,6 @@ RUN useradd -m -u 1000 appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
 EXPOSE 8000
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]

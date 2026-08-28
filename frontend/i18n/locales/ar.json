@@ -30,6 +30,8 @@
     "toggleSidebar": "إظهار/إخفاء الشريط الجانبي"
   },
   "auth": {
+    "clinicSwitched": "تم تغيير العيادة",
+    "clinicSwitchFailed": "تعذّر تغيير العيادة",
     "login": "تسجيل الدخول",
     "logout": "تسجيل الخروج",
     "email": "البريد الإلكتروني",

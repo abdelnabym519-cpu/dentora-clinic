@@ -437,23 +437,33 @@ class NotificationGateway:
     async def _adapter_for_channel(
         db: AsyncSession, clinic_id: UUID, channel: Channel | str
     ):
-        """Resolve the clinic-selected adapter, falling back to legacy routing."""
+        """Resolve the clinic-selected adapter and fail closed when disabled."""
         resolved_channel = Channel(channel)
         selected = (
             await db.execute(
                 select(ClinicChannelSettings).where(
                     ClinicChannelSettings.clinic_id == clinic_id,
                     ClinicChannelSettings.channel == resolved_channel.value,
-                    ClinicChannelSettings.is_enabled.is_(True),
                 )
             )
         ).scalar_one_or_none()
         if selected is not None:
+            if not selected.is_enabled:
+                return None
             adapter = channel_registry.get_by_name(selected.adapter_name)
             if adapter is None or adapter.channel != resolved_channel:
                 return None
             return adapter
-        return channel_registry.get_for_channel(resolved_channel)
+
+        # Backward compatibility for existing clinics (notably Kapso) that
+        # predate ClinicChannelSettings: choose the first registered adapter
+        # that is actually configured for this clinic, preserving the old
+        # last-registered priority without allowing an unconfigured adapter to
+        # shadow a configured one.
+        for adapter in channel_registry.candidates_for_channel(resolved_channel):
+            if await adapter.supports(db, clinic_id):
+                return adapter
+        return None
 
     @staticmethod
     async def _resolve_channel(

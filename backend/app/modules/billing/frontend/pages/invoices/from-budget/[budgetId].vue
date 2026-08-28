@@ -112,6 +112,12 @@ function getVatType(vatTypeId?: string): VatType | undefined {
   return vatTypes.value.find(v => v.id === vatTypeId)
 }
 
+function getCatalogItemName(item: BudgetItem): string {
+  const names = item.catalog_item?.names
+  if (!names) return item.catalog_item?.internal_code || ''
+  return names[locale.value] || names.es || names.en || Object.values(names)[0] || item.catalog_item?.internal_code || ''
+}
+
 // Calculate item line total (for preview)
 function calculateItemTotal(item: BudgetItem, quantity: number): number {
   const subtotal = item.unit_price * quantity
@@ -304,7 +310,7 @@ function goBack() {
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <span class="font-medium text-default">
-                      {{ item.catalog_item?.name || 'Tratamiento' }}
+                      {{ getCatalogItemName(item) }}
                     </span>
                     <UBadge
                       v-if="item.tooth_number"

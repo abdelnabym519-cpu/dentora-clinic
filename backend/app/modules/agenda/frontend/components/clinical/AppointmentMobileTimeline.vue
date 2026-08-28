@@ -89,7 +89,6 @@ function blockedLabel(e: BlockedEntry): string {
 function freeAriaLabel(e: FreeSlotEntry): string {
   return t(
     'appointments.freeSlots.tapToBookAria',
-    'Hueco libre de {duration} a las {time}',
     { duration: formatDuration(e.durationMin), time: formatTime(e.start) }
   )
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PatientBillingSummary, InvoiceListItem, PaginatedResponse, Payment } from '~~/app/types'
+import type { ApiResponse, PatientBillingSummary, InvoiceListItem, PaginatedResponse, Payment } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 const props = defineProps<{
@@ -67,7 +67,11 @@ async function toggleInvoice(invoiceId: string) {
     if (!invoicePayments.value.has(invoiceId)) {
       loadingPayments.value.add(invoiceId)
       try {
-        const payments = await fetchPayments(invoiceId)
+        const links = await fetchPayments(invoiceId)
+        const payments = await Promise.all(links.map(async (link) => {
+          const response = await api.get<ApiResponse<Payment>>(`/api/v1/payments/${link.payment_id}`)
+          return response.data
+        }))
         invoicePayments.value.set(invoiceId, payments)
       } finally {
         loadingPayments.value.delete(invoiceId)

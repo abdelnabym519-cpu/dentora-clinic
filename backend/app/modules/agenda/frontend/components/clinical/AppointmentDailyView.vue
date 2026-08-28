@@ -11,7 +11,7 @@ interface ProfessionalWithColor extends Professional {
 }
 
 const props = defineProps<{
-  appointments: Appointment[]
+  appointments: readonly Appointment[]
   professionals: ProfessionalWithColor[]
   currentDate: Date
   isLoading?: boolean

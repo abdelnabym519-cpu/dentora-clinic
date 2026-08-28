@@ -196,7 +196,7 @@ export interface AppointmentTreatmentBrief {
   default_duration_minutes?: number
   // Dental context
   tooth_number?: number
-  surfaces?: string[]
+  surfaces?: readonly string[]
   is_global: boolean
   // Plan info
   plan_id?: string
@@ -251,7 +251,7 @@ export interface Appointment {
   start_time: string
   end_time: string
   treatment_type?: string // Legacy field
-  treatments?: AppointmentTreatmentBrief[] // New: treatments from catalog
+  treatments?: readonly AppointmentTreatmentBrief[] // New: treatments from catalog
   status: AppointmentStatus
   current_status_since: string
   color?: string
@@ -260,8 +260,8 @@ export interface Appointment {
   patient?: Patient
   professional?: User
   // Populated only on GET /appointments/{id} and after POST transitions.
-  history?: AppointmentStatusEvent[] | null
-  cabinet_history?: AppointmentCabinetEvent[] | null
+  history?: readonly AppointmentStatusEvent[] | null
+  cabinet_history?: readonly AppointmentCabinetEvent[] | null
 }
 
 export interface AppointmentCreate {
@@ -809,6 +809,14 @@ export interface PatientBrief {
   email?: string
 }
 
+export interface BillingPatientBrief extends PatientBrief {
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: BillingAddress | null
+  billing_email?: string | null
+  has_complete_billing_info: boolean
+}
+
 export interface UserBrief {
   id: string
   first_name: string
@@ -843,7 +851,7 @@ export interface BudgetItem {
   line_total: number
   // Dental specifics
   tooth_number?: number
-  surfaces?: string[]
+  surfaces?: readonly string[]
   // Odontogram integration
   treatment_id?: string
   // Invoice tracking
@@ -1463,7 +1471,7 @@ export interface InvoiceItem {
   line_total: number
   // Dental context
   tooth_number?: number
-  surfaces?: string[]
+  surfaces?: readonly string[]
   // Display
   display_order: number
   // Timestamps
@@ -1588,10 +1596,10 @@ export interface Invoice {
   due_date?: string
   payment_term_days: number
   // Billing data
-  billing_name: string
-  billing_tax_id?: string
-  billing_address?: BillingAddress
-  billing_email?: string
+  billing_name: string | null
+  billing_tax_id: string | null
+  billing_address: BillingAddress | null
+  billing_email: string | null
   // Totals
   subtotal: number
   total_discount: number
@@ -1613,7 +1621,7 @@ export interface Invoice {
   updated_at: string
   deleted_at?: string
   // Related
-  patient?: PatientBrief
+  patient?: BillingPatientBrief
   creator?: UserBrief
   issuer?: UserBrief
   budget?: BudgetBrief
@@ -1621,8 +1629,8 @@ export interface Invoice {
 }
 
 export interface InvoiceDetail extends Invoice {
-  items: InvoiceItem[]
-  payments: Payment[]
+  items: readonly InvoiceItem[]
+  invoice_payments: readonly InvoicePayment[]
 }
 
 export interface InvoiceListItem {
@@ -1639,7 +1647,7 @@ export interface InvoiceListItem {
   // {"ES": {state, severity, error_message, ...}}). Owned by the
   // active compliance module — billing exposes it raw.
   compliance_data?: Record<string, Record<string, unknown>> | null
-  patient?: PatientBrief
+  patient?: BillingPatientBrief
   creator?: UserBrief
 }
 
@@ -2050,7 +2058,7 @@ export interface AttachmentCreate {
 // Treatment Plan Types
 // ============================================================================
 
-export type TreatmentPlanStatus = 'draft' | 'active' | 'completed' | 'archived' | 'cancelled'
+export type TreatmentPlanStatus = 'draft' | 'pending' | 'active' | 'completed' | 'archived' | 'closed'
 
 export type PlannedItemStatus = 'pending' | 'completed' | 'cancelled'
 
@@ -2303,6 +2311,9 @@ export interface TreatmentPlan {
   plan_number: string
   title?: string
   status: TreatmentPlanStatus
+  closure_reason?: 'rejected_by_patient' | 'expired' | 'cancelled_by_clinic' | 'patient_abandoned' | 'other' | null
+  closed_at?: string | null
+  confirmed_at?: string | null
   budget_id?: string
   assigned_professional_id?: string
   created_by: string

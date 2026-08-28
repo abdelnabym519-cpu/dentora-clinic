@@ -20,7 +20,7 @@ const props = defineProps<{
   /** Pre-fill the cabinet field (#61, mobile free-slot tap when track = cabinet). */
   initialCabinet?: string | null
   initialPatientId?: string
-  existingAppointments?: Appointment[]
+  existingAppointments?: readonly Appointment[]
 }>()
 
 const emit = defineEmits<{

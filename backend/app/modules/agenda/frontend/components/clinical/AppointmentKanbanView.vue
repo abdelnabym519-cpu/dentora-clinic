@@ -16,7 +16,7 @@ interface ProfessionalWithColor {
 }
 
 const props = defineProps<{
-  appointments: Appointment[]
+  appointments: readonly Appointment[]
   cabinets: Cabinet[]
   professionals: ProfessionalWithColor[]
   currentDate: Date

@@ -1,4 +1,5 @@
 """Validated sequential Voice execution over the existing ToolRegistry."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -25,17 +26,21 @@ from .schemas import (
     VoiceUIContext,
 )
 
+
 async def _get_agent(db: AsyncSession, clinic_id: UUID) -> Agent:
-    agent = await db.scalar(select(Agent).where(
-        Agent.clinic_id == clinic_id, Agent.type == "voice"
-    ).limit(1))
+    agent = await db.scalar(
+        select(Agent).where(Agent.clinic_id == clinic_id, Agent.type == "voice").limit(1)
+    )
     if agent is None:
         agent = await AgentService.create_agent(
             db, clinic_id, name="Dentora Voice", type="voice", mode="autonomous"
         )
     return agent
 
-async def _build_ctx(db: AsyncSession, *, clinic_id: UUID, user_id: UUID, role: str) -> AgentContext:
+
+async def _build_ctx(
+    db: AsyncSession, *, clinic_id: UUID, user_id: UUID, role: str
+) -> AgentContext:
     agent = await _get_agent(db, clinic_id)
     session = await AgentService.start_session(
         db,
@@ -57,8 +62,10 @@ async def _build_ctx(db: AsyncSession, *, clinic_id: UUID, user_id: UUID, role: 
         audit_sanitizer=sanitize_audit_payload,
     )
 
+
 async def _call(ctx: AgentContext, name: str, args: dict[str, Any]):
     return await ctx.tools.call(ctx, name, args)
+
 
 async def _resolve_patient(ctx: AgentContext, plan: VoiceCommandPlan, ui: VoiceUIContext):
     name = plan.entities.get("patient_name")
@@ -75,7 +82,10 @@ async def _resolve_patient(ctx: AgentContext, plan: VoiceCommandPlan, ui: VoiceU
     result = await _call(ctx, "patients.search_patients", {"query": name, "limit": 10})
     if not result.ok:
         return None, VoiceStepResult(
-            command=plan.command, ok=False, confidence=plan.confidence, message=result.error
+            command=plan.command,
+            ok=False,
+            confidence=plan.confidence,
+            message=result.error,
         )
     payload = result.data or {}
     patients = payload.get("patients", [])
@@ -101,12 +111,14 @@ async def _resolve_patient(ctx: AgentContext, plan: VoiceCommandPlan, ui: VoiceU
         )
     return str(patients[0]["id"]), None
 
+
 async def _ui(ctx: AgentContext, action: str, payload: dict[str, Any]):
     result = await _call(ctx, "voice.ui_action", {"action": action, "payload": payload})
     if not result.ok:
         return None, result.error
     data = result.data or {}
     return VoiceUIAction(action=data["action"], payload=data.get("payload", {})), None
+
 
 async def execute_plans(
     db: AsyncSession,
@@ -123,43 +135,51 @@ async def execute_plans(
 
     for plan in plans:
         if not plan.available:
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message=plan.blocked_reason or "integration_unavailable",
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message=plan.blocked_reason or "integration_unavailable",
+                )
+            )
             break
         if confidence_requires_clarification(plan):
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message="clarification_required",
-                clarification_required=True,
-                confirmation_required=plan.requires_confirmation,
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message="clarification_required",
+                    clarification_required=True,
+                    confirmation_required=plan.requires_confirmation,
+                )
+            )
             break
 
         spec = BY_NAME.get(plan.command)
         if spec is None:
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message="unknown_command",
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message="unknown_command",
+                )
+            )
             break
 
         if plan.command.startswith("GO_TO_"):
             action, error = await _ui(ctx, "navigate", {"route": spec.target})
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=action is not None,
-                confidence=plan.confidence,
-                message=error,
-                ui_action=action,
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=action is not None,
+                    confidence=plan.confidence,
+                    message=error,
+                    ui_action=action,
+                )
+            )
             if action is None:
                 break
             ui.route = str(spec.target)
@@ -171,22 +191,28 @@ async def execute_plans(
                 steps.append(failure)
                 break
             if plan.command == "SEARCH_PATIENT":
-                action, error = await _ui(ctx, "navigate", {
-                    "route": "/patients",
-                    "search": plan.entities.get("patient_name", ""),
-                })
+                action, error = await _ui(
+                    ctx,
+                    "navigate",
+                    {
+                        "route": "/patients",
+                        "search": plan.entities.get("patient_name", ""),
+                    },
+                )
             else:
                 route = f"/patients/{patient_id}"
                 action, error = await _ui(ctx, "navigate", {"route": route})
                 ui.patient_id = UUID(patient_id)
                 ui.route = route
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=action is not None,
-                confidence=plan.confidence,
-                message=error,
-                ui_action=action,
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=action is not None,
+                    confidence=plan.confidence,
+                    message=error,
+                    ui_action=action,
+                )
+            )
             if action is None:
                 break
             continue
@@ -196,23 +222,29 @@ async def execute_plans(
             steps.append(failure)
             break
 
-        scene_result = await _call(ctx, "dental_3d.get_patient_scene", {"patient_id": patient_id})
+        scene_result = await _call(
+            ctx, "dental_3d.get_patient_scene", {"patient_id": patient_id}
+        )
         if not scene_result.ok:
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message=scene_result.error,
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message=scene_result.error,
+                )
+            )
             break
         scene = scene_result.data or {}
         if scene.get("error"):
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message=str(scene["error"]),
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message=str(scene["error"]),
+                )
+            )
             break
 
         action_name = {
@@ -223,41 +255,49 @@ async def execute_plans(
             "OPEN_IMPLANT_PLANNER": "open_implant_planner",
         }.get(plan.command)
         if action_name is None:
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message="integration_unavailable",
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message="integration_unavailable",
+                )
+            )
             break
 
         if plan.command == "OPEN_CBCT" and not scene.get("cbct_series"):
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message="cbct_not_available",
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message="cbct_not_available",
+                )
+            )
             break
         if plan.command == "SHOW_TOOTH_SEGMENTATION" and (
             scene.get("segmentation") or {}
         ).get("status") == "not_available":
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message="segmentation_not_available",
-            ))
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message="segmentation_not_available",
+                )
+            )
             break
-        if plan.command == "SHOW_NERVE" and (
-            scene.get("nerve_detection") or {}
-        ).get("status") in {None, "not_available", "failed"}:
-            steps.append(VoiceStepResult(
-                command=plan.command,
-                ok=False,
-                confidence=plan.confidence,
-                message="nerve_not_available",
-            ))
+        if plan.command == "SHOW_NERVE" and (scene.get("nerve_detection") or {}).get(
+            "status"
+        ) in {None, "not_available", "failed"}:
+            steps.append(
+                VoiceStepResult(
+                    command=plan.command,
+                    ok=False,
+                    confidence=plan.confidence,
+                    message="nerve_not_available",
+                )
+            )
             break
 
         route = f"/patients/{patient_id}"
@@ -269,13 +309,15 @@ async def execute_plans(
             )
             ui.current_study = payload["study"] or None
         action, error = await _ui(ctx, action_name, payload)
-        steps.append(VoiceStepResult(
-            command=plan.command,
-            ok=action is not None,
-            confidence=plan.confidence,
-            message=error,
-            ui_action=action,
-        ))
+        steps.append(
+            VoiceStepResult(
+                command=plan.command,
+                ok=action is not None,
+                confidence=plan.confidence,
+                message=error,
+                ui_action=action,
+            )
+        )
         if action is None:
             break
         ui.patient_id = UUID(patient_id)

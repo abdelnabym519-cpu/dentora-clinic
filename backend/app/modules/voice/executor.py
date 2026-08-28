@@ -98,8 +98,7 @@ async def _resolve_patient(ctx: AgentContext, plan: VoiceCommandPlan, ui: VoiceU
         )
     if len(patients) > 1:
         candidates = [
-            {"id": str(item.get("id")), "full_name": item.get("full_name")}
-            for item in patients[:5]
+            {"id": str(item.get("id")), "full_name": item.get("full_name")} for item in patients[:5]
         ]
         return None, VoiceStepResult(
             command=plan.command,
@@ -222,9 +221,7 @@ async def execute_plans(
             steps.append(failure)
             break
 
-        scene_result = await _call(
-            ctx, "dental_3d.get_patient_scene", {"patient_id": patient_id}
-        )
+        scene_result = await _call(ctx, "dental_3d.get_patient_scene", {"patient_id": patient_id})
         if not scene_result.ok:
             steps.append(
                 VoiceStepResult(
@@ -275,9 +272,10 @@ async def execute_plans(
                 )
             )
             break
-        if plan.command == "SHOW_TOOTH_SEGMENTATION" and (
-            scene.get("segmentation") or {}
-        ).get("status") == "not_available":
+        if (
+            plan.command == "SHOW_TOOTH_SEGMENTATION"
+            and (scene.get("segmentation") or {}).get("status") == "not_available"
+        ):
             steps.append(
                 VoiceStepResult(
                     command=plan.command,
@@ -287,9 +285,11 @@ async def execute_plans(
                 )
             )
             break
-        if plan.command == "SHOW_NERVE" and (scene.get("nerve_detection") or {}).get(
-            "status"
-        ) in {None, "not_available", "failed"}:
+        if plan.command == "SHOW_NERVE" and (scene.get("nerve_detection") or {}).get("status") in {
+            None,
+            "not_available",
+            "failed",
+        }:
             steps.append(
                 VoiceStepResult(
                     command=plan.command,

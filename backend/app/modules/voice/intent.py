@@ -39,10 +39,7 @@ def _fuzzy_score(spec: VoiceCommandSpec, step: str) -> float:
     aliases = spec.aliases
     if not aliases:
         return 0.0
-    best = max(
-        SequenceMatcher(None, step, normalize_text(alias)).ratio()
-        for alias in aliases
-    )
+    best = max(SequenceMatcher(None, step, normalize_text(alias)).ratio() for alias in aliases)
     # Keep fuzzy matches below exact-pattern confidence while allowing one
     # obvious recognition typo to remain usable.
     return round(best * 0.90, 3)

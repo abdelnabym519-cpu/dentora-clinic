@@ -4,6 +4,7 @@ Audio never reaches this router. The browser sends microphone audio only to the
 loopback faster-whisper runtime; this surface receives transcript text and
 executes deterministic plans.
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -21,6 +22,7 @@ from .schemas import ExecuteResponse, InterpretRequest, InterpretResponse
 
 router = APIRouter()
 
+
 @router.post("/interpret", response_model=ApiResponse[InterpretResponse])
 async def interpret_voice(
     body: InterpretRequest,
@@ -28,11 +30,14 @@ async def interpret_voice(
 ) -> ApiResponse[InterpretResponse]:
     plans = interpret(body.transcript, body.context)
     clarification = any(plan.command == "UNKNOWN" or plan.confidence < 0.85 for plan in plans)
-    return ApiResponse(data=InterpretResponse(
-        commands=plans,
-        clarification_required=clarification,
-        clarification_reason="low_confidence_or_unknown" if clarification else None,
-    ))
+    return ApiResponse(
+        data=InterpretResponse(
+            commands=plans,
+            clarification_required=clarification,
+            clarification_reason="low_confidence_or_unknown" if clarification else None,
+        )
+    )
+
 
 @router.post("/execute", response_model=ApiResponse[ExecuteResponse])
 async def execute_voice(

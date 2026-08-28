@@ -44,6 +44,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media | auto | no | 5 | 13 | 7 | yes |
 | `treatment_simulation` | 1.0.0 | official | dental_3d, case_intelligence, risk_engine, ai_treatment_planning, patients | manual | no | 2 | 0 | 0 | no |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
+| `voice` | 0.1.0 | official | — | auto | yes | 1 | 0 | 0 | yes |
 | `whatsapp_evolution` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | no |
 | `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
 
@@ -823,6 +824,22 @@ Cumplimiento Veri*Factu (AEAT) para clínicas en España.
 - **Events consumed:**
   - `invoice.paid`
 - **Module CLAUDE.md:** [`backend/app/modules/verifactu/CLAUDE.md`](../backend/app/modules/verifactu/CLAUDE.md)
+
+### `voice` — v0.1.0
+
+Local/offline deterministic voice control for Dentora.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=True · removable=True
+- **Depends:** —
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `voice.use`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/voice/CLAUDE.md`](../backend/app/modules/voice/CLAUDE.md)
 
 ### `whatsapp_evolution` — v0.1.0
 

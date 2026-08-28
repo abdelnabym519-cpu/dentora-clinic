@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 .env.client
+.env.evolution
 .dev.vars
 .secrets.*
 

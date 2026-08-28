@@ -44,6 +44,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media | auto | no | 5 | 13 | 7 | yes |
 | `treatment_simulation` | 1.0.0 | official | dental_3d, case_intelligence, risk_engine, ai_treatment_planning, patients | manual | no | 2 | 0 | 0 | no |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
+| `whatsapp_evolution` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | no |
 | `whatsapp_kapso` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | yes |
 
 ## Modules
@@ -822,6 +823,23 @@ Cumplimiento Veri*Factu (AEAT) para clínicas en España.
 - **Events consumed:**
   - `invoice.paid`
 - **Module CLAUDE.md:** [`backend/app/modules/verifactu/CLAUDE.md`](../backend/app/modules/verifactu/CLAUDE.md)
+
+### `whatsapp_evolution` — v0.1.0
+
+WhatsApp notifications via self-hosted Evolution API v2.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** community
+- **Install policy:** installable=True · auto_install=False · removable=True
+- **Depends:** `notifications`, `patients`
+- **Frontend layer:** —
+- **Permissions:**
+  - `whatsapp_evolution.settings.read`
+  - `whatsapp_evolution.settings.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/whatsapp_evolution/CLAUDE.md`](../backend/app/modules/whatsapp_evolution/CLAUDE.md)
 
 ### `whatsapp_kapso` — v0.1.0
 

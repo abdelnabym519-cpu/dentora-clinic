@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.events import EventType, event_bus
 
 from .channels import Channel, OutboundMessage, SendStatus, channel_registry
-from .models import CommunicationMessage
+from .models import ClinicChannelSettings, CommunicationMessage
 from .service import NotificationService, resolve_clinic_communication_locale
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,6 @@ class NotificationGateway:
         ``skipped``), or ``None`` when a row with the same ``dedup_key``
         already exists (idempotent no-op).
         """
-        # Idempotency: never double-enqueue the same logical message.
         if dedup_key:
             existing = await db.execute(
                 select(CommunicationMessage.id).where(
@@ -89,8 +88,6 @@ class NotificationGateway:
 
         patient = await NotificationGateway._load_patient(db, clinic_id, patient_id)
 
-        # Consent: do_not_contact is a hard block on every channel, even when
-        # force_send is set (manual sends / agent tool never override it).
         if patient is not None and patient.do_not_contact:
             return await NotificationGateway._skip(
                 db,
@@ -103,7 +100,6 @@ class NotificationGateway:
                 triggered_by_user_id,
             )
 
-        # Clinic-level enable / auto_send + per-patient per-type opt-in.
         if not force_send:
             should, reason = await NotificationService.should_send_notification(
                 db, clinic_id, notification_type, patient_id
@@ -120,7 +116,6 @@ class NotificationGateway:
                     triggered_by_user_id,
                 )
 
-        # Locale: clinic default → patient preference override.
         locale = await resolve_clinic_communication_locale(db, clinic_id)
         prefs = (
             await NotificationService.get_patient_preferences(db, clinic_id, patient_id)
@@ -130,7 +125,6 @@ class NotificationGateway:
         if prefs and prefs.preferred_locale:
             locale = prefs.preferred_locale
 
-        # Channel resolution: first viable channel from the ordered list.
         requested = channels or await NotificationGateway._clinic_channels(
             db, clinic_id, notification_type
         )
@@ -158,9 +152,6 @@ class NotificationGateway:
             )
         channel, addr, resolved_kind, _provider_template = resolved
 
-        # Subject is resolved now (email) for the logs view; the body is
-        # (re)rendered at dispatch time. Session (free-form) sends carry the
-        # literal text in body_text and need no template.
         subject = None
         if resolved_kind == "template":
             template = await NotificationService.get_template(
@@ -178,7 +169,6 @@ class NotificationGateway:
             subject=subject,
             body_text=body_text,
             status="queued",
-            # stash the resolved locale so dispatch renders in the right language
             context_data=_sanitize({**context, "locale": locale}),
             triggered_by_event=triggered_by_event,
             triggered_by_user_id=triggered_by_user_id,
@@ -191,14 +181,9 @@ class NotificationGateway:
         await NotificationGateway._publish(msg, EventType.NOTIFICATION_QUEUED)
         return msg
 
-    # ------------------------------------------------------------------ dispatch
     @staticmethod
     async def dispatch_outbox(db: AsyncSession, limit: int = _DISPATCH_BATCH) -> int:
-        """Send a batch of due queued/failed messages. Returns count attempted.
-
-        Each row is locked ``FOR UPDATE SKIP LOCKED`` so concurrent dispatch
-        ticks never grab the same message. Per-row exceptions are isolated.
-        """
+        """Send a batch of due queued/failed messages. Returns count attempted."""
         now = datetime.now(UTC)
         rows = (
             (
@@ -232,21 +217,15 @@ class NotificationGateway:
 
     @staticmethod
     async def _dispatch_one(db: AsyncSession, msg: CommunicationMessage) -> None:
-        adapter = channel_registry.get_for_channel(msg.channel)
+        adapter = await NotificationGateway._adapter_for_channel(db, msg.clinic_id, msg.channel)
         if adapter is None:
             await NotificationGateway._mark_failed(db, msg, f"no adapter for channel {msg.channel}")
             return
 
         msg.status = "sending"
         msg.attempts += 1
-        # ponytail: commit before the network call so we don't hold a row lock
-        # across I/O. Ceiling: a crash mid-send leaves the row in 'sending'
-        # (visible in the logs view). Upgrade path: sweep 'sending' rows whose
-        # updated_at is older than N minutes back to 'failed'.
         await db.commit()
 
-        # Template sends (re)render from the template at send time; session
-        # (free-form) sends carry the literal text in msg.body_text.
         template = None
         if msg.message_kind == "template":
             template = await NotificationService.get_template(
@@ -278,20 +257,33 @@ class NotificationGateway:
             await db.commit()
             await NotificationGateway._publish(msg, EventType.NOTIFICATION_SENT)
         else:
-            await NotificationGateway._mark_failed(db, msg, result.error_message or "send failed")
+            await NotificationGateway._mark_failed(
+                db,
+                msg,
+                result.error_message or "send failed",
+                retryable=result.retryable,
+            )
 
     @staticmethod
-    async def _mark_failed(db: AsyncSession, msg: CommunicationMessage, error: str) -> None:
+    async def _mark_failed(
+        db: AsyncSession,
+        msg: CommunicationMessage,
+        error: str,
+        *,
+        retryable: bool = True,
+    ) -> None:
         msg.status = "failed"
         msg.error_message = error[:2000]
-        if msg.attempts < msg.max_attempts:
+        if not retryable:
+            msg.attempts = msg.max_attempts
+            msg.next_attempt_at = None
+        elif msg.attempts < msg.max_attempts:
             msg.next_attempt_at = datetime.now(UTC) + timedelta(
                 seconds=_backoff_seconds(msg.attempts)
             )
         await db.commit()
         await NotificationGateway._publish(msg, EventType.NOTIFICATION_FAILED)
 
-    # ------------------------------------------------------------------ delivery
     @staticmethod
     async def record_delivery_status(
         db: AsyncSession, clinic_id: UUID, provider_message_id: str, status: str
@@ -322,7 +314,6 @@ class NotificationGateway:
             await NotificationGateway._publish(msg, EventType.NOTIFICATION_DELIVERED)
         return msg
 
-    # ------------------------------------------------------------------ inbound
     @staticmethod
     async def record_inbound_reply(
         db: AsyncSession,
@@ -335,12 +326,7 @@ class NotificationGateway:
         provider_message_id: str | None = None,
         occurred_at: datetime | None = None,
     ) -> CommunicationMessage | None:
-        """Record an inbound patient message as an `inbound` thread row.
-
-        Idempotent on ``provider_message_id`` (the vendor's message id), opens
-        the 24h session window (``last_inbound_at``), and publishes
-        ``NOTIFICATION_REPLY_RECEIVED``. Returns ``None`` on a duplicate.
-        """
+        """Record an inbound patient message as an `inbound` thread row."""
         if provider_message_id:
             dup = (
                 await db.execute(
@@ -370,7 +356,6 @@ class NotificationGateway:
             sent_at=occurred,
         )
         db.add(msg)
-        # Open the 24h free-form window so staff can reply.
         if patient_id:
             prefs = await NotificationService.get_or_create_patient_preferences(
                 db, clinic_id, patient_id
@@ -395,11 +380,7 @@ class NotificationGateway:
 
     @staticmethod
     async def resolve_patient_by_phone(db: AsyncSession, clinic_id: UUID, phone: str):
-        """Resolve a clinic patient by phone, ignoring formatting.
-
-        Exact match first, then a last-9-digits match so ``+34 600 11 22 33``
-        finds a patient stored as ``600112233``. Clinic-scoped.
-        """
+        """Resolve a clinic patient by phone, ignoring formatting."""
         from app.modules.patients.models import Patient
 
         exact = (
@@ -428,7 +409,6 @@ class NotificationGateway:
             .first()
         )
 
-    # ------------------------------------------------------------------ helpers
     @staticmethod
     async def _load_patient(db: AsyncSession, clinic_id: UUID, patient_id: UUID | None):
         if not patient_id:
@@ -451,7 +431,37 @@ class NotificationGateway:
             channels = type_settings.get("channels")
             if channels:
                 return list(channels)
-        return ["email"]  # ponytail: missing config ⇒ email-only, no migration
+        return ["email"]
+
+    @staticmethod
+    async def _adapter_for_channel(db: AsyncSession, clinic_id: UUID, channel: Channel | str):
+        """Resolve the clinic-selected adapter and fail closed when disabled."""
+        resolved_channel = Channel(channel)
+        selected = (
+            await db.execute(
+                select(ClinicChannelSettings).where(
+                    ClinicChannelSettings.clinic_id == clinic_id,
+                    ClinicChannelSettings.channel == resolved_channel.value,
+                )
+            )
+        ).scalar_one_or_none()
+        if selected is not None:
+            if not selected.is_enabled:
+                return None
+            adapter = channel_registry.get_by_name(selected.adapter_name)
+            if adapter is None or adapter.channel != resolved_channel:
+                return None
+            return adapter
+
+        # Backward compatibility for existing clinics (notably Kapso) that
+        # predate ClinicChannelSettings: choose the first registered adapter
+        # that is actually configured for this clinic, preserving the old
+        # last-registered priority without allowing an unconfigured adapter to
+        # shadow a configured one.
+        for adapter in channel_registry.candidates_for_channel(resolved_channel):
+            if await adapter.supports(db, clinic_id):
+                return adapter
+        return None
 
     @staticmethod
     async def _resolve_channel(
@@ -470,7 +480,7 @@ class NotificationGateway:
                 channel = Channel(name)
             except ValueError:
                 continue
-            adapter = channel_registry.get_for_channel(channel)
+            adapter = await NotificationGateway._adapter_for_channel(db, clinic_id, channel)
             if adapter is None or not await adapter.supports(db, clinic_id):
                 continue
 
@@ -486,16 +496,17 @@ class NotificationGateway:
                 addr = patient.phone if patient else None
                 if not addr:
                     continue
-                # Free-form reply: allowed only inside the 24h session window
-                # the patient's last inbound message opened. No opt-in needed
-                # (the patient initiated), no template required.
                 if requested_kind == "session":
                     if _session_window_open(prefs):
                         return channel, addr, "session", None
                     continue
-                # Proactive: requires opt-in + an approved Meta template (HSM).
                 if not (prefs and prefs.whatsapp_enabled):
                     continue
+                if (
+                    requested_kind == "text"
+                    and getattr(adapter, "requires_proactive_template", True) is False
+                ):
+                    return channel, addr, "text", None
                 tmpl = await NotificationService.get_template(
                     db, clinic_id, notification_type, locale, channel="whatsapp"
                 )
@@ -552,8 +563,6 @@ class NotificationGateway:
         }
         await event_bus.publish(event_type, payload)
 
-        # Dual-publish the legacy EMAIL_* events for one release so
-        # patient_timeline keeps recording email comms unchanged.
         if msg.channel == Channel.EMAIL:
             legacy = {**payload, "email_log_id": str(msg.id), "recipient_email": msg.to_address}
             if event_type == EventType.NOTIFICATION_SENT:

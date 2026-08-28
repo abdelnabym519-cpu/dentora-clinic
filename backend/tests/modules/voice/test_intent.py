@@ -39,6 +39,12 @@ def test_nerve_aliases() -> None:
     assert interpret("Show the nerve")[0].command == "SHOW_NERVE"
 
 
+def test_fuzzy_alias_recovers_obvious_typo() -> None:
+    plan = interpret("show the nerv")[0]
+    assert plan.command == "SHOW_NERVE"
+    assert plan.confidence >= 0.85
+
+
 def test_multi_step_command_chain() -> None:
     plans = interpret("افتح حالة أحمد واعرض آخر CBCT وأظهر العصب")
     assert [plan.command for plan in plans] == ["OPEN_PATIENT", "OPEN_CBCT", "SHOW_NERVE"]

@@ -8,6 +8,7 @@ import {
   schematicTeeth,
   stageLabel,
   type PreviewMode,
+  type SchematicTooth,
   type SimulatorArch
 } from '../lib/simulator'
 import { useOrthodonticSimulator } from '../composables/useOrthodonticSimulator'
@@ -41,6 +42,10 @@ const torque = ref(0)
 const rotation = ref(0)
 let timer: ReturnType<typeof setInterval> | null = null
 
+const cameraPosition = new THREE.Vector3(0, 0, 19)
+const keyLightPosition = new THREE.Vector3(4, 8, 12)
+const toothScale = new THREE.Vector3(0.72, 1, 0.58)
+
 const teeth = computed(() => schematicTeeth(arch.value))
 const translationEnabled = computed(() => capability.value?.translation_eligible === true)
 const rotationEnabled = computed(() => capability.value?.rotation_eligible === true)
@@ -49,6 +54,10 @@ const stageCount = computed(() => result.value?.result.stages.length ?? 0)
 const stageText = computed(() => stageLabel(stageIndex.value, stageCount.value))
 const headline = computed(() => capabilityHeadline(capability.value ?? null))
 const currentDigest = computed(() => result.value?.result.reproducibility_digest ?? null)
+
+function schematicPosition(tooth: SchematicTooth): THREE.Vector3 {
+  return new THREE.Vector3(tooth.x, tooth.y, tooth.z)
+}
 
 function selectTooth(fdi: string): void {
   selectedFdi.value = fdi
@@ -184,15 +193,15 @@ onBeforeUnmount(stopPlayback)
             @ready="onReady"
             @error="webglFailed = true"
           >
-            <TresPerspectiveCamera :position="[0, 0, 19]" :fov="40" />
+            <TresPerspectiveCamera :position="cameraPosition" :fov="40" />
             <TresAmbientLight :intensity="1.8" />
-            <TresDirectionalLight :position="[4, 8, 12]" :intensity="2" />
+            <TresDirectionalLight :position="keyLightPosition" :intensity="2" />
             <TresGroup>
               <TresMesh
                 v-for="tooth in teeth"
                 :key="tooth.fdi"
-                :position="[tooth.x, tooth.y, tooth.z]"
-                :scale="[0.72, 1, 0.58]"
+                :position="schematicPosition(tooth)"
+                :scale="toothScale"
                 :user-data="{ fdi: tooth.fdi, schematicOnly: true }"
                 @click="selectTooth(tooth.fdi)"
               >
@@ -252,8 +261,20 @@ onBeforeUnmount(stopPlayback)
         </label>
       </div>
 
-      <p v-if="runError" data-testid="ortho-run-error" class="text-caption text-warning">{{ runError }}</p>
-      <p v-if="currentDigest" data-testid="ortho-digest" class="break-all font-mono text-subtle text-caption">{{ currentDigest }}</p>
+      <p
+        v-if="runError"
+        data-testid="ortho-run-error"
+        class="text-caption text-warning"
+      >
+        {{ runError }}
+      </p>
+      <p
+        v-if="currentDigest"
+        data-testid="ortho-digest"
+        class="break-all font-mono text-subtle text-caption"
+      >
+        {{ currentDigest }}
+      </p>
     </section>
   </SummaryCard>
 </template>

@@ -68,11 +68,13 @@ class EvolutionService:
     ) -> None:
         row = await EvolutionService._channel_row(db, settings.clinic_id)
         if row is None:
+            if not settings.is_active:
+                return
             row = ClinicChannelSettings(
                 clinic_id=settings.clinic_id,
                 channel=CHANNEL,
                 adapter_name=ADAPTER_NAME,
-                is_enabled=settings.is_active,
+                is_enabled=True,
                 is_verified=settings.is_verified,
             )
             db.add(row)
@@ -84,8 +86,11 @@ class EvolutionService:
             row.is_enabled = True
             row.is_verified = settings.is_verified
         elif row.adapter_name == ADAPTER_NAME:
-            row.is_enabled = False
-            row.is_verified = False
+            # Disabling this provider relinquishes its selector instead of
+            # leaving a disabled row that would block a previously configured
+            # legacy provider such as Kapso from being discovered.
+            await db.delete(row)
+            return
 
         if row.adapter_name == ADAPTER_NAME:
             row.config = {

@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.agents.models import AgentAuditLog
-from app.core.auth.models import Clinic
+from app.core.auth.models import Clinic, ClinicMembership
 from app.modules.patients.models import Patient
 
 
@@ -56,7 +56,11 @@ async def test_open_patient_executes_through_registry_and_redacts_audit(
         headers=auth_headers,
         json={
             "transcript": "افتح حالة أحمد محمد",
-            "context": {"route": "/patients", "viewer_open": False, "implant_planner_open": False},
+            "context": {
+                "route": "/patients",
+                "viewer_open": False,
+                "implant_planner_open": False,
+            },
         },
     )
     assert response.status_code == 200, response.text
@@ -101,7 +105,11 @@ async def test_ambiguous_patient_stops_before_navigation(
         headers=auth_headers,
         json={
             "transcript": "Open patient Ahmed",
-            "context": {"route": "/patients", "viewer_open": False, "implant_planner_open": False},
+            "context": {
+                "route": "/patients",
+                "viewer_open": False,
+                "implant_planner_open": False,
+            },
         },
     )
     assert response.status_code == 200, response.text
@@ -139,13 +147,77 @@ async def test_cross_tenant_patient_cannot_be_resolved(
         headers=auth_headers,
         json={
             "transcript": "Open patient Private Patient",
-            "context": {"route": "/patients", "viewer_open": False, "implant_planner_open": False},
+            "context": {
+                "route": "/patients",
+                "viewer_open": False,
+                "implant_planner_open": False,
+            },
         },
     )
     assert response.status_code == 200, response.text
     result = response.json()["data"]
     assert result["state"] == "error"
     assert result["steps"][0]["message"] == "patient_not_found"
+
+
+async def test_domain_permission_is_rechecked_at_tool_registry(
+    client,
+    db_session: AsyncSession,
+    auth_headers: dict[str, str],
+    test_clinic: Clinic,
+) -> None:
+    patient = await _patient(db_session, test_clinic.id, first_name="Voice", last_name="Viewer")
+    membership = await db_session.scalar(
+        select(ClinicMembership).where(ClinicMembership.clinic_id == test_clinic.id)
+    )
+    assert membership is not None
+    membership.role = "receptionist"
+    await db_session.commit()
+
+    response = await client.post(
+        "/api/v1/voice/execute",
+        headers=auth_headers,
+        json={
+            "transcript": "Show 3d",
+            "context": {
+                "route": f"/patients/{patient.id}",
+                "patient_id": str(patient.id),
+                "viewer_open": True,
+                "implant_planner_open": False,
+            },
+        },
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()["data"]
+    assert result["state"] == "error"
+    assert "permission denied: dental_3d.read" in result["steps"][0]["message"]
+
+
+async def test_multi_step_stops_after_missing_cbct(
+    client,
+    db_session: AsyncSession,
+    auth_headers: dict[str, str],
+    test_clinic: Clinic,
+) -> None:
+    await _patient(db_session, test_clinic.id, first_name="Ahmed", last_name="NoCbct")
+
+    response = await client.post(
+        "/api/v1/voice/execute",
+        headers=auth_headers,
+        json={
+            "transcript": "Open patient Ahmed NoCbct and then show latest CBCT and then show the nerve",
+            "context": {
+                "route": "/patients",
+                "viewer_open": False,
+                "implant_planner_open": False,
+            },
+        },
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()["data"]
+    assert [step["command"] for step in result["steps"]] == ["OPEN_PATIENT", "OPEN_CBCT"]
+    assert result["steps"][0]["ok"] is True
+    assert result["steps"][1]["message"] == "cbct_not_available"
 
 
 async def test_unsupported_repository_target_fails_closed(
@@ -158,7 +230,11 @@ async def test_unsupported_repository_target_fails_closed(
         headers=auth_headers,
         json={
             "transcript": "قارن الفحص الحالي بالفحص السابق",
-            "context": {"route": "/patients", "viewer_open": False, "implant_planner_open": False},
+            "context": {
+                "route": "/patients",
+                "viewer_open": False,
+                "implant_planner_open": False,
+            },
         },
     )
     assert response.status_code == 200, response.text

@@ -70,19 +70,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image:
+        include:
           - name: backend
             context: ./backend
             dockerfile: ./backend/Dockerfile
+            arch: amd64
+            runner: ubuntu-latest
           - name: frontend
             context: .
             dockerfile: ./frontend/Dockerfile.prod
-        platform:
-          - arch: amd64
+            arch: amd64
             runner: ubuntu-latest
-          - arch: arm64
+          - name: frontend
+            context: .
+            dockerfile: ./frontend/Dockerfile.prod
+            arch: arm64
             runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
@@ -100,21 +104,21 @@ jobs:
       - id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
-          context: ${{ matrix.image.context }}
-          file: ${{ matrix.image.dockerfile }}
-          platforms: linux/${{ matrix.platform.arch }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.image.name }},push-by-digest=true,name-canonical=true,push=true
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.name }},push-by-digest=true,name-canonical=true,push=true
           provenance: mode=max
           sbom: true
-          cache-from: type=gha,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image.name }}-${{ matrix.platform.arch }}
+          cache-from: type=gha,scope=${{ matrix.name }}-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}-${{ matrix.arch }}
       - name: Record platform digest
         run: |
           mkdir -p /tmp/digests
-          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.image.name }}-${{ matrix.platform.arch }}"
+          echo "${{ steps.build.outputs.digest }}" > "/tmp/digests/${{ matrix.name }}-${{ matrix.arch }}"
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: release-digest-${{ matrix.image.name }}-${{ matrix.platform.arch }}
+          name: release-digest-${{ matrix.name }}-${{ matrix.arch }}
           path: /tmp/digests/*
           retention-days: 1
 
@@ -151,7 +155,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-meta.outputs.tag }}
             type=raw,value=latest
       - id: final
-        name: Create final multi-architecture manifest
+        name: Create final supported-platform manifest
         run: |
           set -euo pipefail
           IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}"
@@ -166,12 +170,13 @@ jobs:
           [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
           echo "$DIGEST" > "/tmp/final/${{ matrix.name }}"
-      - name: Verify architectures, SBOM and provenance
+      - name: Verify supported architectures, SBOM and provenance
         run: |
           set -euo pipefail
           IMAGE="${REGISTRY}/${GITHUB_REPOSITORY}-${{ matrix.name }}@${{ steps.final.outputs.digest }}"
           MANIFEST=$(docker buildx imagetools inspect "$IMAGE" --raw)
-          for arch in amd64 arm64; do
+          if [ "${{ matrix.name }}" = backend ]; then arches="amd64"; else arches="amd64 arm64"; fi
+          for arch in $arches; do
             echo "$MANIFEST" | jq -e --arg a "$arch" '[.manifests[]?.platform | select(.os=="linux" and .architecture==$a)] | length > 0' >/dev/null
             docker buildx imagetools inspect "$IMAGE" --format "{{json (index .SBOM \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
             docker buildx imagetools inspect "$IMAGE" --format "{{json (index .Provenance \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
@@ -226,11 +231,11 @@ jobs:
             --arg version "$VERSION" --arg tag "$TAG" --arg sourceSha "$SOURCE_SHA" \
             --arg backend "${REGISTRY}/${GITHUB_REPOSITORY}-backend@$backend_digest" \
             --arg frontend "${REGISTRY}/${GITHUB_REPOSITORY}-frontend@$frontend_digest" \
-            '{schema:2,version:$version,tag:$tag,sourceSha:$sourceSha,images:{backend:$backend,frontend:$frontend},gates:{ci:"passed",storage:"passed",devops:"passed"}}' \
+            '{schema:2,version:$version,tag:$tag,sourceSha:$sourceSha,images:{backend:$backend,frontend:$frontend},platforms:{backend:["linux/amd64"],frontend:["linux/amd64","linux/arm64"]},supplyChain:{sbom:true,provenance:true,githubAttestation:true},gates:{ci:"passed",storage:"passed",devops:"passed"}}' \
             > release-assets/dentora-release-manifest.json
           (cd release-assets && sha256sum dentora-release-manifest.json > dentora-release-manifest.json.sha256)
           (cd release-assets && sha256sum -c dentora-release-manifest.json.sha256)
-          jq -e --arg sha "$SOURCE_SHA" '.schema==2 and .sourceSha==$sha and (.images.backend|test("@sha256:[0-9a-f]{64}$")) and (.images.frontend|test("@sha256:[0-9a-f]{64}$"))' release-assets/dentora-release-manifest.json >/dev/null
+          jq -e --arg sha "$SOURCE_SHA" '.schema==2 and .sourceSha==$sha and (.images.backend|test("@sha256:[0-9a-f]{64}$")) and (.images.frontend|test("@sha256:[0-9a-f]{64}$")) and .supplyChain.sbom and .supplyChain.provenance and .supplyChain.githubAttestation' release-assets/dentora-release-manifest.json >/dev/null
       - name: Create release notes
         run: |
           set -euo pipefail

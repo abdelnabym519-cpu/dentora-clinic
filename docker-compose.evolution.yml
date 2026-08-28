@@ -29,6 +29,8 @@ services:
       - evolution-redis
     ports:
       - "127.0.0.1:${EVOLUTION_API_PORT:-8080}:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
     environment:
       SERVER_NAME: dentora-evolution
       SERVER_TYPE: http
@@ -52,5 +54,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  evolution_instances:
   evolution_postgres_data:
   evolution_redis_data:

@@ -397,7 +397,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_FAILED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:562`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:571`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -405,7 +405,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_SENT`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:560`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:569`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -534,28 +534,28 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.NOTIFICATION_DELIVERED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:322`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:314`
 - **Subscribers:** —
 
 ### `notification.failed`
 
 - **Constant:** `EventType.NOTIFICATION_FAILED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:292`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:285`
 - **Subscribers:** —
 
 ### `notification.queued`
 
 - **Constant:** `EventType.NOTIFICATION_QUEUED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:191`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:181`
 - **Subscribers:** —
 
 ### `notification.reply_received`
 
 - **Constant:** `EventType.NOTIFICATION_REPLY_RECEIVED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:382`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:367`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -563,7 +563,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.NOTIFICATION_SENT`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:279`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:258`
 - **Subscribers:** —
 
 ### `odontogram.condition.changed`

@@ -85,9 +85,9 @@ async def test_delivery_webhook_updates_message_once(
 
     receipt_count = (
         await db_session.execute(
-            select(func.count()).select_from(WhatsappEvolutionWebhookReceipt).where(
-                WhatsappEvolutionWebhookReceipt.clinic_id == clinic_id
-            )
+            select(func.count())
+            .select_from(WhatsappEvolutionWebhookReceipt)
+            .where(WhatsappEvolutionWebhookReceipt.clinic_id == clinic_id)
         )
     ).scalar_one()
     assert receipt_count == 1

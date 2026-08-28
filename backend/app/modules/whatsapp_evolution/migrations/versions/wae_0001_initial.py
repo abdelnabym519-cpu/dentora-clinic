@@ -76,9 +76,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.ForeignKeyConstraint(["clinic_id"], ["clinics.id"]),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "clinic_id", "event_hash", name="uq_whatsapp_evolution_webhook_hash"
-        ),
+        sa.UniqueConstraint("clinic_id", "event_hash", name="uq_whatsapp_evolution_webhook_hash"),
     )
     op.create_index(
         "idx_whatsapp_evolution_webhook_clinic",

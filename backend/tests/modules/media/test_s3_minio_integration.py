@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from uuid import uuid4
 
@@ -31,6 +32,7 @@ async def test_minio_private_stream_multipart_round_trip() -> None:
 
     path = f"clinics/{uuid4()}/patients/{uuid4()}/media/{uuid4()}.bin"
     payload = b"dentora-minio" * (500_000)
+    expected_sha256 = hashlib.sha256(payload).hexdigest()
     result = await backend.store_stream(
         _chunks(payload),
         path,
@@ -38,9 +40,12 @@ async def test_minio_private_stream_multipart_round_trip() -> None:
         content_length=len(payload),
     )
 
+    persisted = await backend.stat(path)
     assert result.size == len(payload)
+    assert result.checksum_sha256 == expected_sha256
+    assert persisted.size == len(payload)
+    assert persisted.checksum_sha256 == expected_sha256
     assert await backend.retrieve(path) == payload
-    assert (await backend.stat(path)).size == len(payload)
     assert await backend.presign_download(path, expires_seconds=60)
     assert await backend.delete(path) is True
     assert await backend.exists(path) is False

@@ -1,6 +1,7 @@
 param(
-    [string]$UiUrl = "http://localhost:3100",
-    [string]$RuntimeUrl = "http://127.0.0.1:8765"
+    [string]$UiUrl = "http://localhost:3000",
+    [string]$RuntimeUrl = "http://127.0.0.1:8765",
+    [string]$BackendUrl = "http://127.0.0.1:8100"
 )
 
 $ErrorActionPreference = "Stop"
@@ -18,6 +19,7 @@ function Require-Http([string]$Url, [string]$Name) {
 }
 
 Require-Http "$RuntimeUrl/health" "Dentora Voice local runtime"
+Require-Http "$BackendUrl/health" "Dentora backend"
 Require-Http "$UiUrl/login" "Dentora UI"
 
 Write-Host "Dentora Voice microphone E2E preflight passed."

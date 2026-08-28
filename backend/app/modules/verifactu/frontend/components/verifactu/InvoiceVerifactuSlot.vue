@@ -71,13 +71,6 @@ watch(() => invoice.value?.id, fetchLiveRecord)
 const state = computed(
   () => liveRecord.value?.state ?? (es.value?.state as string | undefined) ?? null
 )
-const recordErrorMessage = computed(
-  () =>
-    liveRecord.value?.aeat_descripcion_error
-    ?? (es.value?.error_message as string | undefined)
-    ?? null
-)
-
 const errorCode = computed(() => liveRecord.value?.aeat_codigo_error ?? null)
 
 // Treat failed_transient as a logical rejection when AEAT pushed back

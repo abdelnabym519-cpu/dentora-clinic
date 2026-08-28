@@ -4,7 +4,7 @@ import type {
   PatientExtendedUpdate,
   EmergencyContact,
   LegalGuardian,
-  MedicalHistory,
+  MedicalHistory
 } from '~~/app/types'
 
 type SectionType = 'demographics' | 'emergency' | 'guardian' | 'billing' | 'medical'

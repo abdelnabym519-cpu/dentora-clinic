@@ -226,7 +226,7 @@ watch(
       if (!formData.value.surface_prices) {
         const base = Number(formData.value.default_price) || 0
         formData.value.surface_prices = {
-          '1': base, '2': base, '3': base, '4': base, '5': base
+          1: base, 2: base, 3: base, 4: base, 5: base
         }
       }
     } else {

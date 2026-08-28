@@ -9,9 +9,10 @@
  * - appointments: View and manage patient appointments
  */
 
-type ClinicalMode = 'history' | 'diagnosis' | 'plans' | 'appointments'
 import type { TreatmentPlan } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+
+type ClinicalMode = 'history' | 'diagnosis' | 'plans' | 'appointments'
 
 const props = defineProps<{
   patientId: string

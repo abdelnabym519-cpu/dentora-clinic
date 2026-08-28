@@ -9,7 +9,6 @@ import {
   isDeciduousTooth,
   PATTERN_DEFINITIONS,
   STATUS_STYLES,
-  TREATMENT_COLORS,
   TREATMENT_OVERLAYS,
   makesToothTransparent,
   getIconAnchors,

@@ -42,20 +42,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     load_modules(app)
 
-    # Multi-tenant foundation: guarantee the default tenant exists and
-    # every clinic is owned by it (idempotent upgrade path), then expose
-    # the resolver + engine registry on app.state for middleware/jobs.
-    try:
-        from app.core.tenancy.bootstrap import ensure_default_tenant
-        from app.core.tenancy.lifespan import build_engine_registry, build_resolver
-
-        await ensure_default_tenant()
-        app.state.tenant_resolver = build_resolver()
-        app.state.tenant_engines = build_engine_registry()
-    except Exception:
-        logger.exception("Tenancy bootstrap failed at startup")
-        raise
-
     try:
         async with async_session_maker() as session:
             await ModuleService(session).reconcile_with_db()
@@ -75,9 +61,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     shutdown_scheduler()
-    engines = getattr(app.state, "tenant_engines", None)
-    if engines is not None:
-        await engines.dispose_all()
     await engine.dispose()
 
 
@@ -228,14 +211,14 @@ async def health_check() -> JSONResponse:
 async def readiness_check(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> JSONResponse:
-    """Readiness probe — schema is reachable."""
+    """Readiness probe — schema is reachable without exposing internal errors."""
     try:
         await db.execute(text("SELECT 1 FROM users LIMIT 1"))
     except Exception as exc:
         logger.error("Readiness check failed: %s", exc)
         return JSONResponse(
             status_code=503,
-            content={"status": "unready", "version": "2.0.0", "error": str(exc)},
+            content={"status": "unready", "version": "2.0.0"},
         )
     return JSONResponse(content={"status": "ready", "version": "2.0.0"})
 

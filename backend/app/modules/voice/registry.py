@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from re import Pattern, compile as re_compile
+from re import Pattern
+from re import compile as re_compile
 
 from .schemas import VoiceRisk
 

@@ -9,7 +9,73 @@ permissions:
 
 jobs:
   apply:
-    if: false
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
-      - run: echo "Paused while canonical type-fix checkpoints are applied."
+      - uses: actions/checkout@v5
+        with:
+          ref: phase/arabic-rtl-final-ui
+
+      - name: Apply canonical source fixes
+        run: |
+          python3 .github/scripts/typefix_group2a.py
+          python3 .github/scripts/typefix_group2b.py
+          git diff --check
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Link host module dependencies
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
+
+      - name: Generate modules.json
+        working-directory: frontend
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          modules_dir = root / 'backend/app/modules'
+          entries = []
+          for module in sorted(modules_dir.iterdir()):
+              layer = module / 'frontend'
+              if layer.is_dir():
+                  entries.append({'name': module.name, 'path': str(layer.resolve())})
+          Path('modules.json').write_text(json.dumps({'layers': [e['path'] for e in entries], 'modules': entries, 'version': 1}, indent=2))
+          PY
+
+      - name: Real Nuxt typecheck
+        id: typecheck
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Production build after green typecheck
+        id: build
+        if: steps.typecheck.outcome == 'success'
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run build
+
+      - name: Commit source checkpoint
+        run: |
+          git add frontend/app backend/app/modules
+          if git diff --cached --quiet; then
+            echo "No source changes required"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(frontend): resolve strict type contracts"
+          git push origin HEAD:phase/arabic-rtl-final-ui
+
+      - name: Enforce typecheck and build
+        if: steps.typecheck.outcome != 'success' || (steps.build.outcome != 'success' && steps.build.outcome != 'skipped')
+        run: exit 1

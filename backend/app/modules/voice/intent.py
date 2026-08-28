@@ -11,6 +11,7 @@ from .schemas import VoiceCommandPlan, VoiceUIContext
 
 _HIGH = 0.85
 _MEDIUM = 0.60
+_FUZZY_AMBIGUITY_MARGIN = 0.06
 
 _RAW_STEP_SPLIT = re.compile(
     r"\s+(?:ثم|وبعدين|بعدها|then|and then)\s+|"
@@ -34,13 +35,17 @@ def _pattern_match(spec: VoiceCommandSpec, step: str):
 
 
 def _fuzzy_score(spec: VoiceCommandSpec, step: str) -> float:
-    best = 0.0
-    for pattern in spec.patterns:
-        hint = re.sub(r"[\^\$\(\)\?\:\[\]\+\*\|\\]", " ", pattern.pattern)
-        hint = re.sub(r"\?P<[^>]+>", " ", hint)
-        hint = normalize_text(hint)
-        best = max(best, SequenceMatcher(None, step, hint).ratio())
-    return round(best * 0.82, 3)
+    """Score against human aliases, never against regex source code."""
+    aliases = spec.aliases
+    if not aliases:
+        return 0.0
+    best = max(
+        SequenceMatcher(None, step, normalize_text(alias)).ratio()
+        for alias in aliases
+    )
+    # Keep fuzzy matches below exact-pattern confidence while allowing one
+    # obvious recognition typo to remain usable.
+    return round(best * 0.90, 3)
 
 
 def _raw_patient_name(command: str, raw_step: str) -> str | None:
@@ -87,6 +92,7 @@ def interpret(
                 key=lambda item: item[0],
             )
             score, spec = ranked[0]
+            second_score = ranked[1][0] if len(ranked) > 1 else 0.0
             if score < _MEDIUM:
                 plans.append(
                     VoiceCommandPlan(
@@ -95,6 +101,17 @@ def interpret(
                         risk="read",
                         available=False,
                         blocked_reason="Command not recognized with sufficient confidence.",
+                    )
+                )
+                continue
+            if score - second_score < _FUZZY_AMBIGUITY_MARGIN:
+                plans.append(
+                    VoiceCommandPlan(
+                        command="UNKNOWN",
+                        confidence=score,
+                        risk="read",
+                        available=False,
+                        blocked_reason="Ambiguous fuzzy command match; clarification required.",
                     )
                 )
                 continue

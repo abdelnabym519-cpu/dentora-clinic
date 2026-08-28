@@ -278,9 +278,7 @@ def _steps_for_delta(delta: ToothDelta, caps: MovementCaps) -> int:
     return max(1, ceil(max(ratios)))
 
 
-def stage_movements(
-    authored: tuple[ToothDelta, ...], caps: MovementCaps
-) -> tuple[Stage, ...]:
+def stage_movements(authored: tuple[ToothDelta, ...], caps: MovementCaps) -> tuple[Stage, ...]:
     """Split authored totals into deterministic cap-sized stages."""
     if not authored:
         return ()

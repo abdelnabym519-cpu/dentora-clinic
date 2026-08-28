@@ -44,7 +44,8 @@ jobs:
               fail=1
               continue
             fi
-            for arch in amd64 arm64; do
+            if [ "$image" = backend ]; then arches="amd64"; else arches="amd64 arm64"; fi
+            for arch in $arches; do
               if echo "$manifest" | jq -e --arg a "$arch" \
                 '[.manifests[]?.platform | select(.os == "linux" and .architecture == $a)] | length > 0' >/dev/null; then
                 echo "ok $ref has linux/$arch"
@@ -74,7 +75,7 @@ jobs:
             exit 0
           fi
           gh issue create --title "$ISSUE_TITLE" --label bug --body \
-          "The latest published Release manifest/checksum or its immutable container digests failed validation, could not be pulled anonymously, or are missing an architecture.
+          "The latest published Release manifest/checksum or its immutable container digests failed validation, could not be pulled anonymously, or are missing a declared supported architecture.
 
           Logs: $RUN_URL
 

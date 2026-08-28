@@ -42,14 +42,20 @@ delivery, row locking, bounded attempts and exponential backoff.
 ## Multi-tenancy and provider selection
 
 `ClinicChannelSettings` selects the adapter for a clinic/channel. The gateway
-now honors that row before the legacy registry fallback, so clinics may select
-`whatsapp_kapso` or `whatsapp_evolution` independently.
+honors an explicit selector and fails closed when it is disabled or invalid. If
+no selector exists, backward-compatible discovery chooses the first registered
+adapter that is actually configured for that clinic. This prevents an
+unconfigured Evolution adapter from shadowing an existing Kapso clinic.
 
 Evolution configuration is one-to-one with `clinic_id`. A `(base_url,
 instance_name)` uniqueness constraint prevents accidentally binding the same
 Evolution instance to multiple Dentora clinics. Webhooks resolve the tenant from
 an opaque settings UUID owned by Dentora and validate the payload instance name;
 a `clinic_id` from provider input is never trusted.
+
+Disabling Evolution removes only its own clinic selector. This relinquishes the
+channel cleanly so a pre-existing legacy provider can be discovered again rather
+than leaving a disabled selector that blocks all WhatsApp delivery.
 
 ## Data model
 
@@ -78,14 +84,20 @@ Both tables are on the isolated Alembic branch `whatsapp_evolution`
 
 ## Evolution API v2 contract
 
-The adapter targets the current v2 REST contract reviewed on 2026-08-28:
+The adapter targets the v2 REST contract reviewed on 2026-08-28:
 
-- `POST /message/sendText/{instanceName}` with `apikey` header.
+- `POST /message/sendText/{instanceName}` with `apikey` header and a top-level
+  payload shaped as `{"number": "<international digits>", "text": "..."}`.
 - `POST /message/sendMedia/{instanceName}` for media/document payloads.
 - `GET /instance/connectionState/{instanceName}` for connection health.
-- `POST /webhook/set/{instanceName}` with custom headers and explicit events.
+- `POST /webhook/set/{instanceName}` using the v2 `{"webhook": {...}}`
+  envelope, custom headers, and explicit events.
 - Webhook events consumed: `MESSAGES_UPSERT`, `MESSAGES_UPDATE`,
   `CONNECTION_UPDATE`.
+
+Some older Evolution examples show a nested `textMessage` body. The integration
+deliberately follows the v2 DTO/runtime contract above and locks it with unit
+tests so an outdated example cannot silently change the wire format.
 
 Official references:
 
@@ -190,6 +202,15 @@ access/reverse-proxy ingress where possible. Evolution's webhook contract does
 not provide a Dentora-verifiable provider timestamp signature, so do not present
 this header scheme as equivalent to a signed timestamped webhook protocol.
 
+### Inbound WhatsApp identity and `@lid`
+
+Newer WhatsApp/Baileys events can expose an opaque Linked-ID JID ending in
+`@lid` instead of a telephone JID. Dentora never treats the numeric-looking LID
+as a patient phone number. If Evolution provides `remoteJidAlt` with an
+`@s.whatsapp.net` JID, that alternate value is used; otherwise the inbound
+message is ignored for patient matching. This avoids a false cross-patient
+association when an LID cannot be safely resolved.
+
 ## Logging and PHI
 
 The Evolution client deliberately raises sanitized provider errors. It never
@@ -229,6 +250,9 @@ dedup_key=...)`. The provider must never receive raw domain objects.
 - **Instance mismatch:** the webhook was sent to the wrong clinic binding;
   verify Evolution instance webhook configuration.
 - **Repeated provider event:** exact duplicates are acknowledged and ignored.
+- **Inbound event contains only `@lid`:** configure/upgrade the Evolution stack
+  so the event exposes a telephone `remoteJidAlt`; Dentora intentionally will
+  not guess a patient from an unresolved LID.
 - **Message remains sent:** inspect Evolution `MESSAGES_UPDATE` delivery events;
   never fabricate a delivered/read state from the frontend.
 

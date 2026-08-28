@@ -6,7 +6,6 @@ import type {
   TreatmentCatalogItemUpdate,
   TreatmentCatalogItemCreate,
   PricingStrategy,
-  PricingStrategy,
   PricingStrategy
 } from '~~/app/types'
 import {
@@ -15,12 +14,6 @@ import {
   VISUALIZATION_RULES,
   isSurfaceTreatment
 } from '~~/app/config/odontogramConstants'
-import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
-import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
-import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
-import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
-import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
-import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
 import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
 
 const props = defineProps<{

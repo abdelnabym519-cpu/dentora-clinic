@@ -1,7 +1,11 @@
 """Dentora Voice — isolated local/offline voice control surface."""
+
 from fastapi import APIRouter
+
 from app.core.plugins import BaseModule
+
 from .router import router
+
 
 class VoiceModule(BaseModule):
     manifest = {
@@ -25,6 +29,9 @@ class VoiceModule(BaseModule):
         "frontend": {"layer_path": "frontend", "navigation": []},
     }
 
+    def get_models(self) -> list:
+        return []
+
     def get_router(self) -> APIRouter:
         return router
 
@@ -33,4 +40,5 @@ class VoiceModule(BaseModule):
 
     def get_tools(self) -> list:
         from . import tools
+
         return tools.get_tools()

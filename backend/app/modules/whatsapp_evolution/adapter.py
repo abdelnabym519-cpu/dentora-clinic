@@ -61,6 +61,7 @@ class EvolutionApiAdapter:
                 status=SendStatus.FAILED,
                 provider=self.adapter_name,
                 error_message="whatsapp_evolution is not active and verified for this clinic",
+                retryable=False,
             )
 
         api_key = decrypt_password(settings.api_key_encrypted)
@@ -69,6 +70,7 @@ class EvolutionApiAdapter:
                 status=SendStatus.FAILED,
                 provider=self.adapter_name,
                 error_message="Evolution API credential is unavailable",
+                retryable=False,
             )
 
         body = msg.body_text or ""
@@ -77,6 +79,7 @@ class EvolutionApiAdapter:
                 status=SendStatus.FAILED,
                 provider=self.adapter_name,
                 error_message="WhatsApp message body is empty",
+                retryable=False,
             )
 
         try:
@@ -87,12 +90,19 @@ class EvolutionApiAdapter:
                 msg.to_address,
                 body,
             )
-        except (ValueError, client.EvolutionApiError) as exc:
-            # Both exception types are deliberately PHI/credential safe.
+        except ValueError as exc:
             return AdapterResult(
                 status=SendStatus.FAILED,
                 provider=self.adapter_name,
                 error_message=str(exc)[:500],
+                retryable=False,
+            )
+        except client.EvolutionApiError as exc:
+            return AdapterResult(
+                status=SendStatus.FAILED,
+                provider=self.adapter_name,
+                error_message=str(exc)[:500],
+                retryable=exc.retryable,
             )
 
         return AdapterResult(

@@ -118,6 +118,12 @@ function getCatalogItemName(item: BudgetItem): string {
   return names[locale.value] || names.es || names.en || Object.values(names)[0] || item.catalog_item?.internal_code || ''
 }
 
+function getCatalogItemName(item: BudgetItem): string {
+  const names = item.catalog_item?.names
+  if (!names) return item.catalog_item?.internal_code || ''
+  return names[locale.value] || names.es || names.en || Object.values(names)[0] || item.catalog_item?.internal_code || ''
+}
+
 // Calculate item line total (for preview)
 function calculateItemTotal(item: BudgetItem, quantity: number): number {
   const subtotal = item.unit_price * quantity

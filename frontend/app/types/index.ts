@@ -817,6 +817,14 @@ export interface BillingPatientBrief extends PatientBrief {
   has_complete_billing_info: boolean
 }
 
+export interface BillingPatientBrief extends PatientBrief {
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: BillingAddress | null
+  billing_email?: string | null
+  has_complete_billing_info: boolean
+}
+
 export interface UserBrief {
   id: string
   first_name: string

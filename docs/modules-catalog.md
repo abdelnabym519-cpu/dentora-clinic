@@ -29,6 +29,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
 | `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
 | `odontogram` | 0.3.0 | official | patients, catalog | auto | no | 4 | 7 | 0 | yes |
+| `orthodontic_simulator` | 0.1.0 | official | patients, dental_3d | manual | yes | 2 | 0 | 0 | yes |
 | `patient_presentation_mode` | 1.0.0 | official | patients, case_intelligence, ai_case_summary | manual | no | 1 | 0 | 0 | no |
 | `patient_timeline` | 0.1.0 | official | patients | auto | no | 1 | 0 | 35 | yes |
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
@@ -465,6 +466,23 @@ Dental charting, tooth state, clinical treatments.
   - `odontogram.treatment.status_changed`
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/odontogram/CLAUDE.md`](../backend/app/modules/odontogram/CLAUDE.md)
+
+### `orthodontic_simulator` — v0.1.0
+
+Local deterministic orthodontic movement sandbox over reviewed per-tooth Dental3D geometry. Non-predictive, non-clinical and fail-closed when geometry, scale or coordinate-frame provenance is unavailable.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=True
+- **Depends:** `patients`, `dental_3d`
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `orthodontic_simulator.read`
+  - `orthodontic_simulator.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/orthodontic_simulator/CLAUDE.md`](../backend/app/modules/orthodontic_simulator/CLAUDE.md)
 
 ### `patient_presentation_mode` — v1.0.0
 

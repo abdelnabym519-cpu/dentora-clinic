@@ -92,7 +92,7 @@ test.describe('orthodontic simulator — fail-closed patient UI', () => {
       }
     )
     expect(simulation.status()).toBe(409)
-    expect((await simulation.json()).detail).toMatch(/reviewed per-tooth geometry/i)
+    expect((await simulation.json()).message).toMatch(/reviewed per-tooth geometry/i)
   })
 })
 

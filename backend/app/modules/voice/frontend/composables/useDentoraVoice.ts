@@ -1,6 +1,14 @@
 import { computed, nextTick, ref } from 'vue'
 
-type VoiceState = 'idle' | 'listening' | 'processing' | 'executing' | 'success' | 'error' | 'confirmation_required' | 'clarification_required'
+type VoiceState =
+  | 'idle'
+  | 'listening'
+  | 'processing'
+  | 'executing'
+  | 'success'
+  | 'error'
+  | 'confirmation_required'
+  | 'clarification_required'
 
 interface VoiceUIContext {
   route: string
@@ -39,14 +47,15 @@ interface RuntimeTranscription {
 
 const LOOPBACK_RUNTIME = 'http://127.0.0.1:8765'
 
-function currentContext(): VoiceUIContext {
-  const route = useRoute()
-  const patientMatch = route.path.match(/^\/patients\/([0-9a-f-]{36})(?:\/|$)/i)
+function currentContext(routePath: string): VoiceUIContext {
+  const patientMatch = routePath.match(/^\/patients\/([0-9a-f-]{36})(?:\/|$)/i)
   return {
-    route: route.path,
+    route: routePath,
     patient_id: patientMatch?.[1],
     viewer_open: Boolean(document.querySelector('[data-testid="dental3d-card"]')),
-    implant_planner_open: Boolean(document.querySelector('[data-testid="dental3d-implant-planning"]'))
+    implant_planner_open: Boolean(
+      document.querySelector('[data-testid="dental3d-implant-planning"]')
+    )
   }
 }
 
@@ -62,6 +71,7 @@ async function waitFor(selector: string, timeoutMs = 3500): Promise<HTMLElement 
 
 export function useDentoraVoice() {
   const { post } = useApi()
+  const route = useRoute()
   const state = ref<VoiceState>('idle')
   const transcript = ref('')
   const error = ref('')
@@ -71,17 +81,20 @@ export function useDentoraVoice() {
   const stream = ref<MediaStream | null>(null)
   const chunks = ref<Blob[]>([])
 
-  const isBusy = computed(() => ['listening', 'processing', 'executing'].includes(state.value))
+  const isBusy = computed(() =>
+    ['listening', 'processing', 'executing'].includes(state.value)
+  )
 
   async function applyAction(action: UIAction): Promise<boolean> {
     const payload = action.payload || {}
-    const route = typeof payload.route === 'string' ? payload.route : null
+    const targetRoute = typeof payload.route === 'string' ? payload.route : null
 
-    if (route && useRoute().path !== route) {
-      const query = typeof payload.search === 'string' && payload.search
-        ? { search: payload.search }
-        : undefined
-      await navigateTo({ path: route, query })
+    if (targetRoute && route.path !== targetRoute) {
+      const query =
+        typeof payload.search === 'string' && payload.search
+          ? { search: payload.search }
+          : undefined
+      await navigateTo({ path: targetRoute, query })
       await nextTick()
     }
 
@@ -111,7 +124,7 @@ export function useDentoraVoice() {
     error.value = ''
     const response = await post<{ data: ExecuteResult }>('/voice/execute', {
       transcript: text,
-      context: currentContext()
+      context: currentContext(route.path)
     })
     const result = response.data
     for (const step of result.steps) {
@@ -146,8 +159,10 @@ export function useDentoraVoice() {
       credentials: 'omit',
       cache: 'no-store'
     })
-    if (!response.ok) throw new Error(`Local voice runtime unavailable (${response.status})`)
-    return await response.json() as RuntimeTranscription
+    if (!response.ok) {
+      throw new Error(`Local voice runtime unavailable (${response.status})`)
+    }
+    return (await response.json()) as RuntimeTranscription
   }
 
   async function start(): Promise<void> {
@@ -201,5 +216,15 @@ export function useDentoraVoice() {
     }
   }
 
-  return { state, transcript, error, language, lastCommand, isBusy, start, stop, reset }
+  return {
+    state,
+    transcript,
+    error,
+    language,
+    lastCommand,
+    isBusy,
+    start,
+    stop,
+    reset
+  }
 }

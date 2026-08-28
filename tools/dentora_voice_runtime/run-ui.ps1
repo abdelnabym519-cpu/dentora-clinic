@@ -11,6 +11,11 @@ $ModulesJson = Join-Path $Frontend "modules.json"
 $HadModulesJson = Test-Path $ModulesJson
 $SavedModulesJson = $null
 
+function Write-Utf8NoBom([string]$Path, [string]$Text) {
+    $Encoding = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $Text, $Encoding)
+}
+
 if ($HadModulesJson) {
     $SavedModulesJson = Get-Content -Raw -Encoding UTF8 $ModulesJson
 }
@@ -26,11 +31,12 @@ try {
             }
         }
     }
-    @{
+    $ModulesConfig = @{
         layers = @($entries | ForEach-Object { $_.path })
         modules = $entries
         version = 1
-    } | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 $ModulesJson
+    } | ConvertTo-Json -Depth 5
+    Write-Utf8NoBom $ModulesJson $ModulesConfig
 
     $env:NUXT_PUBLIC_API_BASE_URL = $BackendUrl
     $env:API_BASE_URL_SERVER = $BackendUrl
@@ -53,7 +59,7 @@ try {
 }
 finally {
     if ($HadModulesJson) {
-        $SavedModulesJson | Set-Content -Encoding UTF8 $ModulesJson
+        Write-Utf8NoBom $ModulesJson $SavedModulesJson
     }
     elseif (Test-Path $ModulesJson) {
         Remove-Item $ModulesJson -Force

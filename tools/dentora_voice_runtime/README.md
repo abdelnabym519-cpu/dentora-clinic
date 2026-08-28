@@ -1,64 +1,295 @@
-# Dentora Voice local runtime
+# Dentora Voice — Windows local validation runbook
 
-This process is deliberately separate from the Dentora backend. It performs speech-to-text locally with `faster-whisper` and binds only to `127.0.0.1`.
+This directory contains validation tooling only. It does not add Voice features or change the clinical AI stack.
 
-## Privacy properties
+Hardware/microphone validation is **not** considered complete until these commands are run on the target workstation and their real outputs are reviewed.
 
-- No cloud speech API is used.
-- The runtime does not download models automatically (`local_files_only=True`).
-- Audio is accepted from the local browser, written only to a temporary decoder file, and deleted before the response completes.
-- Uvicorn access logging is disabled by the provided launcher.
-- Transcript text is returned to the local Dentora page and is not persisted by the runtime.
+## 1. Required branch
 
-## Install
+From the repository root:
 
-Create a dedicated Python environment for this runtime; do not add these ML packages to the Dentora backend environment.
+```powershell
+git checkout feat/dentora-voice
+git status
+git rev-parse HEAD
+```
 
-```bash
+Do not merge this branch into `main` during Voice validation.
+
+## 2. Voice-only runtime dependencies
+
+The local STT runtime uses a dedicated virtual environment and these dependencies only:
+
+- `faster-whisper>=1.1,<2`
+- `fastapi>=0.109`
+- `uvicorn[standard]>=0.27`
+- `python-multipart>=0.0.6`
+- `psutil>=5.9`
+
+Install them on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/install.ps1
+```
+
+This installer does **not** download a Whisper model.
+
+## 3. Local model placement
+
+Provide two already-downloaded, local CTranslate2 faster-whisper model directories:
+
+```text
+models/
+  faster-whisper-small/
+    model.bin
+    config.json
+    tokenizer.json
+    ...
+  faster-whisper-base/
+    model.bin
+    config.json
+    tokenizer.json
+    ...
+```
+
+The scripts require local model directories and reject a missing `model.bin`. Do not pass a Hugging Face model ID or cloud URL.
+
+Default production-validation runtime model:
+
+```text
+models/faster-whisper-small
+```
+
+Benchmark comparison model:
+
+```text
+models/faster-whisper-base
+```
+
+The actual model directory size is measured from the files on your machine by `benchmark.py`; do not substitute an estimated size.
+
+## 4. Offline configuration verification
+
+Run before starting the runtime:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/verify-offline.ps1
+```
+
+Expected output includes:
+
+```text
+PASS: runtime binds to 127.0.0.1
+PASS: model loading uses local_files_only=True
+PASS: default device is CPU
+PASS: default compute type is INT8
+PASS: no known cloud speech SDK dependency/reference found ...
+```
+
+`server.py` intentionally uses `local_files_only=True`, binds to `127.0.0.1`, disables Uvicorn access logging, and deletes its temporary decoder audio file before returning the response.
+
+## 5. Start the local Voice Runtime
+
+Open PowerShell terminal A:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/run-runtime.ps1 -ModelPath models/faster-whisper-small
+```
+
+Expected runtime:
+
+```text
+http://127.0.0.1:8765
+```
+
+Health check from another terminal:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8765/health
+```
+
+Expected properties include `engine=faster-whisper`, `device=cpu`, and `compute_type=int8`.
+
+## 6. Hardware benchmark — base + small, CPU INT8
+
+Use only synthetic/non-PHI audio. Never use real patient recordings for validation artifacts.
+
+Example files:
+
+```text
+validation-audio/ar-01.wav
+validation-audio/en-01.wav
+validation-audio/mixed-01.wav
+```
+
+Run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/run-benchmark.ps1 `
+  -BaseModel models/faster-whisper-base `
+  -SmallModel models/faster-whisper-small `
+  -Sample validation-audio/ar-01.wav,validation-audio/en-01.wav,validation-audio/mixed-01.wav `
+  -Output dentora-voice-benchmark.json
+```
+
+The JSON output records only aggregate/non-PHI metrics:
+
+- CPU identity and physical/logical core count
+- total system RAM
+- actual model directory size
+- model load time
+- warm-up time
+- warm transcription latency
+- peak process RSS
+- average/peak process CPU percentage
+- audio duration
+- real-time factor (RTF)
+
+The report does **not** write transcript text, audio bytes, source filenames, patient names, phones, emails, or IDs.
+
+## 7. Start Dentora for real microphone E2E
+
+The browser path already implemented by Dentora Voice is:
+
+```text
+Microphone -> MediaRecorder -> 127.0.0.1:8765/transcribe
+-> faster-whisper -> Transcript -> /voice/execute
+-> deterministic Intent -> ToolRegistry -> Dentora UI action
+```
+
+### Terminal B — backend/database
+
+From repo root, with a local `.env` or environment variables that satisfy Docker Compose:
+
+```powershell
+$env:POSTGRES_PASSWORD="YOUR_LOCAL_TEST_PASSWORD"
+$env:SECRET_KEY="dentora-voice-local-validation-secret"
+docker compose up -d db backend
+```
+
+Backend health:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8100/health
+```
+
+### Terminal C — host Nuxt UI on port 3000
+
+Install existing frontend dependencies once if needed:
+
+```powershell
+cd frontend
+npm install
+cd ..
+```
+
+Then:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/run-ui.ps1
+```
+
+`run-ui.ps1` temporarily generates host-local module-layer paths, starts Nuxt at `http://localhost:3000`, points it at the backend on `8100`, and restores the previous `modules.json` when it exits.
+
+### Terminal D — microphone preflight/open UI
+
+With terminal A runtime and terminals B/C already running:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/microphone-e2e.ps1
+```
+
+Then log in, open Dentora Voice, click Start, allow microphone access, speak one synthetic/non-PHI command, and click Stop.
+
+Use commands such as:
+
+- `افتح حالة أحمد محمد`
+- `اعرض آخر CBCT`
+- `أظهر العصب`
+- `شغل الـimplant planning`
+- `Open patient Ahmed`
+- `Show the nerve`
+- `افتح الـCBCT بتاع Ahmed`
+- `قارن الفحص الحالي بالفحص السابق`
+
+Validate the visible state transitions and the final Dentora action. Do not record or save patient audio.
+
+## 8. Windows network/privacy verification during STT
+
+While the runtime is running, open another PowerShell window and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/verify-network.ps1 -Seconds 30
+```
+
+During those 30 seconds, perform one microphone STT request in Dentora.
+
+The script automatically locates the `server.py` Python process when exactly one is running and monitors its TCP connections. It fails if it observes a non-loopback remote address. It records endpoint metadata only — never audio or transcript.
+
+If automatic PID detection is ambiguous:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/verify-network.ps1 -RuntimePid 12345 -Seconds 30
+```
+
+Optional stronger manual verification: disconnect Wi-Fi/Ethernet temporarily and repeat an STT request. Local Voice should continue to work because the model is already on disk.
+
+## 9. Full test gate — no skips/bypasses
+
+Prerequisites for the repository test suite are the existing Dentora development dependencies. The validation script does not change package manifests or disable tests.
+
+If backend dev dependencies are not already installed, use the existing project manifest:
+
+```powershell
+cd backend
 python -m venv .venv
-.venv/Scripts/activate
-pip install -r tools/dentora_voice_runtime/requirements.txt
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+cd ..
 ```
 
-Provide a locally prepared CTranslate2 faster-whisper model directory. The default is:
+If frontend dependencies/Chromium are not already installed:
 
-`models/faster-whisper-small`
-
-Override it with `DENTORA_VOICE_MODEL_PATH`. CPU INT8 is the default. Optional GPU experiments can set `DENTORA_VOICE_DEVICE=cuda` and a supported compute type; GPU is not required by Dentora Voice.
-
-## Run
-
-```bash
-python tools/dentora_voice_runtime/server.py
+```powershell
+cd frontend
+npm install
+npx playwright install chromium
+cd ..
 ```
 
-Health endpoint: `http://127.0.0.1:8765/health`.
+Run the full gate from the repository root:
 
-## Base vs small benchmark
-
-Use local `base` and `small` multilingual CTranslate2 model directories and local audio samples. Do not commit patient recordings or benchmark audio containing PHI.
-
-```bash
-python tools/dentora_voice_runtime/benchmark.py \
-  --base-model models/faster-whisper-base \
-  --small-model models/faster-whisper-small \
-  --sample path/to/arabic-command.wav \
-  --sample path/to/english-command.wav \
-  --sample path/to/mixed-command.wav
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dentora_voice_runtime/test-gate.ps1 `
+  -PostgresPassword "YOUR_LOCAL_TEST_PASSWORD" `
+  -BackendPython ".\backend\.venv\Scripts\python.exe"
 ```
 
-The report contains model load time, process RSS, transcription latency, audio duration and real-time factor. It deliberately does not write recognized text into the report.
+The script executes, without skip or bypass:
 
-## Required validation commands
+1. Voice unit tests
+2. Voice integration tests
+3. Voice security/privacy tests
+4. full backend pytest suite
+5. Alembic round-trip tests
+6. Ruff check
+7. Ruff format check
+8. frontend Vitest suite
+9. ESLint including module layers
+10. Nuxt Typecheck including host-local module layers
+11. Nuxt production build
+12. full Playwright E2E suite
 
-Use synthetic/non-PHI recordings for phrases such as:
+It stops on the first failed gate and prints that gate name. Fix only the proven root cause, then rerun the same command.
 
-- افتح حالة أحمد محمد
-- اعرض آخر CBCT
-- أظهر العصب
-- شغل الـimplant planning
-- Open patient Ahmed
-- Show the nerve
-- افتح الـCBCT بتاع Ahmed
+## 10. What to return for final closure
 
-Hardware benchmark results are workstation-specific and must not be inferred from CI or another machine.
+After local validation, return:
+
+- `git rev-parse HEAD`
+- complete output of `verify-offline.ps1`
+- `dentora-voice-benchmark.json`
+- whether the real microphone chain reached the expected final state/action
+- output of `verify-network.ps1`
+- final `ALL LOCAL TEST GATES PASSED` result, or the first failing gate/log
+
+Do not send real patient recordings, transcripts containing PHI, secrets, passwords, or production database data.

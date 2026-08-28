@@ -7,6 +7,7 @@ content or file names.
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 import time
 from dataclasses import dataclass
@@ -112,6 +113,27 @@ def _needs_short_audio_language_fallback(candidate: TranscriptionCandidate) -> b
     )
 
 
+def _repetition_penalty(text: str) -> float:
+    """Penalize obvious short-utterance hallucination loops without logging text."""
+    tokens = re.findall(r"[^\W_]+", text.casefold(), flags=re.UNICODE)
+    if len(tokens) < 4:
+        return 0.0
+
+    repeated_fraction = 1.0 - (len(set(tokens)) / len(tokens))
+    penalty = repeated_fraction * 0.8
+
+    if len(tokens) % 2 == 0:
+        midpoint = len(tokens) // 2
+        if tokens[:midpoint] == tokens[midpoint:]:
+            penalty += 0.35
+
+    return penalty
+
+
+def _candidate_score(candidate: TranscriptionCandidate) -> float:
+    return candidate.average_log_probability - _repetition_penalty(candidate.text)
+
+
 def _transcribe_with_short_audio_fallback(path: str) -> tuple[TranscriptionCandidate, float]:
     started = time.perf_counter()
     automatic = _transcribe_once(path)
@@ -121,7 +143,7 @@ def _transcribe_with_short_audio_fallback(path: str) -> tuple[TranscriptionCandi
         for language in SHORT_AUDIO_FALLBACK_LANGUAGES:
             candidates.append(_transcribe_once(path, language=language))
 
-    selected = max(candidates, key=lambda item: item.average_log_probability)
+    selected = max(candidates, key=_candidate_score)
     return selected, time.perf_counter() - started
 
 

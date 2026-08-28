@@ -29,14 +29,11 @@ jobs:
           ENVIRONMENT: test
           TESTING: "true"
 
-      - name: Print generated catalogs as base64
-        shell: bash
-        run: |
-          echo "MODULES_B64_BEGIN"
-          base64 -w0 docs/modules-catalog.md
-          echo
-          echo "MODULES_B64_END"
-          echo "EVENTS_B64_BEGIN"
-          base64 -w0 docs/events-catalog.md
-          echo
-          echo "EVENTS_B64_END"
+      - name: Upload generated catalogs
+        uses: actions/upload-artifact@v5
+        with:
+          name: evolution-generated-catalogs
+          path: |
+            docs/modules-catalog.md
+            docs/events-catalog.md
+          retention-days: 1

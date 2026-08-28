@@ -46,6 +46,11 @@ onMounted(async () => {
       billingPatient.value = patientResponse.data
     }
 
+    if (budgetData?.patient?.id) {
+      const patientResponse = await api.get<ApiResponse<Patient>>(`/api/v1/patients/${budgetData.patient.id}`)
+      billingPatient.value = patientResponse.data
+    }
+
     // Pre-select all items that have available quantity
     // All items are invoiceable once budget is accepted (no item-level rejection)
     if (budgetData?.items) {

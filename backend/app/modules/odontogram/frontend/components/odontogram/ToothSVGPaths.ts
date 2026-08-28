@@ -238,7 +238,9 @@ export function getToothDisplayConfig(toothNumber: number): ToothDisplayConfig {
     position = DECIDUOUS_TO_PERMANENT_MAP[position] || 1
   }
 
-  return TOOTH_DISPLAY_CONFIG[position] || TOOTH_DISPLAY_CONFIG[1]
+  const config = TOOTH_DISPLAY_CONFIG[position] ?? TOOTH_DISPLAY_CONFIG[1]
+  if (!config) throw new Error('Missing canonical tooth display configuration')
+  return config
 }
 
 // Paths indexed by position (1-8) - using actual SVG paths from reference
@@ -492,7 +494,9 @@ export function getLateralPath(toothNumber: number): LateralPaths {
     position = DECIDUOUS_TO_PERMANENT_MAP[position] || 1
   }
 
-  return LATERAL_PATHS_BY_POSITION[position] || LATERAL_PATHS_BY_POSITION[1]
+  const paths = LATERAL_PATHS_BY_POSITION[position] ?? LATERAL_PATHS_BY_POSITION[1]
+  if (!paths) throw new Error('Missing canonical lateral tooth paths')
+  return paths
 }
 
 export function getOcclusalPath(toothNumber: number): OcclusalPaths {
@@ -504,7 +508,9 @@ export function getOcclusalPath(toothNumber: number): OcclusalPaths {
     position = DECIDUOUS_TO_PERMANENT_MAP[position] || 1
   }
 
-  return OCCLUSAL_PATHS_BY_POSITION[position] || OCCLUSAL_PATHS_BY_POSITION[1]
+  const paths = OCCLUSAL_PATHS_BY_POSITION[position] ?? OCCLUSAL_PATHS_BY_POSITION[1]
+  if (!paths) throw new Error('Missing canonical occlusal tooth paths')
+  return paths
 }
 
 // ============================================================================

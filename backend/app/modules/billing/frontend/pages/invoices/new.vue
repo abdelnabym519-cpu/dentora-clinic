@@ -74,7 +74,13 @@ function handlePatientSelect(patient: Patient | null) {
     form.value.billing_tax_id = patient.billing_tax_id || ''
     form.value.billing_email = patient.billing_email || patient.email || ''
     if (patient.billing_address) {
-      form.value.billing_address = { ...patient.billing_address }
+      form.value.billing_address = {
+        street: patient.billing_address.street || '',
+        city: patient.billing_address.city || '',
+        postal_code: patient.billing_address.postal_code || '',
+        province: patient.billing_address.province || '',
+        country: patient.billing_address.country || 'ES'
+      }
     }
   } else {
     form.value.patient_id = ''
@@ -152,10 +158,6 @@ async function handleSubmit() {
   try {
     const invoice = await createInvoice({
       patient_id: form.value.patient_id,
-      billing_name: form.value.billing_name || undefined,
-      billing_tax_id: form.value.billing_tax_id || undefined,
-      billing_email: form.value.billing_email || undefined,
-      billing_address: form.value.billing_address.street ? form.value.billing_address : undefined,
       payment_term_days: form.value.payment_term_days,
       due_date: form.value.due_date || undefined,
       internal_notes: form.value.internal_notes || undefined,

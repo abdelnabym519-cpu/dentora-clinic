@@ -219,11 +219,11 @@ async function patchProposal(proposal: MappingProposal, operatorAction: string) 
   await loadProposals()
 }
 
-function scoreBadgeColor(score: number | null): string {
-  if (score === null) return 'gray'
-  if (score >= 0.9) return 'green'
-  if (score >= 0.8) return 'blue'
-  return 'amber'
+function scoreBadgeColor(score: number | null): 'neutral' | 'success' | 'info' | 'warning' {
+  if (score === null) return 'neutral'
+  if (score >= 0.9) return 'success'
+  if (score >= 0.8) return 'info'
+  return 'warning'
 }
 
 function operatorStatusKey(action: string): string {
@@ -293,7 +293,7 @@ onUnmounted(() => {
         </UFormField>
         <UAlert
           v-if="uploadError"
-          color="red"
+          color="error"
           :title="t('migrationImport.upload.error')"
           :description="uploadError"
         />
@@ -320,13 +320,13 @@ onUnmounted(() => {
               {{ (job.file_size / 1024 / 1024).toFixed(1) }} MB
             </p>
           </div>
-          <UBadge :color="job.status === 'failed' ? 'red' : job.status === 'completed' ? 'green' : 'blue'">
+          <UBadge :color="job.status === 'failed' ? 'error' : job.status === 'completed' ? 'success' : 'info'">
             {{ t(`migrationImport.status.${job.status}`) }}
           </UBadge>
         </div>
         <UAlert
           v-if="job.error"
-          color="red"
+          color="error"
           :description="job.error"
         />
       </div>
@@ -406,7 +406,7 @@ onUnmounted(() => {
           </div>
           <UAlert
             v-if="proposalsError"
-            color="red"
+            color="error"
             :description="proposalsError"
             class="mt-2"
           />
@@ -494,7 +494,7 @@ onUnmounted(() => {
                   <td class="px-2 py-1">
                     <UBadge
                       size="xs"
-                      :color="p.operator_action === 'pending' ? 'gray' : 'green'"
+                      :color="p.operator_action === 'pending' ? 'neutral' : 'success'"
                     >
                       {{ t(operatorStatusKey(p.operator_action)) }}
                     </UBadge>
@@ -511,7 +511,7 @@ onUnmounted(() => {
                       </UButton>
                       <UButton
                         size="xs"
-                        color="red"
+                        color="error"
                         variant="ghost"
                         :disabled="!canExecute || p.operator_action === 'ignored'"
                         @click="patchProposal(p, 'ignored')"
@@ -602,7 +602,7 @@ onUnmounted(() => {
         </div>
 
         <UAlert
-          color="amber"
+          color="warning"
           :description="t('migrationImport.preview.warning')"
         />
 

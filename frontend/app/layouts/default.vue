@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const { isRtl } = useLocale()
 const auth = useAuth()
 const clinic = useClinic()
 const { navigationItems, ensureLoaded } = useModules()
@@ -54,6 +55,24 @@ const isSidebarCollapsed = useState('sidebar:collapsed', () => false)
 
 // Mobile drawer state (ephemeral — does not persist)
 const mobileNavOpen = ref(false)
+
+const sidebarPositionClass = computed(() => isRtl.value ? 'right-0' : 'left-0')
+const contentOffsetClass = computed(() => {
+  if (isSidebarCollapsed.value) {
+    return isRtl.value ? 'md:mr-16' : 'md:ml-16'
+  }
+  return isRtl.value ? 'md:mr-60' : 'md:ml-60'
+})
+const sidebarToggleIcon = computed(() => {
+  if (isRtl.value) {
+    return isSidebarCollapsed.value
+      ? 'i-lucide-panel-right-open'
+      : 'i-lucide-panel-right-close'
+  }
+  return isSidebarCollapsed.value
+    ? 'i-lucide-panel-left-open'
+    : 'i-lucide-panel-left-close'
+})
 
 // Persist sidebar + init density on client
 onMounted(() => {
@@ -110,8 +129,8 @@ function isActive(to: string): boolean {
   <div class="min-h-screen flex bg-canvas">
     <!-- Desktop/tablet sidebar (hidden on mobile) -->
     <aside
-      class="hidden md:flex fixed inset-y-0 left-0 z-50 flex-col bg-surface-muted transition-[width] duration-150 ease-out"
-      :class="isSidebarCollapsed ? 'w-16' : 'w-60'"
+      class="hidden md:flex fixed inset-y-0 z-50 flex-col bg-surface-muted transition-[width] duration-150 ease-out"
+      :class="[sidebarPositionClass, isSidebarCollapsed ? 'w-16' : 'w-60']"
     >
       <!-- Logo -->
       <div class="flex items-center h-14 px-4">
@@ -181,7 +200,10 @@ function isActive(to: string): boolean {
             <p class="text-ui text-default truncate">
               {{ auth.user.value.first_name }} {{ auth.user.value.last_name }}
             </p>
-            <p class="text-caption text-subtle truncate">
+            <p
+              class="text-caption text-subtle truncate"
+              dir="ltr"
+            >
               {{ auth.user.value.email }}
             </p>
           </div>
@@ -209,8 +231,8 @@ function isActive(to: string): boolean {
     <!-- Mobile drawer nav -->
     <USlideover
       v-model:open="mobileNavOpen"
-      side="left"
-      :title="t('nav.menu', 'Menú')"
+      :side="isRtl ? 'right' : 'left'"
+      :title="t('nav.menu')"
       :ui="{ content: 'w-72 max-w-[80vw] bg-surface-muted' }"
     >
       <template #content>
@@ -237,7 +259,7 @@ function isActive(to: string): boolean {
               color="neutral"
               size="sm"
               icon="i-lucide-x"
-              :aria-label="t('nav.close', 'Cerrar')"
+              :aria-label="t('nav.close')"
               @click="mobileNavOpen = false"
             />
           </div>
@@ -278,7 +300,10 @@ function isActive(to: string): boolean {
                 <p class="text-ui text-default truncate">
                   {{ auth.user.value.first_name }} {{ auth.user.value.last_name }}
                 </p>
-                <p class="text-caption text-subtle truncate">
+                <p
+                  class="text-caption text-subtle truncate"
+                  dir="ltr"
+                >
                   {{ auth.user.value.email }}
                 </p>
               </div>
@@ -308,7 +333,7 @@ function isActive(to: string): boolean {
     <!-- Main column -->
     <div
       class="flex-1 flex flex-col min-w-0 transition-[margin] duration-150 ease-out"
-      :class="isSidebarCollapsed ? 'md:ml-16' : 'md:ml-60'"
+      :class="contentOffsetClass"
     >
       <DemoBanner />
       <TrialBanner />
@@ -322,7 +347,7 @@ function isActive(to: string): boolean {
           color="neutral"
           size="sm"
           icon="i-lucide-menu"
-          :aria-label="t('nav.openMenu', 'Abrir menú')"
+          :aria-label="t('nav.openMenu')"
           @click="mobileNavOpen = true"
         />
 
@@ -332,15 +357,19 @@ function isActive(to: string): boolean {
           variant="ghost"
           color="neutral"
           size="sm"
-          :icon="isSidebarCollapsed ? 'i-lucide-panel-left-open' : 'i-lucide-panel-left-close'"
-          :aria-label="t('nav.toggleSidebar', 'Alternar barra lateral')"
+          :icon="sidebarToggleIcon"
+          :aria-label="t('nav.toggleSidebar')"
           @click="toggleSidebar"
         />
 
         <!-- Clinic name — client-only to avoid SSR/CSR hydration text mismatch
              ("Clínica" placeholder vs loaded clinic name). -->
         <ClientOnly>
-          <div class="ml-3 sm:ml-4 flex items-center gap-2 min-w-0">
+          <ClinicSwitcher />
+          <div
+            v-if="!auth.clinics.value || auth.clinics.value.length <= 1"
+            class="ms-3 sm:ms-4 flex items-center gap-2 min-w-0"
+          >
             <UIcon
               name="i-lucide-building-2"
               class="w-4 h-4 text-subtle shrink-0"
@@ -353,7 +382,7 @@ function isActive(to: string): boolean {
 
         <div class="flex-1" />
 
-        <!-- Right actions -->
+        <!-- Header actions -->
         <div class="flex items-center gap-1">
           <HelpButton />
           <DensityToggle />

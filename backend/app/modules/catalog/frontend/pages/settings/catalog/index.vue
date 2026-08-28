@@ -180,12 +180,11 @@ function getVatTypeLabel(vatType: VatTypeBrief | undefined): string {
   return vatType.names[locale.value] || vatType.names.es || vatType.names.en || '-'
 }
 
-function getVatTypeBadgeColor(vatType: VatTypeBrief | undefined): string {
+function getVatTypeBadgeColor(vatType: VatTypeBrief | undefined): 'neutral' | 'success' | 'warning' | 'error' {
   if (!vatType) return 'neutral'
-  // Color based on rate: 0% = green, < 10% = yellow, >= 10% = red
-  if (vatType.rate === 0) return 'green'
-  if (vatType.rate < 10) return 'yellow'
-  return 'red'
+  if (vatType.rate === 0) return 'success'
+  if (vatType.rate < 10) return 'warning'
+  return 'error'
 }
 
 // Category options for filter

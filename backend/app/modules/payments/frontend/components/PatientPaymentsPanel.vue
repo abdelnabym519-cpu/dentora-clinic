@@ -14,6 +14,7 @@
  */
 
 import type { PatientExtended, PatientLedger, PatientLedgerEntry, PaymentMethod } from '~~/app/types'
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { TotalLine } from '~~/app/components/shared/EntityTotalsCard.vue'
 import type { SemanticRole } from '~~/app/config/severity'
 import { PERMISSIONS } from '~~/app/config/permissions'
@@ -224,9 +225,9 @@ function openRefund(entry: PatientLedgerEntry) {
   showRefund.value = true
 }
 
-function rowMenuItems(entry: PatientLedgerEntry) {
+function rowMenuItems(entry: PatientLedgerEntry): DropdownMenuItem[] {
   if (entry.entry_type !== 'payment') return []
-  const items: Array<{ label: string, icon: string, to?: string, onSelect?: () => void, color?: string }> = [
+  const items: DropdownMenuItem[] = [
     {
       label: t('payments.patientPanel.timeline.rowMenu.detail'),
       icon: 'i-lucide-eye',

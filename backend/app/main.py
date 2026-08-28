@@ -42,6 +42,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     load_modules(app)
 
+    # Multi-tenant foundation: guarantee the default tenant exists and
+    # every clinic is owned by it (idempotent upgrade path), then expose
+    # the resolver + engine registry on app.state for middleware/jobs.
+    try:
+        from app.core.tenancy.bootstrap import ensure_default_tenant
+        from app.core.tenancy.lifespan import build_engine_registry, build_resolver
+
+        await ensure_default_tenant()
+        app.state.tenant_resolver = build_resolver()
+        app.state.tenant_engines = build_engine_registry()
+    except Exception:
+        logger.exception("Tenancy bootstrap failed at startup")
+        raise
+
     try:
         async with async_session_maker() as session:
             await ModuleService(session).reconcile_with_db()
@@ -61,6 +75,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     shutdown_scheduler()
+    engines = getattr(app.state, "tenant_engines", None)
+    if engines is not None:
+        await engines.dispose_all()
     await engine.dispose()
 
 
@@ -195,6 +212,10 @@ app.include_router(modules_router, prefix="/api/v1")
 from app.core.agents.router import router as agents_router  # noqa: E402
 
 app.include_router(agents_router, prefix="/api/v1")
+
+from app.core.tenancy.platform_router import router as platform_router  # noqa: E402
+
+app.include_router(platform_router, prefix="/api/v1")
 
 
 @app.get("/health")

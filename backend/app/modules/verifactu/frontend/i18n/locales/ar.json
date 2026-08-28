@@ -1,0 +1,351 @@
+{
+  "verifactu": {
+    "nav": { "settings": "Verifactu (AEAT)" },
+    "settingsCards": {
+      "title": "Verifactu (AEAT)",
+      "description": "الامتثال للفوترة الإلكترونية الإسبانية. أدِر الشهادة ومنتج SIF وطابور الإرسال والسجل الضريبي.",
+      "open": "فتح"
+    },
+    "title": "Verifactu (AEAT)",
+    "subtitle": "الامتثال للفوترة الإلكترونية الإسبانية (RRSIF / Veri*Factu).",
+    "hero": {
+      "loading": { "title": "جارٍ التحميل…", "description": "" },
+      "setup": {
+        "title": "الإعداد غير مكتمل",
+        "description": "أكمل الخطوات التالية قبل تفعيل Verifactu."
+      },
+      "inactive": {
+        "title": "جاهز للتفعيل",
+        "description": "اكتمل الإعداد. فعّل Verifactu لبدء إرسال الفواتير إلى AEAT."
+      },
+      "active-test": {
+        "title": "Verifactu مفعّل في بيئة الاختبار",
+        "description": "تُرسل الفواتير إلى بيئة الاختبار التابعة لـ AEAT للتحقق من التكامل قبل الانتقال إلى الإنتاج."
+      },
+      "active-prod": {
+        "title": "Verifactu مفعّل في الإنتاج",
+        "description": "تُرسل الفواتير إلى AEAT كبيانات ضريبية حقيقية، ويُسجل أي خطأ رسميًا."
+      },
+      "activate": "تفعيل Verifactu",
+      "deactivate": "تعطيل Verifactu"
+    },
+    "setup": {
+      "clinicNif": "إعداد الرقم الضريبي للعيادة (CIF/NIF)",
+      "clinicNifCta": "بيانات العيادة",
+      "producer": "إكمال بيانات منتج SIF",
+      "producerCta": "المنتج",
+      "declaration": "توقيع declaración responsable الخاصة بالمنتج",
+      "declarationCta": "توقيع",
+      "certificate": "رفع الشهادة الرقمية (FNMT)",
+      "certificateCta": "رفع"
+    },
+    "cards": {
+      "manage": "إدارة",
+      "emisor": {
+        "title": "بيانات الجهة المُصدرة",
+        "editHint": "تأتي هذه البيانات من معلومات العيادة. لتغييرها عدّلها هناك.",
+        "editLink": "بيانات العيادة"
+      },
+      "producer": {
+        "empty": "لم يتم إعداد منتج SIF بعد."
+      },
+      "vatMapping": {
+        "title": "تصنيف ضريبة القيمة المضافة لدى AEAT",
+        "description": "اربط كل نوع ضريبة في الكتالوج بتصنيفه لدى AEAT ‏(S1، E1، N1…)."
+      },
+      "activity": {
+        "title": "النشاط"
+      }
+    },
+    "modal": {
+      "confirmProdTitle": "الانتقال إلى الإنتاج؟",
+      "confirmProdAction": "نعم، الانتقال إلى الإنتاج"
+    },
+    "vatMapping": {
+      "title": "تصنيف ضريبة القيمة المضافة لدى AEAT",
+      "subtitle": "حدّد كيفية تحويل كل نوع ضريبة في الكتالوج إلى تصنيفه لدى AEAT داخل كل سجل Verifactu.",
+      "legalIntroTitle": "طريقة العمل",
+      "legalIntro": "ترك الصف على «تلقائي» يستخدم قاعدة استدلالية (معدل>0 ← S1، معدل=0 ← N1). للخدمات السريرية لطب الأسنان غالبًا يكون تثبيت «E1 — معفى وفق المادة 20 من LIVA» مناسبًا. عادةً تحتاج العيادات الإسبانية إلى تجاوز يدوي لنوع الضريبة «معفى» فقط.",
+      "empty": "لا توجد أنواع ضريبة قيمة مضافة في كتالوج العيادة.",
+      "rate": "النسبة",
+      "defaultBadge": "افتراضي",
+      "autoOption": "تلقائي ({code}) — استخدام القاعدة الاستدلالية",
+      "sourceAuto": "تلقائي",
+      "sourceOverride": "تجاوز مثبت",
+      "save": "حفظ",
+      "saved": "تم حفظ التصنيف.",
+      "saveFailed": "تعذّر حفظ التصنيف.",
+      "notesPlaceholder": "ملاحظات (مثال: 'art. 20.uno.3.º LIVA')"
+    },
+    "environment": {
+      "test": "اختبار",
+      "prod": "إنتاج",
+      "switchToProd": "الانتقال إلى الإنتاج",
+      "switchToTest": "الانتقال إلى الاختبار",
+      "warningProd": "أنت على وشك الانتقال إلى الإنتاج. من الآن فصاعدًا ستُرسل كل فاتورة صادرة إلى AEAT كسجل ضريبي حقيقي.",
+      "label": "البيئة"
+    },
+    "errors": {
+      "cannotPromoteToProd": "صلاحيات دورك لا تسمح بنقل Verifactu إلى الإنتاج. اطلب من مسؤول إجراء هذا التغيير."
+    },
+    "status": {
+      "enabled": "مفعّل",
+      "disabled": "معطّل",
+      "noCertificate": "لا توجد شهادة",
+      "certificateExpiringSoon": "تنتهي صلاحية الشهادة خلال {days} يومًا",
+      "certificateExpired": "انتهت صلاحية الشهادة"
+    },
+    "settings": {
+      "title": "إعدادات Verifactu",
+      "enable": "تفعيل Verifactu",
+      "enableHint": "عند التفعيل تُرسل كل فاتورة صادرة تلقائيًا إلى AEAT.",
+      "nifEmisor": "NIF للجهة المُصدرة",
+      "nifEmisorHint": "NIF الخاص بالعيادة، ويجب أن يطابق الشهادة.",
+      "nombreRazon": "الاسم القانوني للجهة المُصدرة",
+      "save": "حفظ",
+      "saved": "تم حفظ الإعدادات"
+    },
+    "certificate": {
+      "title": "الشهادة الرقمية",
+      "description": "ارفع شهادة FNMT الخاصة بالعيادة (.pfx / .p12). تُخزن مشفرة.",
+      "active": "الشهادة النشطة",
+      "healthy": "صالحة",
+      "subject": "صاحب الشهادة",
+      "issuer": "جهة الإصدار",
+      "nif": "NIF لصاحب الشهادة",
+      "validFrom": "صالحة من",
+      "validUntil": "صالحة حتى",
+      "uploadFile": "ملف الشهادة",
+      "uploadHint": "يقبل الصيغتين .pfx و .p12.",
+      "password": "كلمة مرور الشهادة",
+      "passwordHint": "كلمة المرور التي تحمي الملف. لا تُخزن أبدًا كنص واضح.",
+      "passwordPlaceholder": "••••••••",
+      "togglePassword": "إظهار/إخفاء كلمة المرور",
+      "uploadButton": "رفع الشهادة",
+      "uploadTitle": "رفع الشهادة",
+      "replaceTitle": "استبدال الشهادة",
+      "uploadSubmit": "رفع الشهادة",
+      "replaceSubmit": "استبدال الشهادة",
+      "uploaded": "تم رفع الشهادة وتفعيلها",
+      "uploadFailed": "تعذّر رفع الشهادة",
+      "invalidFormat": "صيغة غير صالحة. ارفع ملف .pfx أو .p12.",
+      "history": "سجل الشهادات",
+      "historyEmpty": "لم يتم رفع شهادة بعد.",
+      "noActive": "لا توجد شهادة نشطة",
+      "noActiveHint": "ارفع شهادة FNMT الخاصة بك (.pfx / .p12) لتفعيل Verifactu وتوقيع الإرسالات إلى AEAT.",
+      "dropzoneTitle": "أفلت الشهادة هنا",
+      "dropzoneSubtitle": "أو انقر لاختيار ملف",
+      "dropzoneFormats": "صيغة .pfx أو .p12",
+      "removeFile": "إزالة الملف",
+      "encryptionNote": "يتم تشفير الملف وكلمة المرور بمفتاح الخادم، ولا يُخزنان أبدًا كنص واضح.",
+      "helpTitle": "من أين تحصل على الشهادة؟",
+      "helpBody": "لتوقيع الإرسالات إلى AEAT تحتاج العيادة إلى شهادة رقمية صادرة من FNMT. الأنواع الثلاثة الصالحة هي:",
+      "helpItem1": "شهادة الممثل القانوني — للشركات (S.L.، S.A.).",
+      "helpItem2": "الشهادة الشخصية — لأصحاب العمل الحر الذين يطابق NIF الخاص بهم الجهة المُصدرة.",
+      "helpItem3": "الختم المؤسسي — بديل للكيانات.",
+      "fnmtLink": "طلب شهادة من بوابة FNMT"
+    },
+    "queue": {
+      "title": "طابور الإرسال",
+      "tabs": { "pending": "قيد الانتظار", "rejected": "مرفوض", "transient": "أخطاء مؤقتة" },
+      "empty": "لا توجد سجلات بهذه الحالة.",
+      "retry": "إعادة المحاولة",
+      "regenerateAndRetry": "إعادة إنشاء وإرسال",
+      "regenerateTooltip": "يعيد حساب السجل من البيانات الحالية (NIF، البنود، …) ثم يعيد إرساله كتصحيح Subsanación.",
+      "retryAll": "إعادة إنشاء الكل",
+      "retryAllConfirm": "سيتم إعادة إنشاء كل السجلات المرفوضة لهذه العيادة. هل تريد المتابعة؟",
+      "retryAllResult": "تمت إعادة إنشاء {n} سجلًا ({failed} فشل).",
+      "viewInvoice": "عرض الفاتورة",
+      "viewHistory": "سجل AEAT",
+      "errorCode": "الرمز",
+      "transportError": "خطأ في النقل",
+      "aeatFault": "استجابة خطأ من AEAT",
+      "rawError": "رسالة AEAT الأصلية",
+      "submissionAttempt": "المحاولة {n}",
+      "processNow": "المعالجة الآن",
+      "processed": "تمت معالجة {n} سجلًا",
+      "regeneratedToast": "تمت إعادة إنشاء السجل وإرساله.",
+      "blockingBanner": {
+        "title": "تم رفض {n} سجل Verifactu",
+        "description": "لا يمكنك إصدار فواتير جديدة حتى حلها لأن ذلك سيكسر سلسلة التجزئة.",
+        "cta": "فتح الطابور",
+        "adminContact": "اطلب من المسؤول {email} المساعدة إذا لم تكن لديك صلاحية الوصول."
+      },
+      "ctas": {
+        "edit_clinic": "تصحيح بياناتي الضريبية",
+        "edit_billing_party": "تعديل بيانات العميل",
+        "edit_lines": "مراجعة بنود الفاتورة",
+        "edit_producer": "تعديل منتج SIF",
+        "retry": "إعادة المحاولة",
+        "contact_support": "التواصل مع الدعم"
+      },
+      "history": {
+        "title": "سجل الإرسال إلى AEAT",
+        "empty": "لا توجد محاولات سابقة مؤرشفة (هذه أول عملية إرسال).",
+        "attempt": "المحاولة #{n}",
+        "huella": "التجزئة",
+        "code": "رمز AEAT"
+      }
+    },
+    "billingParty": {
+      "modalTitle": "تعديل بيانات العميل",
+      "intro": "ستُرسل هذه البيانات إلى AEAT باعتبارها بيانات المستلم في عملية الإرسال التالية.",
+      "fields": {
+        "name": "الاسم / الاسم القانوني",
+        "taxId": "الرقم الضريبي",
+        "address": "العنوان"
+      },
+      "save": "حفظ وإعادة الإرسال",
+      "saved": "تم الحفظ. سيعيد Verifactu إرسال السجل تلقائيًا.",
+      "concurrentEdit": "قام شخص آخر بتعديل هذه الفاتورة في الوقت نفسه. أعد التحميل وحاول مرة أخرى.",
+      "saveFailed": "تعذّر الحفظ."
+    },
+    "invoiceBanner": {
+      "rejectedTitle": "رفضت AEAT سجل Verifactu هذا",
+      "rejectedBody": "صحح البيانات أدناه وسنعيد إرساله تلقائيًا كتصحيح Subsanación.",
+      "pdfStaleTitle": "قد يكون ملف PDF الذي تم تنزيله قديمًا",
+      "pdfStaleBody": "يتغير رمز QR بعد التصحيح وإعادة الإرسال. نزّل ملف PDF من جديد إذا كنت قد أرسلته للمريض.",
+      "downloadAgain": "تنزيل PDF محدث"
+    },
+    "nif": {
+      "warningInvalid": "صيغة الرقم الضريبي تبدو غير صحيحة وقد ترفضها AEAT."
+    },
+    "globalBanner": {
+      "title": "Verifactu: رفضت AEAT عدد {n} من الفواتير",
+      "description": "عالجها قبل إصدار فواتير جديدة حتى لا تنكسر سلسلة التجزئة.",
+      "cta": "معالجة"
+    },
+    "badge": {
+      "short": "AEAT",
+      "tooltip": {
+        "ok": "مقبول لدى AEAT",
+        "warning": "مقبول لدى AEAT مع ملاحظات",
+        "pending": "بانتظار الإرسال إلى AEAT",
+        "error": "مرفوض من AEAT"
+      }
+    },
+    "filter": {
+      "label": "Verifactu",
+      "options": {
+        "ok": "مقبول",
+        "warning": "مع ملاحظات",
+        "pending": "قيد الانتظار",
+        "error": "مرفوض"
+      },
+      "shortcut": "المشكلات فقط",
+      "empty": "كل فواتير Verifactu محدّثة."
+    },
+    "records": {
+      "title": "السجل الضريبي",
+      "subtitle": "سجل غير قابل للتغيير للبيانات المرسلة إلى AEAT.",
+      "filterState": "الحالة",
+      "filterTipo": "النوع",
+      "columns": {
+        "createdAt": "التاريخ",
+        "tipoFactura": "النوع",
+        "serieNumero": "الرقم",
+        "importe": "المبلغ",
+        "state": "الحالة",
+        "csv": "CSV من AEAT"
+      },
+      "viewXml": "عرض XML",
+      "verifyChain": "التحقق من السلسلة"
+    },
+    "tipoFactura": {
+      "F1": "F1 — فاتورة كاملة",
+      "F2": "F2 — مبسطة",
+      "F3": "F3 — استبدال",
+      "R1": "R1 — تصحيح",
+      "R2": "R2 — دين متعثر",
+      "R5": "R5 — تصحيح مبسط"
+    },
+    "recordState": {
+      "pending": "قيد الانتظار",
+      "sending": "جارٍ الإرسال",
+      "accepted": "مقبول",
+      "accepted_with_errors": "مقبول مع أخطاء",
+      "rejected": "مرفوض",
+      "failed_transient": "جارٍ إعادة المحاولة",
+      "failed_validation": "خطأ في التحقق"
+    },
+    "panel": {
+      "verifactuTitle": "Verifactu",
+      "huella": "التجزئة",
+      "csv": "CSV من AEAT",
+      "qr": "رمز QR",
+      "viewRecord": "عرض السجل كاملًا",
+      "submittedAt": "تم الإرسال",
+      "stillPending": "بانتظار الإرسال إلى AEAT"
+    },
+    "producer": {
+      "title": "منتج SIF",
+      "subtitle": "الهوية القانونية للجهة التي تضع البرنامج في الإنتاج وتوقّع declaración responsable.",
+      "legalIntroTitle": "المسؤولية القانونية",
+      "legalIntro": "تُلزم المادة 13 من RD 1007/2023 منتج Sistema Informático de Facturación بتوقيع declaración responsable. إذا قُدم Dentora كخدمة SaaS مُدارة، يكون مشغل SaaS هو المنتج. وإذا استضافت العيادة النظام ذاتيًا (autodesarrollo)، تكون العيادة نفسها هي المنتج. وإذا قام طرف تكامل بالنشر، يكون هو المنتج.",
+      "process": {
+        "title": "ما المطلوب منك",
+        "s1": "حدّد منتج SIF (الخطوة 1) — وهي البيانات القانونية التي تظهر في الإقرار وفي كل سجل يُرسل إلى AEAT.",
+        "s2": "اقرأ declaración responsable ووقّعها إلكترونيًا (الخطوة 2). يحفظ النظام التاريخ والمستخدم الموقّع كدليل.",
+        "s3": "نزّل ملف PDF الموقّع (الخطوة 3) للأرشفة، وإذا كنت تدير SaaS فلتوزيعه على العيادات.",
+        "legalNote": "التوقيع الإلكتروني المخزن في النظام دليل كافٍ في تدقيق AEAT. ملف PDF وثيقة معلومات مشتقة من ذلك التوقيع."
+      },
+      "step1": {
+        "title": "بيانات المنتج",
+        "description": "تعرّف هذه الحقول منتج SIF قانونيًا وتُضمَّن في declaración responsable وفي كتلة SistemaInformatico لكل سجل يُرسل إلى AEAT.",
+        "lockedTitle": "بيانات مختومة",
+        "lockedDescription": "تم توقيع الإقرار بهذه البيانات بالفعل، ولذلك أصبحت مقفلة. تواصل مع الدعم لإلغاء التوقيع إذا احتجت إلى تعديلها."
+      },
+      "step2": {
+        "title": "توقيع الإقرار",
+        "description": "اقرأ النص بعناية. بعد الموافقة فعّل مربع الاختيار واضغط «توقيع إلكتروني». يُختم التوقيع في النظام بالتاريخ والمستخدم."
+      },
+      "step3": {
+        "title": "تنزيل الإقرار الموقّع",
+        "description": "وثيقة قابلة للطباعة تتضمن بيانات المنتج وختم التوقيع الإلكتروني، وتفيد للأرشفة الداخلية أو تدقيق AEAT أو التوزيع على العيادات المستخدمة للنظام.",
+        "lockedHint": "تتاح بعد توقيع الإقرار (الخطوة 2)."
+      },
+      "fields": {
+        "name": "الاسم القانوني للمنتج",
+        "nameHint": "الاسم القانوني للشركة أو صاحب العمل الحر الذي يعمل كمنتج SIF.",
+        "nif": "NIF للمنتج",
+        "nifHint": "NIF الخاص بمنتج SIF، ويظهر في كل سجل يُرسل إلى AEAT.",
+        "idSistema": "معرّف النظام",
+        "idSistemaHint": "معرّف قصير (1-2 حرف) يخصصه المنتج للنظام. الافتراضي: DP.",
+        "version": "إصدار النظام",
+        "versionHint": "إصدار البرنامج المنشور في الإنتاج (مثال: 0.1.0)."
+      },
+      "declaration": {
+        "heading": "Declaración responsable",
+        "legalRef": "Sistema Informático de Facturación — Veri*Factu (RD 1007/2023، المادة 13)",
+        "preamble": "وفقًا للمادة 13 من المرسوم الملكي 1007/2023 ‏(RRSIF) والأمر HAC/1177/2024:",
+        "identity": "يقر {name}، صاحب NIF ‏{nif}، بصفته منتج Sistema Informático de Facturación المسمى Dentora (معرّف النظام {idSistema}، الإصدار {version})، بمسؤوليته بما يلي:",
+        "item1": "يلبي النظام متطلبات المادة 29.2.j) من القانون 58/2003 (General Tributaria) ومتطلبات RRSIF.",
+        "item2": "يضمن النظام سلامة سجلات الفوترة وحفظها وإمكانية الوصول إليها وقراءتها وتتبعها وعدم قابليتها للتغيير.",
+        "item3": "ينفذ النظام إرسالًا مستمرًا للسجلات إلى AEAT وفق وضع Veri*Factu.",
+        "item4": "يتعهد المنتج بإبقاء النظام محدثًا مع تطور اللوائح."
+      },
+      "statusSigned": "موقّع",
+      "statusUnsigned": "بانتظار التوقيع",
+      "readAndAccept": "قرأت declaración responsable وأوافق عليها بصفتي منتج SIF.",
+      "signButton": "توقيع إلكتروني",
+      "signNote": "يؤدي الضغط على الزر إلى تسجيل التوقيع مع التاريخ والمستخدم، ولا يمكن التراجع عنه من الواجهة.",
+      "signedToast": "تم توقيع الإقرار وتسجيله.",
+      "sealedNote": "تم ختم بيانات المنتج كدليل لأي تدقيق محتمل من AEAT.",
+      "saveDraft": "حفظ دون توقيع",
+      "draftSaved": "تم حفظ المسودة (التوقيع معلق).",
+      "downloadPdf": "تنزيل PDF الموقّع",
+      "revokeAction": "إلغاء التوقيع للتعديل",
+      "revokeTitle": "إلغاء التوقيع؟",
+      "revokeBody": "يتيح إلغاء التوقيع الإلكتروني تعديل بيانات المنتج من جديد. قبل المتابعة:",
+      "revokeBullet1": "يفقد التوقيع الحالي قيمته القانونية كدليل لدى AEAT.",
+      "revokeBullet2": "يتعطل Verifactu تلقائيًا حتى توقّع الإقرار الجديد.",
+      "revokeBullet3": "لا تتأثر السجلات التي سبق إرسالها إلى AEAT — يتغير فقط المنتج المُعلن للإرسالات المستقبلية.",
+      "revokeConfirm": "إلغاء التوقيع والتعديل",
+      "revokedToast": "تم إلغاء التوقيع. يمكنك تعديل بيانات المنتج الآن.",
+      "signLabel": "توقيع declaración responsable",
+      "alreadySigned": "تم توقيع الإقرار",
+      "signedAt": "تم التوقيع إلكترونيًا في {at}",
+      "saveFailed": "تعذّر حفظ بيانات المنتج."
+    }
+  }
+}

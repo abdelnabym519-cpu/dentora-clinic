@@ -90,9 +90,10 @@ const PROGNOSIS_CYCLE: Array<Prognosis | null> = [null, 'good', 'fair', 'poor', 
 const FURCA_CYCLE: Array<Furcation | null> = [null, '0', 'I', 'II', 'III']
 
 function nextInCycle<T>(cycle: T[], current: T): T {
+  if (cycle.length === 0) return current
   const idx = cycle.findIndex(v => v === current)
-  if (idx === -1) return cycle[1] ?? cycle[0]
-  return cycle[(idx + 1) % cycle.length]
+  if (idx === -1) return cycle[1] ?? cycle[0] ?? current
+  return cycle[(idx + 1) % cycle.length] ?? current
 }
 
 function prognosisGlyph(v: Prognosis | null | undefined): string {

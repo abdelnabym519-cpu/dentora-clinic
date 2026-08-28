@@ -549,7 +549,7 @@ async function applyTreatment(toothNumber: number, surfaces?: Surface[]) {
     title: `${t(`odontogram.treatments.types.${treatment.clinical_type}`, treatment.clinical_type)} - ${t('odontogram.tooth')} ${toothNumber}`,
     description: t('odontogram.treatments.treatmentAdded'),
     color: 'success',
-    actions: [{ label: t('common.undo'), click: handleUndo }]
+    actions: [{ label: t('common.undo'), onClick: handleUndo }]
   })
 
   emit('treatmentAdd', treatment)

@@ -508,7 +508,9 @@ export function resolveTreatmentIconKey(
 
 // Get icon SVG for a treatment type
 export function getTreatmentIcon(treatmentType: string): string {
-  return TREATMENT_ICONS[treatmentType] || TREATMENT_ICONS.filling
+  const icon = TREATMENT_ICONS[treatmentType] ?? TREATMENT_ICONS.filling
+  if (!icon) throw new Error('Missing canonical treatment icon fallback')
+  return icon
 }
 
 // Check if treatment requires surface selection (re-export with same name for compatibility)

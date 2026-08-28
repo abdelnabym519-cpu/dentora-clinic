@@ -1,0 +1,20 @@
+name: Source Snapshot
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Upload closure-loop sources
+        uses: actions/upload-artifact@v5
+        with:
+          name: closure-source-snapshot
+          path: |
+            frontend
+            backend/app/modules
+            .github/workflows/ci.yml
+          retention-days: 1

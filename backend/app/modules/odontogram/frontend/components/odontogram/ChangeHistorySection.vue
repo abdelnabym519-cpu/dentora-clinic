@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { OdontogramHistoryEntry, ToothTreatmentView, Treatment } from '~~/app/types'
 import { viewForTooth } from '~~/app/utils/treatmentView'
-import { getToothNameKey, getToothPositionKeys, TREATMENT_COLORS } from '~~/app/config/odontogramConstants'
+import { getToothNameKey, getToothPositionKeys, getTreatmentColor as resolveTreatmentColor } from '~~/app/config/odontogramConstants'
 
 const props = defineProps<{
   history: OdontogramHistoryEntry[]
@@ -100,8 +100,7 @@ function getConditionLabel(condition?: string): string {
 }
 
 function getConditionColor(condition?: string): string {
-  if (!condition) return '#E5E7EB'
-  return TREATMENT_COLORS[condition] || '#E5E7EB'
+  return condition ? resolveTreatmentColor(condition) : '#E5E7EB'
 }
 
 function getChangeTypeLabel(changeType: string): string {

@@ -1,5 +1,6 @@
 """Application configuration via environment variables."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,6 +9,25 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str
+
+    # Multi-tenant / multi-clinic
+    # ---------------------------
+    # TENANT_SLUG identifies the *sole* tenant served by a self-hosted
+    # installation. In shared-PostgreSQL multi-tenant mode the active
+    # tenant is resolved per request (host / X-Tenant-Id / JWT) and this
+    # value is only used as the bootstrap key + as the slug a brand-new
+    # database is seeded with. It MUST remain ``"default"`` for ordinary
+    # single-clinic installs so upgrades are a no-op.
+    TENANT_SLUG: str = "default"
+    # When true, a request that carries no tenant hint resolves to
+    # ``TENANT_SLUG`` instead of 404. Self-hosted = true. A SaaS control
+    # plane flips this to false so unknown hosts are rejected.
+    TENANT_DEFAULT_FALLBACK: bool = True
+    # Header the resolver inspects for an explicit tenant selection.
+    TENANT_HEADER: str = "X-Tenant-Id"
+    # Header the auth layer inspects for an explicit clinic selection
+    # (a user may belong to several clinics within a tenant).
+    CLINIC_HEADER: str = "X-Clinic-Id"
 
     # Security
     SECRET_KEY: str
@@ -83,6 +103,32 @@ class Settings(BaseSettings):
     STORAGE_MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
     STORAGE_ALLOWED_MIME_TYPES: str = "application/pdf,image/jpeg,image/png"
 
+    # Dental 3D Phase 5.2 — optional, operator-managed CBCT nerve inference.
+    # Dentora does not bundle medical-model weights. An empty URL is an
+    # explicit, safe "missing_model" state rather than a simulated result.
+    DENTAL_3D_NERVE_INFERENCE_URL: str = ""
+    DENTAL_3D_NERVE_INFERENCE_TOKEN: str = ""
+    DENTAL_3D_NERVE_INFERENCE_TIMEOUT_SECONDS: float = Field(default=120.0, gt=0, le=3600)
+    DENTAL_3D_NERVE_MAX_INSTANCES: int = Field(default=512, ge=1, le=2048)
+    DENTAL_3D_NERVE_MAX_INPUT_BYTES: int = Field(
+        default=256 * 1024 * 1024, ge=1024, le=2 * 1024 * 1024 * 1024
+    )
+    DENTAL_3D_NERVE_LOW_CONFIDENCE_THRESHOLD: float = Field(default=0.6, ge=0, le=1)
+
+    # Patient-specific IOS→CBCT registration. DentalSegmentator remains an
+    # operator-managed service; no model weights or PyTorch ship in Dentora.
+    DENTAL_3D_DENTAL_SEGMENTATOR_URL: str = ""
+    DENTAL_3D_DENTAL_SEGMENTATOR_TOKEN: str = ""
+    DENTAL_3D_DENTAL_SEGMENTATOR_TIMEOUT_SECONDS: float = Field(default=900.0, gt=0, le=7200)
+    DENTAL_3D_REGISTRATION_MAX_INSTANCES: int = Field(default=512, ge=1, le=2048)
+    DENTAL_3D_REGISTRATION_MAX_INPUT_BYTES: int = Field(
+        default=256 * 1024 * 1024, ge=1024, le=2 * 1024 * 1024 * 1024
+    )
+    DENTAL_3D_REGISTRATION_VOXEL_SIZE_MM: float = Field(default=1.0, gt=0, le=10)
+    DENTAL_3D_REGISTRATION_GLOBAL_DISTANCE_MM: float = Field(default=3.0, gt=0, le=50)
+    DENTAL_3D_REGISTRATION_ICP_DISTANCE_MM: float = Field(default=1.5, gt=0, le=20)
+    DENTAL_3D_REGISTRATION_ICP_MAX_ITERATIONS: int = Field(default=50, ge=1, le=500)
+
     @property
     def storage_allowed_mime_types_list(self) -> list[str]:
         """Parse allowed MIME types as list."""
@@ -109,8 +155,10 @@ class Settings(BaseSettings):
     # provider.)
     OPENAI_API_KEY: str = ""
     AI_GATEWAY_BASE_URL: str = ""
+    OLLAMA_BASE_URL: str = "http://host.docker.internal:11434/v1/"
     COPILOT_PROVIDER_DEFAULT: str = "openai"
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
+    COPILOT_MODEL_CHAT_OLLAMA: str = "qwen3:8b"
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
 

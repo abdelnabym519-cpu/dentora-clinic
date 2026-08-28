@@ -158,7 +158,7 @@ function closeModal() {
 <template>
   <UModal
     v-model:open="isOpen"
-    :ui="{ width: 'sm:max-w-lg' }"
+    :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #content>
       <UCard>

@@ -143,7 +143,7 @@ function handleSave() {
     <!-- Allergies Section -->
     <UAccordion
       :items="[{ label: t('patients.medicalHistory.allergies'), icon: 'i-lucide-alert-triangle', defaultOpen: true, slot: 'allergies' }]"
-      :ui="{ item: { base: 'border rounded-lg mb-2' } }"
+      :ui="{ item: 'border rounded-lg mb-2' }"
     >
       <template #allergies>
         <div class="p-4 space-y-4">
@@ -210,7 +210,7 @@ function handleSave() {
     <!-- Current Medications Section -->
     <UAccordion
       :items="[{ label: t('patients.medicalHistory.medications'), icon: 'i-lucide-pill', defaultOpen: false, slot: 'medications' }]"
-      :ui="{ item: { base: 'border rounded-lg mb-2' } }"
+      :ui="{ item: 'border rounded-lg mb-2' }"
     >
       <template #medications>
         <div class="p-4 space-y-4">
@@ -268,7 +268,7 @@ function handleSave() {
     <!-- Systemic Diseases Section -->
     <UAccordion
       :items="[{ label: t('patients.medicalHistory.systemicDiseases'), icon: 'i-lucide-activity', defaultOpen: false, slot: 'diseases' }]"
-      :ui="{ item: { base: 'border rounded-lg mb-2' } }"
+      :ui="{ item: 'border rounded-lg mb-2' }"
     >
       <template #diseases>
         <div class="p-4 space-y-4">
@@ -336,7 +336,7 @@ function handleSave() {
     <!-- Special Conditions Section -->
     <UAccordion
       :items="[{ label: t('patients.medicalHistory.specialConditions'), icon: 'i-lucide-heart-pulse', defaultOpen: true, slot: 'conditions' }]"
-      :ui="{ item: { base: 'border rounded-lg mb-2' } }"
+      :ui="{ item: 'border rounded-lg mb-2' }"
     >
       <template #conditions>
         <div class="p-4 space-y-4">
@@ -426,7 +426,7 @@ function handleSave() {
     <!-- Lifestyle Section -->
     <UAccordion
       :items="[{ label: t('patients.medicalHistory.lifestyle'), icon: 'i-lucide-cigarette', defaultOpen: false, slot: 'lifestyle' }]"
-      :ui="{ item: { base: 'border rounded-lg mb-2' } }"
+      :ui="{ item: 'border rounded-lg mb-2' }"
     >
       <template #lifestyle>
         <div class="p-4 space-y-4">
@@ -463,7 +463,7 @@ function handleSave() {
     <!-- Surgical History Section -->
     <UAccordion
       :items="[{ label: t('patients.medicalHistory.surgicalHistory'), icon: 'i-lucide-scissors', defaultOpen: false, slot: 'surgery' }]"
-      :ui="{ item: { base: 'border rounded-lg mb-2' } }"
+      :ui="{ item: 'border rounded-lg mb-2' }"
     >
       <template #surgery>
         <div class="p-4 space-y-4">

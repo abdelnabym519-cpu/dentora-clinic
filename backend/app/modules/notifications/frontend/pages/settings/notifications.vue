@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { NotificationTypeSettings, SmtpSettingsUpdate, SmtpTestRequest } from '~~/app/types'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { isAdmin } = usePermissions()
 const auth = useAuth()
 const {
@@ -44,11 +44,11 @@ const smtpForm = ref<SmtpSettingsUpdate>({
 const smtpTestEmail = ref('')
 
 // Provider options
-const providerOptions = [
+const providerOptions = computed(() => [
   { value: 'smtp', label: 'SMTP' },
-  { value: 'console', label: 'Console (desarrollo)' },
-  { value: 'disabled', label: 'Deshabilitado' }
-]
+  { value: 'console', label: t('notifications.smtp.providerConsole') },
+  { value: 'disabled', label: t('notifications.smtp.providerDisabled') }
+])
 
 // Initialize local settings from fetched settings
 watch(settings, (newSettings) => {
@@ -92,23 +92,21 @@ function onSettingChange() {
 }
 
 // Get setting value with fallback
-function getSettingValue(key: string, field: keyof NotificationTypeSettings): boolean | number {
+type EditableNotificationField = 'enabled' | 'auto_send' | 'hours_before'
+
+function getSettingValue(key: string, field: EditableNotificationField): boolean | number {
   const setting = localSettings.value[key]
-  if (!setting) {
-    // Return defaults
-    if (field === 'enabled') return true
-    if (field === 'auto_send') return true
-    if (field === 'hours_before') return 24
-  }
-  return setting[field] as boolean | number
+  if (!setting) return field === 'hours_before' ? 24 : true
+  if (field === 'hours_before') return setting.hours_before ?? 24
+  return setting[field]
 }
 
 // Update local setting
-function updateLocalSetting(key: string, field: keyof NotificationTypeSettings, value: boolean | number) {
-  if (!localSettings.value[key]) {
-    localSettings.value[key] = { auto_send: true, enabled: true }
-  }
-  (localSettings.value[key] as Record<string, boolean | number>)[field] = value
+function updateLocalSetting(key: string, field: EditableNotificationField, value: boolean | number) {
+  const setting = localSettings.value[key] ?? { auto_send: true, enabled: true }
+  localSettings.value[key] = setting
+  if (field === 'hours_before') setting.hours_before = Number(value)
+  else setting[field] = Boolean(value)
   onSettingChange()
 }
 
@@ -224,7 +222,7 @@ if (!isAdmin.value) {
             class="text-subtle hover:text-muted dark:text-subtle dark:hover:text-subtle"
           >
             <UIcon
-              name="i-lucide-arrow-left"
+              :name="locale === 'ar' ? 'i-lucide-arrow-right' : 'i-lucide-arrow-left'"
               class="w-5 h-5"
             />
           </NuxtLink>
@@ -290,7 +288,7 @@ if (!isAdmin.value) {
           <table class="w-full">
             <thead>
               <tr class="border-b border-default">
-                <th class="text-left py-3 px-4 font-medium text-muted dark:text-subtle">
+                <th class="text-start py-3 px-4 font-medium text-muted dark:text-subtle">
                   {{ t('notifications.notificationType') }}
                 </th>
                 <th class="text-center py-3 px-4 font-medium text-muted dark:text-subtle w-24">
@@ -442,21 +440,21 @@ if (!isAdmin.value) {
           >
             <div>
               <span class="text-muted">{{ t('notifications.smtp.host') }}:</span>
-              <span class="ml-2 text-default">{{ smtpSettings.host }}:{{ smtpSettings.port }}</span>
+              <span class="ms-2 text-default">{{ smtpSettings.host }}:{{ smtpSettings.port }}</span>
             </div>
             <div>
               <span class="text-muted">{{ t('notifications.smtp.fromEmail') }}:</span>
-              <span class="ml-2 text-default">{{ smtpSettings.from_email || '-' }}</span>
+              <span class="ms-2 text-default">{{ smtpSettings.from_email || '-' }}</span>
             </div>
             <div>
               <span class="text-muted">{{ t('notifications.smtp.security') }}:</span>
-              <span class="ml-2 text-default">
-                {{ smtpSettings.use_ssl ? 'SSL' : smtpSettings.use_tls ? 'TLS' : 'None' }}
+              <span class="ms-2 text-default">
+                {{ smtpSettings.use_ssl ? 'SSL' : smtpSettings.use_tls ? 'TLS' : t('notifications.smtp.securityNone') }}
               </span>
             </div>
             <div>
               <span class="text-muted">{{ t('notifications.smtp.username') }}:</span>
-              <span class="ml-2 text-default">{{ smtpSettings.username || '-' }}</span>
+              <span class="ms-2 text-default">{{ smtpSettings.username || '-' }}</span>
             </div>
           </div>
 
@@ -522,7 +520,7 @@ if (!isAdmin.value) {
     <!-- SMTP Configuration Modal -->
     <UModal
       v-model:open="showSmtpModal"
-      :ui="{ width: 'max-w-2xl' }"
+      :ui="{ content: 'sm:max-w-2xl' }"
     >
       <template #content>
         <UCard>
@@ -626,7 +624,7 @@ if (!isAdmin.value) {
                 <UFormField :label="t('notifications.smtp.fromName')">
                   <UInput
                     v-model="smtpForm.from_name"
-                    placeholder="Mi Clinica Dental"
+                    :placeholder="t('notifications.smtp.fromNamePlaceholder')"
                   />
                 </UFormField>
               </div>

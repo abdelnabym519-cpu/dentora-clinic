@@ -2,7 +2,7 @@
 import { useConversation } from '../composables/useConversation'
 
 const props = defineProps<{ ctx: { patient: { id: string } } }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 
 const patientId = props.ctx?.patient?.id ?? null
@@ -30,6 +30,10 @@ async function onSend() {
 
 function label(m: { body_text: string | null, subject: string | null, template_key: string }) {
   return m.body_text || m.subject || m.template_key
+}
+
+function statusLabel(status: string) {
+  return t(`notifications.status.${status}`, status)
 }
 </script>
 
@@ -64,9 +68,11 @@ function label(m: { body_text: string | null, subject: string | null, template_k
             class="rounded-lg px-3 py-2 text-sm max-w-[80%]"
             :class="m.direction === 'inbound' ? 'bg-gray-100 dark:bg-gray-800' : 'bg-primary-100 dark:bg-primary-900'"
           >
-            <div>{{ label(m) }}</div>
+            <div dir="auto">
+              {{ label(m) }}
+            </div>
             <div class="text-[10px] text-gray-400 mt-1">
-              {{ m.status }} · {{ new Date(m.created_at).toLocaleString() }}
+              {{ statusLabel(m.status) }} · {{ new Date(m.created_at).toLocaleString(locale) }}
             </div>
           </div>
         </li>

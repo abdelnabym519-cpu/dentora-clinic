@@ -1,0 +1,80 @@
+name: Apply Closure Patch
+
+on:
+  push:
+    branches: [phase/arabic-rtl-final-ui]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: phase/arabic-rtl-final-ui
+
+      - name: Apply current canonical source cleanup
+        run: |
+          python3 .github/scripts/typefix_group4.py
+          git diff --check
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Link host module dependencies
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
+
+      - name: Generate modules.json
+        working-directory: frontend
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['GITHUB_WORKSPACE'])
+          modules_dir = root / 'backend/app/modules'
+          entries = []
+          for module in sorted(modules_dir.iterdir()):
+              layer = module / 'frontend'
+              if layer.is_dir():
+                  entries.append({'name': module.name, 'path': str(layer.resolve())})
+          Path('modules.json').write_text(json.dumps({'layers': [e['path'] for e in entries], 'modules': entries, 'version': 1}, indent=2))
+          PY
+
+      - name: Real Nuxt typecheck
+        id: typecheck
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: Production build after green typecheck
+        id: build
+        if: steps.typecheck.outcome == 'success'
+        continue-on-error: true
+        working-directory: frontend
+        run: npm run build
+
+      - name: Commit source checkpoint
+        run: |
+          git add frontend/app backend/app/modules
+          if git diff --cached --quiet; then
+            echo "No source changes required"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(frontend): satisfy final lint gate"
+          git push origin HEAD:phase/arabic-rtl-final-ui
+
+      - name: Enforce typecheck and build
+        if: steps.typecheck.outcome != 'success' || (steps.build.outcome != 'success' && steps.build.outcome != 'skipped')
+        run: exit 1

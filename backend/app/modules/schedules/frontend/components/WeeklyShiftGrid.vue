@@ -43,7 +43,9 @@ function removeShift(weekday: number, index: number) {
 function updateShift(weekday: number, index: number, field: 'start_time' | 'end_time', value: string) {
   const current = shiftsForDay(weekday)
   const padded = value.length === 5 ? `${value}:00` : value
-  current[index] = { ...current[index], [field]: padded }
+  const shift = current[index]
+  if (!shift) return
+  current[index] = { ...shift, [field]: padded }
   updateDay(weekday, current)
 }
 

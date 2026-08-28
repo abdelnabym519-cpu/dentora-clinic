@@ -136,11 +136,11 @@ export interface UserUpdate {
 
 // Patient types
 export interface PatientBillingAddress {
-  street?: string
-  city?: string
-  postal_code?: string
-  province?: string
-  country?: string
+  street?: string | null
+  city?: string | null
+  postal_code?: string | null
+  province?: string | null
+  country?: string | null
 }
 
 export interface Patient {
@@ -148,17 +148,17 @@ export interface Patient {
   clinic_id: string
   first_name: string
   last_name: string
-  phone?: string
-  email?: string
-  date_of_birth?: string
-  notes?: string
+  phone?: string | null
+  email?: string | null
+  date_of_birth?: string | null
+  notes?: string | null
   status: 'active' | 'archived'
   do_not_contact: boolean
   // Billing fields
-  billing_name?: string
-  billing_tax_id?: string
-  billing_address?: PatientBillingAddress
-  billing_email?: string
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: PatientBillingAddress | null
+  billing_email?: string | null
   has_complete_billing_info: boolean
   created_at: string
   updated_at: string
@@ -167,16 +167,16 @@ export interface Patient {
 export interface PatientCreate {
   first_name: string
   last_name: string
-  phone?: string
-  email?: string
-  date_of_birth?: string
-  notes?: string
+  phone?: string | null
+  email?: string | null
+  date_of_birth?: string | null
+  notes?: string | null
   do_not_contact?: boolean
   // Billing fields
-  billing_name?: string
-  billing_tax_id?: string
-  billing_address?: PatientBillingAddress
-  billing_email?: string
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: PatientBillingAddress | null
+  billing_email?: string | null
 }
 
 export interface PatientUpdate extends Partial<PatientCreate> {
@@ -817,14 +817,6 @@ export interface BillingPatientBrief extends PatientBrief {
   has_complete_billing_info: boolean
 }
 
-export interface BillingPatientBrief extends PatientBrief {
-  billing_name?: string | null
-  billing_tax_id?: string | null
-  billing_address?: BillingAddress | null
-  billing_email?: string | null
-  has_complete_billing_info: boolean
-}
-
 export interface UserBrief {
   id: string
   first_name: string
@@ -989,6 +981,7 @@ export interface BudgetDetail extends Budget {
 
 export interface BudgetListItem {
   id: string
+  treatment_plan_id?: string | null
   budget_number: string
   version: number
   status: BudgetStatus
@@ -1799,11 +1792,11 @@ export interface PatientBillingSummary {
 
 // Patient Address
 export interface PatientAddress {
-  street?: string
-  city?: string
-  postal_code?: string
-  province?: string
-  country?: string
+  street?: string | null
+  city?: string | null
+  postal_code?: string | null
+  province?: string | null
+  country?: string | null
 }
 
 // Emergency Contact
@@ -1907,14 +1900,14 @@ export interface PatientAlert {
 // Extended Patient (with all new fields)
 export interface PatientExtended extends Patient {
   // Extended demographics
-  gender?: 'male' | 'female' | 'other' | 'prefer_not_say'
-  national_id?: string
-  national_id_type?: 'dni' | 'nie' | 'passport'
-  profession?: string
-  workplace?: string
+  gender?: 'male' | 'female' | 'other' | 'prefer_not_say' | null
+  national_id?: string | null
+  national_id_type?: 'dni' | 'nie' | 'passport' | null
+  profession?: string | null
+  workplace?: string | null
   preferred_language: string
-  address?: PatientAddress
-  photo_url?: string
+  address?: PatientAddress | null
+  photo_url?: string | null
 
   // Emergency contact
   emergency_contact?: EmergencyContact
@@ -1928,14 +1921,14 @@ export interface PatientExtended extends Patient {
 
 export interface PatientExtendedUpdate extends PatientUpdate {
   // Extended demographics
-  gender?: string
-  national_id?: string
-  national_id_type?: string
-  profession?: string
-  workplace?: string
-  preferred_language?: string
-  address?: PatientAddress
-  photo_url?: string
+  gender?: string | null
+  national_id?: string | null
+  national_id_type?: string | null
+  profession?: string | null
+  workplace?: string | null
+  preferred_language?: string | null
+  address?: PatientAddress | null
+  photo_url?: string | null
 
   // Emergency contact
   emergency_contact?: EmergencyContact

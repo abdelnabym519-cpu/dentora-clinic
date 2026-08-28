@@ -28,7 +28,8 @@ const statusColors: Record<TreatmentPlanStatus, 'success' | 'warning' | 'neutral
   active: 'success',
   draft: 'warning',
   completed: 'info',
-  cancelled: 'error',
+  pending: 'warning',
+  closed: 'error',
   archived: 'neutral'
 }
 

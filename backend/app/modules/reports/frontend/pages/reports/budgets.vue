@@ -27,8 +27,8 @@ const byStatus = ref<BudgetByStatus[]>([])
 // Date range
 const today = new Date()
 const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
-const dateFrom = ref(firstDayOfMonth.toISOString().split('T')[0])
-const dateTo = ref(today.toISOString().split('T')[0])
+const dateFrom = ref(firstDayOfMonth.toISOString().slice(0, 10))
+const dateTo = ref(today.toISOString().slice(0, 10))
 
 // Quick date range options
 const dateRangeOptions = computed(() => [
@@ -81,8 +81,8 @@ watch(selectedRange, (range) => {
       return
   }
 
-  dateFrom.value = from.toISOString().split('T')[0]
-  dateTo.value = to.toISOString().split('T')[0]
+  dateFrom.value = from.toISOString().slice(0, 10)
+  dateTo.value = to.toISOString().slice(0, 10)
 })
 
 // Load all report data

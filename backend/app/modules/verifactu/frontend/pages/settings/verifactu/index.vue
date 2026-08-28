@@ -163,7 +163,7 @@ const certWarning = computed(() => {
   if (!summary.value || !summary.value.has_certificate || !summary.value.certificate_valid_until) return null
   const until = new Date(summary.value.certificate_valid_until)
   const days = Math.floor((until.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  if (days < 0) return { color: 'error', message: t('verifactu.status.certificateExpired') }
+  if (days < 0) return { color: 'error' as const, message: t('verifactu.status.certificateExpired') }
   if (days < 60) return { color: days < 15 ? 'error' as const : 'warning' as const, message: t('verifactu.status.certificateExpiringSoon', { days }) }
   return null
 })

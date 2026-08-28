@@ -63,7 +63,7 @@ async function retryAll() {
         n: r.regenerated,
         failed: r.failed.length
       }),
-      color: r.failed.length === 0 ? 'green' : 'amber'
+      color: r.failed.length === 0 ? 'success' : 'warning'
     })
     await refresh()
   } finally {

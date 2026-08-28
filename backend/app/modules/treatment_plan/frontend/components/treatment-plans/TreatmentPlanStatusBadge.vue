@@ -13,7 +13,8 @@ const colorMap: Record<TreatmentPlanStatus, 'neutral' | 'info' | 'success' | 'er
   active: 'info',
   completed: 'success',
   archived: 'neutral',
-  cancelled: 'error'
+  pending: 'warning',
+  closed: 'error'
 }
 
 const color = computed(() => colorMap[props.status] || 'neutral')

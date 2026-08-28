@@ -124,7 +124,7 @@ const actionItems = computed(() => [
         :text="initials"
         size="lg"
         class="shrink-0 ring-2 ring-[var(--color-border-subtle)]"
-        :ui="{ text: 'font-semibold' }"
+        :ui="{ fallback: 'font-semibold' }"
       />
 
       <!-- Identity column -->

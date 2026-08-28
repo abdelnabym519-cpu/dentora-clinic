@@ -124,8 +124,9 @@ export function useVatTypes() {
       await api.del(`/api/v1/catalog/vat-types/${id}`)
       // Mark as inactive in local state
       const index = vatTypes.value.findIndex(vt => vt.id === id)
-      if (index !== -1) {
-        vatTypes.value[index] = { ...vatTypes.value[index], is_active: false }
+      const current = index !== -1 ? vatTypes.value[index] : undefined
+      if (current) {
+        vatTypes.value[index] = { ...current, is_active: false }
       }
       toast.add({
         title: t('common.success'),

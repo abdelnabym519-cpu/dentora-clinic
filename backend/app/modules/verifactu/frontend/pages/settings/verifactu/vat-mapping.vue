@@ -33,11 +33,13 @@ const CLASSIFICATIONS = [
   { value: 'N2', label: 'N2 — No sujeta (por reglas de localización)' }
 ] as const
 
-const AUTO_VALUE = '__auto__'
+const AUTO_VALUE = '__auto__' as const
+type ClassificationValue = typeof CLASSIFICATIONS[number]['value']
+type RowSelection = ClassificationValue | typeof AUTO_VALUE
 
 interface Row {
   data: VatClassificationItem
-  selected: string // override classification or AUTO_VALUE
+  selected: RowSelection // override classification or AUTO_VALUE
   notes: string
   dirty: boolean
 }
@@ -47,7 +49,7 @@ const rows = ref<Row[]>([])
 function rowFromItem(it: VatClassificationItem): Row {
   return {
     data: it,
-    selected: it.override_classification || AUTO_VALUE,
+    selected: (it.override_classification as ClassificationValue | null) || AUTO_VALUE,
     notes: it.override_notes || '',
     dirty: false
   }

@@ -70,8 +70,8 @@ const TARGET_GUM_VB_Y = 97.5
 
 const alignedViewBox = computed(() => {
   const position = getToothPosition(props.tooth.tooth_number)
-  const vbW = VIEWBOX_W_BY_POSITION[position] ?? VIEWBOX_W_BY_POSITION[1]
-  const gly = GUM_LINE_Y_BY_POSITION[position] ?? GUM_LINE_Y_BY_POSITION[1]
+  const vbW = VIEWBOX_W_BY_POSITION[position] ?? VIEWBOX_W_BY_POSITION[1] ?? 50
+  const gly = GUM_LINE_Y_BY_POSITION[position] ?? GUM_LINE_Y_BY_POSITION[1] ?? 97.5
   // Centre the tooth horizontally inside the common view window, then
   // shift the view vertically so its CEJ row lands on TARGET_GUM_VB_Y.
   const xV = vbW / 2 - VIEW_W / 2
@@ -114,7 +114,7 @@ const visualOpacity = computed(() => (props.tooth.is_present ? 1 : 0.35))
       <PerioSiteMarker
         v-for="code in visibleSites"
         :key="`above-${code}`"
-        :site="siteByCode[code]"
+        :site="siteByCode[code] ?? null"
         size="sm"
         readonly
       />
@@ -203,7 +203,7 @@ const visualOpacity = computed(() => (props.tooth.is_present ? 1 : 0.35))
       <PerioSiteMarker
         v-for="code in visibleSites"
         :key="`below-${code}`"
-        :site="siteByCode[code]"
+        :site="siteByCode[code] ?? null"
         size="sm"
         readonly
       />

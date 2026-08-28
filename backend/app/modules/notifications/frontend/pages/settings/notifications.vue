@@ -522,7 +522,7 @@ if (!isAdmin.value) {
     <!-- SMTP Configuration Modal -->
     <UModal
       v-model:open="showSmtpModal"
-      :ui="{ width: 'max-w-2xl' }"
+      :ui="{ content: 'sm:max-w-2xl' }"
     >
       <template #content>
         <UCard>

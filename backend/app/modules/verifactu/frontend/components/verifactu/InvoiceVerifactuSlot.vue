@@ -71,7 +71,7 @@ watch(() => invoice.value?.id, fetchLiveRecord)
 const state = computed(
   () => liveRecord.value?.state ?? (es.value?.state as string | undefined) ?? null
 )
-const errorMessage = computed(
+const recordErrorMessage = computed(
   () =>
     liveRecord.value?.aeat_descripcion_error
     ?? (es.value?.error_message as string | undefined)

@@ -5,7 +5,6 @@ import type {
   TreatmentCatalogItem,
   TreatmentCatalogItemUpdate,
   TreatmentCatalogItemCreate,
-  PricingStrategy,
   PricingStrategy
 } from '~~/app/types'
 import {

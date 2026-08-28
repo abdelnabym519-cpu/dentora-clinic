@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.events import EventType, event_bus
 
 from .channels import Channel, OutboundMessage, SendStatus, channel_registry
-from .models import CommunicationMessage
+from .models import ClinicChannelSettings, CommunicationMessage
 from .service import NotificationService, resolve_clinic_communication_locale
 
 logger = logging.getLogger(__name__)
@@ -159,8 +159,8 @@ class NotificationGateway:
         channel, addr, resolved_kind, _provider_template = resolved
 
         # Subject is resolved now (email) for the logs view; the body is
-        # (re)rendered at dispatch time. Session (free-form) sends carry the
-        # literal text in body_text and need no template.
+        # (re)rendered at dispatch time. Non-template free-form sends carry the
+        # literal text in body_text and need no provider template.
         subject = None
         if resolved_kind == "template":
             template = await NotificationService.get_template(
@@ -232,7 +232,7 @@ class NotificationGateway:
 
     @staticmethod
     async def _dispatch_one(db: AsyncSession, msg: CommunicationMessage) -> None:
-        adapter = channel_registry.get_for_channel(msg.channel)
+        adapter = await NotificationGateway._adapter_for_channel(db, msg.clinic_id, msg.channel)
         if adapter is None:
             await NotificationGateway._mark_failed(db, msg, f"no adapter for channel {msg.channel}")
             return
@@ -245,8 +245,8 @@ class NotificationGateway:
         # updated_at is older than N minutes back to 'failed'.
         await db.commit()
 
-        # Template sends (re)render from the template at send time; session
-        # (free-form) sends carry the literal text in msg.body_text.
+        # Template sends (re)render from the template at send time; non-template
+        # free-form sends carry the literal text in msg.body_text.
         template = None
         if msg.message_kind == "template":
             template = await NotificationService.get_template(
@@ -454,6 +454,34 @@ class NotificationGateway:
         return ["email"]  # ponytail: missing config ⇒ email-only, no migration
 
     @staticmethod
+    async def _adapter_for_channel(
+        db: AsyncSession, clinic_id: UUID, channel: Channel | str
+    ):
+        """Resolve the clinic-selected adapter, falling back to legacy routing.
+
+        ``ClinicChannelSettings`` existed before multiple WhatsApp vendors but
+        the gateway previously ignored it and used the process-global
+        last-registered adapter. Respecting it here preserves per-clinic
+        isolation while leaving clinics without selector rows unchanged.
+        """
+        resolved_channel = Channel(channel)
+        selected = (
+            await db.execute(
+                select(ClinicChannelSettings).where(
+                    ClinicChannelSettings.clinic_id == clinic_id,
+                    ClinicChannelSettings.channel == resolved_channel.value,
+                    ClinicChannelSettings.is_enabled.is_(True),
+                )
+            )
+        ).scalar_one_or_none()
+        if selected is not None:
+            adapter = channel_registry.get_by_name(selected.adapter_name)
+            if adapter is None or adapter.channel != resolved_channel:
+                return None
+            return adapter
+        return channel_registry.get_for_channel(resolved_channel)
+
+    @staticmethod
     async def _resolve_channel(
         db,
         clinic_id,
@@ -470,7 +498,7 @@ class NotificationGateway:
                 channel = Channel(name)
             except ValueError:
                 continue
-            adapter = channel_registry.get_for_channel(channel)
+            adapter = await NotificationGateway._adapter_for_channel(db, clinic_id, channel)
             if adapter is None or not await adapter.supports(db, clinic_id):
                 continue
 
@@ -486,16 +514,31 @@ class NotificationGateway:
                 addr = patient.phone if patient else None
                 if not addr:
                     continue
-                # Free-form reply: allowed only inside the 24h session window
-                # the patient's last inbound message opened. No opt-in needed
-                # (the patient initiated), no template required.
+                # Free-form reply: preserve the existing 24h conversation rule.
+                # The patient initiated the session, so no proactive opt-in is
+                # required and no provider template is involved.
                 if requested_kind == "session":
                     if _session_window_open(prefs):
                         return channel, addr, "session", None
                     continue
-                # Proactive: requires opt-in + an approved Meta template (HSM).
+
+                # Every proactive WhatsApp send still requires the patient's
+                # explicit channel opt-in, regardless of provider transport.
                 if not (prefs and prefs.whatsapp_enabled):
                     continue
+
+                # Evolution/Baileys does not use Meta HSM template approval.
+                # Application use-cases (e.g. a future prescription workflow)
+                # can queue an independently formatted safe text body while the
+                # gateway continues to own consent/idempotency/outbox semantics.
+                if (
+                    requested_kind == "text"
+                    and getattr(adapter, "requires_proactive_template", True) is False
+                ):
+                    return channel, addr, "text", None
+
+                # Meta/Kapso and normal template-driven WhatsApp sends keep the
+                # existing approved-provider-template requirement unchanged.
                 tmpl = await NotificationService.get_template(
                     db, clinic_id, notification_type, locale, channel="whatsapp"
                 )

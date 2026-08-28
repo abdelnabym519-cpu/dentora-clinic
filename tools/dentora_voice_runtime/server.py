@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -21,6 +22,9 @@ MODEL_PATH = Path(os.getenv("DENTORA_VOICE_MODEL_PATH", "models/faster-whisper-s
 DEVICE = os.getenv("DENTORA_VOICE_DEVICE", "cpu")
 COMPUTE_TYPE = os.getenv("DENTORA_VOICE_COMPUTE_TYPE", "int8")
 MAX_AUDIO_BYTES = int(os.getenv("DENTORA_VOICE_MAX_AUDIO_BYTES", str(25 * 1024 * 1024)))
+SHORT_AUDIO_SECONDS = float(os.getenv("DENTORA_VOICE_SHORT_AUDIO_SECONDS", "6.0"))
+LOW_LANGUAGE_CONFIDENCE = float(os.getenv("DENTORA_VOICE_LOW_LANGUAGE_CONFIDENCE", "0.60"))
+SHORT_AUDIO_FALLBACK_LANGUAGES = ("en", "ar")
 
 app = FastAPI(title="Dentora Voice Local Runtime", docs_url=None, redoc_url=None)
 app.add_middleware(
@@ -33,6 +37,17 @@ app.add_middleware(
 
 _model: WhisperModel | None = None
 _model_loaded_ms: int | None = None
+
+
+@dataclass(frozen=True)
+class TranscriptionCandidate:
+    text: str
+    language: str
+    language_probability: float
+    duration_seconds: float | None
+    transcription_seconds: float
+    average_log_probability: float
+
 
 def model() -> WhisperModel:
     global _model, _model_loaded_ms
@@ -52,6 +67,64 @@ def model() -> WhisperModel:
         _model_loaded_ms = int((time.perf_counter() - started) * 1000)
     return _model
 
+
+def _transcribe_once(path: str, *, language: str | None = None) -> TranscriptionCandidate:
+    started = time.perf_counter()
+    segments, info = model().transcribe(
+        path,
+        language=language,
+        beam_size=1,
+        vad_filter=True,
+        condition_on_previous_text=False,
+        temperature=0.0,
+    )
+    materialized = [segment for segment in segments if segment.text.strip()]
+    text = " ".join(segment.text.strip() for segment in materialized).strip()
+    elapsed = time.perf_counter() - started
+
+    if materialized:
+        weights = [max(segment.end - segment.start, 0.001) for segment in materialized]
+        total_weight = sum(weights)
+        average_log_probability = sum(
+            segment.avg_logprob * weight
+            for segment, weight in zip(materialized, weights, strict=True)
+        ) / total_weight
+    else:
+        average_log_probability = float("-inf")
+
+    return TranscriptionCandidate(
+        text=text,
+        language=info.language,
+        language_probability=float(info.language_probability),
+        duration_seconds=getattr(info, "duration", None),
+        transcription_seconds=elapsed,
+        average_log_probability=average_log_probability,
+    )
+
+
+def _needs_short_audio_language_fallback(candidate: TranscriptionCandidate) -> bool:
+    duration = candidate.duration_seconds
+    return bool(
+        candidate.text
+        and duration is not None
+        and duration <= SHORT_AUDIO_SECONDS
+        and candidate.language_probability < LOW_LANGUAGE_CONFIDENCE
+    )
+
+
+def _transcribe_with_short_audio_fallback(path: str) -> tuple[TranscriptionCandidate, float]:
+    started = time.perf_counter()
+    automatic = _transcribe_once(path)
+    candidates = [automatic]
+
+    if _needs_short_audio_language_fallback(automatic):
+        for language in SHORT_AUDIO_FALLBACK_LANGUAGES:
+            candidates.append(_transcribe_once(path, language=language))
+
+    selected = max(candidates, key=lambda item: item.average_log_probability)
+    return selected, time.perf_counter() - started
+
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -62,6 +135,7 @@ def health() -> dict:
         "compute_type": COMPUTE_TYPE,
         "model_loaded_ms": _model_loaded_ms,
     }
+
 
 @app.post("/transcribe")
 async def transcribe(audio: UploadFile = File(...)) -> dict:
@@ -77,23 +151,13 @@ async def transcribe(audio: UploadFile = File(...)) -> dict:
         with tempfile.NamedTemporaryFile(prefix="dentora-voice-", suffix=suffix, delete=False) as tmp:
             tmp.write(raw)
             path = tmp.name
-        started = time.perf_counter()
-        segments, info = model().transcribe(
-            path,
-            beam_size=1,
-            vad_filter=True,
-            condition_on_previous_text=False,
-            temperature=0.0,
-        )
-        text = " ".join(
-            segment.text.strip() for segment in segments if segment.text.strip()
-        ).strip()
-        elapsed = time.perf_counter() - started
+
+        selected, elapsed = _transcribe_with_short_audio_fallback(path)
         return {
-            "text": text,
-            "language": info.language,
-            "language_probability": info.language_probability,
-            "duration_seconds": getattr(info, "duration", None),
+            "text": selected.text,
+            "language": selected.language,
+            "language_probability": selected.language_probability,
+            "duration_seconds": selected.duration_seconds,
             "transcription_seconds": round(elapsed, 4),
         }
     finally:
@@ -103,6 +167,7 @@ async def transcribe(audio: UploadFile = File(...)) -> dict:
                 os.remove(path)
             except FileNotFoundError:
                 pass
+
 
 if __name__ == "__main__":
     import uvicorn

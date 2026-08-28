@@ -12,7 +12,7 @@
 
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:15-alpine@sha256:fe0737ba566a2c5b2a28f34433c0a423261900ec17b9bf7ad115e1aae7e57f1b
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-dental_clinic}
       POSTGRES_USER: ${POSTGRES_USER:-dental}
@@ -89,7 +89,7 @@ services:
     restart: unless-stopped
 
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
     ports:
       - "80:80"
       - "443:443"

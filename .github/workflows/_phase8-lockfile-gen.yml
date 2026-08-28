@@ -6,7 +6,7 @@ on:
       - phase/devops-phase-8-final-proof
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout exact branch SHA
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Set up Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
@@ -31,10 +31,14 @@ jobs:
         working-directory: frontend
         run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Upload generated lockfile
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
-        with:
-          name: phase8-frontend-package-lock
-          path: frontend/package-lock.json
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit generated lockfile only
+        run: |
+          if git diff --quiet -- frontend/package-lock.json; then
+            echo "lockfile already synchronized"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/package-lock.json
+          git commit -m 'chore(devops): synchronize frontend package lock'
+          git push origin HEAD:phase/devops-phase-8-final-proof

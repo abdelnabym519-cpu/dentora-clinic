@@ -29,6 +29,8 @@ jobs:
           curl -fsSL "$checksum_url" -o /tmp/dentora-health/dentora-release-manifest.json.sha256
           (cd /tmp/dentora-health && sha256sum -c dentora-release-manifest.json.sha256)
 
+          version=$(jq -r '.version' /tmp/dentora-health/dentora-release-manifest.json)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           fail=0
           for image in backend frontend; do
             ref=$(jq -r --arg image "$image" '.images[$image]' /tmp/dentora-health/dentora-release-manifest.json)
@@ -37,6 +39,13 @@ jobs:
               echo "FAIL unauthorized or mutable image reference for $image: $ref"
               fail=1
               continue
+            fi
+            expected_digest=${ref##*@}
+            tagged="${expected}:${version}"
+            tag_digest=$(docker buildx imagetools inspect "$tagged" 2>/dev/null | awk '$1=="Digest:" {print $2; exit}')
+            if [ "$tag_digest" != "$expected_digest" ]; then
+              echo "FAIL release tag drift for $tagged: expected $expected_digest, got ${tag_digest:-missing}"
+              fail=1
             fi
             if ! manifest=$(docker manifest inspect "$ref" 2>&1); then
               echo "FAIL $ref cannot be pulled anonymously"
@@ -75,7 +84,7 @@ jobs:
             exit 0
           fi
           gh issue create --title "$ISSUE_TITLE" --label bug --body \
-          "The latest published Release manifest/checksum or its immutable container digests failed validation, could not be pulled anonymously, or are missing a declared supported architecture.
+          "The latest published Release manifest/checksum, version-tag binding, or immutable container digests failed validation, could not be pulled anonymously, or are missing a declared supported architecture.
 
           Logs: $RUN_URL
 
@@ -94,5 +103,5 @@ jobs:
         run: |
           existing=$(gh issue list --state open --search "\"$ISSUE_TITLE\" in:title" --json number --jq '.[0].number // empty')
           if [ -n "$existing" ]; then
-            gh issue close "$existing" --comment "Release manifest and immutable images healthy again as of $(date -u +'%Y-%m-%d %H:%M UTC')."
+            gh issue close "$existing" --comment "Release manifest, tag binding and immutable images healthy again as of $(date -u +'%Y-%m-%d %H:%M UTC')."
           fi

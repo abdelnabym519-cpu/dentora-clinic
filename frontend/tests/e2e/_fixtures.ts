@@ -34,7 +34,7 @@ export async function login(page: Page, role: Role): Promise<void> {
   // Keep browser E2E assertions deterministic when the product default
   // locale changes. The locale plugin reads this key before hydration.
   await page.addInitScript(() => {
-    if (!window.localStorage.getItem('dentora:locale')) {
+    if (window.localStorage.getItem('dentora:locale') === null) {
       window.localStorage.setItem('dentora:locale', 'en')
     }
   })

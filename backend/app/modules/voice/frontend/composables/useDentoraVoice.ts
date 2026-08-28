@@ -1,14 +1,6 @@
 import { computed, nextTick, ref } from 'vue'
 
-type VoiceState =
-  | 'idle'
-  | 'listening'
-  | 'processing'
-  | 'executing'
-  | 'success'
-  | 'error'
-  | 'confirmation_required'
-  | 'clarification_required'
+type VoiceState = 'idle' | 'listening' | 'processing' | 'executing' | 'success' | 'error' | 'confirmation_required' | 'clarification_required'
 
 interface VoiceUIContext {
   route: string
@@ -64,7 +56,7 @@ async function waitFor(selector: string, timeoutMs = 3500): Promise<HTMLElement 
   while (performance.now() - started < timeoutMs) {
     const found = document.querySelector(selector)
     if (found instanceof HTMLElement) return found
-    await new Promise(resolve => setTimeout(resolve, 75))
+    await new Promise((resolve) => setTimeout(resolve, 75))
   }
   return null
 }
@@ -90,10 +82,10 @@ export function useDentoraVoice() {
     const targetRoute = typeof payload.route === 'string' ? payload.route : null
 
     if (targetRoute && route.path !== targetRoute) {
-      const query =
-        typeof payload.search === 'string' && payload.search
-          ? { search: payload.search }
-          : undefined
+      let query: { search: string } | undefined
+      if (typeof payload.search === 'string' && payload.search) {
+        query = { search: payload.search }
+      }
       await navigateTo({ path: targetRoute, query })
       await nextTick()
     }
@@ -177,7 +169,7 @@ export function useDentoraVoice() {
     const instance = new MediaRecorder(media, { mimeType: preferred })
     recorder.value = instance
     chunks.value = []
-    instance.ondataavailable = event => {
+    instance.ondataavailable = (event) => {
       if (event.data.size > 0) chunks.value.push(event.data)
     }
     instance.onstop = async () => {
@@ -193,7 +185,7 @@ export function useDentoraVoice() {
         state.value = 'error'
         error.value = cause instanceof Error ? cause.message : 'voice_runtime_error'
       } finally {
-        stream.value?.getTracks().forEach(track => track.stop())
+        stream.value?.getTracks().forEach((track) => track.stop())
         stream.value = null
         recorder.value = null
         chunks.value = []

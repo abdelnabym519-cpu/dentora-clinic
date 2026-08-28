@@ -35,7 +35,9 @@ jobs:
             backend/app/modules/whatsapp_evolution/router.py \
             backend/app/modules/whatsapp_evolution/service.py \
             backend/app/modules/whatsapp_evolution/webhooks.py \
-            backend/tests/modules/whatsapp_evolution/test_webhook.py
+            backend/tests/modules/whatsapp_evolution/test_webhook.py \
+            backend/tests/modules/whatsapp_evolution/test_gateway_integration.py \
+            backend/tests/modules/whatsapp_evolution/test_webhooks.py
           ruff check backend/
           ruff format --check backend/
 
@@ -67,6 +69,8 @@ jobs:
             backend/app/modules/whatsapp_evolution/service.py \
             backend/app/modules/whatsapp_evolution/webhooks.py \
             backend/tests/modules/whatsapp_evolution/test_webhook.py \
+            backend/tests/modules/whatsapp_evolution/test_gateway_integration.py \
+            backend/tests/modules/whatsapp_evolution/test_webhooks.py \
             docs/modules-catalog.md \
             docs/events-catalog.md
           git diff --cached --stat

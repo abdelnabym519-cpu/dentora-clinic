@@ -76,6 +76,7 @@ class PeriodontogramService:
             .options(
                 selectinload(PeriodontogramSnapshot.teeth).selectinload(PeriodontogramTooth.sites),
             )
+            .execution_options(populate_existing=True)
         )
         snap = (await db.execute(stmt)).scalar_one_or_none()
         if snap is None:

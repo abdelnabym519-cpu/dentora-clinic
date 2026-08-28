@@ -30,6 +30,8 @@
     "defaultClinicName": "Clínica"
   },
   "auth": {
+    "clinicSwitched": "Clínica cambiada",
+    "clinicSwitchFailed": "No se pudo cambiar de clínica",
     "login": "Iniciar sesión",
     "logout": "Cerrar sesión",
     "email": "Correo electrónico",

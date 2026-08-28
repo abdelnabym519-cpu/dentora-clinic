@@ -1,0 +1,57 @@
+{
+  "prescriptions": {
+    "title": "الوصفات الإلكترونية",
+    "subtitle": "إنشاء الوصفات وإصدارها وإرسالها عبر WhatsApp ومراجعة سجلها للعيادة المحددة.",
+    "new": "وصفة جديدة",
+    "patient": "المريض",
+    "searchPatient": "ابحث عن مريض",
+    "remove": "إزالة",
+    "addMedication": "إضافة دواء",
+    "createDraft": "إنشاء مسودة",
+    "history": "سجل الوصفات",
+    "transitionReason": "سبب الإلغاء أو الإبطال",
+    "empty": "لا توجد وصفات مسجلة حتى الآن.",
+    "issue": "إصدار",
+    "cancel": "إلغاء",
+    "sendWhatsApp": "إرسال أو إعادة المحاولة عبر WhatsApp",
+    "void": "إبطال",
+    "whatsapp": "WhatsApp",
+    "attempts": "المحاولات {attempts}/{max}",
+    "delivered": "تم التسليم",
+    "read": "تمت القراءة",
+    "noDeliveryAttempt": "WhatsApp: لا توجد محاولة إرسال مسجلة.",
+    "immutable": "محتوى الوصفة بعد إصدارها أو إنهائها غير قابل للتعديل.",
+    "fields": {
+      "medication": "اسم الدواء",
+      "strength": "التركيز",
+      "dose": "الجرعة",
+      "frequency": "عدد مرات الاستخدام",
+      "duration": "المدة",
+      "route": "طريقة الاستخدام",
+      "quantity": "الكمية",
+      "quantityUnit": "وحدة الكمية",
+      "instructions": "التعليمات"
+    },
+    "status": {
+      "draft": "مسودة",
+      "issued": "صادرة",
+      "cancelled": "ملغاة",
+      "voided": "مبطلة"
+    },
+    "deliveryStatus": {
+      "queued": "في قائمة الانتظار",
+      "sending": "جارٍ الإرسال",
+      "sent": "تم الإرسال",
+      "delivered": "تم التسليم",
+      "read": "تمت القراءة",
+      "failed": "فشل الإرسال"
+    },
+    "errors": {
+      "create": "تعذر إنشاء الوصفة.",
+      "issue": "تعذر إصدار الوصفة.",
+      "whatsapp": "تعذر إضافة إرسال WhatsApp إلى قائمة الانتظار.",
+      "cancel": "تعذر إلغاء الوصفة.",
+      "void": "تعذر إبطال الوصفة."
+    }
+  }
+}

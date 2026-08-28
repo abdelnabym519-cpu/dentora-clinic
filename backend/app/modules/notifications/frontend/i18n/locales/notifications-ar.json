@@ -1,0 +1,26 @@
+{
+  "notifications": {
+    "conversation": {
+      "title": "محادثة واتساب",
+      "empty": "لا توجد رسائل بعد.",
+      "placeholder": "اكتب ردًا…",
+      "replyError": "تعذّر إرسال الرد",
+      "windowClosed": "انتهت نافذة الـ24 ساعة. استخدم قالبًا لإعادة فتح المحادثة."
+    },
+    "status": {
+      "queued": "في قائمة الانتظار",
+      "sending": "جارٍ الإرسال",
+      "sent": "تم الإرسال",
+      "failed": "فشل",
+      "skipped": "تم التجاوز",
+      "delivered": "تم التسليم",
+      "read": "تمت القراءة"
+    },
+    "smtp": {
+      "providerConsole": "وحدة التحكم (للتطوير)",
+      "providerDisabled": "معطّل",
+      "securityNone": "بدون تشفير",
+      "fromNamePlaceholder": "عيادتي لطب الأسنان"
+    }
+  }
+}

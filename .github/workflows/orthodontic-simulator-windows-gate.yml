@@ -1,0 +1,74 @@
+name: Orthodontic Simulator Windows Gate
+
+on:
+  push:
+    branches:
+      - feat/orthodontic-simulator
+    paths:
+      - "tools/orthodontic_simulator_gate/**"
+      - ".github/workflows/orthodontic-simulator-windows-gate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-core:
+    name: Windows core / Python ${{ matrix.python-version }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    env:
+      OPENAI_API_KEY: ""
+      AZURE_OPENAI_API_KEY: ""
+      ANTHROPIC_API_KEY: ""
+      HF_TOKEN: ""
+      HUGGINGFACE_HUB_TOKEN: ""
+      CUDA_VISIBLE_DEVICES: ""
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_NO_CACHE_DIR: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: x64
+
+      - name: Create isolated virtualenv
+        shell: pwsh
+        run: |
+          python -m venv .ortho-gate-venv
+          .\.ortho-gate-venv\Scripts\python.exe -m pip install --upgrade pip
+
+      - name: Checkout pinned OpenSource Ortho source
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/john-lawniczak/OpenSourceOrtho.git .ortho-upstream
+          git -C .ortho-upstream checkout f5f93fc56fd406614abca5e608d28c991d2f7f12
+          $actual = git -C .ortho-upstream rev-parse HEAD
+          if ($actual -ne "f5f93fc56fd406614abca5e608d28c991d2f7f12") {
+            throw "Unexpected OpenSource Ortho revision: $actual"
+          }
+
+      - name: Install declared core dependencies only
+        shell: pwsh
+        run: |
+          .\.ortho-gate-venv\Scripts\python.exe -m pip install "pydantic>=2.7" "typing-extensions>=4.12"
+
+      - name: Prove forbidden runtimes are not installed
+        shell: pwsh
+        run: |
+          $freeze = .\.ortho-gate-venv\Scripts\python.exe -m pip freeze
+          $freeze
+          if ($freeze -match '(?im)^(openai|onnxruntime|onnxruntime-gpu|torch|tensorflow|tensorflow-intel)==') {
+            throw "Forbidden AI/GPU runtime detected in standalone core environment"
+          }
+
+      - name: Execute offline CPU-only core compatibility gate
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "$PWD\.ortho-upstream"
+          .\.ortho-gate-venv\Scripts\python.exe tools\orthodontic_simulator_gate\windows_core_gate.py

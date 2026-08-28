@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BudgetDetail, BudgetItem, InvoiceItemFromBudget, VatType } from '~~/app/types'
+import type { ApiResponse, BudgetDetail, BudgetItem, InvoiceItemFromBudget, Patient, VatType } from '~~/app/types'
 import { errorMessage } from '~~/app/utils/error'
 
 const { t, locale } = useI18n()
@@ -16,6 +16,7 @@ const budgetId = route.params.budgetId as string
 const isLoading = ref(true)
 const isSubmitting = ref(false)
 const budget = ref<BudgetDetail | null>(null)
+const billingPatient = ref<Patient | null>(null)
 const vatTypes = ref<VatType[]>([])
 
 // Selected items with quantities to invoice
@@ -39,6 +40,21 @@ onMounted(async () => {
 
     budget.value = budgetData
     vatTypes.value = vatResponse.data
+
+    if (budgetData?.patient?.id) {
+      const patientResponse = await api.get<ApiResponse<Patient>>(`/api/v1/patients/${budgetData.patient.id}`)
+      billingPatient.value = patientResponse.data
+    }
+
+    if (budgetData?.patient?.id) {
+      const patientResponse = await api.get<ApiResponse<Patient>>(`/api/v1/patients/${budgetData.patient.id}`)
+      billingPatient.value = patientResponse.data
+    }
+
+    if (budgetData?.patient?.id) {
+      const patientResponse = await api.get<ApiResponse<Patient>>(`/api/v1/patients/${budgetData.patient.id}`)
+      billingPatient.value = patientResponse.data
+    }
 
     // Pre-select all items that have available quantity
     // All items are invoiceable once budget is accepted (no item-level rejection)
@@ -110,6 +126,12 @@ function deselectAll() {
 // Get VAT type info
 function getVatType(vatTypeId?: string): VatType | undefined {
   return vatTypes.value.find(v => v.id === vatTypeId)
+}
+
+function getCatalogItemName(item: BudgetItem): string {
+  const names = item.catalog_item?.names
+  if (!names) return item.catalog_item?.internal_code || ''
+  return names[locale.value] || names.es || names.en || Object.values(names)[0] || item.catalog_item?.internal_code || ''
 }
 
 // Calculate item line total (for preview)
@@ -304,7 +326,7 @@ function goBack() {
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
                     <span class="font-medium text-default">
-                      {{ item.catalog_item?.name || 'Tratamiento' }}
+                      {{ getCatalogItemName(item) }}
                     </span>
                     <UBadge
                       v-if="item.tooth_number"
@@ -402,7 +424,7 @@ function goBack() {
                 {{ t('invoice.billingName') }}
               </p>
               <p class="font-medium text-default">
-                {{ budget.patient.billing_name || `${budget.patient.first_name} ${budget.patient.last_name}` }}
+                {{ billingPatient?.billing_name || `${budget.patient.first_name} ${budget.patient.last_name}` }}
               </p>
             </div>
             <div>
@@ -410,7 +432,7 @@ function goBack() {
                 {{ t('invoice.taxId') }}
               </p>
               <p class="font-medium text-default">
-                {{ budget.patient.billing_tax_id || '-' }}
+                {{ billingPatient?.billing_tax_id || '-' }}
               </p>
             </div>
             <div>
@@ -418,16 +440,16 @@ function goBack() {
                 {{ t('invoice.billingEmail') }}
               </p>
               <p class="font-medium text-default">
-                {{ budget.patient.billing_email || budget.patient.email || '-' }}
+                {{ billingPatient?.billing_email || budget.patient.email || '-' }}
               </p>
             </div>
-            <div v-if="budget.patient.billing_address">
+            <div v-if="billingPatient?.billing_address">
               <p class="text-caption text-subtle">
                 {{ t('invoice.billingAddress') }}
               </p>
               <p class="font-medium text-default">
-                {{ budget.patient.billing_address.street }},
-                {{ budget.patient.billing_address.postal_code }} {{ budget.patient.billing_address.city }}
+                {{ billingPatient?.billing_address?.street }},
+                {{ billingPatient?.billing_address?.postal_code }} {{ billingPatient?.billing_address?.city }}
               </p>
             </div>
           </div>

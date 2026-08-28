@@ -41,7 +41,7 @@ function formatDate(iso: string): string {
   }
 }
 
-function sourceBadgeColor(source: 'plan' | 'treatment' | 'visit'): string {
+function sourceBadgeColor(source: 'plan' | 'treatment' | 'visit'): 'primary' | 'success' | 'secondary' {
   if (source === 'visit') return 'primary'
   if (source === 'treatment') return 'success'
   return 'secondary'

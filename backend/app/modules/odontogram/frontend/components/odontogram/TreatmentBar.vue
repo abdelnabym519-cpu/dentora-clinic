@@ -367,10 +367,9 @@ function selectTreatment(item: TreatmentBarItem) {
 function selectTreatmentRegular(item: TreatmentBarItem) {
   // Check allowed statuses and auto-set if restricted
   const allowedStatuses = getEffectiveAllowedStatuses(item.odontogramType)
-  if (allowedStatuses.length === 1 && !allowedStatuses.includes(props.selectedStatus)) {
-    emit('update:selectedStatus', allowedStatuses[0])
-  } else if (!allowedStatuses.includes(props.selectedStatus)) {
-    emit('update:selectedStatus', allowedStatuses[0])
+  const preferredStatus = allowedStatuses[0]
+  if (preferredStatus && !allowedStatuses.includes(props.selectedStatus)) {
+    emit('update:selectedStatus', preferredStatus)
   }
 
   // Atomic multi-tooth (bridge, splint) and regular treatments share the same flow:

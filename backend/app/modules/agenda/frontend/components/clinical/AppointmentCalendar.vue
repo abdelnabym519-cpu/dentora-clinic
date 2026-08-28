@@ -15,7 +15,7 @@ interface ProfessionalWithColor extends Professional {
 }
 
 const props = defineProps<{
-  appointments: Appointment[]
+  appointments: readonly Appointment[]
   cabinets?: Cabinet[]
   professionals?: ProfessionalWithColor[]
   currentWeekStart: Date
@@ -235,7 +235,7 @@ function getAppointmentDayIndex(appointment: Appointment): number {
 }
 
 // Get cabinet color
-function getCabinetColor(cabinetName: string): string {
+function getCabinetColor(cabinetName: string | null | undefined): string {
   const cabinet = props.cabinets?.find(c => c.name === cabinetName)
   return cabinet?.color || '#6B7280' // Default gray
 }

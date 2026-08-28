@@ -104,7 +104,7 @@ function isUpperTooth(toothNumber: number): boolean {
       <UPopover
         :open-delay="300"
         :close-delay="100"
-        :ui="{ width: 'min-w-48 max-w-72' }"
+        :ui="{ content: 'min-w-48 max-w-72' }"
       >
         <div
           class="tooth-cell"

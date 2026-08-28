@@ -1,0 +1,67 @@
+{
+  "dental_3d": {
+    "card": {
+      "title": "Dental 3D",
+      "subtitle": "{count} teeth in the 3D preview",
+      "flagged": "{count} with findings",
+      "error": "The 3D preview is unavailable right now.",
+      "disclaimer": "Synthetic demo geometry — not clinical data",
+      "meshCount": "{count} scan meshes",
+      "upload": "Upload scan (.stl / .obj)",
+      "uploading": "Uploading scan…",
+      "uploadError": "The scan could not be uploaded. Check the file is a valid STL or OBJ.",
+      "scanDisclaimer": "Scan geometry for visualization — not a diagnostic tool"
+    },
+    "viewer": {
+      "hint": "Drag to rotate · scroll to zoom",
+      "webglUnavailable": "WebGL is not available in this browser, so the 3D preview cannot be rendered.",
+      "meshLoading": "Loading scan…",
+      "meshError": "Scan could not be loaded — showing synthetic preview",
+      "meshBadge": "Scan geometry",
+      "segmentationOverlay": "Segmentation labels",
+      "nerveOverlay": "Nerve pathway (simulated)"
+    },
+    "segmentation": {
+      "title": "Tooth segmentation",
+      "none": "not run yet",
+      "run": "Run segmentation",
+      "running": "Analysing…",
+      "runError": "Segmentation could not run right now.",
+      "segmented": "{count} segmented",
+      "uncertain": "{count} uncertain",
+      "missing": "{count} missing",
+      "method": "Method: {method}",
+      "nonClinical": "non-clinical decision support, dentist review required",
+      "uncertainTeeth": "Uncertain teeth: {teeth}",
+      "reviewPending": "awaiting dentist review",
+      "reviewAccepted": "reviewed — accepted",
+      "reviewRejected": "reviewed — rejected",
+      "accept": "Accept",
+      "reject": "Reject"
+    },
+    "nerve": {
+      "title": "Mandibular nerve",
+      "none": "not run yet",
+      "run": "Detect nerve pathway",
+      "running": "Modelling…",
+      "runError": "Nerve detection could not run right now.",
+      "pathways": "{count} pathways",
+      "near": "{count} near",
+      "watch": "{count} watch",
+      "method": "Method: {method}",
+      "simulated": "AI-assisted / simulated — requires dentist verification",
+      "confidence": "Confidence {value}",
+      "uncertainModel": "generic model (no patient geometry)",
+      "detectedModel": "scan-backed arch frame",
+      "nearTeeth": "Near teeth (AI-estimated): {teeth}",
+      "watchTeeth": "Watch teeth (AI-estimated): {teeth}",
+      "estimated": "AI-estimated proximity, not a safety verdict",
+      "reviewPending": "awaiting dentist verification",
+      "reviewAccepted": "verified — accepted",
+      "reviewRejected": "verified — rejected",
+      "accept": "Accept",
+      "reject": "Reject",
+      "showPathway": "Pathway"
+    }
+  }
+}

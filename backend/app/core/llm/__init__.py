@@ -25,7 +25,7 @@ from app.core.llm.base import (
     ToolUseBlock,
     Usage,
 )
-from app.core.llm.factory import get_provider
+from app.core.llm.factory import get_default_model, get_provider
 
 __all__ = [
     "ContentBlock",
@@ -42,5 +42,6 @@ __all__ = [
     "ToolUse",
     "ToolUseBlock",
     "Usage",
+    "get_default_model",
     "get_provider",
 ]

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ToothTreatmentView, TreatmentStatus } from '~~/app/types'
-import { TREATMENT_COLORS } from '~~/app/config/odontogramConstants'
+import { getTreatmentColor } from '~~/app/config/odontogramConstants'
 import { getTreatmentDisplayName } from '~~/app/utils/treatmentView'
 
 const props = defineProps<{
@@ -42,7 +42,7 @@ function getToothName(toothNumber: number): string {
 
 // Group treatments by status
 const groupedTreatments = computed(() => {
-  const groups: Record<TreatmentStatus, Treatment[]> = {
+  const groups: Record<TreatmentStatus, ToothTreatmentView[]> = {
     planned: [],
     existing: []
   }
@@ -70,7 +70,7 @@ function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString()
 }
 
-function handleEditClick(event: Event, treatment: Treatment) {
+function handleEditClick(event: Event, treatment: ToothTreatmentView) {
   event.stopPropagation()
   event.preventDefault()
   emit('editTreatment', treatment)
@@ -113,7 +113,7 @@ function handleEditClick(event: Event, treatment: Treatment) {
           <div class="treatment-main">
             <span
               class="treatment-dot"
-              :style="{ backgroundColor: TREATMENT_COLORS[treatment.treatment_type] || '#9CA3AF' }"
+              :style="{ backgroundColor: getTreatmentColor(treatment.treatment_type) }"
             />
             <span class="treatment-name">{{ getTreatmentLabel(treatment) }}</span>
             <UBadge
@@ -149,7 +149,7 @@ function handleEditClick(event: Event, treatment: Treatment) {
           <div class="treatment-main">
             <span
               class="treatment-dot"
-              :style="{ backgroundColor: TREATMENT_COLORS[treatment.treatment_type] || '#9CA3AF' }"
+              :style="{ backgroundColor: getTreatmentColor(treatment.treatment_type) }"
             />
             <span class="treatment-name">{{ getTreatmentLabel(treatment) }}</span>
             <UBadge

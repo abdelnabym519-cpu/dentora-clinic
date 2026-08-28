@@ -141,13 +141,9 @@ function getItemName(item: PlannedTreatmentItem): string {
     const name = names[locale.value] || names.es
     if (name) return name
   }
+  const freeText = item.notes?.trim()
+  if (freeText) return freeText.length > 60 ? `${freeText.slice(0, 60)}…` : freeText
   const clinicalType = item.treatment?.clinical_type
-  if (clinicalType === 'migrated' && item.treatment?.notes) {
-    const trimmed = item.treatment.notes.trim()
-    if (trimmed.length > 0) {
-      return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed
-    }
-  }
   if (clinicalType) {
     const key = `odontogram.treatments.types.${clinicalType}`
     const translated = t(key)

@@ -51,3 +51,11 @@ Triggers (any one):
 | 0004 | [BSL 1.1 license, Apache 2.0 after 4 years](0004-bsl-license.md) | accepted | 2026-04-27 |
 | 0005 | [Relative permissions, registry-prefixed namespacing](0005-relative-permissions.md) | accepted | 2026-04-27 |
 | 0006 | [Budget public link two-factor authentication](0006-budget-public-link-2-factor-auth.md) | accepted | 2026-04-28 |
+| 0019 | [Clean Architecture as a mandatory acceptance criterion](0019-clean-architecture-standard.md) | accepted | 2026-08-23 |
+| 0020 | [Real mesh ingestion via geometry-source ports and media storage](0020-real-mesh-ingestion.md) | accepted | 2026-08-23 |
+| 0021 | [Automatic tooth segmentation foundation behind a provider port](0021-tooth-segmentation-foundation.md) | accepted | 2026-08-23 |
+| 0022 | [Mandibular nerve detection foundation behind a provider port](0022-nerve-detection-foundation.md) | accepted | 2026-08-24 |
+| 0023 | [CBCT/DICOM ingestion foundation](0023-cbct-dicom-ingestion-foundation.md) | accepted | 2026-08-24 |
+| 0024 | [Real nerve detection boundary](0024-real-nerve-detection-boundary.md) | accepted | 2026-08-24 |
+| 0025 | [Patient-specific rigid registration behind Dentora ports](0025-patient-specific-rigid-registration.md) | accepted | 2026-08-25 |
+| 0026 | [ThreeUI uses native DICOM patient space](0026-threeui-native-patient-space.md) | accepted | 2026-08-25 |

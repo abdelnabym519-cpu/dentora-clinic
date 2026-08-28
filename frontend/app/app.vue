@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { fr, es, en, pt } from '@nuxt/ui/locale'
+import { ar, en, es, fr, pt } from '@nuxt/ui/locale'
 
 const { t, locale } = useI18n()
 
-const nuxtUILocales: Record<string, typeof en> = { en, fr, es, pt }
+const nuxtUILocales: Record<string, typeof en> = { en, fr, es, pt, ar }
 const nuxtUILocale = computed(() => nuxtUILocales[locale.value] || en)
+const documentDirection = computed(() => locale.value === 'ar' ? 'rtl' : 'ltr')
 
 useHead(() => ({
   meta: [
@@ -14,7 +15,8 @@ useHead(() => ({
     { rel: 'icon', href: '/favicon.ico' }
   ],
   htmlAttrs: {
-    lang: locale.value
+    lang: locale.value,
+    dir: documentDirection.value
   }
 }))
 

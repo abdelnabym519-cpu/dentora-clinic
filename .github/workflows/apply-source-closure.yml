@@ -1,0 +1,15 @@
+name: Apply Source Closure Fixes
+
+on:
+  push:
+    branches: [phase/arabic-rtl-final-ui]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Temporarily disabled while the canonical type-fix workflow owns source commits."

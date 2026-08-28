@@ -33,6 +33,15 @@ export const PERMISSIONS = {
     treatmentsRead: 'odontogram.treatments.read',
     treatmentsWrite: 'odontogram.treatments.write'
   },
+  dental3d: {
+    read: 'dental_3d.read',
+    write: 'dental_3d.write'
+  },
+  riskEngine: {
+    read: 'risk_engine.read',
+    generate: 'risk_engine.generate',
+    review: 'risk_engine.review'
+  },
   catalog: {
     read: 'catalog.read',
     write: 'catalog.write',

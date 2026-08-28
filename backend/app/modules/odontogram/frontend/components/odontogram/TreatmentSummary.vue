@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { ToothTreatmentView, Treatment, TreatmentStatus, TreatmentType } from '~~/app/types'
-import { TREATMENT_COLORS, STATUS_STYLES } from './ToothSVGPaths'
+import { getTreatmentColor } from '~~/app/config/odontogramConstants'
 import { viewForTooth } from '~~/app/utils/treatmentView'
 
 const props = defineProps<{
@@ -36,14 +36,16 @@ const treatmentsByType = computed(() => {
   > = {}
 
   for (const treatment of perToothTreatments.value) {
-    if (!grouped[treatment.treatment_type]) {
-      grouped[treatment.treatment_type] = { count: 0, teeth: [], treatments: [] }
+    let group = grouped[treatment.treatment_type]
+    if (!group) {
+      group = { count: 0, teeth: [], treatments: [] }
+      grouped[treatment.treatment_type] = group
     }
-    grouped[treatment.treatment_type].count++
-    if (!grouped[treatment.treatment_type].teeth.includes(treatment.tooth_number)) {
-      grouped[treatment.treatment_type].teeth.push(treatment.tooth_number)
+    group.count++
+    if (!group.teeth.includes(treatment.tooth_number)) {
+      group.teeth.push(treatment.tooth_number)
     }
-    grouped[treatment.treatment_type].treatments.push(treatment)
+    group.treatments.push(treatment)
   }
 
   return Object.entries(grouped)
@@ -98,6 +100,10 @@ function clearHighlight() {
 function getTreatmentLabel(type: string): string {
   return t(`odontogram.treatments.types.${type}`, type)
 }
+
+function getStatusDotColor(status: TreatmentStatus): string {
+  return status === 'planned' ? '#F59E0B' : '#6B7280'
+}
 </script>
 
 <template>
@@ -128,7 +134,7 @@ function getTreatmentLabel(type: string): string {
       >
         <span
           class="status-dot"
-          :style="{ backgroundColor: STATUS_STYLES[status].border }"
+          :style="{ backgroundColor: getStatusDotColor(status) }"
         />
         <span class="status-count">{{ count }}</span>
         <span class="status-label">{{ t(`odontogram.status.${status}`) }}</span>
@@ -150,7 +156,7 @@ function getTreatmentLabel(type: string): string {
         <div class="treatment-info">
           <span
             class="treatment-dot"
-            :style="{ backgroundColor: TREATMENT_COLORS[entry.type] || '#9CA3AF' }"
+            :style="{ backgroundColor: getTreatmentColor(entry.type) }"
           />
           <span class="treatment-name">{{ getTreatmentLabel(entry.type) }}</span>
         </div>

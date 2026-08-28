@@ -136,11 +136,11 @@ export interface UserUpdate {
 
 // Patient types
 export interface PatientBillingAddress {
-  street?: string
-  city?: string
-  postal_code?: string
-  province?: string
-  country?: string
+  street?: string | null
+  city?: string | null
+  postal_code?: string | null
+  province?: string | null
+  country?: string | null
 }
 
 export interface Patient {
@@ -148,17 +148,17 @@ export interface Patient {
   clinic_id: string
   first_name: string
   last_name: string
-  phone?: string
-  email?: string
-  date_of_birth?: string
-  notes?: string
+  phone?: string | null
+  email?: string | null
+  date_of_birth?: string | null
+  notes?: string | null
   status: 'active' | 'archived'
   do_not_contact: boolean
   // Billing fields
-  billing_name?: string
-  billing_tax_id?: string
-  billing_address?: PatientBillingAddress
-  billing_email?: string
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: PatientBillingAddress | null
+  billing_email?: string | null
   has_complete_billing_info: boolean
   created_at: string
   updated_at: string
@@ -167,16 +167,16 @@ export interface Patient {
 export interface PatientCreate {
   first_name: string
   last_name: string
-  phone?: string
-  email?: string
-  date_of_birth?: string
-  notes?: string
+  phone?: string | null
+  email?: string | null
+  date_of_birth?: string | null
+  notes?: string | null
   do_not_contact?: boolean
   // Billing fields
-  billing_name?: string
-  billing_tax_id?: string
-  billing_address?: PatientBillingAddress
-  billing_email?: string
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: PatientBillingAddress | null
+  billing_email?: string | null
 }
 
 export interface PatientUpdate extends Partial<PatientCreate> {
@@ -196,7 +196,7 @@ export interface AppointmentTreatmentBrief {
   default_duration_minutes?: number
   // Dental context
   tooth_number?: number
-  surfaces?: string[]
+  surfaces?: readonly string[]
   is_global: boolean
   // Plan info
   plan_id?: string
@@ -251,7 +251,7 @@ export interface Appointment {
   start_time: string
   end_time: string
   treatment_type?: string // Legacy field
-  treatments?: AppointmentTreatmentBrief[] // New: treatments from catalog
+  treatments?: readonly AppointmentTreatmentBrief[] // New: treatments from catalog
   status: AppointmentStatus
   current_status_since: string
   color?: string
@@ -260,8 +260,8 @@ export interface Appointment {
   patient?: Patient
   professional?: User
   // Populated only on GET /appointments/{id} and after POST transitions.
-  history?: AppointmentStatusEvent[] | null
-  cabinet_history?: AppointmentCabinetEvent[] | null
+  history?: readonly AppointmentStatusEvent[] | null
+  cabinet_history?: readonly AppointmentCabinetEvent[] | null
 }
 
 export interface AppointmentCreate {
@@ -809,6 +809,14 @@ export interface PatientBrief {
   email?: string
 }
 
+export interface BillingPatientBrief extends PatientBrief {
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: BillingAddress | null
+  billing_email?: string | null
+  has_complete_billing_info: boolean
+}
+
 export interface UserBrief {
   id: string
   first_name: string
@@ -843,7 +851,7 @@ export interface BudgetItem {
   line_total: number
   // Dental specifics
   tooth_number?: number
-  surfaces?: string[]
+  surfaces?: readonly string[]
   // Odontogram integration
   treatment_id?: string
   // Invoice tracking
@@ -973,6 +981,7 @@ export interface BudgetDetail extends Budget {
 
 export interface BudgetListItem {
   id: string
+  treatment_plan_id?: string | null
   budget_number: string
   version: number
   status: BudgetStatus
@@ -1463,7 +1472,7 @@ export interface InvoiceItem {
   line_total: number
   // Dental context
   tooth_number?: number
-  surfaces?: string[]
+  surfaces?: readonly string[]
   // Display
   display_order: number
   // Timestamps
@@ -1588,10 +1597,10 @@ export interface Invoice {
   due_date?: string
   payment_term_days: number
   // Billing data
-  billing_name: string
-  billing_tax_id?: string
-  billing_address?: BillingAddress
-  billing_email?: string
+  billing_name: string | null
+  billing_tax_id: string | null
+  billing_address: BillingAddress | null
+  billing_email: string | null
   // Totals
   subtotal: number
   total_discount: number
@@ -1613,7 +1622,7 @@ export interface Invoice {
   updated_at: string
   deleted_at?: string
   // Related
-  patient?: PatientBrief
+  patient?: BillingPatientBrief
   creator?: UserBrief
   issuer?: UserBrief
   budget?: BudgetBrief
@@ -1621,8 +1630,8 @@ export interface Invoice {
 }
 
 export interface InvoiceDetail extends Invoice {
-  items: InvoiceItem[]
-  payments: Payment[]
+  items: readonly InvoiceItem[]
+  invoice_payments: readonly InvoicePayment[]
 }
 
 export interface InvoiceListItem {
@@ -1639,7 +1648,7 @@ export interface InvoiceListItem {
   // {"ES": {state, severity, error_message, ...}}). Owned by the
   // active compliance module — billing exposes it raw.
   compliance_data?: Record<string, Record<string, unknown>> | null
-  patient?: PatientBrief
+  patient?: BillingPatientBrief
   creator?: UserBrief
 }
 
@@ -1783,11 +1792,11 @@ export interface PatientBillingSummary {
 
 // Patient Address
 export interface PatientAddress {
-  street?: string
-  city?: string
-  postal_code?: string
-  province?: string
-  country?: string
+  street?: string | null
+  city?: string | null
+  postal_code?: string | null
+  province?: string | null
+  country?: string | null
 }
 
 // Emergency Contact
@@ -1891,14 +1900,14 @@ export interface PatientAlert {
 // Extended Patient (with all new fields)
 export interface PatientExtended extends Patient {
   // Extended demographics
-  gender?: 'male' | 'female' | 'other' | 'prefer_not_say'
-  national_id?: string
-  national_id_type?: 'dni' | 'nie' | 'passport'
-  profession?: string
-  workplace?: string
+  gender?: 'male' | 'female' | 'other' | 'prefer_not_say' | null
+  national_id?: string | null
+  national_id_type?: 'dni' | 'nie' | 'passport' | null
+  profession?: string | null
+  workplace?: string | null
   preferred_language: string
-  address?: PatientAddress
-  photo_url?: string
+  address?: PatientAddress | null
+  photo_url?: string | null
 
   // Emergency contact
   emergency_contact?: EmergencyContact
@@ -1912,14 +1921,14 @@ export interface PatientExtended extends Patient {
 
 export interface PatientExtendedUpdate extends PatientUpdate {
   // Extended demographics
-  gender?: string
-  national_id?: string
-  national_id_type?: string
-  profession?: string
-  workplace?: string
-  preferred_language?: string
-  address?: PatientAddress
-  photo_url?: string
+  gender?: string | null
+  national_id?: string | null
+  national_id_type?: string | null
+  profession?: string | null
+  workplace?: string | null
+  preferred_language?: string | null
+  address?: PatientAddress | null
+  photo_url?: string | null
 
   // Emergency contact
   emergency_contact?: EmergencyContact
@@ -2050,7 +2059,7 @@ export interface AttachmentCreate {
 // Treatment Plan Types
 // ============================================================================
 
-export type TreatmentPlanStatus = 'draft' | 'active' | 'completed' | 'archived' | 'cancelled'
+export type TreatmentPlanStatus = 'draft' | 'pending' | 'active' | 'completed' | 'archived' | 'closed'
 
 export type PlannedItemStatus = 'pending' | 'completed' | 'cancelled'
 
@@ -2303,6 +2312,9 @@ export interface TreatmentPlan {
   plan_number: string
   title?: string
   status: TreatmentPlanStatus
+  closure_reason?: 'rejected_by_patient' | 'expired' | 'cancelled_by_clinic' | 'patient_abandoned' | 'other' | null
+  closed_at?: string | null
+  confirmed_at?: string | null
   budget_id?: string
   assigned_professional_id?: string
   created_by: string

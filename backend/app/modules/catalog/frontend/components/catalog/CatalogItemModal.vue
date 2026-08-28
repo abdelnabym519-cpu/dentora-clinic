@@ -4,7 +4,8 @@ import type {
   TreatmentCatalogCategory,
   TreatmentCatalogItem,
   TreatmentCatalogItemUpdate,
-  TreatmentCatalogItemCreate
+  TreatmentCatalogItemCreate,
+  PricingStrategy
 } from '~~/app/types'
 import {
   ALL_TREATMENT_TYPES,
@@ -12,6 +13,7 @@ import {
   VISUALIZATION_RULES,
   isSurfaceTreatment
 } from '~~/app/config/odontogramConstants'
+import type { TreatmentClinicalCategory, TreatmentType } from '~~/app/config/odontogramConstants'
 
 const props = defineProps<{
   item: TreatmentCatalogItem | null
@@ -71,8 +73,8 @@ const itemName = computed({
 })
 
 // Odontogram mapping
-const odontogramType = ref<string | undefined>(undefined)
-const clinicalCategory = ref<string | undefined>(undefined)
+const odontogramType = ref<TreatmentType | undefined>(undefined)
+const clinicalCategory = ref<TreatmentClinicalCategory | undefined>(undefined)
 
 // Sessions
 interface SessionRow {
@@ -139,8 +141,12 @@ watch(
         is_active: newItem.is_active
       }
       if (newItem.odontogram_mapping) {
-        odontogramType.value = newItem.odontogram_mapping.odontogram_treatment_type
-        clinicalCategory.value = newItem.odontogram_mapping.clinical_category
+        odontogramType.value = ALL_TREATMENT_TYPES.find(
+          type => type === newItem.odontogram_mapping?.odontogram_treatment_type
+        )
+        clinicalCategory.value = TREATMENT_CATEGORIES.find(
+          category => category.key === newItem.odontogram_mapping?.clinical_category
+        )?.key
       } else {
         odontogramType.value = undefined
         clinicalCategory.value = undefined
@@ -195,7 +201,7 @@ watch(sessionsEnabled, (enabled) => {
 })
 
 // Scope options with icons
-const scopeOptionsVisual = computed(() => [
+const scopeOptionsVisual = computed<Array<{ value: NonNullable<TreatmentCatalogItemUpdate['treatment_scope']>, label: string, icon: string }>>(() => [
   { value: 'tooth', label: t('catalog.scopeTypes.tooth'), icon: 'i-lucide-circle-dot' },
   { value: 'multi_tooth', label: t('catalog.scopeTypes.multi_tooth'), icon: 'i-lucide-grip' },
   { value: 'global_arch', label: t('catalog.scopeTypes.global_arch'), icon: 'i-lucide-rectangle-horizontal' },
@@ -203,7 +209,7 @@ const scopeOptionsVisual = computed(() => [
 ])
 
 // Pricing strategy with icons
-const strategyOptionsVisual = computed(() => [
+const strategyOptionsVisual = computed<Array<{ value: PricingStrategy, label: string, icon: string }>>(() => [
   { value: 'flat', label: t('catalog.pricingStrategy.flat'), icon: 'i-lucide-equal' },
   { value: 'per_tooth', label: t('catalog.pricingStrategy.per_tooth'), icon: 'i-lucide-x' },
   { value: 'per_surface', label: t('catalog.pricingStrategy.per_surface'), icon: 'i-lucide-layers' },
@@ -221,7 +227,7 @@ watch(
         const base = Number(formData.value.default_price) || 0
         formData.value.surface_prices = {
           1: base, 2: base, 3: base, 4: base, 5: base
-        } as unknown as Record<string, number>
+        }
       }
     } else {
       formData.value.surface_prices = null
@@ -314,13 +320,7 @@ const pricingHasError = computed(() =>
 function handleSubmit() {
   if (!isValid.value) return
 
-  const cleanData: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(formData.value)) {
-    if (value !== undefined) {
-      cleanData[key] = value
-    }
-  }
-
+  const cleanData: TreatmentCatalogItemUpdate = { ...formData.value }
   if (odontogramType.value && clinicalCategory.value) {
     cleanData.odontogram_mapping = {
       odontogram_treatment_type: odontogramType.value,
@@ -329,13 +329,16 @@ function handleSubmit() {
       clinical_category: clinicalCategory.value
     }
   }
-
   cleanData.sessions = sessionsEnabled.value ? sessionsToPayload() : []
 
   if (isCreateMode.value) {
-    emit('create', cleanData as TreatmentCatalogItemCreate)
+    const internalCode = cleanData.internal_code
+    const categoryId = cleanData.category_id
+    const names = cleanData.names
+    if (!internalCode || !categoryId || !names) return
+    emit('create', { ...cleanData, internal_code: internalCode, category_id: categoryId, names })
   } else {
-    emit('save', cleanData as TreatmentCatalogItemUpdate)
+    emit('save', cleanData)
   }
 }
 
@@ -487,7 +490,7 @@ function handleClose() {
               <UFormField :label="t('catalog.materialNotes')">
                 <UTextarea
                   v-model="formData.material_notes"
-                  rows="2"
+                  :rows="2"
                   :placeholder="t('catalog.materialNotesPlaceholder')"
                 />
               </UFormField>
@@ -516,8 +519,9 @@ function handleClose() {
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <UFormField :label="t('catalog.defaultPrice')">
                   <UInput
-                    v-model.number="formData.default_price"
+                    :model-value="formData.default_price"
                     type="number"
+                    @update:model-value="formData.default_price = Number($event)"
                     step="0.01"
                     min="0"
                   >
@@ -529,8 +533,9 @@ function handleClose() {
 
                 <UFormField :label="t('catalog.costPrice')">
                   <UInput
-                    v-model.number="formData.cost_price"
+                    :model-value="formData.cost_price"
                     type="number"
+                    @update:model-value="formData.cost_price = Number($event)"
                     step="0.01"
                     min="0"
                   >

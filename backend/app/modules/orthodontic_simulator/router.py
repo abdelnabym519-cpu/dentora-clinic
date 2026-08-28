@@ -65,9 +65,7 @@ async def run_simulation(
     """Compute a transient deterministic simulation; no source geometry is persisted or changed."""
     await _ensure_patient(db, ctx.clinic_id, patient_id)
     try:
-        result = await OrthodonticSimulatorService.simulate(
-            db, ctx.clinic_id, patient_id, data
-        )
+        result = await OrthodonticSimulatorService.simulate(db, ctx.clinic_id, patient_id, data)
     except SimulatorSafetyError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return ApiResponse(data=result)

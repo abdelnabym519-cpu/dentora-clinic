@@ -1,0 +1,18 @@
+Orthodontic Simulator component notice
+======================================
+
+Parts of the deterministic orthodontic planning domain are adapted from:
+
+OpenSource Ortho
+Copyright 2026 OpenSource Ortho contributors
+https://github.com/john-lawniczak/OpenSourceOrtho
+Pinned audit/runtime-gate revision: f5f93fc56fd406614abca5e608d28c991d2f7f12
+License: Apache License, Version 2.0
+
+The Apache-2.0 licensed concepts/component code used here are limited to deterministic
+FDI identity, tooth movement/staging, movement-cap evaluation, scale/provenance safety
+ideas and cumulative transform semantics. No OpenAI connector, ONNX model, learned
+segmentation, cloud service, model weights or upstream UI is included in this module.
+
+OrthoViz source code is not included or copied. It was used only as a visual/interaction
+reference because its repository did not provide a software license during the audit.

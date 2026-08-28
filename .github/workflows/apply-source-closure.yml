@@ -9,25 +9,7 @@ permissions:
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
+    if: false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: phase/arabic-rtl-final-ui
-      - name: Apply source-only fixes
-        shell: bash
-        run: |
-          awk '/^          python3 - <<'"'"'PY'"'"'$/ {capture=1; next} capture && /^          PY$/ {exit} capture {sub(/^          /, ""); print}' .github/workflows/apply-closure-patch.yml > /tmp/apply.py
-          python3 /tmp/apply.py
-          git checkout -- .github/workflows/ci.yml
-          git diff --check
-          if git diff --quiet; then
-            echo "No source changes required"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backend/app/modules
-          git commit -m "fix(frontend): resolve module-layer type blockers"
-          git push origin HEAD:phase/arabic-rtl-final-ui
+      - run: echo "Temporarily disabled while the canonical type-fix workflow owns source commits."

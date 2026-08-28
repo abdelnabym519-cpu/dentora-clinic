@@ -114,7 +114,7 @@ export function useDentoraVoice() {
   async function executeTranscript(text: string): Promise<void> {
     state.value = 'executing'
     error.value = ''
-    const response = await post<{ data: ExecuteResult }>('/voice/execute', {
+    const response = await post<{ data: ExecuteResult }>('/api/v1/voice/execute', {
       transcript: text,
       context: currentContext(route.path)
     })

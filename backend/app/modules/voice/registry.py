@@ -19,6 +19,7 @@ class VoiceCommandSpec:
     target: str | None = None
     available: bool = True
     blocked_reason: str | None = None
+    aliases: tuple[str, ...] = ()
 
 
 def _p(*patterns: str) -> tuple[Pattern[str], ...]:
@@ -35,6 +36,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("patients.read",),
         VoiceRisk.NAVIGATION,
         target="patients.search_patients",
+        aliases=("افتح حاله", "افتح ملف", "open patient", "open case"),
     ),
     VoiceCommandSpec(
         "SEARCH_PATIENT",
@@ -45,6 +47,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("patients.read",),
         VoiceRisk.READ,
         target="patients.search_patients",
+        aliases=("ابحث عن مريض", "دور على مريض", "search patient", "search for patient"),
     ),
     VoiceCommandSpec(
         "OPEN_CBCT",
@@ -56,6 +59,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         VoiceRisk.NAVIGATION,
         ("patient",),
         target="dental_3d.get_patient_scene",
+        aliases=("افتح cbct", "اعرض اخر cbct", "open cbct", "show latest cbct"),
     ),
     VoiceCommandSpec(
         "SHOW_3D",
@@ -67,6 +71,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         VoiceRisk.NAVIGATION,
         ("patient",),
         target="dental_3d.get_patient_scene",
+        aliases=("اعرض 3d", "وريني 3d", "show 3d", "show the 3d view"),
     ),
     VoiceCommandSpec(
         "SHOW_TOOTH_SEGMENTATION",
@@ -78,6 +83,12 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         VoiceRisk.NAVIGATION,
         ("patient",),
         target="dental_3d.get_patient_scene",
+        aliases=(
+            "اعرض تقسيم الاسنان",
+            "اظهر segmentation",
+            "show tooth segmentation",
+            "show teeth segmentation",
+        ),
     ),
     VoiceCommandSpec(
         "SHOW_NERVE",
@@ -89,6 +100,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         VoiceRisk.NAVIGATION,
         ("patient",),
         target="dental_3d.get_patient_scene",
+        aliases=("اظهر العصب", "اعرض العصب", "show nerve", "show the nerve"),
     ),
     VoiceCommandSpec(
         "OPEN_IMPLANT_PLANNER",
@@ -100,6 +112,12 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         VoiceRisk.NAVIGATION,
         ("patient",),
         target="dental_3d.get_patient_scene",
+        aliases=(
+            "شغل implant planning",
+            "افتح implant planner",
+            "open implant planning",
+            "open the implant planner",
+        ),
     ),
     VoiceCommandSpec(
         "COMPARE_SCANS",
@@ -109,6 +127,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("patient",),
         available=False,
         blocked_reason="No scan-comparison control/route is present in the approved base repository.",
+        aliases=("قارن الفحص", "compare scans", "compare the scans"),
     ),
     VoiceCommandSpec(
         "SHOW_PATHOLOGY",
@@ -121,6 +140,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("patient",),
         available=False,
         blocked_reason="No pathology viewer target is present in the approved base repository.",
+        aliases=("اظهر pathology", "اعرض الباثولوجي", "show pathology", "show the pathology"),
     ),
     VoiceCommandSpec(
         "GO_TO_PATIENTS",
@@ -128,6 +148,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("patients.read",),
         VoiceRisk.NAVIGATION,
         target="/patients",
+        aliases=("روح للمرضي", "اذهب للمرضي", "go to patients"),
     ),
     VoiceCommandSpec(
         "GO_TO_AGENDA",
@@ -138,6 +159,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("agenda.appointments.read",),
         VoiceRisk.NAVIGATION,
         target="/agenda",
+        aliases=("روح للاجنده", "روح للمواعيد", "go to agenda", "go to schedule"),
     ),
     VoiceCommandSpec(
         "GO_TO_BILLING",
@@ -148,6 +170,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("billing.read",),
         VoiceRisk.NAVIGATION,
         target="/billing",
+        aliases=("روح للفواتير", "روح للحسابات", "go to billing"),
     ),
     VoiceCommandSpec(
         "GO_TO_REPORTS",
@@ -155,6 +178,7 @@ COMMANDS: tuple[VoiceCommandSpec, ...] = (
         ("reports.billing.read",),
         VoiceRisk.NAVIGATION,
         target="/reports",
+        aliases=("روح للتقارير", "اذهب للتقارير", "go to reports"),
     ),
 )
 

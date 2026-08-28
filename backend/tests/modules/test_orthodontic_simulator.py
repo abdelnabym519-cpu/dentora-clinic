@@ -213,7 +213,9 @@ async def test_current_whole_arch_dental3d_contract_fails_closed(monkeypatch) ->
 
     patient_id = uuid4()
     capability = await OrthodonticSimulatorService.capability(
-        SimpleNamespace(), uuid4(), patient_id  # type: ignore[arg-type]
+        SimpleNamespace(),
+        uuid4(),
+        patient_id,  # type: ignore[arg-type]
     )
 
     assert capability.patient_id == patient_id
@@ -239,5 +241,8 @@ async def test_simulation_cannot_bypass_server_owned_geometry_gate(monkeypatch) 
     )
     with pytest.raises(SimulatorSafetyError, match="reviewed per-tooth geometry"):
         await OrthodonticSimulatorService.simulate(
-            SimpleNamespace(), uuid4(), uuid4(), request  # type: ignore[arg-type]
+            SimpleNamespace(),
+            uuid4(),
+            uuid4(),
+            request,  # type: ignore[arg-type]
         )

@@ -79,18 +79,38 @@ def _text_body(message: Any) -> str | None:
     return None
 
 
+def _phone_jid(key: dict, item: dict) -> str | None:
+    """Return a phone-number JID, never a Baileys Linked-ID (``@lid``).
+
+    Newer WhatsApp multi-device events can expose an opaque ``@lid`` as the
+    primary remoteJid. Evolution/Baileys may also provide ``remoteJidAlt`` with
+    the real phone-number JID. Treating the numeric-looking LID as a patient
+    phone number risks a wrong identity match, so unresolved LIDs are ignored.
+    """
+    remote = str(key.get("remoteJid") or item.get("remoteJid") or "").strip()
+    alternate = str(key.get("remoteJidAlt") or item.get("remoteJidAlt") or "").strip()
+    candidate = alternate if remote.endswith("@lid") else remote
+    if not candidate:
+        return None
+    if "@" not in candidate:
+        return candidate if candidate.isdigit() else None
+    if not candidate.endswith("@s.whatsapp.net"):
+        return None
+    return candidate
+
+
 def inbound_texts(payload: dict) -> list[InboundText]:
     rows: list[InboundText] = []
     for item in _items(payload.get("data")):
         key = item.get("key") if isinstance(item.get("key"), dict) else {}
         if key.get("fromMe") is True:
             continue
-        remote = str(key.get("remoteJid") or item.get("remoteJid") or "")
-        if not remote or remote.endswith("@g.us"):
+        phone_jid = _phone_jid(key, item)
+        if not phone_jid:
             continue
         message_id = key.get("id") or item.get("messageId")
         body = _text_body(item.get("message"))
-        phone = remote.split("@", 1)[0]
+        phone = phone_jid.split("@", 1)[0]
         if message_id and phone and body:
             rows.append(InboundText(str(message_id), phone, body))
     return rows

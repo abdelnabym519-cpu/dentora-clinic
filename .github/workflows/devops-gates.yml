@@ -75,6 +75,7 @@ jobs:
           from pathlib import Path
           import re
           failures=[]
+          mutation_pattern=r'\bgit\s+(?:push|commit)\b'
           for path in sorted(Path('.github/workflows').glob('*.yml')):
               text=path.read_text()
               for lineno,line in enumerate(text.splitlines(),1):
@@ -84,7 +85,7 @@ jobs:
                   if value.startswith('./'): continue
                   if '@' not in value or not re.fullmatch(r'[0-9a-f]{40}', value.rsplit('@',1)[1]):
                       failures.append(f'{path}:{lineno}: {value}')
-              if path.name != 'release.yml' and re.search(r'\b(?:git push|git commit)\b', text):
+              if path.name != 'release.yml' and re.search(mutation_pattern, text):
                   failures.append(f'{path}: self-mutating git command')
           if failures:
               raise SystemExit('\n'.join(failures))

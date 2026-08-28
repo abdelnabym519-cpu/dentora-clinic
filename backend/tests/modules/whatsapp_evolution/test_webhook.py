@@ -42,12 +42,16 @@ def _raw(payload: dict) -> bytes:
 async def test_delivery_webhook_updates_message_once(
     client: AsyncClient, db_session: AsyncSession, test_patient
 ):
-    settings = await _settings(db_session, test_patient.clinic_id)
+    clinic_id = test_patient.clinic_id
+    patient_id = test_patient.id
+    patient_phone = test_patient.phone
+    settings = await _settings(db_session, clinic_id)
+    webhook_settings_id = settings.id
     sent = CommunicationMessage(
-        clinic_id=test_patient.clinic_id,
+        clinic_id=clinic_id,
         channel="whatsapp",
-        to_address=test_patient.phone,
-        patient_id=test_patient.id,
+        to_address=patient_phone,
+        patient_id=patient_id,
         template_key="prescription",
         message_kind="text",
         status="sent",
@@ -67,7 +71,7 @@ async def test_delivery_webhook_updates_message_once(
         "X-Dentora-Webhook-Token": _TOKEN,
         "Content-Type": "application/json",
     }
-    url = f"/api/v1/whatsapp_evolution/webhook/{settings.id}"
+    url = f"/api/v1/whatsapp_evolution/webhook/{webhook_settings_id}"
 
     first = await client.post(url, content=raw, headers=headers)
     assert first.status_code == 200
@@ -82,7 +86,7 @@ async def test_delivery_webhook_updates_message_once(
     receipt_count = (
         await db_session.execute(
             select(func.count()).select_from(WhatsappEvolutionWebhookReceipt).where(
-                WhatsappEvolutionWebhookReceipt.clinic_id == test_patient.clinic_id
+                WhatsappEvolutionWebhookReceipt.clinic_id == clinic_id
             )
         )
     ).scalar_one()

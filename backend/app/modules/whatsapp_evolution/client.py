@@ -51,6 +51,25 @@ def normalize_phone_number(value: str) -> str:
     return digits
 
 
+def text_payload(number: str, text: str) -> dict:
+    """Build the Evolution API v2 SendTextDto payload."""
+    return {"number": normalize_phone_number(number), "text": text}
+
+
+def webhook_payload(webhook_url: str, webhook_token: str) -> dict:
+    """Build the Evolution API v2 webhook configuration envelope."""
+    return {
+        "webhook": {
+            "enabled": True,
+            "url": webhook_url,
+            "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"],
+            "headers": {"X-Dentora-Webhook-Token": webhook_token},
+            "byEvents": False,
+            "base64": False,
+        }
+    }
+
+
 async def _request(
     method: str,
     base_url: str,
@@ -95,13 +114,13 @@ async def send_text(
     number: str,
     text: str,
 ) -> dict:
-    payload = {
-        "number": normalize_phone_number(number),
-        "textMessage": {"text": text},
-    }
     instance = quote(instance_name, safe="")
     return await _request(
-        "POST", base_url, api_key, f"/message/sendText/{instance}", payload=payload
+        "POST",
+        base_url,
+        api_key,
+        f"/message/sendText/{instance}",
+        payload=text_payload(number, text),
     )
 
 
@@ -148,16 +167,13 @@ async def set_webhook(
     webhook_token: str,
 ) -> dict:
     """Configure only the events Dentora consumes, with a static secret header."""
-    payload = {
-        "enabled": True,
-        "url": webhook_url,
-        "events": ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"],
-        "headers": {"X-Dentora-Webhook-Token": webhook_token},
-        "base64": False,
-    }
     instance = quote(instance_name, safe="")
     return await _request(
-        "POST", base_url, api_key, f"/webhook/set/{instance}", payload=payload
+        "POST",
+        base_url,
+        api_key,
+        f"/webhook/set/{instance}",
+        payload=webhook_payload(webhook_url, webhook_token),
     )
 
 

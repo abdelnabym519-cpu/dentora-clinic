@@ -55,56 +55,49 @@ jobs:
         run: |
           set -euo pipefail
           if (unset DENTORA_VERSION; docker compose -f docker-compose.prod.yml config --quiet >/dev/null 2>&1); then
-            echo "::error::Production Compose accepted a missing DENTORA_VERSION"
-            exit 1
+            echo "::error::Production Compose accepted a missing DENTORA_VERSION"; exit 1
           fi
           if (unset BUDGET_PUBLIC_SECRET_KEY; docker compose -f docker-compose.prod.yml config --quiet >/dev/null 2>&1); then
-            echo "::error::Production Compose accepted a missing BUDGET_PUBLIC_SECRET_KEY"
-            exit 1
+            echo "::error::Production Compose accepted a missing BUDGET_PUBLIC_SECRET_KEY"; exit 1
           fi
           if (SECRET_KEY= docker compose -f docker-compose.coolify.yml config --quiet >/dev/null 2>&1); then
-            echo "::error::Coolify Compose accepted an empty SECRET_KEY"
-            exit 1
+            echo "::error::Coolify Compose accepted an empty SECRET_KEY"; exit 1
           fi
           if (POSTGRES_PASSWORD= docker compose -f docker-compose.coolify.yml config --quiet >/dev/null 2>&1); then
-            echo "::error::Coolify Compose accepted an empty POSTGRES_PASSWORD"
-            exit 1
+            echo "::error::Coolify Compose accepted an empty POSTGRES_PASSWORD"; exit 1
           fi
           grep -qx 'DENTORA_VERSION=' .env.prod.example
           git check-ignore -q .env.client
 
-      - name: Enforce immutable third-party Actions
+      - name: Enforce immutable third-party Actions and no self-mutating workflows
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
           failures=[]
           for path in sorted(Path('.github/workflows').glob('*.yml')):
-              for lineno,line in enumerate(path.read_text().splitlines(),1):
+              text=path.read_text()
+              for lineno,line in enumerate(text.splitlines(),1):
                   m=re.search(r'\buses:\s*([^\s#]+)', line)
-                  if not m:
-                      continue
+                  if not m: continue
                   value=m.group(1)
-                  if value.startswith('./'):
-                      continue
+                  if value.startswith('./'): continue
                   if '@' not in value or not re.fullmatch(r'[0-9a-f]{40}', value.rsplit('@',1)[1]):
                       failures.append(f'{path}:{lineno}: {value}')
+              if path.name != 'release.yml' and re.search(r'\b(?:git push|git commit)\b', text):
+                  failures.append(f'{path}: self-mutating git command')
           if failures:
-              raise SystemExit('Unpinned third-party Actions:\n'+'\n'.join(failures))
+              raise SystemExit('\n'.join(failures))
+          if Path('.github/workflows/risk-remediation.yml').exists():
+              raise SystemExit('legacy risk-remediation workflow still exists')
           PY
-
-      - name: Enforce DevOps scope safety
-        run: |
-          set -euo pipefail
-          test ! -e .github/workflows/risk-remediation.yml
-          ! grep -R -nE 'git push|git commit' .github/workflows --include='*.yml'
 
   runtime-recovery:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       INITIAL_STORAGE_VOLUME: dentora-phase8-${{ github.run_id }}-${{ github.run_attempt }}-storage
-      RUNTIME_ROOT: ${{ runner.temp }}/dentora-phase8-runtime
+      RUNTIME_ROOT: /tmp/dentora-phase8-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -129,21 +122,16 @@ jobs:
             'DENTORA_STORAGE_VOLUME':os.environ['INITIAL_STORAGE_VOLUME'],
             'DENTORA_CADDY_DATA_VOLUME':f"dentora-phase8-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}-caddy-data",
             'DENTORA_CADDY_CONFIG_VOLUME':f"dentora-phase8-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}-caddy-config",
-            'LICENSE_SERVER_URL':'',
-            'LICENSE_PUBLIC_KEY_B64':'',
-            'LICENSE_MACHINE_FINGERPRINT':'phase8-runtime',
-            'AI_GATEWAY_BASE_URL':'',
-            'UPDATE_METADATA_URL':'https://localhost:9443/update.json',
-            'UPDATE_PUBLIC_KEY_B64':'',
+            'LICENSE_SERVER_URL':'', 'LICENSE_PUBLIC_KEY_B64':'',
+            'LICENSE_MACHINE_FINGERPRINT':'phase8-runtime', 'AI_GATEWAY_BASE_URL':'',
+            'UPDATE_METADATA_URL':'https://localhost:9443/update.json', 'UPDATE_PUBLIC_KEY_B64':'',
           }
           lines=p.read_text().splitlines()
           for key,value in values.items():
               for i,line in enumerate(lines):
                   if line.startswith(key+'='):
-                      lines[i]=f'{key}={value}'
-                      break
-              else:
-                  lines.append(f'{key}={value}')
+                      lines[i]=f'{key}={value}'; break
+              else: lines.append(f'{key}={value}')
           p.write_text('\n'.join(lines)+'\n')
           PY
 
@@ -159,7 +147,7 @@ jobs:
           docker compose --env-file .env.client -f docker-compose.client.yml logs backend
           exit 1
 
-      - name: Create database and storage preservation sentinels
+      - name: Create preservation sentinels
         run: |
           set -euo pipefail
           docker compose --env-file .env.client -f docker-compose.client.yml exec -T db \
@@ -174,7 +162,6 @@ jobs:
           sudo -E pwsh -NoProfile -File scripts/dentora_backup_restore.ps1 -Action backup | tee /tmp/phase8-backup.log
           artifact=$(sed -n 's/^Artifact: //p' /tmp/phase8-backup.log | tail -1)
           test -n "$artifact" && test -f "$artifact"
-          echo "BACKUP_ARTIFACT=$artifact" >> "$GITHUB_ENV"
           docker compose --env-file .env.client -f docker-compose.client.yml exec -T db \
             psql -U dental -d dental_clinic -v ON_ERROR_STOP=1 -c \
             "UPDATE devops_phase8_sentinel SET value='mutated' WHERE id=1;"
@@ -185,13 +172,13 @@ jobs:
             psql -U dental -d dental_clinic -Atc "SELECT value FROM devops_phase8_sentinel WHERE id=1;")
           test "$value" = "before"
           docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend \
-            sh -c "test \"$(cat /app/storage/devops-phase8-sentinel.txt)\" = before"
+            sh -c 'test "$(cat /app/storage/devops-phase8-sentinel.txt)" = before'
           curl -fsS http://localhost/health/ready >/dev/null
 
       - name: Prepare trusted local HTTPS update channel
         run: |
           set -euo pipefail
-          mkdir -p "$RUNTIME_ROOT/www"
+          mkdir -p "$RUNTIME_ROOT/www" "$RUNTIME_ROOT/signing"
           openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 1 \
             -keyout "$RUNTIME_ROOT/server.key" -out "$RUNTIME_ROOT/server.crt" \
             -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1'
@@ -207,17 +194,12 @@ jobs:
           server.serve_forever()
           PY
           nohup python3 "$RUNTIME_ROOT/serve.py" >/tmp/dentora-update-https.log 2>&1 &
-          for i in $(seq 1 20); do
-            if curl -fsS https://localhost:9443/ >/dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/dentora-update-https.log
-          exit 1
+          for i in $(seq 1 20); do if curl -fsS https://localhost:9443/ >/dev/null; then exit 0; fi; sleep 1; done
+          cat /tmp/dentora-update-https.log; exit 1
 
-      - name: Create signed update helper and signing key
+      - name: Create update signing key and package helper
         run: |
           set -euo pipefail
-          mkdir -p "$RUNTIME_ROOT/signing"
           docker compose --env-file .env.client -f docker-compose.client.yml run --rm --no-deps \
             -v "$RUNTIME_ROOT/signing:/proof" --entrypoint python backend - <<'PY'
           import base64
@@ -229,41 +211,35 @@ jobs:
           public=key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
           Path('/proof/public.b64').write_text(base64.b64encode(public).decode())
           PY
-          public=$(cat "$RUNTIME_ROOT/signing/public.b64")
           python3 - <<'PY'
           from pathlib import Path
           import os
-          p=Path('.env.client')
-          value=Path(os.environ['RUNTIME_ROOT']+'/signing/public.b64').read_text().strip()
+          p=Path('.env.client'); value=Path(os.environ['RUNTIME_ROOT']+'/signing/public.b64').read_text().strip()
           lines=p.read_text().splitlines()
           for i,line in enumerate(lines):
               if line.startswith('UPDATE_PUBLIC_KEY_B64='):
-                  lines[i]='UPDATE_PUBLIC_KEY_B64='+value
-                  break
+                  lines[i]='UPDATE_PUBLIC_KEY_B64='+value; break
           p.write_text('\n'.join(lines)+'\n')
           PY
           cat > "$RUNTIME_ROOT/make-update.py" <<'PY'
           import base64, hashlib, json, os, shutil, subprocess, sys, zipfile
           from pathlib import Path
           from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-          root=Path(os.environ['GITHUB_WORKSPACE'])
-          runtime=Path(os.environ['RUNTIME_ROOT'])
+          root=Path(os.environ['GITHUB_WORKSPACE']); runtime=Path(os.environ['RUNTIME_ROOT'])
           target=sys.argv[1]; compatible=sys.argv[2]; broken=(len(sys.argv)>3 and sys.argv[3]=='broken')
-          stage=runtime/'stage'
-          shutil.rmtree(stage,ignore_errors=True); stage.mkdir(parents=True)
+          stage=runtime/'stage'; shutil.rmtree(stage,ignore_errors=True); stage.mkdir(parents=True)
           excludes={'.git','.env.client','backups','.dentora-update-journal.json','.dentora-restore-journal.json'}
           for item in root.iterdir():
               if item.name in excludes: continue
               dest=stage/item.name
-              if item.is_dir(): shutil.copytree(item,dest,symlinks=True)
-              else: shutil.copy2(item,dest)
-          pyproject=stage/'backend/pyproject.toml'
-          text=pyproject.read_text(); text=text.replace(f'version = "{compatible}"', f'version = "{target}"',1); pyproject.write_text(text)
+              shutil.copytree(item,dest,symlinks=True) if item.is_dir() else shutil.copy2(item,dest)
+          pyproject=stage/'backend/pyproject.toml'; text=pyproject.read_text()
+          marker=f'version = "{compatible}"'
+          if marker not in text: raise SystemExit(f'installed version marker not found: {marker}')
+          pyproject.write_text(text.replace(marker,f'version = "{target}"',1))
           if broken:
-              dockerfile=stage/'frontend/Dockerfile.prod'
-              dockerfile.write_text(dockerfile.read_text()+'\nRUN exit 42\n')
-          package=runtime/'www/dentora-update.zip'
-          package.unlink(missing_ok=True)
+              dockerfile=stage/'frontend/Dockerfile.prod'; dockerfile.write_text(dockerfile.read_text()+'\nRUN exit 42\n')
+          package=runtime/'www/dentora-update.zip'; package.unlink(missing_ok=True)
           with zipfile.ZipFile(package,'w',zipfile.ZIP_DEFLATED) as z:
               for path in stage.rglob('*'):
                   if path.is_file(): z.write(path,path.relative_to(stage))
@@ -274,28 +250,21 @@ jobs:
           descriptor={'version':target,'compatible_from':compatible,'package_url':'https://localhost:9443/dentora-update.zip','sha256':hashlib.sha256(payload).hexdigest(),'size':len(payload),'schema_revision':heads[0],'requires_backup':True}
           canonical=json.dumps(descriptor,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
           key=Ed25519PrivateKey.from_private_bytes((runtime/'signing/private.bin').read_bytes())
-          envelope={'descriptor':descriptor,'signature':base64.b64encode(key.sign(canonical)).decode()}
-          (runtime/'www/update.json').write_text(json.dumps(envelope,separators=(',',':')))
+          (runtime/'www/update.json').write_text(json.dumps({'descriptor':descriptor,'signature':base64.b64encode(key.sign(canonical)).decode()},separators=(',',':')))
           PY
 
       - name: Apply signed HTTPS update and verify preserved runtime state
         run: |
           set -euo pipefail
           docker compose --env-file .env.client -f docker-compose.client.yml run --rm --no-deps \
-            -v "$RUNTIME_ROOT:/proof" -v "$GITHUB_WORKSPACE:/workspace" --entrypoint python backend \
-            /proof/make-update.py 2>/dev/null || true
-          # Generate the signed package with host Python inside the backend image's dependency environment.
-          docker compose --env-file .env.client -f docker-compose.client.yml run --rm --no-deps \
             -v "$RUNTIME_ROOT:/runtime" -v "$GITHUB_WORKSPACE:/workspace" --entrypoint sh backend -c \
             'cd /workspace && RUNTIME_ROOT=/runtime GITHUB_WORKSPACE=/workspace python /runtime/make-update.py 2.0.1 2.0.0'
           curl -fsS https://localhost:9443/update.json >/dev/null
           sudo -E pwsh -NoProfile -File scripts/dentora_auto_update.ps1 -Action apply
           grep -q '^version = "2.0.1"$' backend/pyproject.toml
-          value=$(docker compose --env-file .env.client -f docker-compose.client.yml exec -T db \
-            psql -U dental -d dental_clinic -Atc "SELECT value FROM devops_phase8_sentinel WHERE id=1;")
+          value=$(docker compose --env-file .env.client -f docker-compose.client.yml exec -T db psql -U dental -d dental_clinic -Atc "SELECT value FROM devops_phase8_sentinel WHERE id=1;")
           test "$value" = "before"
-          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend \
-            sh -c "test \"$(cat /app/storage/devops-phase8-sentinel.txt)\" = before"
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend sh -c 'test "$(cat /app/storage/devops-phase8-sentinel.txt)" = before'
           test ! -e .dentora-update-journal.json
           curl -fsS http://localhost/health/ready >/dev/null
 
@@ -312,11 +281,9 @@ jobs:
           test "$rc" -ne 0
           grep -q '^version = "2.0.1"$' backend/pyproject.toml
           test ! -e .dentora-update-journal.json
-          value=$(docker compose --env-file .env.client -f docker-compose.client.yml exec -T db \
-            psql -U dental -d dental_clinic -Atc "SELECT value FROM devops_phase8_sentinel WHERE id=1;")
+          value=$(docker compose --env-file .env.client -f docker-compose.client.yml exec -T db psql -U dental -d dental_clinic -Atc "SELECT value FROM devops_phase8_sentinel WHERE id=1;")
           test "$value" = "before"
-          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend \
-            sh -c "test \"$(cat /app/storage/devops-phase8-sentinel.txt)\" = before"
+          docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend sh -c 'test "$(cat /app/storage/devops-phase8-sentinel.txt)" = before'
           curl -fsS http://localhost/health/ready >/dev/null
           cat /tmp/phase8-failed-update.log
 

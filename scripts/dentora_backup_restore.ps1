@@ -14,6 +14,7 @@ $EnvFile = Join-Path $RepoRoot ".env.client"
 $ComposeFile = Join-Path $RepoRoot "docker-compose.client.yml"
 $JournalPath = Join-Path $RepoRoot ".dentora-restore-journal.json"
 $BackupDir = Join-Path $RepoRoot "backups"
+$TempRoot = if ([string]::IsNullOrWhiteSpace($env:TEMP)) { [IO.Path]::GetTempPath() } else { $env:TEMP }
 $AppServices = @("backend", "frontend", "caddy")
 
 function Invoke-Docker {
@@ -35,17 +36,24 @@ function Invoke-Compose {
 }
 
 function Assert-Administrator {
-    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw "Backup / Restore must be run from an Administrator terminal."
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+        if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            throw "Backup / Restore must be run from an Administrator terminal."
+        }
+        return
+    }
+    $uid = & id -u
+    if ($LASTEXITCODE -ne 0 -or [string]$uid -ne "0") {
+        throw "Backup / Restore requires root privileges on non-Windows validation hosts."
     }
 }
 
 function Assert-Preconditions {
     if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) { throw ".env.client is missing." }
     if (-not (Test-Path -LiteralPath $ComposeFile -PathType Leaf)) { throw "docker-compose.client.yml is missing." }
-    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw "Docker Desktop is required." }
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw "Docker is required." }
     Invoke-Docker -Arguments @("info") -Capture | Out-Null
     if ([IO.File]::ReadAllText($ComposeFile) -notmatch '(?m)^\s*STORAGE_BACKEND:\s*local\s*$') {
         throw "Backup / Restore supports the Dentora local storage deployment only."
@@ -98,7 +106,8 @@ function Get-DatabaseSettings {
 }
 
 function Get-AppVersion {
-    $text = [IO.File]::ReadAllText((Join-Path $RepoRoot "backend\pyproject.toml"))
+    $path = Join-Path (Join-Path $RepoRoot "backend") "pyproject.toml"
+    $text = [IO.File]::ReadAllText($path)
     $match = [Regex]::Match($text, '(?m)^version\s*=\s*"([^"]+)"\s*$')
     if (-not $match.Success) { throw "Could not determine the installed Dentora version." }
     return $match.Groups[1].Value
@@ -156,8 +165,13 @@ function Get-StorageVolumeName {
 
 function Protect-BackupDirectory {
     New-Item -ItemType Directory -Path $BackupDir -Force | Out-Null
-    if (-not (Get-Command icacls.exe -ErrorAction SilentlyContinue)) { throw "icacls.exe is required." }
-    & icacls.exe $BackupDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        if (-not (Get-Command icacls.exe -ErrorAction SilentlyContinue)) { throw "icacls.exe is required." }
+        & icacls.exe $BackupDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Could not restrict Dentora backup directory permissions." }
+        return
+    }
+    & chmod 700 $BackupDir
     if ($LASTEXITCODE -ne 0) { throw "Could not restrict Dentora backup directory permissions." }
 }
 
@@ -240,7 +254,7 @@ function Remove-DatabaseIfExists {
 
 function Wait-DentoraHealth {
     param([string]$PublicUrl)
-    $healthUrl = $PublicUrl.TrimEnd('/') + "/health"
+    $healthUrl = $PublicUrl.TrimEnd('/') + "/health/ready"
     for ($attempt = 1; $attempt -le 30; $attempt++) {
         try {
             $response = Invoke-WebRequest -UseBasicParsing -Uri $healthUrl -TimeoutSec 4
@@ -248,7 +262,7 @@ function Wait-DentoraHealth {
         } catch { }
         Start-Sleep -Seconds 2
     }
-    throw "Dentora did not become healthy after restore."
+    throw "Dentora did not become ready after restore."
 }
 
 function Invoke-BackupInternal {
@@ -264,7 +278,7 @@ function Invoke-BackupInternal {
 
     $backupId = New-BackupId
     $createdAt = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ")
-    $stage = Join-Path $env:TEMP "DentoraBackup\$backupId"
+    $stage = Join-Path (Join-Path $TempRoot "DentoraBackup") $backupId
     $partial = Join-Path $BackupDir "$backupId.zip.partial"
     $final = Join-Path $BackupDir "$backupId.zip"
     $containerDump = "/tmp/$backupId.dump"
@@ -359,7 +373,7 @@ function Invoke-RestoreInternal {
     $version = Get-AppVersion
     $schema = Get-ExpectedSchemaRevision
     $stageName = "restore-" + [Guid]::NewGuid().ToString("N")
-    $stage = Join-Path $env:TEMP "DentoraRestore\$stageName"
+    $stage = Join-Path (Join-Path $TempRoot "DentoraRestore") $stageName
     New-Item -ItemType Directory -Path $stage -Force | Out-Null
 
     try {

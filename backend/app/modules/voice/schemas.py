@@ -1,4 +1,5 @@
 """Wire/domain contracts for Dentora Voice."""
+
 from __future__ import annotations
 
 from enum import StrEnum
@@ -7,11 +8,13 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+
 class VoiceRisk(StrEnum):
     READ = "read"
     NAVIGATION = "navigation"
     MUTATION = "mutation"
     DESTRUCTIVE = "destructive"
+
 
 class VoiceState(StrEnum):
     IDLE = "idle"
@@ -23,6 +26,7 @@ class VoiceState(StrEnum):
     CONFIRMATION_REQUIRED = "confirmation_required"
     CLARIFICATION_REQUIRED = "clarification_required"
 
+
 class VoiceUIContext(BaseModel):
     route: str = ""
     patient_id: UUID | None = None
@@ -31,6 +35,7 @@ class VoiceUIContext(BaseModel):
     comparison_study: str | None = Field(default=None, max_length=255)
     viewer_open: bool = False
     implant_planner_open: bool = False
+
 
 class VoiceCommandPlan(BaseModel):
     command: str
@@ -41,18 +46,22 @@ class VoiceCommandPlan(BaseModel):
     blocked_reason: str | None = None
     requires_confirmation: bool = False
 
+
 class InterpretRequest(BaseModel):
     transcript: str = Field(min_length=1, max_length=500)
     context: VoiceUIContext = Field(default_factory=VoiceUIContext)
+
 
 class InterpretResponse(BaseModel):
     commands: list[VoiceCommandPlan]
     clarification_required: bool = False
     clarification_reason: str | None = None
 
+
 class VoiceUIAction(BaseModel):
     action: str
     payload: dict[str, Any] = Field(default_factory=dict)
+
 
 class VoiceStepResult(BaseModel):
     command: str
@@ -63,6 +72,7 @@ class VoiceStepResult(BaseModel):
     ui_action: VoiceUIAction | None = None
     clarification_required: bool = False
     confirmation_required: bool = False
+
 
 class ExecuteResponse(BaseModel):
     state: VoiceState

@@ -66,37 +66,53 @@ class EvolutionService:
     async def _sync_channel_selector(
         db: AsyncSession, settings: WhatsappEvolutionSettings
     ) -> None:
+        """Synchronize the generic channel selector without causing provider cutover early.
+
+        A clinic that currently uses Kapso keeps that selector while Evolution
+        is merely saved/configured. Evolution takes ownership only after a
+        successful connection verification (state ``open``). Once Evolution is
+        already selected, a later disconnect remains fail-closed instead of
+        silently failing over to a different provider. Explicitly disabling
+        Evolution relinquishes only an Evolution-owned selector.
+        """
         row = await EvolutionService._channel_row(db, settings.clinic_id)
+
+        if not settings.is_active:
+            if row is not None and row.adapter_name == ADAPTER_NAME:
+                await db.delete(row)
+            return
+
         if row is None:
-            if not settings.is_active:
+            if not settings.is_verified:
                 return
             row = ClinicChannelSettings(
                 clinic_id=settings.clinic_id,
                 channel=CHANNEL,
                 adapter_name=ADAPTER_NAME,
                 is_enabled=True,
-                is_verified=settings.is_verified,
+                is_verified=True,
             )
             db.add(row)
-        elif settings.is_active:
-            # Explicitly enabling Evolution selects it for this clinic. This is
-            # the seam that lets Kapso and Evolution coexist without a global
-            # last-registered-wins decision.
-            row.adapter_name = ADAPTER_NAME
+        elif row.adapter_name == ADAPTER_NAME:
+            # Evolution already owns this clinic's WhatsApp channel. A later
+            # outage remains fail-closed; do not switch providers implicitly.
             row.is_enabled = True
             row.is_verified = settings.is_verified
-        elif row.adapter_name == ADAPTER_NAME:
-            # Disabling this provider relinquishes its selector instead of
-            # leaving a disabled row that would block a previously configured
-            # legacy provider such as Kapso from being discovered.
-            await db.delete(row)
+        elif settings.is_verified:
+            # A successful explicit Evolution verification is the cutover point
+            # from a legacy provider such as Kapso.
+            row.adapter_name = ADAPTER_NAME
+            row.is_enabled = True
+            row.is_verified = True
+        else:
+            # Evolution has not proven connectivity yet; preserve the current
+            # provider selector unchanged.
             return
 
-        if row.adapter_name == ADAPTER_NAME:
-            row.config = {
-                "base_url": settings.base_url,
-                "instance_name": settings.instance_name,
-            }
+        row.config = {
+            "base_url": settings.base_url,
+            "instance_name": settings.instance_name,
+        }
 
     @staticmethod
     async def upsert_settings(

@@ -22,11 +22,12 @@ jobs:
         run: |
           python3 .github/scripts/typefix_group2a.py
           python3 .github/scripts/typefix_group2b.py
+          python3 .github/scripts/typefix_group3.py
           git diff --check
 
       - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install frontend dependencies
         working-directory: frontend

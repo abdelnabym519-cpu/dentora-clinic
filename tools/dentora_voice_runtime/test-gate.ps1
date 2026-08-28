@@ -48,6 +48,10 @@ if ($branch -ne "feat/dentora-voice") {
     throw "Wrong branch: $branch. Checkout feat/dentora-voice before validation."
 }
 
+if (Test-Path $BackendPython -PathType Leaf) {
+    $BackendPython = (Resolve-Path $BackendPython).Path
+}
+
 $env:POSTGRES_PASSWORD = $PostgresPassword
 $env:POSTGRES_USER = $PostgresUser
 $env:SECRET_KEY = "dentora-voice-local-validation-secret-key-only"

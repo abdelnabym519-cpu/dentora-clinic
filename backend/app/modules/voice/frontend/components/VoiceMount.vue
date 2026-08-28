@@ -16,17 +16,43 @@ const statusLabel = computed(() => t(`voice.states.${state.value}`))
     >
       <div class="mb-3 flex items-center justify-between">
         <div>
-          <p class="text-sm font-semibold text-default">{{ t('voice.title') }}</p>
-          <p class="text-caption text-muted">{{ statusLabel }}</p>
+          <p class="text-sm font-semibold text-default">
+            {{ t('voice.title') }}
+          </p>
+          <p class="text-caption text-muted">
+            {{ statusLabel }}
+          </p>
         </div>
-        <UButton icon="i-lucide-x" variant="ghost" color="neutral" size="xs" :aria-label="t('voice.close')" @click="open = false" />
+        <UButton
+          icon="i-lucide-x"
+          variant="ghost"
+          color="neutral"
+          size="xs"
+          :aria-label="t('voice.close')"
+          @click="open = false"
+        />
       </div>
 
-      <div v-if="transcript" data-testid="dentora-voice-transcript" class="mb-3 rounded-md bg-elevated p-2 text-sm text-default">
+      <div
+        v-if="transcript"
+        data-testid="dentora-voice-transcript"
+        class="mb-3 rounded-md bg-elevated p-2 text-sm text-default"
+      >
         {{ transcript }}
       </div>
-      <p v-if="lastCommand" class="mb-2 text-caption text-muted">{{ lastCommand }}</p>
-      <p v-if="error" data-testid="dentora-voice-error" class="mb-3 text-caption text-error">{{ t(`voice.errors.${error}`, error) }}</p>
+      <p
+        v-if="lastCommand"
+        class="mb-2 text-caption text-muted"
+      >
+        {{ lastCommand }}
+      </p>
+      <p
+        v-if="error"
+        data-testid="dentora-voice-error"
+        class="mb-3 text-caption text-error"
+      >
+        {{ t(`voice.errors.${error}`, error) }}
+      </p>
 
       <div class="flex gap-2">
         <UButton
@@ -47,11 +73,18 @@ const statusLabel = computed(() => t(`voice.states.${state.value}`))
         >
           {{ t('voice.stop') }}
         </UButton>
-        <UButton v-if="!isBusy && state !== 'idle'" variant="ghost" color="neutral" @click="reset">
+        <UButton
+          v-if="!isBusy && state !== 'idle'"
+          variant="ghost"
+          color="neutral"
+          @click="reset"
+        >
           {{ t('voice.reset') }}
         </UButton>
       </div>
-      <p class="mt-3 text-xs text-muted">{{ t('voice.localOnly') }}</p>
+      <p class="mt-3 text-xs text-muted">
+        {{ t('voice.localOnly') }}
+      </p>
     </div>
 
     <UButton

@@ -11,10 +11,12 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Install dependencies
         working-directory: frontend
         run: npm install
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
       - name: Generate modules.json with host paths
         working-directory: frontend
         run: |
@@ -52,10 +54,12 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
       - name: Install dependencies
         working-directory: frontend
         run: npm install
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
       - name: Generate modules.json with host paths
         working-directory: frontend
         run: |

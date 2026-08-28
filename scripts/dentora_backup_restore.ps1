@@ -113,11 +113,34 @@ function Get-AppVersion {
     return $match.Groups[1].Value
 }
 
+function Get-SchemaFingerprint {
+    param([string[]]$Revisions)
+    $normalized = @(
+        $Revisions |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+    if ($normalized.Count -eq 0) { throw "Dentora schema revision set is empty." }
+    foreach ($revision in $normalized) {
+        if ($revision -notmatch '^[A-Za-z0-9_-]{4,128}$') {
+            throw "Dentora schema revision set contains an invalid revision."
+        }
+    }
+    $canonical = $normalized -join "`n"
+    $sha256 = [Security.Cryptography.SHA256]::Create()
+    try {
+        $digest = $sha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($canonical))
+    } finally {
+        $sha256.Dispose()
+    }
+    return "heads-$(-join ($digest | ForEach-Object { $_.ToString('x2') }))"
+}
+
 function Get-ExpectedSchemaRevision {
     $output = Invoke-Compose -Arguments @("run", "--rm", "--no-deps", "--entrypoint", "alembic", "backend", "heads") -Capture
-    $matches = [Regex]::Matches($output, '(?m)^([A-Za-z0-9_-]+)\s+\(head\)\s*$')
-    if ($matches.Count -ne 1) { throw "Dentora must have exactly one Alembic head." }
-    return $matches[0].Groups[1].Value
+    $matches = [Regex]::Matches($output, '(?m)^([A-Za-z0-9_-]+)\s+\((?:effective )?head\)\s*$')
+    return Get-SchemaFingerprint -Revisions @($matches | ForEach-Object { $_.Groups[1].Value })
 }
 
 function Get-DatabaseSchemaRevision {
@@ -128,9 +151,7 @@ function Get-DatabaseSchemaRevision {
         "exec", "-T", "db", "psql", "-U", $User, "-d", $Database,
         "-Atc", "SELECT version_num FROM alembic_version;"
     ) -Capture
-    $revision = $output.Trim()
-    if ($revision -notmatch '^[A-Za-z0-9_-]{4,128}$') { throw "Database Alembic revision is invalid." }
-    return $revision
+    return Get-SchemaFingerprint -Revisions @($output -split "`r?`n")
 }
 
 function Get-RunningServices {

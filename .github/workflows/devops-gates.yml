@@ -223,7 +223,7 @@ jobs:
           p.write_text('\n'.join(lines)+'\n')
           PY
           cat > "$RUNTIME_ROOT/make-update.py" <<'PY'
-          import base64, hashlib, json, os, shutil, subprocess, sys, zipfile
+          import base64, hashlib, json, os, re, shutil, subprocess, sys, zipfile
           from pathlib import Path
           from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
           root=Path(os.environ['GITHUB_WORKSPACE']); runtime=Path(os.environ['RUNTIME_ROOT'])
@@ -246,9 +246,11 @@ jobs:
                   if path.is_file(): z.write(path,path.relative_to(stage))
           payload=package.read_bytes()
           schema=subprocess.check_output(['docker','compose','--env-file',str(root/'.env.client'),'-f',str(root/'docker-compose.client.yml'),'run','--rm','--no-deps','--entrypoint','alembic','backend','heads'],text=True)
-          heads=[line.split()[0] for line in schema.splitlines() if '(head)' in line]
-          if len(heads)!=1: raise SystemExit(f'expected one Alembic head, got {heads}')
-          descriptor={'version':target,'compatible_from':compatible,'package_url':'https://localhost:9443/dentora-update.zip','sha256':hashlib.sha256(payload).hexdigest(),'size':len(payload),'schema_revision':heads[0],'requires_backup':True}
+          heads=sorted({line.split()[0] for line in schema.splitlines() if re.search(r'\((?:effective )?head\)\s*$', line)})
+          if not heads or any(not re.fullmatch(r'[A-Za-z0-9_-]{4,128}', head) for head in heads):
+              raise SystemExit(f'invalid Alembic head set: {heads}')
+          schema_revision='heads-'+hashlib.sha256('\n'.join(heads).encode()).hexdigest()
+          descriptor={'version':target,'compatible_from':compatible,'package_url':'https://localhost:9443/dentora-update.zip','sha256':hashlib.sha256(payload).hexdigest(),'size':len(payload),'schema_revision':schema_revision,'requires_backup':True}
           canonical=json.dumps(descriptor,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()
           key=Ed25519PrivateKey.from_private_bytes((runtime/'signing/private.bin').read_bytes())
           (runtime/'www/update.json').write_text(json.dumps({'descriptor':descriptor,'signature':base64.b64encode(key.sign(canonical)).decode()},separators=(',',':')))

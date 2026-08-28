@@ -43,6 +43,15 @@ def test_backup_is_cross_component_validated_and_atomic() -> None:
     assert "destination already exists; refusing to overwrite" in script
 
 
+def test_backup_fingerprints_the_complete_modular_alembic_head_set() -> None:
+    script = _read("scripts/dentora_backup_restore.ps1")
+    assert "Get-SchemaFingerprint" in script
+    assert "Sort-Object -Unique" in script
+    assert "(?:effective )?head" in script
+    assert "SELECT version_num FROM alembic_version" in script
+    assert "Dentora must have exactly one Alembic head" not in script
+
+
 def test_backup_excludes_machine_bound_license_and_environment_secrets() -> None:
     script = _read("scripts/dentora_backup_restore.ps1")
     assert "tar --exclude='./license' --exclude='./license/*'" in script

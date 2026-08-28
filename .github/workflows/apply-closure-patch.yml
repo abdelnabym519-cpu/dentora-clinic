@@ -18,11 +18,9 @@ jobs:
         with:
           ref: phase/arabic-rtl-final-ui
 
-      - name: Apply canonical source fixes
+      - name: Apply current canonical source cleanup
         run: |
-          python3 .github/scripts/typefix_group2a.py
-          python3 .github/scripts/typefix_group2b.py
-          python3 .github/scripts/typefix_group3.py
+          python3 .github/scripts/typefix_group4.py
           git diff --check
 
       - uses: actions/setup-node@v5
@@ -74,7 +72,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(frontend): resolve strict type contracts"
+          git commit -m "fix(frontend): remove duplicate type imports"
           git push origin HEAD:phase/arabic-rtl-final-ui
 
       - name: Enforce typecheck and build

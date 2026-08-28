@@ -1,0 +1,56 @@
+# Optional local Evolution API stack for Dentora development.
+#
+# This file is intentionally separate from docker-compose.yml so WhatsApp is
+# never required to boot Dentora. No image is silently pinned here: set a
+# reviewed Evolution API v2 image explicitly in .env.evolution (see example).
+
+services:
+  evolution-postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: evolution
+      POSTGRES_PASSWORD: ${EVOLUTION_POSTGRES_PASSWORD:?Set EVOLUTION_POSTGRES_PASSWORD}
+      POSTGRES_DB: evolution
+    volumes:
+      - evolution_postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  evolution-redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - evolution_redis_data:/data
+    restart: unless-stopped
+
+  evolution-api:
+    image: ${EVOLUTION_API_IMAGE:?Set EVOLUTION_API_IMAGE to a reviewed Evolution API v2 image}
+    depends_on:
+      - evolution-postgres
+      - evolution-redis
+    ports:
+      - "127.0.0.1:${EVOLUTION_API_PORT:-8080}:8080"
+    environment:
+      SERVER_NAME: dentora-evolution
+      SERVER_TYPE: http
+      SERVER_PORT: "8080"
+      SERVER_URL: ${EVOLUTION_SERVER_URL:-http://localhost:8080}
+      TELEMETRY_ENABLED: "false"
+      LOG_LEVEL: ERROR,WARN,INFO
+      LOG_BAILEYS: error
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://evolution:${EVOLUTION_POSTGRES_PASSWORD}@evolution-postgres:5432/evolution?schema=evolution_api
+      DATABASE_CONNECTION_CLIENT_NAME: dentora_evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://evolution-redis:6379/6
+      CACHE_LOCAL_ENABLED: "false"
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?Set EVOLUTION_API_KEY}
+      AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "false"
+      LANGUAGE: en
+    restart: unless-stopped
+
+volumes:
+  evolution_postgres_data:
+  evolution_redis_data:

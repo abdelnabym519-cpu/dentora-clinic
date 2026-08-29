@@ -202,7 +202,7 @@ jobs:
         run: |
           set -euo pipefail
           docker compose --env-file .env.client -f docker-compose.client.yml run --rm --no-deps \
-            -v "$RUNTIME_ROOT/signing:/proof" --entrypoint python backend - <<'PY'
+            --user 0:0 -v "$RUNTIME_ROOT/signing:/proof" --entrypoint python backend - <<'PY'
           import base64
           from pathlib import Path
           from cryptography.hazmat.primitives import serialization
@@ -260,7 +260,7 @@ jobs:
         run: |
           set -euo pipefail
           docker compose --env-file .env.client -f docker-compose.client.yml run --rm --no-deps \
-            -v "$RUNTIME_ROOT:/runtime" -v "$GITHUB_WORKSPACE:/workspace" --entrypoint sh backend -c \
+            --user 0:0 -v "$RUNTIME_ROOT:/runtime" -v "$GITHUB_WORKSPACE:/workspace" --entrypoint sh backend -c \
             'cd /workspace && RUNTIME_ROOT=/runtime GITHUB_WORKSPACE=/workspace python /runtime/make-update.py 2.0.1 2.0.0'
           curl -fsS https://localhost:9443/update.json >/dev/null
           sudo -E pwsh -NoProfile -File scripts/dentora_auto_update.ps1 -Action apply
@@ -275,7 +275,7 @@ jobs:
         run: |
           set -euo pipefail
           docker compose --env-file .env.client -f docker-compose.client.yml run --rm --no-deps \
-            -v "$RUNTIME_ROOT:/runtime" -v "$GITHUB_WORKSPACE:/workspace" --entrypoint sh backend -c \
+            --user 0:0 -v "$RUNTIME_ROOT:/runtime" -v "$GITHUB_WORKSPACE:/workspace" --entrypoint sh backend -c \
             'cd /workspace && RUNTIME_ROOT=/runtime GITHUB_WORKSPACE=/workspace python /runtime/make-update.py 2.0.2 2.0.1 broken'
           set +e
           sudo -E pwsh -NoProfile -File scripts/dentora_auto_update.ps1 -Action apply >/tmp/phase8-failed-update.log 2>&1

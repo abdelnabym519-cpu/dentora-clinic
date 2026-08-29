@@ -283,6 +283,7 @@ jobs:
           sudo -E pwsh -NoProfile -File scripts/dentora_auto_update.ps1 -Action apply >/tmp/phase8-failed-update.log 2>&1
           rc=$?
           set -e
+          cat /tmp/phase8-failed-update.log
           test "$rc" -ne 0
           grep -q '^version = "2.0.1"$' backend/pyproject.toml
           test ! -e .dentora-update-journal.json
@@ -290,7 +291,6 @@ jobs:
           test "$value" = "before"
           docker compose --env-file .env.client -f docker-compose.client.yml exec -T backend sh -c 'test "$(cat /app/storage/devops-phase8-sentinel.txt)" = before'
           curl -fsS http://localhost/health/ready >/dev/null
-          cat /tmp/phase8-failed-update.log
 
       - name: Show runtime diagnostics on failure
         if: failure()

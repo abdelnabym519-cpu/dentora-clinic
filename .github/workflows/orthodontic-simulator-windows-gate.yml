@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/orthodontic-simulator
+      - release/dentora-client-ready
     paths:
       - "tools/orthodontic_simulator_gate/**"
       - ".github/workflows/orthodontic-simulator-windows-gate.yml"

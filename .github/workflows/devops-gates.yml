@@ -212,7 +212,7 @@ jobs:
           public=key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
           Path('/proof/public.b64').write_text(base64.b64encode(public).decode())
           PY
-          python3 - <<'PY'
+          sudo -E python3 - <<'PY'
           from pathlib import Path
           import os
           p=Path('.env.client'); value=Path(os.environ['RUNTIME_ROOT']+'/signing/public.b64').read_text().strip()

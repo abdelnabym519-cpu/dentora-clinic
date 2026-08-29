@@ -245,7 +245,7 @@ jobs:
               for path in stage.rglob('*'):
                   if path.is_file(): z.write(path,path.relative_to(stage))
           payload=package.read_bytes()
-          schema=subprocess.check_output(['docker','compose','--env-file',str(root/'.env.client'),'-f',str(root/'docker-compose.client.yml'),'run','--rm','--no-deps','--entrypoint','alembic','backend','heads'],text=True)
+          schema=(runtime/'schema-heads.txt').read_text()
           heads=sorted({line.split()[0] for line in schema.splitlines() if re.search(r'\((?:effective )?head\)\s*$', line)})
           if not heads or any(not re.fullmatch(r'[A-Za-z0-9_-]{4,128}', head) for head in heads):
               raise SystemExit(f'invalid Alembic head set: {heads}')
@@ -255,6 +255,8 @@ jobs:
           key=Ed25519PrivateKey.from_private_bytes((runtime/'signing/private.bin').read_bytes())
           (runtime/'www/update.json').write_text(json.dumps({'descriptor':descriptor,'signature':base64.b64encode(key.sign(canonical)).decode()},separators=(',',':')))
           PY
+          docker compose --env-file .env.client -f docker-compose.client.yml run --rm --no-deps \
+            --entrypoint alembic backend heads > "$RUNTIME_ROOT/schema-heads.txt"
 
       - name: Apply signed HTTPS update and verify preserved runtime state
         run: |

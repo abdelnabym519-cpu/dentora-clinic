@@ -217,7 +217,12 @@ jobs:
           done
           curl -fsS http://localhost/health >/dev/null
           curl -fsS http://localhost/health/ready >/dev/null
-          docker compose --env-file /tmp/dentora-prod.env -f docker-compose.prod.yml exec -T backend alembic current --check-heads
+          expected_heads=$(docker compose --env-file /tmp/dentora-prod.env -f docker-compose.prod.yml exec -T backend alembic heads 2>/dev/null \
+            | sed -nE 's/^([^[:space:]]+).*\((effective )?head\)$/\1/p' | sort -u)
+          current_heads=$(docker compose --env-file /tmp/dentora-prod.env -f docker-compose.prod.yml exec -T backend alembic current 2>/dev/null \
+            | sed -nE 's/^([^[:space:]]+).*\((effective )?head\)$/\1/p' | sort -u)
+          test -n "$expected_heads"
+          test "$current_heads" = "$expected_heads"
 
       - name: Verify running OCI digests match proof manifest
         run: |

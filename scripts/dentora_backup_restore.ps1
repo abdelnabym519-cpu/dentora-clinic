@@ -324,7 +324,7 @@ function Invoke-BackupInternal {
 
         $mount = "${stage}:/backup"
         Invoke-Compose -Arguments @(
-            "run", "--rm", "--no-deps", "-v", $mount, "--entrypoint", "sh", "backend", "-c",
+            "run", "--rm", "--no-deps", "--user", "0:0", "-v", $mount, "--entrypoint", "sh", "backend", "-c",
             "set -eu; tar --exclude='./license' --exclude='./license/*' -C /app/storage -cf /backup/storage.tar ."
         )
         Invoke-ArtifactCli -Stage $stage -Arguments @(

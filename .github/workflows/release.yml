@@ -178,8 +178,13 @@ jobs:
           if [ "${{ matrix.name }}" = backend ]; then arches="amd64"; else arches="amd64 arm64"; fi
           for arch in $arches; do
             echo "$MANIFEST" | jq -e --arg a "$arch" '[.manifests[]?.platform | select(.os=="linux" and .architecture==$a)] | length > 0' >/dev/null
-            docker buildx imagetools inspect "$IMAGE" --format "{{json (index .SBOM \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
-            docker buildx imagetools inspect "$IMAGE" --format "{{json (index .Provenance \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
+            if [ "${{ matrix.name }}" = backend ]; then
+              docker buildx imagetools inspect "$IMAGE" --format "{{json .SBOM}}" | jq -e 'type=="object" and length>0' >/dev/null
+              docker buildx imagetools inspect "$IMAGE" --format "{{json .Provenance}}" | jq -e 'type=="object" and length>0' >/dev/null
+            else
+              docker buildx imagetools inspect "$IMAGE" --format "{{json (index .SBOM \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
+              docker buildx imagetools inspect "$IMAGE" --format "{{json (index .Provenance \"linux/$arch\")}}" | jq -e 'type=="object" and length>0' >/dev/null
+            fi
           done
       - name: Attest final OCI digest with GitHub
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4

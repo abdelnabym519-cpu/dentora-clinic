@@ -56,6 +56,7 @@ def test_backup_fingerprints_the_complete_modular_alembic_head_set() -> None:
 
 def test_backup_excludes_machine_bound_license_and_environment_secrets() -> None:
     script = _read("scripts/dentora_backup_restore.ps1")
+    assert '"run", "--rm", "--no-deps", "--user", "0:0"' in script
     assert "tar --exclude='./license' --exclude='./license/*'" in script
     assert "lease.json" not in script
     assert "SECRET_KEY" not in script

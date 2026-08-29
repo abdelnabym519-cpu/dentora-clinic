@@ -89,7 +89,8 @@ function Recover {
     if (-not (Test-Path $Journal)) { Write-Host "No interrupted update was found."; return }
     $j = Get-Content $Journal -Raw | ConvertFrom-Json
     if (-not (Test-Path ([string]$j.snapshot))) { throw "Rollback snapshot is missing. Dentora remains fail-closed." }
-    Copy-Item (Join-Path ([string]$j.snapshot) '*') $Root -Recurse -Force
+    & tar -xf ([string]$j.snapshot) -C $Root
+    if ($LASTEXITCODE -ne 0) { throw "Rollback snapshot extraction failed. Dentora remains fail-closed." }
     Invoke-Compose @("up", "-d", "--build", "db", "backend", "frontend", "caddy")
     if (Test-Path ([string]$j.backup)) { & (Join-Path (Join-Path $Root "scripts") "dentora_backup_restore.ps1") -Action restore -ArtifactPath ([string]$j.backup) }
     Wait-Health
@@ -97,16 +98,14 @@ function Recover {
 }
 function Apply {
     if (Test-Path $Journal) { throw "Recover the interrupted update first." }
-    $u = Download-Update; $stage = Join-Path $u.Dir "stage"; $snapshot = Join-Path $u.Dir "snapshot"
+    $u = Download-Update; $stage = Join-Path $u.Dir "stage"; $snapshot = Join-Path $u.Dir "snapshot.tar"
     Expand-Archive -LiteralPath $u.Package -DestinationPath $stage
     if ((Get-Version $stage) -ne [string]$u.Descriptor.version) { throw "Staged version does not match signed metadata." }
     foreach ($protected in @(".env.client", "backups", ".dentora-update-journal.json", ".dentora-restore-journal.json", ".git")) {
         if (Test-Path (Join-Path $stage $protected)) { throw "Update package contains protected installation state." }
     }
-    New-Item -ItemType Directory $snapshot -Force | Out-Null
-    foreach ($item in Get-ChildItem $Root -Force) {
-        if ($item.Name -notin @(".env.client", "backups", ".dentora-update-journal.json", ".dentora-restore-journal.json", ".git")) { Copy-Item $item.FullName $snapshot -Recurse -Force }
-    }
+    & tar -cf $snapshot --exclude=./.env.client --exclude=./backups --exclude=./.dentora-update-journal.json --exclude=./.dentora-restore-journal.json --exclude=./.git -C $Root .
+    if ($LASTEXITCODE -ne 0) { throw "Rollback snapshot creation failed." }
     $backup = New-Backup
     $state = @{ version=1; phase="prepared"; target=[string]$u.Descriptor.version; snapshot=$snapshot; backup=$backup }; Write-Journal $state
     try {

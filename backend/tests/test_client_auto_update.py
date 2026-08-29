@@ -82,6 +82,8 @@ def test_migrations_run_via_normal_backend_entrypoint_and_failure_rolls_back() -
     script = _read("scripts/dentora_auto_update.ps1")
     entrypoint = _read("backend/docker-entrypoint.sh")
     assert "alembic upgrade heads" in entrypoint
+    assert "function Invoke-Compose([string[]]$Arguments)" in script
+    assert "@Arguments" in script
     assert 'Invoke-Compose @("up", "-d", "--build", "db", "backend", "frontend", "caddy")' in script
     assert "catch { $original=$_; try { Recover }" in script
     assert "-Action restore -ArtifactPath" in script

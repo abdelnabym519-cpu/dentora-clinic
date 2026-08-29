@@ -32,8 +32,8 @@ function Assert-Admin {
     $uid = & id -u
     if ($LASTEXITCODE -ne 0 -or [string]$uid -ne "0") { throw "Root privileges are required on non-Windows validation hosts." }
 }
-function Invoke-Compose([string[]]$Args) {
-    & docker compose --env-file $EnvFile -f $Compose @Args
+function Invoke-Compose([string[]]$Arguments) {
+    & docker compose --env-file $EnvFile -f $Compose @Arguments
     if ($LASTEXITCODE -ne 0) { throw "Docker Compose failed with exit code $LASTEXITCODE." }
 }
 function Wait-Health {

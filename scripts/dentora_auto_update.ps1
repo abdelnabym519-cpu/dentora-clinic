@@ -79,7 +79,7 @@ function Download-Update {
 }
 function New-Backup {
     $script = Join-Path (Join-Path $Root "scripts") "dentora_backup_restore.ps1"
-    $output = & $script -Action backup 2>&1
+    $output = & $script -Action backup *>&1
     if ($LASTEXITCODE -ne 0) { throw "Mandatory pre-update backup failed." }
     $line = @($output | Where-Object { [string]$_ -match '^Artifact:\s+(.+\.zip)$' }) | Select-Object -Last 1
     if ($null -eq $line) { throw "Backup artifact path was not returned." }

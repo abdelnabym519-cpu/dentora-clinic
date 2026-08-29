@@ -231,7 +231,8 @@ jobs:
             expected=$(jq -r --arg i "$image" '.images[$i]' /tmp/proof/dentora-release-manifest.json)
             digest=${expected##*@}
             container=$(docker compose --env-file /tmp/dentora-prod.env -f docker-compose.prod.yml ps -q "$image")
-            actual=$(docker inspect "$container" --format '{{join .RepoDigests "\n"}}')
+            image_id=$(docker inspect "$container" --format '{{.Image}}')
+            actual=$(docker image inspect "$image_id" --format '{{join .RepoDigests "\n"}}')
             echo "$actual" | grep -F "@$digest" >/dev/null
           done
 

@@ -39,6 +39,7 @@ def test_backup_is_cross_component_validated_and_atomic() -> None:
     assert "storage.tar" in script
     assert "app.cli.backup_artifact" in script
     assert '"--user", "0:0", "-v", $mount' in script
+    assert "Invoke-Compose -Arguments $command | Out-Null" in script
     assert ".zip.partial" in script
     assert "Test-ZipLayout -Path $partial" in script
     assert "destination already exists; refusing to overwrite" in script

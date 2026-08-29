@@ -215,7 +215,7 @@ function Invoke-ArtifactCli {
         "run", "--rm", "--no-deps", "--user", "0:0", "-v", $mount,
         "--entrypoint", "python", "backend", "-m", "app.cli.backup_artifact"
     ) + $Arguments
-    Invoke-Compose -Arguments $command
+    Invoke-Compose -Arguments $command | Out-Null
 }
 
 function Test-ZipLayout {

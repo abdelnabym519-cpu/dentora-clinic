@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 import bcrypt
-from jose import jwt
+import jwt
 
 from app.config import settings
 

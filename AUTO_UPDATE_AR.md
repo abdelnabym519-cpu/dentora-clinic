@@ -1,6 +1,6 @@
 # Dentora — Auto Update
 
-هذه المرحلة تضيف تحديثًا آمنًا للنسخة المحلية فقط، ولا تشمل Client Packaging أو أي Release Gate لاحق.
+هذا الدليل يصف مسار التحديث الآمن للنسخة المحلية ضمن تسليم العميل النهائي.
 
 ## نموذج الثقة
 
@@ -36,6 +36,8 @@
 
 التحديث لا يستبدل `.env.client`، ولا يحذف Docker data volumes، ولا يقرأ أو يكتب `LICENSE_MACHINE_FINGERPRINT` أو كلمات مرور PostgreSQL داخل الـmetadata أو logs. Machine-bound license state يبقى مرتبطًا بالتثبيت الحالي. النسخة الاحتياطية والاسترجاع يحافظان على نفس سياسة License التي أغلقتها مرحلة Backup / Restore.
 
-## خارج النطاق
+## حدود الإثبات المحلي
 
-Client Packaging، Documentation/Handover الشامل، وFinal Release Gate مراحل لاحقة وغير منفذة هنا.
+اختبارات الهندسة تتحقق من التوقيع والفشل المغلق والـrollback باستخدام حزم موثوقة
+مسيطر عليها. قبل التسليم الإنتاجي يلزم أيضًا التحقق من endpoint الإنتاج ومن
+metadata موقعة فعليًا بمفتاح المالك؛ لا توجد private signing keys في حزمة العميل.

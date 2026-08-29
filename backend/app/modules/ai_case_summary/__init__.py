@@ -23,7 +23,7 @@ class AICaseSummaryModule(BaseModule):
         "author": "Dentora Core Team",
         "license": "BSL-1.1",
         "category": "official",
-        "depends": ["case_intelligence", "patients"],
+        "depends": ["case_intelligence", "patients", "risk_engine"],
         "installable": True,
         "auto_install": False,
         "removable": False,

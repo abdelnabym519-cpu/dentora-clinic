@@ -54,6 +54,16 @@ class _FakeS3Client:
             "Metadata": item["metadata"],
         }
 
+    def copy_object(self, **kwargs):
+        source = kwargs["CopySource"]
+        source_item = self.objects[(source["Bucket"], source["Key"])]
+        self.objects[(kwargs["Bucket"], kwargs["Key"])] = {
+            "data": source_item["data"],
+            "metadata": dict(kwargs.get("Metadata") or source_item["metadata"]),
+            "content_type": kwargs.get("ContentType") or source_item["content_type"],
+        }
+        return {"ETag": f'"etag-{len(source_item["data"])}"'}
+
     def delete_object(self, **kwargs):
         self.objects.pop((kwargs["Bucket"], kwargs["Key"]), None)
         return {}

@@ -1,10 +1,16 @@
 import { h, defineComponent, type Component } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import {
   useDental3DSegmentation,
   type SegmentationAnalysisPayload
 } from '../../module_layers/dental_3d/frontend/composables/useDental3DScene'
+
+const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }))
+
+// Nuxt compiles `$fetch` to an auto-import captured when useApi is loaded.
+// Stubbing globalThis therefore no longer intercepts it on Nuxt 4/Vite 8.
+mockNuxtImport('$fetch', () => fetchMock)
 
 function payload(
   overrides: Partial<SegmentationAnalysisPayload> = {}
@@ -32,19 +38,16 @@ function payload(
 
 /** Stub $fetch for the API paths the composable touches. */
 function stubApi(responses: Record<string, unknown>): void {
-  vi.stubGlobal(
-    '$fetch',
-    vi.fn(async (url: string) => {
-      for (const [prefix, value] of Object.entries(responses)) {
-        if (url.includes(prefix)) return value
-      }
-      throw Object.assign(new Error('not found'), {
-        statusCode: 404,
-        status: 404,
-        response: { status: 404, _data: { message: 'not found' } }
-      })
+  fetchMock.mockImplementation(async (url: string) => {
+    for (const [prefix, value] of Object.entries(responses)) {
+      if (url.includes(prefix)) return value
+    }
+    throw Object.assign(new Error('not found'), {
+      statusCode: 404,
+      status: 404,
+      response: { status: 404, _data: { message: 'not found' } }
     })
-  )
+  })
 }
 
 type Seg = ReturnType<typeof useDental3DSegmentation>
@@ -63,21 +66,21 @@ async function withSegmentation(): Promise<Seg> {
 }
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  fetchMock.mockReset()
 })
 
 describe('useDental3DSegmentation — load', () => {
   it('loads the latest analysis', async () => {
-    stubApi({ '/segmentation': { data: payload() } })
     const seg = await withSegmentation()
+    stubApi({ '/segmentation': { data: payload() } })
     await seg.load()
     expect(seg.analysis.value?.id).toBe('a-1')
     expect(seg.running.value).toBe(false)
   })
 
   it('404 (never run) degrades to null analysis', async () => {
-    stubApi({ '/other': { data: null } })
     const seg = await withSegmentation()
+    stubApi({ '/other': { data: null } })
     await seg.load()
     expect(seg.analysis.value).toBeNull()
   })
@@ -85,8 +88,8 @@ describe('useDental3DSegmentation — load', () => {
 
 describe('useDental3DSegmentation — run', () => {
   it('runs the analysis server-side and stores the result', async () => {
-    stubApi({ '/segmentation': { data: payload({ id: 'a-2' }) } })
     const seg = await withSegmentation()
+    stubApi({ '/segmentation': { data: payload({ id: 'a-2' }) } })
     const ok = await seg.run()
     expect(ok).toBe(true)
     expect(seg.analysis.value?.id).toBe('a-2')
@@ -94,8 +97,8 @@ describe('useDental3DSegmentation — run', () => {
   })
 
   it('flags failure without breaking the card', async () => {
-    stubApi({ '/other': { data: null } })
     const seg = await withSegmentation()
+    stubApi({ '/other': { data: null } })
     const ok = await seg.run()
     expect(ok).toBe(false)
     expect(seg.runFailed.value).toBe(true)
@@ -105,10 +108,10 @@ describe('useDental3DSegmentation — run', () => {
 
 describe('useDental3DSegmentation — review', () => {
   it('records the dentist decision on the loaded analysis', async () => {
+    const seg = await withSegmentation()
     stubApi({
       '/review': { data: payload({ review_status: 'accepted', review_note: 'checked' }) }
     })
-    const seg = await withSegmentation()
     seg.analysis.value = payload()
     const ok = await seg.review('accepted', 'checked')
     expect(ok).toBe(true)
@@ -117,8 +120,8 @@ describe('useDental3DSegmentation — review', () => {
   })
 
   it('refuses to review without a loaded analysis', async () => {
-    stubApi({ '/review': { data: payload() } })
     const seg = await withSegmentation()
+    stubApi({ '/review': { data: payload() } })
     const ok = await seg.review('accepted')
     expect(ok).toBe(false)
   })

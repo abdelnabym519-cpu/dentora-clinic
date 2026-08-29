@@ -124,7 +124,6 @@ export default defineNuxtConfig({
       { code: 'ar', name: 'العربية', file: 'ar.json' }
     ],
     defaultLocale: process.env.E2E_LOCALE === 'en' ? 'en' : 'ar',
-    lazy: true,
     langDir: 'locales',
     strategy: 'no_prefix',
     detectBrowserLanguage: false

@@ -12,7 +12,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 |--------|---------|----------|---------|---------|-----------|-------------|-------|----------|----------|
 | `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
 | `agenda` | 0.4.0 | official | patients, catalog, odontogram | auto | no | 4 | 11 | 0 | yes |
-| `ai_case_summary` | 1.0.0 | official | case_intelligence, patients | manual | no | 3 | 0 | 0 | no |
+| `ai_case_summary` | 1.0.0 | official | case_intelligence, patients, risk_engine | manual | no | 3 | 0 | 0 | no |
 | `ai_clinical_report` | 1.0.0 | official | clinical_copilot, ai_second_review, copilot | manual | no | 2 | 0 | 0 | no |
 | `ai_second_review` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, patients | manual | no | 3 | 0 | 0 | no |
 | `ai_treatment_planning` | 1.0.0 | official | case_intelligence, risk_engine, patients | manual | no | 3 | 0 | 0 | no |
@@ -105,7 +105,7 @@ Advisory, evidence-traceable AI summaries derived from redacted CaseSnapshot inp
 - **License:** BSL-1.1
 - **Category:** official
 - **Install policy:** installable=True · auto_install=False · removable=False
-- **Depends:** `case_intelligence`, `patients`
+- **Depends:** `case_intelligence`, `patients`, `risk_engine`
 - **Frontend layer:** —
 - **Permissions:**
   - `ai_case_summary.generate`

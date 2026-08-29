@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python dependencies
 COPY pyproject.toml ./
-RUN pip install --no-cache-dir .
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.2.0" "setuptools>=83.0.0" \
+    && python -m pip install --no-cache-dir .
 
 # Copy application code
 COPY . .

@@ -8,6 +8,8 @@ export default defineNuxtConfig({
       { code: 'pt', file: 'pt.json' },
       { code: 'ar', file: 'ar.json' }
     ],
-    langDir: 'locales'
+    // Nuxt i18n resolves layer langDir from the Nuxt 4 `i18n/` base.
+    // Voice keeps its locale assets alongside the removable layer.
+    langDir: '../locales'
   }
 })

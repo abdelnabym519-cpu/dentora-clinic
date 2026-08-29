@@ -1,10 +1,16 @@
 import { h, defineComponent, type Component } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import {
   useDental3DNerveDetection,
   type NerveAnalysisPayload
 } from '../../module_layers/dental_3d/frontend/composables/useDental3DScene'
+
+const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }))
+
+// Nuxt compiles `$fetch` to an auto-import captured when useApi is loaded.
+// Stubbing globalThis therefore no longer intercepts it on Nuxt 4/Vite 8.
+mockNuxtImport('$fetch', () => fetchMock)
 
 function payload(
   overrides: Partial<NerveAnalysisPayload> = {}
@@ -51,19 +57,16 @@ function payload(
 
 /** Stub $fetch for the API paths the composable touches. */
 function stubApi(responses: Record<string, unknown>): void {
-  vi.stubGlobal(
-    '$fetch',
-    vi.fn(async (url: string) => {
-      for (const [prefix, value] of Object.entries(responses)) {
-        if (url.includes(prefix)) return value
-      }
-      throw Object.assign(new Error('not found'), {
-        statusCode: 404,
-        status: 404,
-        response: { status: 404, _data: { message: 'not found' } }
-      })
+  fetchMock.mockImplementation(async (url: string) => {
+    for (const [prefix, value] of Object.entries(responses)) {
+      if (url.includes(prefix)) return value
+    }
+    throw Object.assign(new Error('not found'), {
+      statusCode: 404,
+      status: 404,
+      response: { status: 404, _data: { message: 'not found' } }
     })
-  )
+  })
 }
 
 type Nerve = ReturnType<typeof useDental3DNerveDetection>
@@ -82,13 +85,13 @@ async function withNerve(): Promise<Nerve> {
 }
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  fetchMock.mockReset()
 })
 
 describe('useDental3DNerveDetection — load', () => {
   it('loads the latest analysis', async () => {
-    stubApi({ '/nerve-detection': { data: payload() } })
     const nerve = await withNerve()
+    stubApi({ '/nerve-detection': { data: payload() } })
     await nerve.load()
     expect(nerve.analysis.value?.id).toBe('n-1')
     expect(nerve.running.value).toBe(false)
@@ -96,8 +99,8 @@ describe('useDental3DNerveDetection — load', () => {
   })
 
   it('404 (never run) degrades to null analysis', async () => {
-    stubApi({ '/nothing': { data: null } })
     const nerve = await withNerve()
+    stubApi({ '/nothing': { data: null } })
     await nerve.load()
     expect(nerve.analysis.value).toBeNull()
   })
@@ -105,8 +108,8 @@ describe('useDental3DNerveDetection — load', () => {
 
 describe('useDental3DNerveDetection — run', () => {
   it('runs the analysis server-side and stores the result', async () => {
-    stubApi({ '/nerve-detection': { data: payload({ id: 'n-2' }) } })
     const nerve = await withNerve()
+    stubApi({ '/nerve-detection': { data: payload({ id: 'n-2' }) } })
     const ok = await nerve.run()
     expect(ok).toBe(true)
     expect(nerve.analysis.value?.id).toBe('n-2')
@@ -114,8 +117,8 @@ describe('useDental3DNerveDetection — run', () => {
   })
 
   it('flags failure without breaking the card', async () => {
-    stubApi({ '/nothing': { data: null } })
     const nerve = await withNerve()
+    stubApi({ '/nothing': { data: null } })
     const ok = await nerve.run()
     expect(ok).toBe(false)
     expect(nerve.runFailed.value).toBe(true)
@@ -125,10 +128,10 @@ describe('useDental3DNerveDetection — run', () => {
 
 describe('useDental3DNerveDetection — review', () => {
   it('records the dentist decision on the loaded analysis', async () => {
+    const nerve = await withNerve()
     stubApi({
       '/review': { data: payload({ review_status: 'accepted', review_note: 'checked' }) }
     })
-    const nerve = await withNerve()
     nerve.analysis.value = payload()
     const ok = await nerve.review('accepted', 'checked the radiograph')
     expect(ok).toBe(true)
@@ -137,8 +140,8 @@ describe('useDental3DNerveDetection — review', () => {
   })
 
   it('refuses to review without a loaded analysis', async () => {
-    stubApi({ '/review': { data: payload() } })
     const nerve = await withNerve()
+    stubApi({ '/review': { data: payload() } })
     const ok = await nerve.review('rejected')
     expect(ok).toBe(false)
   })

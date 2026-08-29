@@ -56,7 +56,7 @@ async function waitFor(selector: string, timeoutMs = 3500): Promise<HTMLElement 
   while (performance.now() - started < timeoutMs) {
     const found = document.querySelector(selector)
     if (found instanceof HTMLElement) return found
-    await new Promise((resolve) => setTimeout(resolve, 75))
+    await new Promise(resolve => setTimeout(resolve, 75))
   }
   return null
 }
@@ -185,7 +185,7 @@ export function useDentoraVoice() {
         state.value = 'error'
         error.value = cause instanceof Error ? cause.message : 'voice_runtime_error'
       } finally {
-        stream.value?.getTracks().forEach((track) => track.stop())
+        stream.value?.getTracks().forEach(track => track.stop())
         stream.value = null
         recorder.value = null
         chunks.value = []

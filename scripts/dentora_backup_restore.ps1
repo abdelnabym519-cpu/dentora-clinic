@@ -139,7 +139,10 @@ function Get-SchemaFingerprint {
 
 function Get-ExpectedSchemaRevision {
     $output = Invoke-Compose -Arguments @("run", "--rm", "--no-deps", "--entrypoint", "alembic", "backend", "heads") -Capture
-    $matches = [Regex]::Matches($output, '(?m)^([A-Za-z0-9_-]+)\s+\((?:effective )?head\)\s*$')
+    $matches = [Regex]::Matches(
+        $output,
+        '(?m)^([A-Za-z0-9_-]+)(?:\s+\([A-Za-z0-9_-]+\))?\s+\((?:effective )?head\)\s*$'
+    )
     return Get-SchemaFingerprint -Revisions @($matches | ForEach-Object { $_.Groups[1].Value })
 }
 
@@ -148,10 +151,15 @@ function Get-DatabaseSchemaRevision {
     Assert-SafeIdentifier -Value $Database -Label "Database name"
     Assert-SafeIdentifier -Value $User -Label "Database user"
     $output = Invoke-Compose -Arguments @(
-        "exec", "-T", "db", "psql", "-U", $User, "-d", $Database,
-        "-Atc", "SELECT version_num FROM alembic_version;"
+        "run", "--rm", "--no-deps", "-e", "DENTORA_SCHEMA_DATABASE=$Database",
+        "--entrypoint", "sh", "backend", "-c",
+        'export DATABASE_URL="${DATABASE_URL%/*}/$DENTORA_SCHEMA_DATABASE"; exec alembic current'
     ) -Capture
-    return Get-SchemaFingerprint -Revisions @($output -split "`r?`n")
+    $matches = [Regex]::Matches(
+        $output,
+        '(?m)^([A-Za-z0-9_-]+)(?:\s+\([A-Za-z0-9_-]+\))?\s+\((?:effective )?head\)\s*$'
+    )
+    return Get-SchemaFingerprint -Revisions @($matches | ForEach-Object { $_.Groups[1].Value })
 }
 
 function Get-RunningServices {

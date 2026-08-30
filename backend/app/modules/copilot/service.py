@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings as app_settings
 from app.core.agents.models import Agent, AgentAuditLog
 from app.core.llm.base import ContentBlock
+from app.core.llm.factory import default_model_for
 
 from .models import CopilotConversation, CopilotMessage, CopilotNudge, CopilotSettings
 from .serde import content_to_json
@@ -31,7 +32,7 @@ class CopilotSettingsService:
         row = CopilotSettings(
             clinic_id=clinic_id,
             provider=app_settings.COPILOT_PROVIDER_DEFAULT,
-            model=app_settings.COPILOT_MODEL_CHAT_OPENAI,
+            model=default_model_for(app_settings.COPILOT_PROVIDER_DEFAULT),
             redaction_enabled=app_settings.COPILOT_REDACTION_DEFAULT,
             period_start=datetime.now(UTC).date().replace(day=1),
         )

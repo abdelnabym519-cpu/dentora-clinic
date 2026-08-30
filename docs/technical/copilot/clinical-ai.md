@@ -143,17 +143,53 @@ renders partial or fake content.
 ## Configuration
 
 Uses the existing provider factory and settings — no per-feature provider and no
-committed secrets:
+committed secrets. Two providers are supported:
+
+### Cloud — OpenAI / OpenAI-compatible gateway
 
 - `OPENAI_API_KEY` (or the configured AI gateway credentials) via environment.
 - Model id comes from existing LLM settings; the resolved model is echoed in
   `model`.
 
-> **Live inference status:** the implementation is complete and the real wire
-> path is exercised in tests, but live external inference in this environment is
-> **BLOCKED** — no `OPENAI_API_KEY` / outbound egress is available. Status:
-> **IMPLEMENTED — LIVE INFERENCE BLOCKED**. Supplying credentials enables it with
-> no code change.
+### Local — Ollama (no cloud, no API key)
+
+A fully local provider runs inference against an
+[Ollama](https://ollama.com) server. Nothing leaves the host; no cloud LLM and
+no API key are involved.
+
+- `app/core/llm/ollama_provider.py` — `OllamaProvider` speaks Ollama's native
+  streaming `POST /api/chat` NDJSON protocol (text deltas, `tool_calls`,
+  `done_reason`, `prompt_eval_count`/`eval_count` usage), mapping to the same
+  neutral `Provider` events. Tool names use the same `.`↔`-` bijection as the
+  OpenAI provider; tool results are sent as `role:"tool"` messages.
+- Selected exactly like any provider — no architecture change:
+  - `COPILOT_PROVIDER_DEFAULT=ollama` (env) or a clinic's copilot settings
+    `provider="ollama"`.
+  - `OLLAMA_BASE_URL` (default `http://localhost:11434`).
+  - `OLLAMA_MODEL` / `COPILOT_MODEL_CHAT_OLLAMA` (default
+    `llama3.1:8b-instruct-q4_K_M`) — the model must be pulled on the server
+    (`ollama pull <model>`).
+  - When the provider is `ollama`, the default model resolves to the Ollama
+    model (via `default_model_for(...)`), so switching providers never sends a
+    cloud model id to Ollama.
+- Failure behaviour is identical: an unreachable server / missing model /
+  invalid output surfaces as `AI_UNAVAILABLE` / `AI_INVALID_OUTPUT`, never a
+  fabricated result. RBAC, tenant isolation, redaction and audit are unchanged
+  — the provider is the only component that differs.
+
+> **Live inference status:** the Ollama implementation is complete and the real
+> production wire path is proven by tests that run a **real Ollama-protocol
+> HTTP server on a real TCP port** and drive the unmodified `OllamaProvider`
+> over sockets (`backend/tests/test_ollama_e2e.py`,
+> `backend/tests/test_ollama_provider.py`). In *this* sandbox the Ollama binary
+> and model weights cannot be downloaded (the egress allowlist reaches
+> github.com / PyPI / npm but **not** `ollama.com`, `registry.ollama.ai`,
+> `release-assets.githubusercontent.com` or `huggingface.co`; 2 vCPU / 3.8 GB
+> RAM also cannot host an 8B model). So against an actual downloaded Ollama +
+> model the status is **IMPLEMENTED — LIVE INFERENCE BLOCKED (binary/weights
+> not downloadable here)**; on any host that can `ollama pull`, it runs with no
+> code change. The OpenAI-cloud path remains **IMPLEMENTED — LIVE INFERENCE
+> BLOCKED (no key/egress)**.
 
 ## Testing
 
@@ -178,6 +214,20 @@ committed secrets:
 
 The provider is injected via monkeypatch in service-level tests; it is never
 wired as a production fallback.
+
+Ollama (local) is proven separately with **no provider mock**:
+
+- `backend/tests/test_ollama_provider.py` (4 tests) — drives the real
+  `OllamaProvider.complete()` against Ollama's NDJSON wire shape via
+  `httpx.MockTransport`: streamed text + usage tokens, `tool_calls` (with the
+  `-`↔`.` name restore), tool-result message shape, and a connection-refused
+  failure surfacing as a provider error (safe fail).
+- `backend/tests/test_ollama_e2e.py` (6 tests) — starts a **real
+  Ollama-compatible HTTP server on a real TCP port** (uvicorn) and runs all
+  five clinical features plus a Copilot chat turn through the live
+  `API → service → OllamaProvider → http://127.0.0.1:<port>/api/chat → stream
+  decode → JSON extract → Pydantic → API JSON` chain, asserting the local
+  model id is echoed and a real `/api/chat` request hit the socket.
 
 ## Frontend
 

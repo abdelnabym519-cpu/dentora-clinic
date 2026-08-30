@@ -46,7 +46,7 @@ from app.core.llm.base import (
     TextDelta,
     Usage,
 )
-from app.core.llm.factory import get_provider
+from app.core.llm.factory import default_model_for, get_provider
 from app.modules.copilot.models import CopilotSettings
 
 from .clinical_context import ClinicalContext, build_clinical_context, render_context_for_prompt
@@ -87,7 +87,7 @@ async def _resolve_provider_and_model(db: AsyncSession, clinic_id: UUID) -> tupl
     """
     settings_row: CopilotSettings = await CopilotSettingsService.get_or_create(db, clinic_id)
     provider_name = settings_row.provider or settings.COPILOT_PROVIDER_DEFAULT
-    model = settings_row.model or settings.COPILOT_MODEL_CHAT_OPENAI
+    model = settings_row.model or default_model_for(provider_name)
     try:
         provider = get_provider(provider_name)
     except LLMConfigError as exc:

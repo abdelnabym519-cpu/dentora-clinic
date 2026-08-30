@@ -114,6 +114,11 @@ def _validate_risk_factors(ids: list[str], allowed: set[str]) -> None:
         raise PlanningGenerationError("duplicate_risk_factor_id")
 
 
+def _normalize_fact_path(path: str) -> str:
+    """Accept one redundant provider-visible `facts.` root and canonicalize it away."""
+    return path.removeprefix("facts.")
+
+
 def _resolve_fact(facts: Any, path: str) -> Any:
     if not path or path.startswith(".") or path.endswith(".") or ".." in path:
         raise PlanningGenerationError("planning_references_unknown_fact_path")
@@ -162,11 +167,12 @@ def _validate_evidence_selections(
         seen_paths: set[str] = set()
 
         for path in selection.fact_paths:
-            if path in seen_paths:
+            normalized_path = _normalize_fact_path(path)
+            if normalized_path in seen_paths:
                 raise PlanningGenerationError("duplicate_fact_path")
-            seen_paths.add(path)
-            value = _resolve_fact(facts, path)
-            selected_facts.append((selection.evidence_id, section, path, value))
+            seen_paths.add(normalized_path)
+            value = _resolve_fact(facts, normalized_path)
+            selected_facts.append((selection.evidence_id, section, normalized_path, value))
 
         evidence_ids.append(selection.evidence_id)
 

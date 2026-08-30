@@ -51,11 +51,7 @@ def _blocked_key(key: str) -> bool:
 
 def _sanitize(value: Any) -> Any:
     if isinstance(value, dict):
-        return {
-            key: _sanitize(item)
-            for key, item in value.items()
-            if not _blocked_key(key)
-        }
+        return {key: _sanitize(item) for key, item in value.items() if not _blocked_key(key)}
     if isinstance(value, list):
         return [_sanitize(item) for item in value]
     return value
@@ -143,15 +139,9 @@ def build_redacted_llm_input(snapshot: CaseSnapshot) -> tuple[dict[str, Any], st
 
     ordered_refs = sorted(
         snapshot.provenance,
-        key=lambda ref: tuple(
-            "" if item is None else str(item)
-            for item in _evidence_key(ref)
-        ),
+        key=lambda ref: tuple("" if item is None else str(item) for item in _evidence_key(ref)),
     )
-    aliases = {
-        _evidence_key(ref): f"E{index:03d}"
-        for index, ref in enumerate(ordered_refs, 1)
-    }
+    aliases = {_evidence_key(ref): f"E{index:03d}" for index, ref in enumerate(ordered_refs, 1)}
 
     evidence = {
         aliases[_evidence_key(ref)]: {
@@ -197,8 +187,7 @@ def build_redacted_llm_input(snapshot: CaseSnapshot) -> tuple[dict[str, Any], st
             for name, section in sorted(snapshot.clinical_state.items())
         },
         "availability": {
-            name: status.value
-            for name, status in sorted(snapshot.availability.items())
+            name: status.value for name, status in sorted(snapshot.availability.items())
         },
         "missing_data_report": sorted(snapshot.missing_data_report),
         "evidence": evidence,
@@ -225,16 +214,10 @@ def build_provider_llm_input(payload: dict[str, Any]) -> dict[str, Any]:
     # evidence[*].facts. Section data is intentionally removed so a model
     # cannot combine a fact path from one section with an unrelated evidence id.
     provider_payload["reference_frame"] = {
-        key: value
-        for key, value in payload["reference_frame"].items()
-        if key != "data"
+        key: value for key, value in payload["reference_frame"].items() if key != "data"
     }
     provider_payload["sections"] = {
-        name: {
-            key: value
-            for key, value in section.items()
-            if key != "data"
-        }
+        name: {key: value for key, value in section.items() if key != "data"}
         for name, section in payload["sections"].items()
     }
 

@@ -103,10 +103,7 @@ def _fact_value(value: Any) -> str:
 
 def _render_claim(section: str, selected: list[tuple[str, Any]]) -> str:
     section_label = section.replace("_", " ").title()
-    facts = "; ".join(
-        f"{_fact_label(path)}: {_fact_value(value)}"
-        for path, value in selected
-    )
+    facts = "; ".join(f"{_fact_label(path)}: {_fact_value(value)}" for path, value in selected)
     return f"{section_label} — {facts}."
 
 
@@ -141,9 +138,7 @@ async def generate_summary(
         parsed = json.loads(raw)
         generated = _GeneratedOutput.model_validate(parsed)
     except (json.JSONDecodeError, ValidationError) as exc:
-        raise SummaryGenerationError(
-            "provider_returned_invalid_structured_summary"
-        ) from exc
+        raise SummaryGenerationError("provider_returned_invalid_structured_summary") from exc
 
     evidence = llm_input["evidence"]
     claims: list[SummaryClaim] = []

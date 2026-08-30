@@ -127,10 +127,7 @@ def test_provider_projection_preserves_evidence_ids_without_mutating_audit_paylo
     assert "1980-01-01" not in str(payload)
 
     # Provider has one and only one clinical-fact source: evidence[*].facts.
-    assert all(
-        "data" not in section
-        for section in provider_payload["sections"].values()
-    )
+    assert all("data" not in section for section in provider_payload["sections"].values())
     assert "data" not in provider_payload["reference_frame"]
 
     # Availability/gap metadata remains available for deterministic handling.

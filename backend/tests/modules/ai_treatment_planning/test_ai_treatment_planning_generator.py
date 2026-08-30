@@ -108,6 +108,26 @@ async def test_generator_renders_public_text_from_validated_facts_and_derives_ga
 
 
 @pytest.mark.asyncio
+async def test_generator_normalizes_single_provider_facts_root_prefix():
+    payload = _valid_output()
+    payload["options"][0]["evidence"][0]["fact_paths"] = ["facts.tooth_number"]
+    payload["options"][0]["steps"][0]["evidence"][0]["fact_paths"] = [
+        "facts.tooth_number"
+    ]
+
+    result = await generate_planning_options(
+        provider=StaticProvider(payload),
+        model="test-model",
+        llm_input=_input(),
+        max_tokens=1000,
+    )
+
+    option = result.content.options[0]
+    assert "tooth number: 16" in option.rationale.lower()
+    assert "tooth number: 16" in option.steps[0].description.lower()
+
+
+@pytest.mark.asyncio
 async def test_generator_rejects_unknown_evidence():
     payload = _valid_output()
     payload["options"][0]["evidence"][0]["evidence_id"] = "E999"

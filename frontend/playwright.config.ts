@@ -32,7 +32,22 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] }
+      // Optional: allow CI/local sandboxes to point Playwright at a
+      // self-contained Chromium build (vendored with its system libs)
+      // via PLAYWRIGHT_CHROMIUM_EXECUTABLE (+ comma-separated
+      // PLAYWRIGHT_CHROMIUM_ARGS). When unset, Playwright downloads and
+      // launches its own browser as usual.
+      use: {
+        ...devices['Desktop Chrome'],
+        ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+          ? {
+              launchOptions: {
+                executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+                args: (process.env.PLAYWRIGHT_CHROMIUM_ARGS || '').split(',').filter(Boolean)
+              }
+            }
+          : {})
+      }
     }
   ]
 })

@@ -319,9 +319,7 @@ async def generate_planning_options(
 
     case = llm_input["case"]
     evidence = case["evidence"]
-    risk_lookup = {
-        factor["factor_id"]: factor for factor in llm_input["risk_context"]["factors"]
-    }
+    risk_lookup = {factor["factor_id"]: factor for factor in llm_input["risk_context"]["factors"]}
 
     options: list[TreatmentOption] = []
     seen_option_ids: set[str] = set()

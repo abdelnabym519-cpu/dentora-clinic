@@ -74,7 +74,6 @@ async def test_generator_accepts_only_traceable_findings_and_exact_gaps() -> Non
             {
                 "finding_id": "F1",
                 "category": "planning_consistency",
-                "statement": "The reviewed step should be checked against the cited evidence.",
                 "evidence_ids": ["E001"],
                 "risk_factor_ids": ["R001"],
                 "planning_refs": ["step:S1"],
@@ -114,7 +113,6 @@ async def test_generator_rejects_untraceable_finding_and_omitted_gap() -> None:
             {
                 "finding_id": "F1",
                 "category": "safety_boundary",
-                "statement": "Untraceable statement.",
                 "evidence_ids": [],
                 "risk_factor_ids": [],
                 "planning_refs": [],

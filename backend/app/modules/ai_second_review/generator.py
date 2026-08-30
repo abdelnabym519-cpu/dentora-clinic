@@ -20,7 +20,7 @@ from .contracts import (
 
 SYSTEM_PROMPT = """You perform an ADVISORY second review of one already dentist-accepted Dentora AI treatment-planning option and its deterministic Treatment Simulation.
 Return JSON only with exactly: {"findings": [...], "data_gaps": [...]}.
-Each finding must contain finding_id, category, statement, evidence_ids, risk_factor_ids, planning_refs, simulation_refs. Categories are evidence_traceability, risk_context, planning_consistency, simulation_consistency, safety_boundary. Report only discrepancies or review points that are directly grounded in the supplied structured artifacts. Reference only evidence ids, risk factor ids, planning refs, and simulation refs present in the input. Do not diagnose, recommend or select treatment, approve/reject a plan, infer missing facts, invent anatomy/findings/thresholds/probabilities, predict biological outcomes, or alter patient-space geometry. An empty findings list means only that no grounded discrepancy was identified in this limited review; it never means the treatment is safe, correct, optimal, or approved. Every case section marked not_available or invalid_or_stale must be represented exactly in data_gaps. This output is decision support only and requires dentist review."""
+Each finding must contain exactly finding_id, category, evidence_ids, risk_factor_ids, planning_refs, simulation_refs. Categories are evidence_traceability, risk_context, planning_consistency, simulation_consistency, safety_boundary. Select only discrepancies or review points that are grounded in the supplied structured artifacts and reference only ids present in the input. Do not write a statement, explanation, diagnosis, recommendation, treatment choice, approval/rejection, missing fact, anatomy/finding/threshold/probability, predicted biological outcome, or geometry change. Dentora renders the public statement deterministically after validating every reference. An empty findings list means only that no grounded discrepancy was identified in this limited review; it never means the treatment is safe, correct, optimal, or approved. Every case section marked not_available or invalid_or_stale must be represented exactly in data_gaps. This output is decision support only and requires dentist review."""
 
 
 class _GeneratedFinding(BaseModel):
@@ -28,7 +28,6 @@ class _GeneratedFinding(BaseModel):
 
     finding_id: str
     category: FindingCategory
-    statement: str
     evidence_ids: list[str] = Field(default_factory=list)
     risk_factor_ids: list[str] = Field(default_factory=list)
     planning_refs: list[str] = Field(default_factory=list)
@@ -61,9 +60,34 @@ class SecondReviewGenerationError(RuntimeError):
     pass
 
 
+_STATEMENT_BY_CATEGORY = {
+    FindingCategory.EVIDENCE_TRACEABILITY: (
+        "Review evidence traceability for the referenced artifacts."
+    ),
+    FindingCategory.RISK_CONTEXT: (
+        "Review the referenced risk context alongside the cited planning or simulation artifacts."
+    ),
+    FindingCategory.PLANNING_CONSISTENCY: (
+        "Review consistency among the referenced treatment-planning artifacts."
+    ),
+    FindingCategory.SIMULATION_CONSISTENCY: (
+        "Review consistency among the referenced treatment-simulation artifacts."
+    ),
+    FindingCategory.SAFETY_BOUNDARY: (
+        "Review the referenced artifacts against Dentora's advisory safety boundary."
+    ),
+}
+
+
 def _validate_refs(values: list[str], allowed: set[str], error: str) -> None:
     if any(value not in allowed for value in values):
         raise SecondReviewGenerationError(error)
+
+
+def _render_statement(category: FindingCategory) -> str:
+    """Render non-clinical public text from a validated finite category."""
+
+    return _STATEMENT_BY_CATEGORY[category]
 
 
 async def generate_second_review(
@@ -129,8 +153,10 @@ async def generate_second_review(
             allowed_simulation,
             "second_review_references_unknown_simulation_item",
         )
+        finding_payload = finding.model_dump()
+        finding_payload["statement"] = _render_statement(finding.category)
         try:
-            findings.append(SecondReviewFinding(**finding.model_dump()))
+            findings.append(SecondReviewFinding(**finding_payload))
         except ValidationError as exc:
             raise SecondReviewGenerationError(
                 "second_review_finding_requires_traceable_reference"

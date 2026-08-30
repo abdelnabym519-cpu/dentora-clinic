@@ -10,6 +10,24 @@ from app.modules.ai_treatment_planning.service import AITreatmentPlanningService
 from app.modules.treatment_plan.models import TreatmentPlan
 
 
+def _first_scalar_path(value, prefix=""):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            path = f"{prefix}.{key}" if prefix else key
+            found = _first_scalar_path(item, path)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            path = f"{prefix}.{index}" if prefix else str(index)
+            found = _first_scalar_path(item, path)
+            if found is not None:
+                return found
+    elif value is not None:
+        return prefix
+    return None
+
+
 class CapturingPlanningProvider:
     def __init__(self):
         self.user_payload = None
@@ -17,41 +35,49 @@ class CapturingPlanningProvider:
     async def complete(self, **kwargs):
         self.user_payload = json.loads(kwargs["messages"][0].content[0].text)
         case = self.user_payload["case"]
-        evidence_ids = list(case["evidence"])
         risk_factor_ids = [
             factor["factor_id"] for factor in self.user_payload["risk_context"]["factors"]
         ]
-        gaps = [
-            {"section": name, "status": section["status"]}
-            for name, section in case["sections"].items()
-            if section["status"] in {"not_available", "invalid_or_stale"}
-        ]
+
+        selected_evidence = None
+        selected_path = None
+        for evidence_id, record in case["evidence"].items():
+            path = _first_scalar_path(record.get("facts", {}))
+            if path:
+                selected_evidence = evidence_id
+                selected_path = path
+                break
+
         options = []
-        if evidence_ids and risk_factor_ids:
+        if selected_evidence and selected_path:
+            risk_ids = risk_factor_ids[:1]
             options.append(
                 {
                     "option_id": "O1",
-                    "title": "Evidence-grounded staged option",
-                    "clinical_intent": "Support dentist review of the documented case state.",
-                    "rationale": "The option is tied to structured case evidence and risk context.",
-                    "evidence_ids": [evidence_ids[0]],
-                    "risk_factor_ids": [risk_factor_ids[0]],
+                    "strategy": "review_documented_findings",
+                    "evidence": [
+                        {
+                            "evidence_id": selected_evidence,
+                            "fact_paths": [selected_path],
+                        }
+                    ],
+                    "risk_factor_ids": risk_ids,
                     "steps": [
                         {
                             "step_id": "S1",
-                            "description": "Review the structured finding before selecting treatment.",
-                            "purpose": "Keep the final clinical choice with the dentist.",
-                            "evidence_ids": [evidence_ids[0]],
-                            "risk_factor_ids": [risk_factor_ids[0]],
+                            "strategy": "stage_clinical_decision",
+                            "evidence": [
+                                {
+                                    "evidence_id": selected_evidence,
+                                    "fact_paths": [selected_path],
+                                }
+                            ],
+                            "risk_factor_ids": risk_ids,
                         }
-                    ],
-                    "uncertainties": [],
-                    "alternatives_or_tradeoffs": [
-                        "Defer final treatment selection when additional evidence is needed."
                     ],
                 }
             )
-        yield TextDelta(json.dumps({"options": options, "data_gaps": gaps}))
+        yield TextDelta(json.dumps({"options": options}))
         yield Done("stop")
 
 
@@ -91,20 +117,22 @@ async def test_generate_is_redacted_append_only_and_never_creates_canonical_plan
     outgoing = json.dumps(provider.user_payload)
     assert str(test_patient.id) not in outgoing
     assert test_patient.email not in outgoing
-    patient_data = provider.user_payload["case"]["sections"]["patient"]["data"]
-    for forbidden_key in (
-        "id",
-        "patient_id",
-        "clinic_id",
-        "first_name",
-        "last_name",
-        "full_name",
-        "email",
-        "phone",
-        "mobile",
-        "date_of_birth",
-    ):
-        assert forbidden_key not in patient_data
+    assert "data" not in provider.user_payload["case"]["sections"]["patient"]
+
+    for evidence in provider.user_payload["case"]["evidence"].values():
+        evidence_text = json.dumps(evidence)
+        for forbidden_key in (
+            "patient_id",
+            "clinic_id",
+            "first_name",
+            "last_name",
+            "full_name",
+            "email",
+            "phone",
+            "mobile",
+            "date_of_birth",
+        ):
+            assert forbidden_key not in evidence_text
 
     after_count = await db_session.scalar(select(func.count()).select_from(TreatmentPlan))
     assert after_count == before_count

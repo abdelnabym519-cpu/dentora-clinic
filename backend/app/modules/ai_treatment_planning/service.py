@@ -29,7 +29,7 @@ from .contracts import (
 from .generator import generate_planning_options
 from .models import AITreatmentPlanningRecord
 from .ports import PlanningGeneratorPort, PlanningRepositoryPort
-from .privacy import build_planning_llm_input
+from .privacy import build_planning_llm_input, build_provider_planning_input
 from .repository import SqlAlchemyPlanningRepository
 
 
@@ -57,7 +57,8 @@ class AITreatmentPlanningService:
             user_id=user_id,
         )
         risk_evaluation = evaluate_snapshot(snapshot)
-        llm_input, input_digest = build_planning_llm_input(snapshot, risk_evaluation)
+        audit_input, input_digest = build_planning_llm_input(snapshot, risk_evaluation)
+        provider_input = build_provider_planning_input(audit_input)
 
         provider_name = provider_name or settings.COPILOT_PROVIDER_DEFAULT
         if model is None:
@@ -66,7 +67,7 @@ class AITreatmentPlanningService:
         generated = await cls.generator(
             provider=provider,
             model=model,
-            llm_input=llm_input,
+            llm_input=provider_input,
             max_tokens=settings.COPILOT_MAX_TOKENS,
         )
         output_payload = generated.content.model_dump(mode="json")

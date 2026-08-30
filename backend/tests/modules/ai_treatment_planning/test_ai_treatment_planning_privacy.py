@@ -1,7 +1,10 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from app.modules.ai_treatment_planning.privacy import build_planning_llm_input
+from app.modules.ai_treatment_planning.privacy import (
+    build_planning_llm_input,
+    build_provider_planning_input,
+)
 from app.modules.case_intelligence.contracts import (
     AvailabilityStatus,
     CaseIdentity,
@@ -21,10 +24,11 @@ from app.modules.risk_engine.engine import RiskEvaluation
 def _snapshot() -> CaseSnapshot:
     patient_id = uuid4()
     clinic_id = uuid4()
+    tooth_record_id = uuid4()
     ref = EvidenceReference(
         source_module="odontogram",
         source_entity="ToothRecord",
-        source_record_id=str(uuid4()),
+        source_record_id=str(tooth_record_id),
         source_version="v1",
         source_digest="sha256:source",
         validation_state="current",
@@ -57,7 +61,7 @@ def _snapshot() -> CaseSnapshot:
                 data={
                     "teeth": [
                         {
-                            "id": str(uuid4()),
+                            "id": str(tooth_record_id),
                             "tooth_number": 16,
                             "general_condition": "present",
                             "notes": "SENTINEL_CLINICAL_FREE_TEXT",
@@ -110,14 +114,32 @@ def _risk() -> RiskEvaluation:
 def test_planning_projection_excludes_identifiers_and_clinical_free_text():
     snapshot = _snapshot()
     payload, digest = build_planning_llm_input(snapshot, _risk())
+    provider_payload = build_provider_planning_input(payload)
+
     text = str(payload)
+    provider_text = str(provider_payload)
+
     assert str(snapshot.identity.patient_id) not in text
     assert str(snapshot.identity.clinic_id) not in text
     assert "SENTINEL_CLINICAL_FREE_TEXT" not in text
     assert "SENTINEL_DESCRIPTION" not in text
     assert "1980-01-01" not in text
+
     assert payload["case"]["sections"]["odontogram"]["data"]["teeth"][0]["tooth_number"] == 16
     assert payload["case"]["sections"]["nerve"]["status"] == "invalid_or_stale"
     assert set(payload["case"]["evidence"]) == {"E001", "E002"}
     assert payload["guardrails"]["no_treatment_simulation"] is True
+    assert payload["guardrails"]["server_renders_public_text"] is True
     assert digest.startswith("sha256:")
+
+    assert "data" not in provider_payload["case"]["sections"]["odontogram"]
+    assert "data" not in provider_payload["case"]["sections"]["patient"]
+    assert "data" not in provider_payload["case"]["reference_frame"]
+    assert "SENTINEL_CLINICAL_FREE_TEXT" not in provider_text
+    assert "SENTINEL_DESCRIPTION" not in provider_text
+
+    evidence = provider_payload["case"]["evidence"]
+    odontogram = next(value for value in evidence.values() if value["section"] == "odontogram")
+    assert odontogram["facts"]["tooth_number"] == 16
+    assert odontogram["facts"]["general_condition"] == "present"
+    assert "id" not in odontogram["facts"]

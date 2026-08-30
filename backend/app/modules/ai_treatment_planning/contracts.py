@@ -10,8 +10,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 AI_TREATMENT_PLANNING_CONTRACT_VERSION = "1.0"
-AI_TREATMENT_PLANNING_INPUT_VERSION = "1.0"
-AI_TREATMENT_PLANNING_PROMPT_VERSION = "1.0"
+AI_TREATMENT_PLANNING_INPUT_VERSION = "1.1"
+AI_TREATMENT_PLANNING_PROMPT_VERSION = "1.1"
 PROVIDER_CONTRACT_VERSION = "core.llm.Provider/1"
 
 
@@ -93,7 +93,12 @@ class PlanningCaseReference(BaseModel):
     risk_policy_version: str
     risk_input_digest: str
     risk_result_digest: str
-    risk_availability_state: Literal["available", "partial", "unavailable", "invalid_or_stale"]
+    risk_availability_state: Literal[
+        "available",
+        "partial",
+        "unavailable",
+        "invalid_or_stale",
+    ]
 
 
 class ModelProvenance(BaseModel):

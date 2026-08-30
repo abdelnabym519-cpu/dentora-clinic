@@ -4,7 +4,9 @@ All notable changes to this module are documented here.
 
 ## [Unreleased]
 
-- No unreleased changes.
+- Ground provider selections in record-local evidence facts and validated scalar fact paths.
+- Render public option and step prose deterministically from allowlisted advisory strategies.
+- Keep data gaps server-derived from CaseSnapshot availability semantics.
 
 ## [1.0.0] - 2026-08-26
 

@@ -1,4 +1,4 @@
-"""Deterministic privacy boundary for AI Treatment Planning LLM input."""
+"""Deterministic privacy and grounding boundary for AI Treatment Planning input."""
 
 from __future__ import annotations
 
@@ -90,6 +90,54 @@ def _section_payload(section: CaseSection, aliases: dict[tuple, str]) -> dict[st
     }
 
 
+def _find_record_by_id(value: Any, record_id: str | None) -> dict[str, Any] | None:
+    if record_id is None:
+        return None
+
+    if isinstance(value, dict):
+        candidate_id = value.get("id")
+        if candidate_id is not None and str(candidate_id) == str(record_id):
+            return value
+        for item in value.values():
+            found = _find_record_by_id(item, record_id)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for item in value:
+            found = _find_record_by_id(item, record_id)
+            if found is not None:
+                return found
+    return None
+
+
+def _evidence_facts(
+    *,
+    section_name: str,
+    section: CaseSection,
+    aliases: dict[tuple, str],
+) -> dict[str, dict[str, Any]]:
+    result: dict[str, dict[str, Any]] = {}
+    single_evidence = len(section.evidence) == 1
+
+    for ref in section.evidence:
+        alias = aliases[_evidence_key(ref)]
+        matched = _find_record_by_id(section.data, ref.source_record_id)
+
+        if matched is not None:
+            facts = _sanitize(matched)
+        elif single_evidence and isinstance(section.data, dict):
+            facts = _sanitize(section.data)
+        else:
+            facts = {}
+
+        result[alias] = {
+            "section": section_name,
+            "facts": facts,
+        }
+
+    return result
+
+
 def _risk_factor_payload(factor: RiskFactor) -> dict[str, Any]:
     return {
         "factor_id": factor.factor_id,
@@ -106,8 +154,9 @@ def _risk_factor_payload(factor: RiskFactor) -> dict[str, Any]:
 def build_planning_llm_input(
     snapshot: CaseSnapshot, risk_evaluation: RiskEvaluation
 ) -> tuple[dict[str, Any], str]:
-    """Return identifier-free structured case + risk context and its digest."""
+    """Return the canonical redacted audit input plus deterministic digest."""
     ordered_refs, aliases = _evidence_aliases(snapshot)
+
     evidence = {
         aliases[_evidence_key(ref)]: {
             "source_module": ref.source_module,
@@ -117,6 +166,29 @@ def build_planning_llm_input(
         }
         for ref in ordered_refs
     }
+
+    evidence_facts: dict[str, dict[str, Any]] = {}
+    evidence_facts.update(
+        _evidence_facts(
+            section_name="reference_frame",
+            section=snapshot.reference_frame,
+            aliases=aliases,
+        )
+    )
+    for name, section in sorted(snapshot.clinical_state.items()):
+        evidence_facts.update(
+            _evidence_facts(
+                section_name=name,
+                section=section,
+                aliases=aliases,
+            )
+        )
+
+    for alias, grounded in evidence_facts.items():
+        if alias in evidence:
+            evidence[alias]["section"] = grounded["section"]
+            evidence[alias]["facts"] = grounded["facts"]
+
     case_payload = {
         "case_snapshot_contract_version": snapshot.contract_version,
         "case_snapshot_version": snapshot.case_snapshot_version,
@@ -146,10 +218,37 @@ def build_planning_llm_input(
             "dentist_review_required": True,
             "no_automatic_execution": True,
             "no_treatment_simulation": True,
+            "server_renders_public_text": True,
         },
     }
     redacted = Redactor(enabled=True).redact_result(payload)
     return redacted, digest_value(redacted)
 
 
-__all__ = ["build_planning_llm_input"]
+def build_provider_planning_input(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return provider input with exactly one clinical-fact source: evidence[*].facts."""
+    provider_payload = dict(payload)
+    case = dict(payload["case"])
+
+    case["evidence"] = {
+        evidence_id: {
+            "section": value.get("section"),
+            "facts": value.get("facts", {}),
+        }
+        for evidence_id, value in payload["case"]["evidence"].items()
+    }
+    case["reference_frame"] = {
+        key: value
+        for key, value in payload["case"]["reference_frame"].items()
+        if key != "data"
+    }
+    case["sections"] = {
+        name: {key: value for key, value in section.items() if key != "data"}
+        for name, section in payload["case"]["sections"].items()
+    }
+
+    provider_payload["case"] = case
+    return provider_payload
+
+
+__all__ = ["build_planning_llm_input", "build_provider_planning_input"]

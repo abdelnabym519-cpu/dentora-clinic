@@ -111,9 +111,7 @@ async def test_generator_renders_public_text_from_validated_facts_and_derives_ga
 async def test_generator_normalizes_single_provider_facts_root_prefix():
     payload = _valid_output()
     payload["options"][0]["evidence"][0]["fact_paths"] = ["facts.tooth_number"]
-    payload["options"][0]["steps"][0]["evidence"][0]["fact_paths"] = [
-        "facts.tooth_number"
-    ]
+    payload["options"][0]["steps"][0]["evidence"][0]["fact_paths"] = ["facts.tooth_number"]
 
     result = await generate_planning_options(
         provider=StaticProvider(payload),

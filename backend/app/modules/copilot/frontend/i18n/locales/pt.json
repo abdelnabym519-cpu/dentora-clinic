@@ -180,6 +180,35 @@
     "page": {
       "title": "IA",
       "subtitle": "O assistente da sua clínica, limitado às suas permissões."
+    },
+    "clinical": {
+      "title": "Assistente clínico de IA",
+      "subtitle": "Análise assistida por IA construída apenas a partir dos registos reais deste paciente. O clínico decide.",
+      "patient": "Paciente",
+      "generateAll": "Analisar tudo",
+      "generate": "Gerar",
+      "regenerate": "Regenerar",
+      "retry": "Repetir",
+      "idle": "Sem análise ainda. Clique em gerar para executar a IA sobre os registos do paciente.",
+      "generating": "A analisar os registos reais do paciente…",
+      "errorTitle": "Assistente de IA indisponível",
+      "errorGeneric": "A análise de IA não pôde ser concluída. Nenhum resultado inventado é mostrado.",
+      "unavailable": "O serviço de IA está temporariamente indisponível. Tente mais tarde.",
+      "invalid": "A IA devolveu uma resposta inválida; nenhum resultado é mostrado.",
+      "noPatient": "Selecione primeiro um paciente.",
+      "loadPatientsError": "Não foi possível carregar os pacientes",
+      "auditNote": "Saída assistida por IA apenas como apoio ao clínico. Não substitui o julgamento profissional, não executa ações e baseia-se apenas nos registos disponíveis.",
+      "insufficientTitle": "Informação insuficiente",
+      "insufficient": "A IA sinalizou que os registos disponíveis não chegam para uma resposta fiável. Recolha mais informação clínica.",
+      "disclaimer": "Aviso",
+      "model": "Modelo",
+      "features": {
+        "summary": "Resumo do caso",
+        "report": "Relatório clínico",
+        "review": "Segunda revisão",
+        "plan": "Sugestões de tratamento",
+        "intel": "Inteligência do caso"
+      }
     }
   }
 }

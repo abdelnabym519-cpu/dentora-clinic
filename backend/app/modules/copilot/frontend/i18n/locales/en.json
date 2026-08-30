@@ -180,6 +180,35 @@
     "page": {
       "title": "IA",
       "subtitle": "Your clinic assistant, scoped to your permissions."
+    },
+    "clinical": {
+      "title": "Clinical AI Assist",
+      "subtitle": "AI-assisted analysis built only from this patient's real records. The clinician decides.",
+      "patient": "Patient",
+      "generateAll": "Analyze all",
+      "generate": "Generate",
+      "regenerate": "Regenerate",
+      "retry": "Retry",
+      "idle": "No analysis yet. Click generate to run the AI on this patient's records.",
+      "generating": "Analyzing the patient's real records…",
+      "errorTitle": "AI assistant unavailable",
+      "errorGeneric": "The AI analysis could not be completed. No fabricated result is shown.",
+      "unavailable": "The AI service is temporarily unavailable. Please try again later.",
+      "invalid": "The AI returned an invalid response, so no result is shown.",
+      "noPatient": "Select a patient first.",
+      "loadPatientsError": "Could not load patients",
+      "auditNote": "AI-assisted output for clinician support only. It never replaces professional judgment, does not execute actions, and is based solely on available records.",
+      "insufficientTitle": "Insufficient information",
+      "insufficient": "The AI flagged that the available records are not enough for a reliable answer. Collect more clinical information.",
+      "disclaimer": "Disclaimer",
+      "model": "Model",
+      "features": {
+        "summary": "Case Summary",
+        "report": "Clinical Report",
+        "review": "Second Review",
+        "plan": "Treatment Suggestions",
+        "intel": "Case Intelligence"
+      }
     }
   }
 }

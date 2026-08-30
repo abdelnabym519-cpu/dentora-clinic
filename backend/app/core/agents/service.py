@@ -94,14 +94,20 @@ class AuditService:
         status: str,
         execution_time_ms: int,
     ) -> AgentAuditLog:
+        # tool_arguments / result are persisted as JSONB. Tool args often
+        # carry UUID/date values (e.g. patient_id) which are not JSON
+        # serialisable, so coerce both through the shared jsonify() helper
+        # instead of letting the audit write poison the transaction.
+        from app.core.agents.tooling import jsonify
+
         log = AgentAuditLog(
             agent_id=ctx.agent_id,
             session_id=ctx.session_id,
             clinic_id=ctx.clinic_id,
             supervisor_id=ctx.supervisor_id,
             tool_name=tool_name,
-            tool_arguments=arguments,
-            result=result,
+            tool_arguments=jsonify(arguments),
+            result=jsonify(result) if result is not None else None,
             error=error,
             status=status,
             execution_time_ms=execution_time_ms,

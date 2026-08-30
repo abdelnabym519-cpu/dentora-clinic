@@ -21,17 +21,28 @@ if (!can(PERMISSIONS.copilot.chat)) {
           {{ t('copilot.page.subtitle') }}
         </p>
       </div>
-      <UButton
-        v-if="messages.length"
-        icon="i-lucide-plus"
-        color="neutral"
-        variant="outline"
-        size="sm"
-        :disabled="busy"
-        @click="reset"
-      >
-        {{ t('copilot.new') }}
-      </UButton>
+      <div class="flex items-center gap-2">
+        <UButton
+          to="/copilot/clinical"
+          icon="i-lucide-stethoscope"
+          color="neutral"
+          variant="outline"
+          size="sm"
+        >
+          {{ t('copilot.clinical.title') }}
+        </UButton>
+        <UButton
+          v-if="messages.length"
+          icon="i-lucide-plus"
+          color="neutral"
+          variant="outline"
+          size="sm"
+          :disabled="busy"
+          @click="reset"
+        >
+          {{ t('copilot.new') }}
+        </UButton>
+      </div>
     </div>
 
     <UCard

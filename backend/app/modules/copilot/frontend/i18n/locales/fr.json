@@ -180,6 +180,35 @@
     "page": {
       "title": "IA",
       "subtitle": "Votre assistant de clinique, limité à vos permissions."
+    },
+    "clinical": {
+      "title": "Assistant clinique IA",
+      "subtitle": "Analyse assistée par IA à partir uniquement des dossiers réels de ce patient. Le clinicien décide.",
+      "patient": "Patient",
+      "generateAll": "Tout analyser",
+      "generate": "Générer",
+      "regenerate": "Régénérer",
+      "retry": "Réessayer",
+      "idle": "Aucune analyse pour l'instant. Cliquez sur générer pour lancer l'IA sur les dossiers du patient.",
+      "generating": "Analyse des dossiers réels du patient…",
+      "errorTitle": "Assistant IA indisponible",
+      "errorGeneric": "L'analyse IA n'a pas pu être terminée. Aucun résultat inventé n'est affiché.",
+      "unavailable": "Le service IA est temporairement indisponible. Réessayez plus tard.",
+      "invalid": "L'IA a renvoyé une réponse invalide ; aucun résultat n'est affiché.",
+      "noPatient": "Sélectionnez d'abord un patient.",
+      "loadPatientsError": "Impossible de charger les patients",
+      "auditNote": "Sortie assistée par IA à titre d'aide au clinicien uniquement. Elle ne remplace pas le jugement professionnel, n'exécute aucune action et se fonde uniquement sur les dossiers disponibles.",
+      "insufficientTitle": "Informations insuffisantes",
+      "insufficient": "L'IA a signalé que les dossiers disponibles ne suffisent pas pour une réponse fiable. Recueillez davantage d'informations cliniques.",
+      "disclaimer": "Avertissement",
+      "model": "Modèle",
+      "features": {
+        "summary": "Résumé du cas",
+        "report": "Rapport clinique",
+        "review": "Deuxième avis",
+        "plan": "Suggestions de traitement",
+        "intel": "Intelligence du cas"
+      }
     }
   }
 }

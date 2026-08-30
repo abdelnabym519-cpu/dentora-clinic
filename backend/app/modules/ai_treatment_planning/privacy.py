@@ -238,9 +238,7 @@ def build_provider_planning_input(payload: dict[str, Any]) -> dict[str, Any]:
         for evidence_id, value in payload["case"]["evidence"].items()
     }
     case["reference_frame"] = {
-        key: value
-        for key, value in payload["case"]["reference_frame"].items()
-        if key != "data"
+        key: value for key, value in payload["case"]["reference_frame"].items() if key != "data"
     }
     case["sections"] = {
         name: {key: value for key, value in section.items() if key != "data"}

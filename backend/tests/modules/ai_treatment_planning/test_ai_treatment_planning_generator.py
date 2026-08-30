@@ -72,13 +72,12 @@ def _valid_output():
                     "Defer treatment choice until missing data is reviewed."
                 ],
             }
-        ],
-        "data_gaps": [{"section": "nerve", "status": "not_available"}],
+        ]
     }
 
 
 @pytest.mark.asyncio
-async def test_generator_validates_traceability_and_server_stamps_gap_reason():
+async def test_generator_validates_traceability_and_derives_gap_from_snapshot():
     result = await generate_planning_options(
         provider=StaticProvider(_valid_output()),
         model="test-model",
@@ -87,6 +86,8 @@ async def test_generator_validates_traceability_and_server_stamps_gap_reason():
     )
     assert result.content.options[0].evidence_ids == ["E001"]
     assert result.content.options[0].steps[0].risk_factor_ids == ["accepted_nerve_pathway_present"]
+    assert result.content.data_gaps[0].section == "nerve"
+    assert result.content.data_gaps[0].status == "not_available"
     assert result.content.data_gaps[0].reason == "nerve_analysis_not_available"
     assert result.content.no_automatic_execution is True
 
@@ -118,10 +119,16 @@ async def test_generator_rejects_unknown_risk_factor():
 
 
 @pytest.mark.asyncio
-async def test_generator_rejects_omitted_data_gap():
+async def test_generator_rejects_provider_supplied_data_gaps():
     payload = _valid_output()
-    payload["data_gaps"] = []
-    with pytest.raises(PlanningGenerationError, match="omitted_or_invented_data_gap"):
+    payload["data_gaps"] = [
+        {
+            "section": "nerve",
+            "status": "unavailable",
+            "reason": "provider-controlled gap",
+        }
+    ]
+    with pytest.raises(PlanningGenerationError, match="invalid_structured_planning"):
         await generate_planning_options(
             provider=StaticProvider(payload),
             model="test-model",

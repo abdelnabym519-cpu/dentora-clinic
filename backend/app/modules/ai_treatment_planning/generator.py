@@ -14,9 +14,9 @@ from app.modules.case_intelligence.contracts import canonical_json
 from .contracts import PlanningContent, PlanningDataGap, PlanningStep, TreatmentOption
 
 SYSTEM_PROMPT = """You produce ADVISORY dental treatment-planning OPTIONS from one structured Dentora case projection and deterministic observed-fact risk context.
-Return JSON only with exactly: {"options": [...], "data_gaps": [...]}.
+Return JSON only with exactly: {"options": [...]}.
 Every option must contain option_id, title, clinical_intent, rationale, evidence_ids, risk_factor_ids, steps, uncertainties, alternatives_or_tradeoffs. Every step must contain step_id, description, purpose, evidence_ids, risk_factor_ids.
-Use only case facts present in the input. Every option and every step must cite only evidence_ids provided in case.evidence, and every risk_factor_id must exist in risk_context.factors. Do not invent diagnoses, missing anatomy, test results, risk scores, validated thresholds, success probabilities, costs, medication doses, or autonomous implant dimensions. Do not claim a recommendation is mandatory, optimal, or final. Do not create or imply a canonical treatment plan. Do not simulate predicted outcomes. Represent every not_available or invalid_or_stale case section in data_gaps. If the available evidence is insufficient for a defensible option, return an empty options list and the required data gaps. The output is decision support only and requires dentist review."""
+Use only case facts present in the input. Every option and every step must cite only evidence_ids provided in case.evidence, and every risk_factor_id must exist in risk_context.factors. Do not invent diagnoses, missing anatomy, test results, risk scores, validated thresholds, success probabilities, costs, medication doses, or autonomous implant dimensions. Do not claim a recommendation is mandatory, optimal, or final. Do not create or imply a canonical treatment plan. Do not simulate predicted outcomes. Do not emit data gaps; Dentora derives missing and stale sections deterministically from the CaseSnapshot. If the available evidence is insufficient for a defensible option, return an empty options list. The output is decision support only and requires dentist review."""
 
 
 class _GeneratedStep(BaseModel):
@@ -43,19 +43,10 @@ class _GeneratedOption(BaseModel):
     alternatives_or_tradeoffs: list[str] = Field(default_factory=list)
 
 
-class _GeneratedGap(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    section: str
-    status: str
-    reason: str | None = None
-
-
 class _GeneratedOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     options: list[_GeneratedOption] = Field(default_factory=list)
-    data_gaps: list[_GeneratedGap] = Field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -138,36 +129,16 @@ async def generate_planning_options(
             )
         )
 
-    gaps: list[PlanningDataGap] = []
-    seen_gap_sections: set[str] = set()
     sections = case["sections"]
-    for generated_gap in generated.data_gaps:
-        section = sections.get(generated_gap.section)
-        if section is None:
-            raise PlanningGenerationError("gap_references_unknown_section")
-        expected_status = section["status"]
-        if expected_status not in {"not_available", "invalid_or_stale"}:
-            raise PlanningGenerationError("gap_status_does_not_match_snapshot")
-        if generated_gap.status != expected_status:
-            raise PlanningGenerationError("gap_status_does_not_match_snapshot")
-        if generated_gap.section in seen_gap_sections:
-            raise PlanningGenerationError("duplicate_data_gap")
-        seen_gap_sections.add(generated_gap.section)
-        gaps.append(
-            PlanningDataGap(
-                section=generated_gap.section,
-                status=expected_status,
-                reason=section.get("reason"),
-            )
+    gaps = [
+        PlanningDataGap(
+            section=name,
+            status=section["status"],
+            reason=section.get("reason"),
         )
-
-    required_gaps = {
-        name
-        for name, section in sections.items()
+        for name, section in sorted(sections.items())
         if section["status"] in {"not_available", "invalid_or_stale"}
-    }
-    if seen_gap_sections != required_gaps:
-        raise PlanningGenerationError("provider_omitted_or_invented_data_gap")
+    ]
 
     return GenerationResult(
         content=PlanningContent(options=options, data_gaps=gaps),

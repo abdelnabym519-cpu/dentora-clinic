@@ -8,7 +8,7 @@
 
 - Input to the cloud LLM is structured and deterministically redacted.
 - Patient/clinic identifiers and clinical free-text fields are removed before provider invocation.
-- Missing and stale sources remain explicit data gaps and may not be filled by the model.
+- Missing and stale sources are derived deterministically from the CaseSnapshot as explicit data gaps and are never delegated to the model.
 - Every option and step must reference known evidence aliases; risk references must use known deterministic factor IDs.
 - Output is advisory only and cannot create, update, confirm, price, schedule, or execute a canonical `treatment_plan` record.
 - Treatment Simulation is explicitly outside this module and is not implemented here.
@@ -37,4 +37,4 @@ Artifacts are append-only per patient with clinic-scoped queries, case snapshot 
 
 ## Gotchas
 
-Do not add automatic writes into `treatment_plan`, `budget`, `odontogram`, scheduling, prescriptions, or Dental3D. Do not weaken evidence validation or data-gap completeness checks to accommodate provider output.
+Do not add automatic writes into `treatment_plan`, `budget`, `odontogram`, scheduling, prescriptions, or Dental3D. Do not weaken evidence validation or deterministic data-gap derivation to accommodate provider output.

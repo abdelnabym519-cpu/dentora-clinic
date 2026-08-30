@@ -17,10 +17,11 @@ from app.modules.case_intelligence.contracts import (
 def _snapshot() -> CaseSnapshot:
     patient_id = uuid4()
     clinic_id = uuid4()
+    tooth_record_id = uuid4()
     ref = EvidenceReference(
         source_module="odontogram",
         source_entity="ToothRecord",
-        source_record_id=str(uuid4()),
+        source_record_id=str(tooth_record_id),
         source_version="v1",
         source_digest="sha256:source",
         validation_state="current",
@@ -52,7 +53,7 @@ def _snapshot() -> CaseSnapshot:
                 data={
                     "teeth": [
                         {
-                            "id": str(uuid4()),
+                            "id": str(tooth_record_id),
                             "tooth_number": 16,
                             "general_condition": "present",
                             "notes": "SENTINEL_CLINICAL_FREE_TEXT",
@@ -103,14 +104,39 @@ def test_provider_projection_preserves_evidence_ids_without_mutating_audit_paylo
     provider_payload = build_provider_llm_input(payload)
 
     assert set(provider_payload["evidence"]) == set(payload["evidence"])
-    assert all(value == {} for value in provider_payload["evidence"].values())
 
-    # Canonical audit/provenance input remains complete and unchanged.
+    # Each provider evidence alias exposes only facts from its own source record.
+    assert provider_payload["evidence"]["E001"] == {
+        "section": "odontogram",
+        "facts": {
+            "tooth_number": 16,
+            "general_condition": "present",
+        },
+    }
+    assert provider_payload["evidence"]["E002"] == {
+        "section": "patient",
+        "facts": {
+            "gender": "female",
+        },
+    }
+
+    # Canonical audit/provenance input remains complete and identifier-free.
+    assert payload["evidence"]["E001"]["source_module"] == "odontogram"
+    assert payload["evidence"]["E002"]["source_module"] == "patients"
+    assert "source_record_id" not in str(payload)
+    assert "1980-01-01" not in str(payload)
+
+    # Provider has one and only one clinical-fact source: evidence[*].facts.
     assert all(
-        set(value) == {"source_module", "source_version", "validation_state"}
-        for value in payload["evidence"].values()
+        "data" not in section
+        for section in provider_payload["sections"].values()
     )
+    assert "data" not in provider_payload["reference_frame"]
 
-    # No clinical sections or data gaps are removed from the provider view.
-    assert provider_payload["sections"] == payload["sections"]
+    # Availability/gap metadata remains available for deterministic handling.
+    assert provider_payload["sections"]["nerve"]["status"] == "invalid_or_stale"
+    assert provider_payload["sections"]["nerve"]["reason"] == "nerve_analysis_not_accepted"
     assert provider_payload["missing_data_report"] == payload["missing_data_report"]
+
+    # Canonical audit input still retains its structured sections.
+    assert "data" in payload["sections"]["odontogram"]

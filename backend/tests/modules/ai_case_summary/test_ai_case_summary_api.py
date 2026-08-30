@@ -3,6 +3,7 @@ import json
 import pytest
 from sqlalchemy import select
 
+from app.config import settings
 from app.core.auth.models import ClinicMembership
 from app.core.llm.base import Done, TextDelta
 from app.modules.ai_case_summary.models import AICaseSummaryRecord
@@ -15,22 +16,25 @@ class CapturingProvider:
 
     async def complete(self, **kwargs):
         self.user_payload = json.loads(kwargs["messages"][0].content[0].text)
-        evidence_ids = list(self.user_payload["evidence"])
-        gaps = [
-            {"section": name, "status": section["status"]}
-            for name, section in self.user_payload["sections"].items()
-            if section["status"] in {"not_available", "invalid_or_stale"}
-        ]
         claims = []
-        if evidence_ids:
-            claims.append(
-                {
-                    "claim_id": "C1",
-                    "text": "Structured case data is available.",
-                    "evidence_ids": [evidence_ids[0]],
-                }
-            )
-        yield TextDelta(json.dumps({"claims": claims, "data_gaps": gaps}))
+
+        for evidence_id, evidence in self.user_payload["evidence"].items():
+            facts = evidence.get("facts", {})
+            if (
+                isinstance(facts, dict)
+                and facts.get("status") is not None
+                and not isinstance(facts["status"], (dict, list))
+            ):
+                claims.append(
+                    {
+                        "claim_id": "C1",
+                        "evidence_id": evidence_id,
+                        "fact_paths": ["status"],
+                    }
+                )
+                break
+
+        yield TextDelta(json.dumps({"claims": claims}))
         yield Done("stop")
 
 
@@ -44,6 +48,7 @@ async def test_generate_is_redacted_traceable_and_requires_dentist_review(
     monkeypatch,
 ):
     provider = CapturingProvider()
+    monkeypatch.setattr(settings, "COPILOT_PROVIDER_DEFAULT", "openai")
     monkeypatch.setattr(
         AICaseSummaryService,
         "provider_factory",

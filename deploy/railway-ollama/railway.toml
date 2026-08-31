@@ -1,0 +1,32 @@
+# Railway service: Dentora local LLM (Ollama) on the private network.
+#
+# This service must NOT be given a public domain. The backend reaches it over
+# Railway private networking via http://ollama.railway.internal:11434 (set
+# OLLAMA_BASE_URL to that value on the backend). It runs a fully-local model
+# (dentora-qwen3:1.7b built from qwen3:1.7b) — no cloud LLM and no API key.
+#
+# Configure this service in the Railway dashboard:
+#   * Source   : this GitHub repository
+#   * Root Directory : deploy/railway-ollama
+#   * Config File    : deploy/railway-ollama/railway.toml
+#   * Variables: OLLAMA_MODEL=dentora-qwen3:1.7b
+#                OLLAMA_BASE_MODEL=qwen3:1.7b
+#   * Volume   : mount at /root/.ollama so the pulled model survives
+#                redeploys (the qwen3 pull is one-time).
+#   * Resources: an instance with >= ~4 GB RAM is recommended for the 1.7B
+#                model; CPU-only inference works.
+#   * Networking: do NOT generate a public domain. The service listens on
+#                11434 and is reachable privately as ollama.railway.internal.
+#
+# The image is ollama/ollama; the Dockerfile copies a self-contained init
+# script that starts serve, waits for the API, pulls the base model, builds
+# the clinical model, then keeps serving in the foreground.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "sh -c 'OLLAMA_HOST=0.0.0.0:11434 /app/ollama-entrypoint.sh'"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

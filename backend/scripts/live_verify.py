@@ -29,7 +29,15 @@ import os
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+
+# Allow running as `python scripts/live_verify.py` from any working dir:
+# ensure the backend package root (the parent of scripts/) is importable.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_APP_ROOT = os.path.dirname(_HERE)
+if _APP_ROOT not in sys.path:
+    sys.path.insert(0, _APP_ROOT)
 
 BASE = os.environ.get("BASE_URL", "http://localhost:8000").rstrip("/")
 EMAIL = os.environ.get("EMAIL", "admin@demo.clinic")
@@ -55,7 +63,6 @@ def _req(method: str, url: str, *, token: str | None = None,
     headers = {"Accept": accept}
     body = None
     if form is not None:
-        import urllib.parse
         body = urllib.parse.urlencode(form).encode()
         headers["Content-Type"] = "application/x-www-form-urlencoded"
     elif data is not None:

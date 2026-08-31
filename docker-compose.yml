@@ -126,11 +126,14 @@ services:
       - ./backend/app/modules:/module_layers:ro
       - /app/node_modules
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/ || exit 1"]
+      # Use node (always present in the node image); /login returns 200 while
+      # "/" redirects unauthenticated visitors. Long start_period covers the
+      # first Nuxt dev compile on bind-mounted sources.
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://127.0.0.1:3000/login',r=>process.exit(r.statusCode&&r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
       interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
     restart: unless-stopped
     command: npm run dev
 

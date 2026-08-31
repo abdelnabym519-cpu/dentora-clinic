@@ -70,6 +70,7 @@ class OllamaProvider:
         *,
         base_url: str | None = None,
         model: str | None = None,
+        think: bool | None = None,
         timeout: float = 180.0,
     ) -> None:
         from app.config import settings
@@ -80,6 +81,7 @@ class OllamaProvider:
         self._default_model = (
             model or getattr(settings, "OLLAMA_MODEL", "") or "llama3.1:8b-instruct-q4_K_M"
         )
+        self._think = bool(think if think is not None else getattr(settings, "OLLAMA_THINK", False))
         self._timeout = timeout
 
     async def _stream_chat(self, payload: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
@@ -120,10 +122,15 @@ class OllamaProvider:
         max_tokens: int,
     ) -> AsyncIterator[ProviderEvent]:
         wire_messages = _to_ollama_messages(system, messages)
+        # ``think`` controls Qwen3 thinking mode: default off so the answer
+        # (not a reasoning trace that can consume the whole token budget and
+        # leave message.content empty) is returned. Silently ignored by models
+        # that do not support thinking.
         payload: dict[str, Any] = {
             "model": model or self._default_model,
             "messages": wire_messages,
             "stream": True,
+            "think": self._think,
             "options": {"num_predict": max_tokens},
         }
         if tools:

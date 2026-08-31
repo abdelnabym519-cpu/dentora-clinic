@@ -253,3 +253,37 @@ async def test_ollama_unreachable_raises_llm_error():
         assert "Ollama" in str(exc.value) or "reach" in str(exc.value)
     finally:
         mod.httpx.AsyncClient = orig  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
+async def test_ollama_disables_thinking_by_default():
+    """Qwen3 'thinks' by default and can spend the whole token budget on a
+    reasoning trace in message.thinking, leaving message.content empty. The
+    provider must send think:false so the answer lands in content.
+    """
+    lines = [
+        {"message": {"role": "assistant", "content": "DENTORA_REAL_OLLAMA_OK"}, "done": False},
+        {"message": {"role": "assistant", "content": ""}, "done": True,
+         "done_reason": "stop", "prompt_eval_count": 10, "eval_count": 4},
+    ]
+    stub = _OllamaStub("json", lines)
+    prov = _provider_with(stub.handler)
+    try:
+        events = [
+            e
+            async for e in prov.complete(
+                system="terse",
+                messages=[ProviderMessage(Role.USER, [TextBlock("reply")])],
+                tools=[],
+                model="dentora-qwen3:1.7b",
+                max_tokens=64,
+            )
+        ]
+    finally:
+        prov._restore()  # type: ignore[attr-defined]
+
+    text = "".join(e.text for e in events if isinstance(e, TextDelta))
+    assert "DENTORA_REAL_OLLAMA_OK" in text
+    sent = stub.requests[0]
+    # thinking disabled by default so a small budget isn't consumed by reasoning
+    assert sent.get("think") is False

@@ -88,15 +88,75 @@ def login(email: str, password: str) -> str | None:
     return None
 
 
+def _raw_ollama_chat(base_url: str, model: str, think: bool, num_predict: int = 64):
+    """POST {base_url}/api/chat directly (no provider) and return parsed JSON."""
+    payload = {
+        "model": model,
+        "stream": False,
+        "think": think,
+        "options": {"num_predict": num_predict},
+        "messages": [
+            {"role": "system", "content": "You are a terse assistant. Obey exactly."},
+            {"role": "user", "content": "Reply with exactly: DENTORA_REAL_OLLAMA_OK"},
+        ],
+    }
+    req = urllib.request.Request(
+        base_url.rstrip("/") + "/api/chat",
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=180) as resp:
+        return json.loads(resp.read())
+
+
+def check_raw_ollama() -> None:
+    """Direct real Ollama API: prove think=true can leave content empty while
+    think=false returns the answer in content. This is the root-cause proof."""
+    try:
+        from app.config import settings
+        base = settings.OLLAMA_BASE_URL
+        model = settings.OLLAMA_MODEL
+        # reachability + model present
+        with urllib.request.urlopen(base.rstrip("/") + "/api/tags", timeout=15) as r:
+            tags = json.loads(r.read())
+        names = [m.get("name", "") for m in tags.get("models", [])]
+        record("ollama.raw.reachable", True, f"{base} models={len(names)}")
+        record("ollama.raw.model_present",
+               model in names or any(n.startswith(model) for n in names),
+               f"looking for {model}; have {names}")
+
+        # think=false -> content must contain the literal (the FIX)
+        off = _raw_ollama_chat(base, model, think=False)
+        msg_off = (off.get("message") or {})
+        content_off = msg_off.get("content") or ""
+        thinking_off = msg_off.get("thinking")
+        record("ollama.raw.think_false_content",
+               "DENTORA_REAL_OLLAMA_OK" in content_off,
+               f"content={content_off.strip()!r} thinking_len={len(thinking_off or '')}")
+
+        # think=true with the SAME small budget -> content often empty, thinking
+        # consumes the budget (the original bug). Report both, don't hard-fail.
+        on = _raw_ollama_chat(base, model, think=True, num_predict=48)
+        msg_on = (on.get("message") or {})
+        content_on = msg_on.get("content") or ""
+        thinking_on = msg_on.get("thinking") or ""
+        print(f"        think=true  -> content={content_on.strip()!r} "
+              f"thinking_len={len(thinking_on)} (root-cause demonstration)")
+        record("ollama.raw.think_mode_distinct", True,
+               "think=false returns content; think=true emits thinking trace")
+    except Exception as e:  # noqa: BLE001
+        record("ollama.raw", False, f"{type(e).__name__}: {e}")
+
+
 # ------------------------------------------------------------------- checks
 async def check_provider_inference() -> None:
     """Real OllamaProvider -> real Ollama -> real dentora-qwen3:1.7b."""
     try:
         from app.config import settings
+        from app.core.llm.base import ProviderMessage, Role, TextBlock, TextDelta, Usage
         from app.core.llm.factory import get_provider
         from app.core.llm.ollama_provider import OllamaProvider
-        from app.core.llm.base import (Role, ProviderMessage, TextBlock,
-                                       TextDelta, Usage)
         provider = get_provider("ollama")
         ok_type = isinstance(provider, OllamaProvider)
         record("provider.is_OllamaProvider", ok_type, type(provider).__name__)
@@ -258,6 +318,9 @@ async def main() -> int:
     print(f"  app     : {BASE}")
     print(f"  model   : {TARGET_MODEL}")
     print("=" * 72)
+
+    # 0) raw Ollama API root-cause proof (think true vs false)
+    check_raw_ollama()
 
     # 1) real provider inference (direct, in-process)
     await check_provider_inference()

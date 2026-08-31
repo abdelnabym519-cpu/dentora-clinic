@@ -117,6 +117,14 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "dentora-qwen3:1.7b"
     COPILOT_MODEL_CHAT_OLLAMA: str = "dentora-qwen3:1.7b"
+    # Qwen3-family models "think" by default: they emit a chain-of-thought in
+    # ``message.thinking`` and only afterwards put the answer in
+    # ``message.content``. With a small token budget the reasoning can consume
+    # every token and ``content`` arrives empty (the stream ends with no text
+    # and no error). The clinical features need one deterministic JSON object,
+    # not a reasoning trace, so default to Ollama's ``think: false`` (silently
+    # ignored by non-thinking models). Set OLLAMA_THINK=true to enable it.
+    OLLAMA_THINK: bool = False
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
 

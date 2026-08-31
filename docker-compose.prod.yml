@@ -27,6 +27,51 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  # Fully-local LLM for the Clinical Copilot + all AI features. No cloud
+  # LLM and no API key: on first boot this pulls qwen3:1.7b and builds
+  # `dentora-qwen3:1.7b` from the repo Modelfile. The model name/target
+  # must match backend OLLAMA_MODEL. Set OLLAMA_BASE_MODEL / OLLAMA_MODEL
+  # in .env to override.
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
+      OLLAMA_BASE_MODEL: ${OLLAMA_BASE_MODEL:-qwen3:1.7b}
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    # Self-contained init (no repo files required for the no-clone prod
+    # stack): start the server, wait for the API, pull the base, and build
+    # the clinical model with an inline Modelfile, then keep serving.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        cat > /tmp/Modelfile <<'EOF'
+        PARAMETER temperature 0.1
+        PARAMETER top_p 0.9
+        PARAMETER repeat_penalty 1.1
+        PARAMETER num_ctx 8192
+        SYSTEM """You are Dentora's clinical AI assistant in a dental clinic. Use only the patient records provided. Output ONLY the requested JSON object matching the schema; invent nothing; flag missing information instead of guessing; you are an assistive tool for a licensed dentist, never a medical authority; suggest treatment options, never execute them."""
+        EOF
+        ollama serve & pid=$$!
+        i=0; until ollama list >/dev/null 2>&1; do i=$$((i+1)); [ $$i -ge 60 ] && exit 1; sleep 2; done
+        if ! ollama list | grep -q "$$OLLAMA_MODEL"; then
+          ollama pull "$$OLLAMA_BASE_MODEL"
+          sed "1i FROM $$OLLAMA_BASE_MODEL" /tmp/Modelfile > /tmp/Modelfile.final
+          ollama create "$$OLLAMA_MODEL" -f /tmp/Modelfile.final
+        fi
+        ollama list
+        wait $$pid
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 600s
+    restart: unless-stopped
+
   backend:
     image: ghcr.io/abdelnabym519-cpu/dentora-backend:${DENTORA_VERSION:-latest}
     environment:
@@ -38,6 +83,11 @@ services:
       STORAGE_BACKEND: local
       STORAGE_LOCAL_PATH: /app/storage
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Fully-local Ollama LLM (default). No cloud, no API key.
+      COPILOT_PROVIDER_DEFAULT: ${COPILOT_PROVIDER_DEFAULT:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
+      COPILOT_MODEL_CHAT_OLLAMA: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
       # Seeds the demo clinic on first boot. Leave at 0 for a real clinic.
       SEED_ON_STARTUP: ${SEED_ON_STARTUP:-0}
       SEED_LANG: ${SEED_LANG:-es}
@@ -46,6 +96,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      ollama:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
       interval: 30s
@@ -92,5 +144,6 @@ services:
 volumes:
   pgdata:
   storage_data:
+  ollama_data:
   caddy_data:
   caddy_config:

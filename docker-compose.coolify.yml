@@ -15,6 +15,35 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
+      OLLAMA_BASE_MODEL: ${OLLAMA_BASE_MODEL:-qwen3:1.7b}
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        printf 'PARAMETER temperature 0.1\nPARAMETER num_ctx 8192\nSYSTEM """You are Dentora'"'"'s clinical AI assistant in a dental clinic. Use only the patient records provided; output ONLY the requested JSON; invent nothing; flag missing information; you assist a licensed dentist and never act as medical authority; suggest treatment, never execute it."""\n' > /tmp/MF
+        ollama serve & pid=$!
+        i=0; until ollama list >/dev/null 2>&1; do i=$((i+1)); [ $i -ge 60 ] && exit 1; sleep 2; done
+        if ! ollama list | grep -q "$OLLAMA_MODEL"; then
+          ollama pull "$OLLAMA_BASE_MODEL"
+          sed "1i FROM $OLLAMA_BASE_MODEL" /tmp/MF > /tmp/MF.f
+          ollama create "$OLLAMA_MODEL" -f /tmp/MF.f
+        fi
+        ollama list
+        wait $pid
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 600s
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -27,6 +56,10 @@ services:
       ALLOWED_ORIGINS: ${FRONTEND_URL}
       STORAGE_BACKEND: local
       STORAGE_LOCAL_PATH: /app/storage
+      COPILOT_PROVIDER_DEFAULT: ${COPILOT_PROVIDER_DEFAULT:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
+      COPILOT_MODEL_CHAT_OLLAMA: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
       # Demo deployments set SEED_ON_STARTUP=1 in Coolify env so a wiped
       # DB volume self-heals on next restart: alembic recreates the
       # schema and seed_demo.py repopulates it (idempotent — no-op when
@@ -39,6 +72,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      ollama:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
       interval: 30s
@@ -70,3 +105,4 @@ services:
 volumes:
   pgdata:
   storage_data:
+  ollama_data:

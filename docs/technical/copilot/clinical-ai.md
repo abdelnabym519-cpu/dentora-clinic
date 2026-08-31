@@ -163,12 +163,16 @@ no API key are involved.
   neutral `Provider` events. Tool names use the same `.`↔`-` bijection as the
   OpenAI provider; tool results are sent as `role:"tool"` messages.
 - Selected exactly like any provider — no architecture change:
-  - `COPILOT_PROVIDER_DEFAULT=ollama` (env) or a clinic's copilot settings
-    `provider="ollama"`.
-  - `OLLAMA_BASE_URL` (default `http://localhost:11434`).
+- `COPILOT_PROVIDER_DEFAULT=ollama` (env) or a clinic's copilot settings
+  `provider="ollama"`.
+  - `OLLAMA_BASE_URL` (default `http://localhost:11434`; inside Docker the
+    backend uses `http://ollama:11434`).
   - `OLLAMA_MODEL` / `COPILOT_MODEL_CHAT_OLLAMA` (default
-    `llama3.1:8b-instruct-q4_K_M`) — the model must be pulled on the server
-    (`ollama pull <model>`).
+    `dentora-qwen3:1.7b`) — a small, fully-local clinical model built by
+    `docker/ollama-entrypoint.sh` from the `qwen3:1.7b` base using the
+    `ollama/Modelfile.dentora-qwen3` (structured-JSON, no-fabrication system
+    prompt). On a bare-metal host run `ollama pull qwen3:1.7b &&
+    ollama create dentora-qwen3:1.7b -f ollama/Modelfile.dentora-qwen3`.
   - When the provider is `ollama`, the default model resolves to the Ollama
     model (via `default_model_for(...)`), so switching providers never sends a
     cloud model id to Ollama.
@@ -177,19 +181,34 @@ no API key are involved.
   fabricated result. RBAC, tenant isolation, redaction and audit are unchanged
   — the provider is the only component that differs.
 
+**Running the full stack with local Ollama (Docker).** `docker-compose.yml`
+ships an `ollama` service (image `ollama/ollama`) whose entrypoint
+(`docker/ollama-entrypoint.sh`) starts the server, pulls `qwen3:1.7b`, and
+builds the `dentora-qwen3:1.7b` clinical model from
+`ollama/Modelfile.dentora-qwen3` automatically on first boot; the backend is
+wired to `COPILOT_PROVIDER_DEFAULT=ollama` + `OLLAMA_BASE_URL=http://ollama:11434`.
+Bring-up:
+
+```bash
+cp .env.prod.example .env   # set POSTGRES_PASSWORD + SECRET_KEY
+docker compose up --build   # ollama image + qwen3:1.7b pull happen on first boot
+# health:  ollama service healthy -> backend /health -> frontend
+```
+
 > **Live inference status:** the Ollama implementation is complete and the real
 > production wire path is proven by tests that run a **real Ollama-protocol
 > HTTP server on a real TCP port** and drive the unmodified `OllamaProvider`
 > over sockets (`backend/tests/test_ollama_e2e.py`,
-> `backend/tests/test_ollama_provider.py`). In *this* sandbox the Ollama binary
-> and model weights cannot be downloaded (the egress allowlist reaches
-> github.com / PyPI / npm but **not** `ollama.com`, `registry.ollama.ai`,
-> `release-assets.githubusercontent.com` or `huggingface.co`; 2 vCPU / 3.8 GB
-> RAM also cannot host an 8B model). So against an actual downloaded Ollama +
-> model the status is **IMPLEMENTED — LIVE INFERENCE BLOCKED (binary/weights
-> not downloadable here)**; on any host that can `ollama pull`, it runs with no
-> code change. The OpenAI-cloud path remains **IMPLEMENTED — LIVE INFERENCE
-> BLOCKED (no key/egress)**.
+> `backend/tests/test_ollama_provider.py`). In *this* CI sandbox the Ollama
+> container image and model weights cannot be fetched (egress reaches
+> github.com / PyPI / npm but **not** `ollama.com`, the Docker registry, or
+> `huggingface.co`; 2 vCPU / 3.8 GB RAM also cannot host even the 1.7B model for
+> production-quality output). With Docker available on any normal host,
+> `docker compose up --build` performs the pull/create automatically; on a
+> bare-metal host run `ollama pull qwen3:1.7b && ollama create
+> dentora-qwen3:1.7b -f ollama/Modelfile.dentora-qwen3`. No code change is
+> required once the model is present. The OpenAI-cloud path remains
+> **IMPLEMENTED — LIVE INFERENCE BLOCKED (no key/egress)**.
 
 ## Testing
 

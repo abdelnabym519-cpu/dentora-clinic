@@ -17,6 +17,32 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+
+  # Fully-local LLM for the Clinical Copilot + all AI features. No cloud
+  # LLM and no API key: the entrypoint starts Ollama, pulls the small base
+  # (qwen3:1.7b) and builds the `dentora-qwen3:1.7b` clinical model from
+  # ollama/Modelfile.dentora-qwen3.
+  ollama:
+    image: ollama/ollama:latest
+    entrypoint: ["/bin/sh", "/ollama-init/ollama-entrypoint.sh"]
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
+      OLLAMA_BASE_MODEL: ${OLLAMA_BASE_MODEL:-qwen3:1.7b}
+      MODELFILE_PATH: /modelfile/Modelfile.dentora-qwen3
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ollama:/modelfile:ro
+      - ./docker/ollama-entrypoint.sh:/ollama-init/ollama-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    restart: unless-stopped
+ 
   backend:
     build: ./backend
     environment:
@@ -33,11 +59,18 @@ services:
       # Copilot agentic layer (app/core/llm/). Set OPENAI_API_KEY in .env
       # (gitignored). Empty default keeps the stack bootable without it.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Fully-local Ollama LLM (preferred). No cloud, no API key.
+      COPILOT_PROVIDER_DEFAULT: ${COPILOT_PROVIDER_DEFAULT:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
+      COPILOT_MODEL_CHAT_OLLAMA: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
     ports:
       - "8100:8000"
     depends_on:
       db:
         condition: service_healthy
+      ollama:
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
       interval: 30s
@@ -96,3 +129,4 @@ services:
 volumes:
   pgdata:
   storage_data:
+  ollama_data:

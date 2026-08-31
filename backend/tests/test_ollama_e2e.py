@@ -141,7 +141,7 @@ async def ollama_server(monkeypatch):
 
 
 @pytest_asyncio.fixture
-async def ollama_patient(client: AsyncClient, auth_headers: dict) -> UUID:
+async def ollama_patient(client: AsyncClient, auth_headers: dict, test_clinic) -> UUID:
     res = await client.post(
         "/api/v1/patients",
         headers=auth_headers,
@@ -165,8 +165,8 @@ async def test_clinical_feature_runs_via_real_ollama_server(
     client: AsyncClient,
     auth_headers: dict,
     test_clinic,
-    ollama_patient: UUID,
     ollama_server,
+    ollama_patient: UUID,
     monkeypatch,
     path,
     payload_fn,

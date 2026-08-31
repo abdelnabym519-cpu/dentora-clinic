@@ -165,7 +165,7 @@ FEATURES = [
 
 
 @pytest_asyncio.fixture
-async def patient_id(client: AsyncClient, auth_headers: dict) -> UUID:
+async def patient_id(client: AsyncClient, auth_headers: dict, test_clinic) -> UUID:
     res = await client.post(
         "/api/v1/patients",
         headers=auth_headers,

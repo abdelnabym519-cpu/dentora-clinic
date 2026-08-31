@@ -111,11 +111,12 @@ class Settings(BaseSettings):
     AI_GATEWAY_BASE_URL: str = ""
     COPILOT_PROVIDER_DEFAULT: str = "openai"
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
-    # Fully-local Ollama provider (no cloud, no API key). The model must be
-    # pulled on the Ollama server (e.g. `ollama pull llama3.1:8b-instruct-q4_K_M`).
+    # Fully-local Ollama provider (no cloud, no API key). The default model
+    # is the Dentora clinical model built by docker/ollama-entrypoint.sh from
+    # the small qwen3:1.7b base via ollama/Modelfile.dentora-qwen3.
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama3.1:8b-instruct-q4_K_M"
-    COPILOT_MODEL_CHAT_OLLAMA: str = "llama3.1:8b-instruct-q4_K_M"
+    OLLAMA_MODEL: str = "dentora-qwen3:1.7b"
+    COPILOT_MODEL_CHAT_OLLAMA: str = "dentora-qwen3:1.7b"
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
 

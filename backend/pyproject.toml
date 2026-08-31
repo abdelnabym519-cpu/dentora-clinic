@@ -44,10 +44,11 @@ dependencies = [
     # .dpm.zst.enc). cryptography (already above) handles AES-256-GCM
     # + scrypt for the DPME envelope.
     "zstandard>=0.22.0",
-    # copilot agentic layer: OpenAI and Ollama are the live LLM providers
-    # in v1 (app/core/llm/). Ollama reuses this client against its
-    # OpenAI-compatible /v1 endpoint. The Provider protocol is
-    # vendor-agnostic, so Anthropic slots in later without touching callers.
+    # copilot agentic layer: OpenAI, Ollama and Cloudflare Workers AI
+    # are the live LLM providers in v1 (app/core/llm/). Ollama and
+    # Cloudflare reuse this client against their OpenAI-compatible
+    # endpoints. The Provider protocol is vendor-agnostic, so Anthropic
+    # slots in later without touching callers.
     "openai>=1.40",
 ]
 

@@ -29,14 +29,14 @@ class CopilotSettingsService:
         if row is not None:
             return CopilotSettingsService._roll_period(row)
         default_provider = app_settings.COPILOT_PROVIDER_DEFAULT
+        default_model = {
+            "ollama": app_settings.COPILOT_MODEL_OLLAMA,
+            "cloudflare": app_settings.CLOUDFLARE_AI_MODEL,
+        }.get(default_provider, app_settings.COPILOT_MODEL_CHAT_OPENAI)
         row = CopilotSettings(
             clinic_id=clinic_id,
             provider=default_provider,
-            model=(
-                app_settings.COPILOT_MODEL_OLLAMA
-                if default_provider == "ollama"
-                else app_settings.COPILOT_MODEL_CHAT_OPENAI
-            ),
+            model=default_model,
             redaction_enabled=app_settings.COPILOT_REDACTION_DEFAULT,
             period_start=datetime.now(UTC).date().replace(day=1),
         )
@@ -70,6 +70,13 @@ class CopilotSettingsService:
             raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
         if data.get("provider") == "ollama" and not app_settings.OLLAMA_BASE_URL:
             raise ValueError("Ollama provider selected but OLLAMA_BASE_URL is not configured")
+        if data.get("provider") == "cloudflare" and not (
+            app_settings.CLOUDFLARE_ACCOUNT_ID and app_settings.CLOUDFLARE_API_TOKEN
+        ):
+            raise ValueError(
+                "Cloudflare provider selected but CLOUDFLARE_ACCOUNT_ID / "
+                "CLOUDFLARE_API_TOKEN are not configured"
+            )
         for field in (
             "provider",
             "model",

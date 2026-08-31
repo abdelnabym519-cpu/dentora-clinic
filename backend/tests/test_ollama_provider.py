@@ -53,8 +53,8 @@ class SettingsPatch:
 
 
 class TestOllamaFactory:
-    def test_supported_providers_lists_openai_and_ollama(self):
-        assert SUPPORTED_PROVIDERS == ("openai", "ollama")
+    def test_supported_providers_lists_all_live_providers(self):
+        assert SUPPORTED_PROVIDERS == ("openai", "ollama", "cloudflare")
 
     def test_ollama_default_config_is_empty(self):
         # Backward compatibility: a deployment that sets no OLLAMA env

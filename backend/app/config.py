@@ -103,10 +103,10 @@ class Settings(BaseSettings):
     EMAIL_FROM_ADDRESS: str = "noreply@dentora.example"
     EMAIL_FROM_NAME: str = "Dentora"
 
-    # Copilot / agentic layer (app/core/llm/). OpenAI and Ollama are the
-    # live providers in v1; per-clinic `copilot_settings` overrides
-    # provider + model. (ANTHROPIC_API_KEY + its model default land with
-    # that provider.)
+    # Copilot / agentic layer (app/core/llm/). OpenAI, Ollama and
+    # Cloudflare Workers AI are the live providers in v1; per-clinic
+    # `copilot_settings` overrides provider + model. (ANTHROPIC_API_KEY +
+    # its model default land with that provider.)
     OPENAI_API_KEY: str = ""
     AI_GATEWAY_BASE_URL: str = ""
     # Self-hosted Ollama (external endpoint, OpenAI-compatible `/v1` API —
@@ -117,6 +117,16 @@ class Settings(BaseSettings):
     COPILOT_PROVIDER_DEFAULT: str = "openai"
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
     COPILOT_MODEL_OLLAMA: str = "llama3.1:8b"
+    # Cloudflare Workers AI (external service). Reuses the
+    # OpenAI-compatible client against the official OpenAI-compatible
+    # endpoint https://api.cloudflare.com/<CLOUDFLARE_ACCOUNT_ID>/ai/v1,
+    # with CLOUDFLARE_API_TOKEN (Workers AI read scope) as the Bearer
+    # credential. Empty account id or token = the "cloudflare" provider
+    # is unavailable on this deployment; OpenAI / Ollama paths are
+    # unaffected.
+    CLOUDFLARE_ACCOUNT_ID: str = ""
+    CLOUDFLARE_API_TOKEN: str = ""
+    CLOUDFLARE_AI_MODEL: str = "@cf/meta/llama-3.1-8b-instruct"
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
 

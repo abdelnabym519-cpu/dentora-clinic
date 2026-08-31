@@ -1,10 +1,10 @@
 """Provider resolution.
 
-v1 resolves ``"openai"`` and ``"ollama"``. Ollama reuses the
-OpenAI-compatible client against its ``/v1`` endpoint (streaming,
-tool calling and usage are wire-compatible), so the orchestrator keeps
-speaking neutral types; Anthropic slots in later with no change to
-callers (``base.py``).
+v1 resolves ``"openai"``, ``"ollama"`` and ``"cloudflare"``. Ollama and
+Cloudflare Workers AI reuse the OpenAI-compatible client against their
+OpenAI-compatible endpoints (streaming, tool calling and usage are
+wire-compatible), so the orchestrator keeps speaking neutral types;
+Anthropic slots in later with no change to callers (``base.py``).
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from __future__ import annotations
 from app.config import settings
 from app.core.llm.base import LLMConfigError, Provider
 
-SUPPORTED_PROVIDERS = ("openai", "ollama")
+SUPPORTED_PROVIDERS = ("openai", "ollama", "cloudflare")
 
 
 def get_provider(name: str, *, api_key: str | None = None) -> Provider:
@@ -54,6 +54,25 @@ def get_provider(name: str, *, api_key: str | None = None) -> Provider:
             )
 
         return OpenAIProvider(api_key="ollama-local", base_url=base_url)
+
+    if name == "cloudflare":
+        # Cloudflare Workers AI exposes the OpenAI Chat Completions wire
+        # format at https://api.cloudflare.com/<account_id>/ai/v1, so the
+        # existing OpenAI-compatible client is reused as-is. The API
+        # token doubles as the Bearer credential.
+        from app.core.llm.openai_provider import OpenAIProvider
+
+        account_id = settings.CLOUDFLARE_ACCOUNT_ID.strip()
+        api_token = settings.CLOUDFLARE_API_TOKEN.strip()
+        if not account_id or not api_token:
+            raise LLMConfigError(
+                "Cloudflare provider requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN"
+            )
+
+        return OpenAIProvider(
+            api_key=api_token,
+            base_url=f"https://api.cloudflare.com/{account_id}/ai/v1",
+        )
 
     raise LLMConfigError(
         f"Unsupported LLM provider: {name!r} (supported: {', '.join(SUPPORTED_PROVIDERS)})"

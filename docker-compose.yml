@@ -23,6 +23,11 @@ services:
   # (qwen3:1.7b) and builds the `dentora-qwen3:1.7b` clinical model from
   # ollama/Modelfile.dentora-qwen3.
   ollama:
+    # Only started when you explicitly want Ollama IN Docker:
+    #   docker compose --profile bundled-ollama up -d
+    # With Ollama installed on the host (default), leave this off and point
+    # OLLAMA_BASE_URL at http://host.docker.internal:11434.
+    profiles: ["bundled-ollama"]
     image: ollama/ollama:latest
     entrypoint: ["/bin/sh", "/ollama-init/ollama-entrypoint.sh"]
     environment:
@@ -60,17 +65,20 @@ services:
       # (gitignored). Empty default keeps the stack bootable without it.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       # Fully-local Ollama LLM (preferred). No cloud, no API key.
+      # Default reaches an Ollama server running on the HOST machine.
+      # Set OLLAMA_BASE_URL=http://ollama:11434 to use the bundled container
+      # (started with --profile bundled-ollama) instead.
       COPILOT_PROVIDER_DEFAULT: ${COPILOT_PROVIDER_DEFAULT:-ollama}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
       COPILOT_MODEL_CHAT_OLLAMA: ${OLLAMA_MODEL:-dentora-qwen3:1.7b}
     ports:
       - "8100:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
-      ollama:
-        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=2).status == 200 else 1)"]
       interval: 30s

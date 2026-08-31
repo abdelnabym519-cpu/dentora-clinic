@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- feat(providers): Ollama as a self-hosted LLM provider. Reuses the
+  existing OpenAI-compatible client against `OLLAMA_BASE_URL` (an
+  external Ollama's OpenAI-compatible `/v1` endpoint, e.g.
+  `http://<host>:11434/v1`); no changes to the OpenAI / AI-gateway
+  paths. `PATCH /settings` validates `provider="ollama"` against the
+  deployment (400 when `OLLAMA_BASE_URL` is unset), and clinics whose
+  `COPILOT_PROVIDER_DEFAULT=ollama` start on `COPILOT_MODEL_OLLAMA`
+  (default `llama3.1:8b`). See `tests/test_ollama_provider.py`.
+
 - style(lint): first ESLint pass over this module's frontend layer —
   module layers were outside the linter's base path until now, so
   CI had never checked them. Mostly auto-fixed formatting; see the

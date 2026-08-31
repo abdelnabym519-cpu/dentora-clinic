@@ -103,14 +103,20 @@ class Settings(BaseSettings):
     EMAIL_FROM_ADDRESS: str = "noreply@dentora.example"
     EMAIL_FROM_NAME: str = "Dentora"
 
-    # Copilot / agentic layer (app/core/llm/). OpenAI is the only live
-    # provider in v1; per-clinic `copilot_settings` overrides provider +
-    # model. (ANTHROPIC_API_KEY + its model default land with that
-    # provider.)
+    # Copilot / agentic layer (app/core/llm/). OpenAI and Ollama are the
+    # live providers in v1; per-clinic `copilot_settings` overrides
+    # provider + model. (ANTHROPIC_API_KEY + its model default land with
+    # that provider.)
     OPENAI_API_KEY: str = ""
     AI_GATEWAY_BASE_URL: str = ""
+    # Self-hosted Ollama (external endpoint, OpenAI-compatible `/v1` API —
+    # e.g. http://localhost:11434/v1 on a host running Ollama, or an
+    # external production Ollama host). Empty = the "ollama" provider is
+    # unavailable on this deployment; OpenAI paths are unaffected.
+    OLLAMA_BASE_URL: str = ""
     COPILOT_PROVIDER_DEFAULT: str = "openai"
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
+    COPILOT_MODEL_OLLAMA: str = "llama3.1:8b"
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
 

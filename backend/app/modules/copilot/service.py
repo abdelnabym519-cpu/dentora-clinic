@@ -28,10 +28,15 @@ class CopilotSettingsService:
         row = await db.get(CopilotSettings, clinic_id)
         if row is not None:
             return CopilotSettingsService._roll_period(row)
+        default_provider = app_settings.COPILOT_PROVIDER_DEFAULT
         row = CopilotSettings(
             clinic_id=clinic_id,
-            provider=app_settings.COPILOT_PROVIDER_DEFAULT,
-            model=app_settings.COPILOT_MODEL_CHAT_OPENAI,
+            provider=default_provider,
+            model=(
+                app_settings.COPILOT_MODEL_OLLAMA
+                if default_provider == "ollama"
+                else app_settings.COPILOT_MODEL_CHAT_OPENAI
+            ),
             redaction_enabled=app_settings.COPILOT_REDACTION_DEFAULT,
             period_start=datetime.now(UTC).date().replace(day=1),
         )
@@ -63,6 +68,8 @@ class CopilotSettingsService:
         # "openai" but whose deployment has no key (the digest is no-LLM).
         if data.get("provider") == "openai" and not app_settings.OPENAI_API_KEY:
             raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
+        if data.get("provider") == "ollama" and not app_settings.OLLAMA_BASE_URL:
+            raise ValueError("Ollama provider selected but OLLAMA_BASE_URL is not configured")
         for field in (
             "provider",
             "model",

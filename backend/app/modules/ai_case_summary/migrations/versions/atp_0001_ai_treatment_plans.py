@@ -1,8 +1,12 @@
 """AI Treatment Planning append-only advisory drafts.
 
 Revision ID: atp_0001
-Revises: risk_0001
+Revises: risk_0001, acs_0001
 Create Date: 2026-08-26
+
+Merge revision: the advisory drafts table references both
+``risk_results`` (created by ``risk_0001``) and ``ai_case_summaries``
+(created by ``acs_0001``), so it must run after both branches.
 """
 
 from collections.abc import Sequence
@@ -13,7 +17,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 revision: str = "atp_0001"
-down_revision: str | None = "risk_0001"
+down_revision: str | tuple[str, str] | None = ("risk_0001", "acs_0001")
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

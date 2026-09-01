@@ -1,0 +1,38 @@
+{
+  "whatsapp_kapso": {
+    "settings": {
+      "title": "واتساب (Kapso)",
+      "description": "اربط رقم واتساب الخاص بالعيادة عبر Kapso لإرسال الرسائل واستقبالها."
+    },
+    "connection": "الاتصال",
+    "verified": "تم التحقق",
+    "notVerified": "غير متحقق",
+    "apiKey": "مفتاح Kapso API",
+    "phoneNumberId": "معرّف رقم الهاتف",
+    "businessAccountId": "معرّف حساب الأعمال",
+    "businessAccountHelp": "مطلوب لمزامنة القوالب المعتمدة.",
+    "displayPhone": "الرقم المعروض",
+    "webhookSecret": "سر Webhook",
+    "secretStored": "محفوظ. اتركه فارغًا للإبقاء عليه دون تغيير.",
+    "webhook": "Webhook",
+    "webhookHelp": "الصق هذا الرابط في إعدادات Webhook في Kapso لاستقبال الحالات والردود.",
+    "copy": "نسخ",
+    "copied": "تم نسخ الرابط",
+    "templates": "القوالب",
+    "sync": "مزامنة",
+    "noTemplates": "لا توجد قوالب معتمدة. نفّذ المزامنة لجلبها من Kapso.",
+    "notificationType": "نوع الإشعار",
+    "template": "القالب",
+    "map": "ربط",
+    "mapped": "تم ربط القالب",
+    "mapError": "تعذّر ربط القالب",
+    "test": "إرسال تجريبي",
+    "sendTest": "إرسال اختبار",
+    "testOk": "تم إرسال رسالة الاختبار",
+    "testFail": "تعذّر إرسال الاختبار",
+    "saved": "تم حفظ الإعدادات",
+    "saveError": "تعذّر الحفظ",
+    "synced": "تمت مزامنة {n} قالبًا",
+    "syncError": "تعذّرت المزامنة"
+  }
+}

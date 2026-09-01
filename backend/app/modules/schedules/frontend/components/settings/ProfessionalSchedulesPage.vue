@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { ProfessionalHours, ProfessionalOverride, ProfessionalOverridePayload, WeekdayShifts } from '../../composables/useProfessionalHours'
+import type { ProfessionalHours, ProfessionalOverride, ProfessionalOverridePayload } from '../../composables/useProfessionalHours'
+import type { WeekdayShifts } from '../../composables/useClinicHours'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorDetail } from '~~/app/utils/error'
 
@@ -17,7 +18,7 @@ const {
   deleteOverride
 } = useProfessionalHours()
 
-const selectedProfessional = ref<string | null>(null)
+const selectedProfessional = ref<string | undefined>(undefined)
 
 const isAdmin = computed(() => can(PERMISSIONS.schedules.professionalRead) || can(PERMISSIONS.schedules.professionalWrite))
 const canWrite = computed(() => {
@@ -39,7 +40,8 @@ const professionalOptions = computed(() =>
 
 const showOverrideModal = ref(false)
 const editingOverride = ref<ProfessionalOverride | null>(null)
-const overrideForm = ref<ProfessionalOverridePayload>({
+type ProfessionalOverrideForm = Omit<ProfessionalOverridePayload, 'reason'> & { reason: string }
+const overrideForm = ref<ProfessionalOverrideForm>({
   start_date: new Date().toISOString().slice(0, 10),
   end_date: new Date().toISOString().slice(0, 10),
   kind: 'unavailable',

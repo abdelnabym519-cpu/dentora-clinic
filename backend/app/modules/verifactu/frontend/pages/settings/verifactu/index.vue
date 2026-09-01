@@ -163,8 +163,8 @@ const certWarning = computed(() => {
   if (!summary.value || !summary.value.has_certificate || !summary.value.certificate_valid_until) return null
   const until = new Date(summary.value.certificate_valid_until)
   const days = Math.floor((until.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  if (days < 0) return { color: 'red', message: t('verifactu.status.certificateExpired') }
-  if (days < 60) return { color: days < 15 ? 'red' : 'amber', message: t('verifactu.status.certificateExpiringSoon', { days }) }
+  if (days < 0) return { color: 'error' as const, message: t('verifactu.status.certificateExpired') }
+  if (days < 60) return { color: days < 15 ? 'error' as const : 'warning' as const, message: t('verifactu.status.certificateExpiringSoon', { days }) }
   return null
 })
 
@@ -257,7 +257,7 @@ onMounted(refresh)
           >
             <UButton
               :loading="saving"
-              :color="settings?.enabled ? 'gray' : 'primary'"
+              :color="settings?.enabled ? 'neutral' : 'primary'"
               :icon="settings?.enabled ? 'i-lucide-power-off' : 'i-lucide-power'"
               @click="toggleEnabled"
             >
@@ -269,7 +269,7 @@ onMounted(refresh)
             <div class="flex items-center gap-2 text-sm">
               <span class="text-gray-500">{{ t('verifactu.environment.label') }}:</span>
               <UBadge
-                :color="settings?.environment === 'prod' ? 'red' : 'gray'"
+                :color="settings?.environment === 'prod' ? 'error' : 'neutral'"
                 variant="subtle"
               >
                 {{ t(`verifactu.environment.${settings?.environment}`) }}
@@ -278,7 +278,7 @@ onMounted(refresh)
                 v-if="settings?.environment === 'test' && canPromoteToProd"
                 :loading="switchingEnv"
                 variant="ghost"
-                color="red"
+                color="error"
                 size="xs"
                 trailing-icon="i-lucide-arrow-right"
                 @click="switchEnvironment('prod')"
@@ -299,7 +299,7 @@ onMounted(refresh)
 
           <UAlert
             v-if="errorMessage"
-            color="red"
+            color="error"
             variant="soft"
             :title="errorMessage"
             class="mt-4"
@@ -569,7 +569,7 @@ onMounted(refresh)
                 {{ t('common.cancel') }}
               </UButton>
               <UButton
-                color="red"
+                color="error"
                 :loading="switchingEnv"
                 @click="confirmProd"
               >

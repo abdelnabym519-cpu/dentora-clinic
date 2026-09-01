@@ -234,3 +234,58 @@ async def test_snapshot_from_other_clinic_returns_404(
     )
     # Caller's clinic context never sees the foreign snapshot.
     assert response.status_code == 404
+
+
+async def test_close_reloads_sites_before_computing_indices_same_session(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    test_patient: Patient,
+    test_clinic: Clinic,
+    db_session,
+) -> None:
+    """Closing in the same ORM session must include freshly-created site rows."""
+    from uuid import UUID
+
+    from app.modules.periodontogram.schemas import SitePatch
+    from app.modules.periodontogram.service import PeriodontogramService
+
+    me = await client.get("/api/v1/auth/me", headers=auth_headers)
+    assert me.status_code == 200
+    user_id = UUID(me.json()["data"]["user"]["id"])
+
+    snapshot, created = await PeriodontogramService.get_or_create_draft(
+        db_session,
+        test_clinic.id,
+        test_patient.id,
+        user_id,
+    )
+    assert created is True
+
+    await PeriodontogramService.update_site(
+        db_session,
+        test_clinic.id,
+        snapshot.id,
+        16,
+        "MV",
+        SitePatch(
+            probing_depth_mm=5,
+            gingival_margin_mm=1,
+            bleeding_on_probing=True,
+            plaque=True,
+        ),
+    )
+
+    closed = await PeriodontogramService.close_snapshot(
+        db_session,
+        test_clinic.id,
+        snapshot.id,
+        user_id,
+    )
+    await db_session.commit()
+
+    assert closed.indices == {
+        "bop_pct": 0.52,
+        "pi_pct": 0.52,
+        "cal_mean_mm": 0.03,
+        "deep_pockets_count": 1,
+    }

@@ -31,6 +31,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `budget.sent` | `EventType.BUDGET_SENT` | `budget` | `notifications`, `patient_timeline` |
 | `budget.superseded` | `EventType.BUDGET_SUPERSEDED` | `budget` | `treatment_plan` |
 | `budget.viewed` | `EventType.BUDGET_VIEWED` | `budget` | `patient_timeline` |
+| `case_intelligence.snapshot.created` | `EventType.CASE_INTELLIGENCE_SNAPSHOT_CREATED` | `case_intelligence` | — |
 | `clinical_notes.administrative_created` | `EventType.CLINICAL_NOTE_ADMINISTRATIVE_CREATED` | `clinical_notes` | `patient_timeline` |
 | `clinical_notes.appointment_administrative_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_ADMINISTRATIVE_CREATED` | `clinical_notes` | — |
 | `clinical_notes.appointment_clinical_created` | `EventType.CLINICAL_NOTE_APPOINTMENT_CLINICAL_CREATED` | `clinical_notes` | — |
@@ -91,7 +92,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `recall.created` | `EventType.RECALL_CREATED` | `recalls` | — |
 | `recall.due` | `EventType.RECALL_DUE` | — | — |
 | `recall.snoozed` | `EventType.RECALL_SNOOZED` | `recalls` | — |
-| `tenant.resolved` | `EventType.TENANT_RESOLVED` | — | — |
+| `tenant.resolved` | `EventType.TENANT_RESOLVED` | `core:core` | — |
 | `treatment.completed` | `EventType.TREATMENT_COMPLETED` | — | — |
 | `treatment_plan.budget_sync_requested` | `EventType.TREATMENT_PLAN_BUDGET_SYNC_REQUESTED` | `treatment_plan` | `budget` |
 | `treatment_plan.closed` | `EventType.TREATMENT_PLAN_CLOSED` | `treatment_plan` | `patient_timeline` |
@@ -287,6 +288,13 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 - **Subscribers:**
   - `patient_timeline`
 
+### `case_intelligence.snapshot.created`
+
+- **Constant:** `EventType.CASE_INTELLIGENCE_SNAPSHOT_CREATED`
+- **Publishers:**
+  - `case_intelligence` — `backend/app/modules/case_intelligence/service.py:88`
+- **Subscribers:** —
+
 ### `clinical_notes.administrative_created`
 
 - **Constant:** `EventType.CLINICAL_NOTE_ADMINISTRATIVE_CREATED`
@@ -382,14 +390,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.DOCUMENT_DELETED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:218`
+  - `media` — `backend/app/modules/media/service.py:219`
 - **Subscribers:** —
 
 ### `document.uploaded`
 
 - **Constant:** `EventType.DOCUMENT_UPLOADED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:167`
+  - `media` — `backend/app/modules/media/service.py:168`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -397,7 +405,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_FAILED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:562`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:571`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -405,7 +413,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_SENT`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:560`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:569`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -462,21 +470,21 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.ATTACHMENT_LINKED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:510`
+  - `media` — `backend/app/modules/media/service.py:511`
 - **Subscribers:** —
 
 ### `media.attachment_unlinked`
 
 - **Constant:** `EventType.ATTACHMENT_UNLINKED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:546`
+  - `media` — `backend/app/modules/media/service.py:547`
 - **Subscribers:** —
 
 ### `media.pair_created`
 
 - **Constant:** `EventType.PAIR_CREATED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:382`
+  - `media` — `backend/app/modules/media/service.py:383`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -484,14 +492,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PAIR_REMOVED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:406`
+  - `media` — `backend/app/modules/media/service.py:407`
 - **Subscribers:** —
 
 ### `media.photo_uploaded`
 
 - **Constant:** `EventType.PHOTO_UPLOADED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:181`
+  - `media` — `backend/app/modules/media/service.py:182`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -534,28 +542,28 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.NOTIFICATION_DELIVERED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:322`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:314`
 - **Subscribers:** —
 
 ### `notification.failed`
 
 - **Constant:** `EventType.NOTIFICATION_FAILED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:292`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:285`
 - **Subscribers:** —
 
 ### `notification.queued`
 
 - **Constant:** `EventType.NOTIFICATION_QUEUED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:191`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:181`
 - **Subscribers:** —
 
 ### `notification.reply_received`
 
 - **Constant:** `EventType.NOTIFICATION_REPLY_RECEIVED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:382`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:367`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -563,7 +571,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.NOTIFICATION_SENT`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:279`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:258`
 - **Subscribers:** —
 
 ### `odontogram.condition.changed`
@@ -685,7 +693,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PERIODONTOGRAM_SNAPSHOT_CLOSED`
 - **Publishers:**
-  - `periodontogram` — `backend/app/modules/periodontogram/service.py:374`
+  - `periodontogram` — `backend/app/modules/periodontogram/service.py:375`
 - **Subscribers:** —
 
 ### `recall.cancelled`
@@ -725,7 +733,9 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 ### `tenant.resolved`
 
 - **Constant:** `EventType.TENANT_RESOLVED`
-- **Publishers:** _none in tree — declared but unused_
+- **Publishers:**
+  - `core:core` — `backend/app/core/tenancy/resolver_impl.py:126`
+  - `core:core` — `backend/app/core/tenancy/single.py:56`
 - **Subscribers:** —
 
 ### `treatment.completed`

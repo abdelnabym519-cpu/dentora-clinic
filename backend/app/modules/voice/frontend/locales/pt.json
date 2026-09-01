@@ -1,0 +1,30 @@
+{
+  "voice": {
+    "title": "Dentora Voice",
+    "close": "Fechar",
+    "listen": "Ouvir",
+    "stop": "Parar",
+    "reset": "Repor",
+    "localOnly": "O reconhecimento de voz é executado apenas no runtime local de loopback.",
+    "states": {
+      "idle": "Pronto",
+      "listening": "A ouvir…",
+      "processing": "A transcrever localmente…",
+      "executing": "A executar…",
+      "success": "Concluído",
+      "error": "Não foi possível concluir o comando",
+      "confirmation_required": "Confirmação necessária",
+      "clarification_required": "Esclarecimento necessário"
+    },
+    "errors": {
+      "voice_target_unavailable": "O controlo Dentora pedido não está disponível neste ecrã.",
+      "patient_context_required": "Abra um paciente ou diga o nome do paciente.",
+      "patient_not_found": "Não foi encontrado um paciente correspondente.",
+      "ambiguous_patient": "Mais de um paciente corresponde. Seja mais específico.",
+      "cbct_not_available": "Não existe um estudo CBCT disponível para este paciente.",
+      "segmentation_not_available": "Não existe um resultado de segmentação dentária disponível.",
+      "nerve_not_available": "Não existe um resultado de nervo disponível.",
+      "voice_command_failed": "Não foi possível concluir o comando de voz."
+    }
+  }
+}

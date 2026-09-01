@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID
 
 import bcrypt
-from jose import jwt
+import jwt
 
 from app.config import settings
 
@@ -41,6 +41,7 @@ def create_access_token(
     user_id: UUID,
     clinic_id: UUID | None = None,
     token_version: int = 0,
+    tenant_slug: str | None = None,
 ) -> str:
     """Create a JWT access token."""
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -52,6 +53,8 @@ def create_access_token(
     }
     if clinic_id:
         payload["clinic_id"] = str(clinic_id)
+    if tenant_slug:
+        payload["tenant_slug"] = tenant_slug
 
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 

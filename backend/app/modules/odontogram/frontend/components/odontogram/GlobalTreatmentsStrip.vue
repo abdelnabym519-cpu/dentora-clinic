@@ -46,9 +46,9 @@ function labelFor(tr: Treatment): string {
   // (Gesdén TtosMed.IdTto is null when the receptionist typed it
   // free-form). Show the notes as the label so the chip is meaningful
   // instead of repeating the placeholder "migrated" clinical_type.
-  if (tr.clinical_type === 'migrated' && tr.notes) {
+  if (tr.notes) {
     const trimmed = tr.notes.trim()
-    return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed
+    if (trimmed) return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed
   }
   const key = `odontogram.treatments.types.${tr.clinical_type}`
   const translated = t(key)

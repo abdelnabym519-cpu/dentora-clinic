@@ -2,11 +2,20 @@
 .env
 .env.local
 .env.*.local
+.env.client
+.env.evolution
 .dev.vars
 .secrets.*
 
 # Local license development material (private signing keys, admin secrets)
 .license-dev/
+
+# Per-install LAN HTTPS / workstation / restore/update runtime material.
+dentora-lan-ca.crt
+Dentora_Workstation_Kit/
+.dentora-restore-journal.json
+.dentora-update-journal.json
+backups/
 
 # Claude Code
 .claude/
@@ -25,6 +34,9 @@ eggs/
 .eggs/
 lib/
 lib64/
+# ...but never ignore module frontend lib/ directories (dental_3d seam):
+# a bare `lib/` silently excluded them from commits and workspace restores.
+!backend/app/modules/*/frontend/lib/
 parts/
 sdist/
 var/
@@ -72,3 +84,12 @@ proyecto_open_source_dental.docx
 *.dpm
 *.dpmf
 test-results/
+
+# DentalSegmentator model/test artifacts — external medical-model material.
+# Never commit checkpoints, DICOM inputs or derived NIfTI volumes.
+nerve-inference-service/models/
+nerve-inference-service/testdata/
+nerve-inference-service/**/*.pth
+nerve-inference-service/**/*.nii
+nerve-inference-service/**/*.nii.gz
+nerve-inference-service/**/*.dcm

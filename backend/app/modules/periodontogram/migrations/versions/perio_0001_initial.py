@@ -15,7 +15,11 @@ from alembic import op
 revision: str = "perio_0001"
 down_revision: str | None = "0001"
 branch_labels: str | Sequence[str] | None = ("periodontogram",)
-depends_on: str | Sequence[str] | None = None
+# perio tables FK patients, created by ``pat_0001`` on the main chain. Without
+# this edge alembic may run perio_0001 (branched off 0001) before pat_0001 on
+# a clean upgrade, so the FK target doesn't exist yet. depends_on forces the
+# correct order (same pattern as cop_0001).
+depends_on: str | Sequence[str] | None = "pat_0001"
 
 
 def upgrade() -> None:

@@ -30,8 +30,9 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from jose import JWTError, jwt
+from jwt.exceptions import InvalidTokenError as JWTError
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 

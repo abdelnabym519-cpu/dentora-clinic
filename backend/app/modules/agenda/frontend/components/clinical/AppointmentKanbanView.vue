@@ -16,7 +16,7 @@ interface ProfessionalWithColor {
 }
 
 const props = defineProps<{
-  appointments: Appointment[]
+  appointments: readonly Appointment[]
   cabinets: Cabinet[]
   professionals: ProfessionalWithColor[]
   currentDate: Date
@@ -308,7 +308,7 @@ async function safeAssign(aptId: string, cabinetId: string | null) {
     await assignCabinet(aptId, cabinetId)
   } catch (e) {
     toast.add({ title: t('appointments.conflict'), description: errorDetail(e), color: 'error' })
-    throw new Error('cabinet_assign_failed')
+    throw new Error('cabinet_assign_failed', { cause: e })
   }
 }
 

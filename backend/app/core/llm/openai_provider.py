@@ -38,6 +38,7 @@ class OpenAIProvider:
         api_key: str = "",
         base_url: str | None = None,
         api_key_resolver: Callable[[], Awaitable[str]] | None = None,
+        extra_body: dict[str, Any] | None = None,
     ) -> None:
         if not api_key and api_key_resolver is None:
             raise LLMConfigError("OpenAI provider requires OPENAI_API_KEY")
@@ -45,6 +46,7 @@ class OpenAIProvider:
         self._api_key = api_key
         self._base_url = base_url.rstrip("/") + "/" if base_url else None
         self._api_key_resolver = api_key_resolver
+        self._extra_body = extra_body or {}
 
     async def _client_for_request(self):
         api_key = self._api_key
@@ -74,6 +76,7 @@ class OpenAIProvider:
         tools: list[dict],
         model: str,
         max_tokens: int,
+        response_schema: dict[str, Any] | None = None,
     ) -> AsyncIterator[ProviderEvent]:
         wire_messages = _to_openai_messages(system, messages)
         # The GPT-5 / o-series models reject the legacy `max_tokens` param and
@@ -87,9 +90,21 @@ class OpenAIProvider:
             "stream": True,
             "stream_options": {"include_usage": True},
         }
+
+        if response_schema is not None:
+            kwargs["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "dentora_structured_response",
+                    "schema": response_schema,
+                },
+            }
+
         if tools:
             kwargs["tools"] = [_sanitize_tool_schema(t) for t in tools]
             kwargs["parallel_tool_calls"] = False
+        if self._extra_body:
+            kwargs["extra_body"] = self._extra_body
 
         # index -> {"id": str, "name": str, "args": str}
         pending: dict[int, dict[str, str]] = {}

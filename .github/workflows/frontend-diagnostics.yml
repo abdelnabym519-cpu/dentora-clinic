@@ -1,0 +1,94 @@
+name: Frontend Diagnostics
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  typecheck-diagnostics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
+      - name: Generate modules.json with host paths
+        working-directory: frontend
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          modules_dir = root / "backend/app/modules"
+          entries = []
+          for m in sorted(modules_dir.iterdir()):
+              layer = m / "frontend"
+              if layer.is_dir():
+                  entries.append({"name": m.name, "path": str(layer.resolve())})
+          Path("modules.json").write_text(json.dumps({"layers": [e["path"] for e in entries], "modules": entries, "version": 1}, indent=2))
+          PY
+      - name: Run typecheck with captured log
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run typecheck 2>&1 | tee typecheck.log
+      - name: Upload typecheck log
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: frontend-typecheck-log
+          path: frontend/typecheck.log
+          retention-days: 1
+
+  build-diagnostics:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Link frontend dependencies for host module layers
+        run: ln -sfn "$GITHUB_WORKSPACE/frontend/node_modules" "$GITHUB_WORKSPACE/backend/app/modules/node_modules"
+      - name: Generate modules.json with host paths
+        working-directory: frontend
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["GITHUB_WORKSPACE"])
+          modules_dir = root / "backend/app/modules"
+          entries = []
+          for m in sorted(modules_dir.iterdir()):
+              layer = m / "frontend"
+              if layer.is_dir():
+                  entries.append({"name": m.name, "path": str(layer.resolve())})
+          Path("modules.json").write_text(json.dumps({"layers": [e["path"] for e in entries], "modules": entries, "version": 1}, indent=2))
+          PY
+      - name: Run build with captured log
+        working-directory: frontend
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: frontend-build-log
+          path: frontend/build.log
+          retention-days: 1

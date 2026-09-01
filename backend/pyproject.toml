@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=83.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -15,7 +15,7 @@ dependencies = [
     "asyncpg>=0.29.0",
     "pydantic[email]>=2.5.0",
     "pydantic-settings>=2.1.0",
-    "python-jose[cryptography]>=3.3.0",
+    "PyJWT>=2.13.0,<3.0",
     "cryptography>=42.0.0",
     "bcrypt>=4.0.0",
     "python-multipart>=0.0.6",
@@ -25,6 +25,9 @@ dependencies = [
     "jinja2>=3.1.0",
     "apscheduler>=3.10.0",
     "aiofiles>=23.0.0",
+    # S3-compatible media storage (AWS S3, MinIO and equivalent providers).
+    # boto3 is confined to the media storage infrastructure adapter.
+    "boto3>=1.35,<2.0",
     # Shipped IANA timezone database so zoneinfo works regardless of
     # which Python base image the backend runs on (Alpine ships with
     # no system tzdata by default).
@@ -40,13 +43,29 @@ dependencies = [
     # Image processing for media module: thumbnail generation + EXIF
     # extraction on upload. Drives the photo gallery UX.
     "Pillow>=10.0.0",
+    # dental_3d Phase 5.1: header-only DICOM validation/normalization.
+    # Keep pixel decoding out of the ingestion foundation; pydicom stays
+    # behind the module's infrastructure adapter (ADR 0023).
+    "pydicom>=3.0.2,<4.0",
+    # dental_3d patient-specific rigid registration. Open3D remains behind
+    # RegistrationPort; NumPy is declared because the adapter imports it.
+    "numpy>=1.26,<3.0",
+    "open3d-cpu>=0.19,<0.20; platform_system == 'Linux'",
+    "open3d>=0.19,<0.20; platform_system != 'Linux'",
+    # dental_3d deterministic implant-planning geometry. SciPy supplies
+    # bounded analytic minimization; trimesh builds parametric cylinders.
+    # No implant-placement AI model or research-only weights are loaded.
+    "scipy>=1.12,<2.0",
+    "trimesh>=4.4,<5.0",
     # migration_import module: zstd unwrap for DPMF files (.dpm.zst /
     # .dpm.zst.enc). cryptography (already above) handles AES-256-GCM
     # + scrypt for the DPME envelope.
     "zstandard>=0.22.0",
-    # copilot agentic layer: OpenAI is the only live LLM provider in v1
-    # (app/core/llm/). The Provider protocol is vendor-agnostic, so
-    # Anthropic/Ollama slot in later without touching callers.
+    # copilot agentic layer: OpenAI, Ollama and Cloudflare Workers AI
+    # are the live LLM providers in v1 (app/core/llm/). Ollama and
+    # Cloudflare reuse this client against their OpenAI-compatible
+    # endpoints. The Provider protocol is vendor-agnostic, so Anthropic
+    # slots in later without touching callers.
     "openai>=1.40",
 ]
 
@@ -77,6 +96,19 @@ recalls = "app.modules.recalls:RecallsModule"
 verifactu = "app.modules.verifactu:VerifactuModule"
 migration_import = "app.modules.migration_import:MigrationImportModule"
 copilot = "app.modules.copilot:CopilotModule"
+dental_3d = "app.modules.dental_3d:Dental3DModule"
+case_intelligence = "app.modules.case_intelligence:CaseIntelligenceModule"
+ai_case_summary = "app.modules.ai_case_summary:AICaseSummaryModule"
+patient_presentation_mode = "app.modules.patient_presentation_mode:PatientPresentationModeModule"
+ai_clinical_report = "app.modules.ai_clinical_report:AIClinicalReportModule"
+risk_engine = "app.modules.risk_engine:RiskEngineModule"
+ai_treatment_planning = "app.modules.ai_treatment_planning:AITreatmentPlanningModule"
+treatment_simulation = "app.modules.treatment_simulation:TreatmentSimulationModule"
+ai_second_review = "app.modules.ai_second_review:AISecondReviewModule"
+clinical_copilot = "app.modules.clinical_copilot:ClinicalCopilotModule"
+prescriptions = "app.modules.prescriptions:ElectronicPrescriptionModule"
+orthodontic_simulator = "app.modules.orthodontic_simulator:OrthodonticSimulatorModule"
+voice = "app.modules.voice:VoiceModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

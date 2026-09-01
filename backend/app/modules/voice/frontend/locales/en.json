@@ -1,0 +1,30 @@
+{
+  "voice": {
+    "title": "Dentora Voice",
+    "close": "Close",
+    "listen": "Listen",
+    "stop": "Stop",
+    "reset": "Reset",
+    "localOnly": "Speech recognition runs only on the local loopback runtime.",
+    "states": {
+      "idle": "Ready",
+      "listening": "Listening…",
+      "processing": "Transcribing locally…",
+      "executing": "Executing…",
+      "success": "Done",
+      "error": "Could not complete command",
+      "confirmation_required": "Confirmation required",
+      "clarification_required": "Clarification required"
+    },
+    "errors": {
+      "voice_target_unavailable": "The requested Dentora control is not available on this screen.",
+      "patient_context_required": "Open a patient or say the patient name.",
+      "patient_not_found": "No matching patient was found.",
+      "ambiguous_patient": "More than one patient matched. Please be more specific.",
+      "cbct_not_available": "No CBCT study is available for this patient.",
+      "segmentation_not_available": "No tooth segmentation result is available.",
+      "nerve_not_available": "No reviewed nerve result is available.",
+      "voice_command_failed": "The voice command could not be completed."
+    }
+  }
+}

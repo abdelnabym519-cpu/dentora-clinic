@@ -26,7 +26,10 @@ function appointmentTime(a: Appointment): string | null {
 }
 
 function appointmentTreatment(a: Appointment): string | null {
-  if (a.treatments?.length) return a.treatments[0]?.name ?? null
+  const treatment = a.treatments?.[0]
+  if (treatment) {
+    return treatment.names[locale.value] || treatment.names.es || treatment.names.en || treatment.internal_code
+  }
   return a.treatment_type ?? null
 }
 

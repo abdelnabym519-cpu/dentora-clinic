@@ -30,6 +30,8 @@
     "toggleSidebar": "Alternar barra lateral"
   },
   "auth": {
+    "clinicSwitched": "Clínica alterada",
+    "clinicSwitchFailed": "Não foi possível mudar de clínica",
     "login": "Iniciar sessão",
     "logout": "Terminar sessão",
     "email": "Email",

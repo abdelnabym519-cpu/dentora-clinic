@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- feat(providers): Cloudflare Workers AI as a production LLM provider.
+  Reuses the existing OpenAI-compatible client against the official
+  OpenAI-compatible endpoint
+  `https://api.cloudflare.com/<CLOUDFLARE_ACCOUNT_ID>/ai/v1` with
+  `CLOUDFLARE_API_TOKEN` as the Bearer credential — no new
+  architecture. `PATCH /settings` validates `provider="cloudflare"`
+  against the deployment (400 when the account id / token are unset),
+  and clinics whose `COPILOT_PROVIDER_DEFAULT=cloudflare` start on
+  `CLOUDFLARE_AI_MODEL` (default `@cf/meta/llama-3.1-8b-instruct`).
+  Switching between `openai` / `ollama` / `cloudflare` is
+  configuration-only. See `tests/test_cloudflare_provider.py`.
+
+- feat(providers): Ollama as a self-hosted LLM provider.
+  `OllamaProvider` (a thin subclass of the OpenAI-compatible client)
+  targets `OLLAMA_BASE_URL` (default
+  `http://host.docker.internal:11434/v1/` for client builds); no
+  changes to the OpenAI / AI-gateway paths. Clinics whose
+  `COPILOT_PROVIDER_DEFAULT=ollama` start on `COPILOT_MODEL_CHAT_OLLAMA`
+  (default `qwen3:8b`), and switching providers without an explicit
+  model re-defaults to the provider's model. See
+  `tests/test_ollama_provider.py`.
+
 - style(lint): first ESLint pass over this module's frontend layer —
   module layers were outside the linter's base path until now, so
   CI had never checked them. Mostly auto-fixed formatting; see the

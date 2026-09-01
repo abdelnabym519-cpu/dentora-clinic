@@ -37,7 +37,7 @@ onBeforeUnmount(() => {
 <template>
   <UAlert
     v-if="showing"
-    color="red"
+    color="error"
     variant="soft"
     icon="i-lucide-alert-octagon"
     :title="t('verifactu.globalBanner.title', { n: rejectedCount })"

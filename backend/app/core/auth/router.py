@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import JWTError
+from jwt.exceptions import InvalidTokenError as JWTError
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy import func, select
@@ -31,6 +31,8 @@ from .schemas import (
     ClinicMetadataResponse,
     ClinicMetadataUpdate,
     ClinicResponse,
+    ClinicSwitchRequest,
+    ClinicSwitchResponse,
     MeResponse,
     ProfessionalResponse,
     SetupStatusResponse,
@@ -57,6 +59,31 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # caps after a handful of reloads.
 _limiter_enabled = settings.ENVIRONMENT == "production" and not settings.TESTING
 limiter = Limiter(key_func=get_remote_address, enabled=_limiter_enabled)
+
+
+def _all_permissions() -> list[str]:
+    return module_registry.get_all_permissions() + CORE_PERMISSIONS
+
+
+def _permissions_for(user: User, memberships: list[ClinicMembership]) -> list[str]:
+    """Compute the effective permission set for the default clinic.
+
+    For platform admins this is the full platform + clinic set; for
+    regular users it is derived from the role held in their first
+    (sorted) membership — the same deterministic default the clinic
+    selector uses. The frontend re-fetches ``/me`` after a clinic switch
+    so the list always matches the active selection.
+    """
+    if user.is_platform_admin:
+        from .permissions import get_platform_admin_permissions
+
+        return get_platform_admin_permissions(_all_permissions())
+
+    ordered = sorted(memberships, key=lambda m: (m.clinic.name.lower(), str(m.clinic.id)))
+    if not ordered:
+        return []
+    role_perms = get_role_permissions(ordered[0].role)
+    return expand_permissions(role_perms, _all_permissions())
 
 
 async def _refresh_rate_key(request: Request) -> str:
@@ -119,11 +146,22 @@ async def setup(
             detail=error_msg,
         )
 
+    # The default tenant is guaranteed to exist by the startup bootstrap
+    # (and by alembic seed for fresh DBs). Attach the first clinic to it
+    # so the multi-tenant invariants hold from the very first row.
+    from app.core.tenancy.bootstrap import ensure_default_tenant
+    from app.core.tenancy.models import Tenant
+
+    tenant_slug = await ensure_default_tenant()
+    tenant = (await db.execute(select(Tenant).where(Tenant.slug == tenant_slug))).scalar_one()
+
     clinic = Clinic(
         name=data.clinic_name,
         tax_id=data.clinic_tax_id,
         timezone=data.timezone or "Europe/Madrid",
         currency=data.currency or "EUR",
+        tenant_id=tenant.id,
+        is_active=True,
     )
     db.add(clinic)
     await db.flush()
@@ -141,7 +179,10 @@ async def setup(
     await db.commit()
 
     access_token = create_access_token(
-        user.id, clinic_id=clinic.id, token_version=user.token_version
+        user.id,
+        clinic_id=clinic.id,
+        token_version=user.token_version,
+        tenant_slug=tenant.slug,
     )
     refresh_token = create_refresh_token(user.id, token_version=user.token_version)
 
@@ -156,9 +197,19 @@ async def login(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> TokenResponse:
     """Login and get access tokens."""
-    # Find user by email
+    # Find user by email, eager-loading memberships -> clinic -> tenant.
+    from app.core.auth.models import Clinic as ClinicModel
+    from app.core.tenancy.adapters import SqlAlchemyTenantAdapter
+    from app.core.tenancy.selection import ClinicSelectionError, select_clinic
+
     result = await db.execute(
-        select(User).options(selectinload(User.memberships)).where(User.email == form_data.username)
+        select(User)
+        .options(
+            selectinload(User.memberships)
+            .selectinload(ClinicMembership.clinic)
+            .selectinload(ClinicModel.tenant)
+        )
+        .where(User.email == form_data.username)
     )
     user = result.scalar_one_or_none()
 
@@ -175,16 +226,46 @@ async def login(
             detail="User account is inactive",
         )
 
-    # Get first clinic ID if user has any membership
+    # Resolve the selected clinic via the domain selector. A caller may
+    # pin a clinic using the ``clinic_id`` form field or the
+    # ``X-Clinic-Id`` header; otherwise the deterministic default is
+    # used. This replaces the old "always first membership" behaviour
+    # which gave wrong permissions to multi-clinic users.
+    requested: UUID | None = None
+    raw = form_data.clinic_id if hasattr(form_data, "clinic_id") else None
+    if raw:
+        try:
+            requested = UUID(str(raw))
+        except (ValueError, AttributeError):
+            requested = None
+    if requested is None:
+        header = request.headers.get(settings.CLINIC_HEADER)
+        if header:
+            try:
+                requested = UUID(header)
+            except (ValueError, AttributeError):
+                requested = None
+
+    records = await SqlAlchemyTenantAdapter(db).list_memberships(user.id)
+    tenant_slug = settings.TENANT_SLUG
     clinic_id = None
-    if user.memberships:
-        clinic_id = user.memberships[0].clinic_id
+    if records or user.is_platform_admin:
+        try:
+            selected = select_clinic(
+                records,
+                requested_clinic_id=requested,
+            )
+        except ClinicSelectionError as exc:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+        clinic_id = selected.clinic_id
+        tenant_slug = selected.tenant_slug
 
     # Generate tokens
     access_token = create_access_token(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
+        tenant_slug=tenant_slug,
     )
     refresh_token = create_refresh_token(user.id, token_version=user.token_version)
 
@@ -239,10 +320,14 @@ async def refresh_token(
             detail="Token has been revoked",
         )
 
-    # Fetch memberships with clinics for response
+    # Fetch memberships with clinics + tenant for response and selection
+    from app.core.auth.models import Clinic as ClinicModel
+    from app.core.tenancy.adapters import SqlAlchemyTenantAdapter
+    from app.core.tenancy.selection import select_clinic
+
     memberships_result = await db.execute(
         select(ClinicMembership)
-        .options(selectinload(ClinicMembership.clinic))
+        .options(selectinload(ClinicMembership.clinic).selectinload(ClinicModel.tenant))
         .where(ClinicMembership.user_id == user.id)
     )
     memberships = memberships_result.scalars().all()
@@ -256,16 +341,18 @@ async def refresh_token(
         for m in memberships
     ]
 
-    # Get first clinic ID for token
-    clinic_id = None
-    if memberships:
-        clinic_id = memberships[0].clinic_id
+    # Use the deterministic default selection for the refreshed token.
+    records = await SqlAlchemyTenantAdapter(db).list_memberships(user.id)
+    selected = select_clinic(records, requested_clinic_id=None) if records else None
+    clinic_id = selected.clinic_id if selected else None
+    tenant_slug = selected.tenant_slug if selected else settings.TENANT_SLUG
 
     # Generate new tokens
     access_token = create_access_token(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
+        tenant_slug=tenant_slug,
     )
     new_refresh_token = create_refresh_token(user.id, token_version=user.token_version)
 
@@ -279,14 +366,25 @@ async def refresh_token(
 
 @router.get("/me", response_model=ApiResponse[MeResponse])
 async def get_me(
+    request: Request,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[MeResponse]:
-    """Get current user info, clinics, and permissions."""
-    # Fetch memberships with clinics
+    """Get current user info, clinics, and permissions.
+
+    Permissions are computed for the **selected** clinic (``X-Clinic-Id``
+    header or JWT default), not blindly for the first membership — so a
+    user who is a dentist in clinic A and receptionist in clinic B sees
+    the right grants after switching.
+    """
+    from app.core.auth.models import Clinic as ClinicModel
+    from app.core.tenancy.adapters import SqlAlchemyTenantAdapter
+    from app.core.tenancy.selection import ClinicSelectionError, select_clinic
+
+    # Fetch memberships with clinics + tenant
     result = await db.execute(
         select(ClinicMembership)
-        .options(selectinload(ClinicMembership.clinic))
+        .options(selectinload(ClinicMembership.clinic).selectinload(ClinicModel.tenant))
         .where(ClinicMembership.user_id == current_user.id)
     )
     memberships = result.scalars().all()
@@ -300,20 +398,91 @@ async def get_me(
         for m in memberships
     ]
 
-    # Compute effective permissions (use first clinic's role for MVP)
+    # Determine the role for the selected clinic and expand its grants.
+    records = await SqlAlchemyTenantAdapter(db).list_memberships(current_user.id)
+    requested: UUID | None = None
+    raw = request.headers.get(settings.CLINIC_HEADER)
+    if raw:
+        try:
+            requested = UUID(raw)
+        except (ValueError, AttributeError):
+            requested = None
+    else:
+        jwt_clinic = getattr(request.state, "jwt_clinic_id", None)
+        if jwt_clinic:
+            try:
+                requested = UUID(str(jwt_clinic))
+            except (ValueError, AttributeError):
+                requested = None
+
     permissions: list[str] = []
-    if memberships:
-        role = memberships[0].role
-        role_perms = get_role_permissions(role)
-        # Combine module permissions with core permissions
-        all_perms = module_registry.get_all_permissions() + CORE_PERMISSIONS
-        permissions = expand_permissions(role_perms, all_perms)
+    if current_user.is_platform_admin:
+        from .permissions import get_platform_admin_permissions
+
+        permissions = get_platform_admin_permissions(_all_permissions())
+    elif records:
+        try:
+            selected = select_clinic(records, requested_clinic_id=requested)
+        except ClinicSelectionError:
+            selected = select_clinic(records, requested_clinic_id=None)
+        permissions = expand_permissions(get_role_permissions(selected.role), _all_permissions())
 
     return ApiResponse(
         data=MeResponse(
             user=UserResponse.model_validate(current_user),
             clinics=clinics,
             permissions=permissions,
+        )
+    )
+
+
+@router.post(
+    "/select-clinic",
+    response_model=ApiResponse[ClinicSwitchResponse],
+)
+async def select_active_clinic(
+    payload: ClinicSwitchRequest,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ApiResponse[ClinicSwitchResponse]:
+    """Switch the caller's active clinic and return a refreshed profile.
+
+    Validates membership, mints a new access token bound to the chosen
+    clinic, and returns permissions computed from the role held *in that
+    clinic*. The frontend stores the new token and uses it on subsequent
+    requests (which may also pin the clinic via ``X-Clinic-Id``).
+    """
+    from app.core.tenancy.adapters import SqlAlchemyTenantAdapter
+    from app.core.tenancy.selection import ClinicSelectionError, select_clinic
+
+    records = await SqlAlchemyTenantAdapter(db).list_memberships(current_user.id)
+    try:
+        selected = select_clinic(records, requested_clinic_id=payload.clinic_id)
+    except ClinicSelectionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+
+    memberships_result = await db.execute(
+        select(ClinicMembership)
+        .options(selectinload(ClinicMembership.clinic))
+        .where(ClinicMembership.user_id == current_user.id)
+    )
+    memberships = memberships_result.scalars().all()
+    clinics = [ClinicResponse(id=m.clinic.id, name=m.clinic.name, role=m.role) for m in memberships]
+
+    access_token = create_access_token(
+        current_user.id,
+        clinic_id=selected.clinic_id,
+        token_version=current_user.token_version,
+        tenant_slug=selected.tenant_slug,
+    )
+    permissions = expand_permissions(get_role_permissions(selected.role), _all_permissions())
+
+    return ApiResponse(
+        data=ClinicSwitchResponse(
+            user=UserResponse.model_validate(current_user),
+            clinics=clinics,
+            permissions=permissions,
+            access_token=access_token,
         )
     )
 

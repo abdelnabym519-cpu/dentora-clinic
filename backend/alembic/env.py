@@ -43,6 +43,7 @@ from app.core.plugins.db_models import (  # noqa: F401
     ModuleOperationLog,
     ModuleRecord,
 )
+from app.core.tenancy.models import Tenant  # noqa: F401
 from app.database import Base
 from app.modules.agenda.models import Appointment, AppointmentTreatment, Cabinet  # noqa: F401
 from app.modules.billing.models import (  # noqa: F401
@@ -65,6 +66,7 @@ from app.modules.catalog.models import (  # noqa: F401
     TreatmentOdontogramMapping,
     VatType,
 )
+from app.modules.dental_3d.models import DentalScene  # noqa: F401
 from app.modules.media.models import Document, MediaAttachment  # noqa: F401
 from app.modules.notifications.models import (  # noqa: F401
     ClinicChannelSettings,
@@ -130,8 +132,9 @@ config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # Register main linear + discovered branches so Alembic can resolve heads
-# across all of them. ``version_path_separator = os`` in alembic.ini, so
-# join on ``os.pathsep``.
+# across all of them. The runtime value is joined with the native separator;
+# the static ``alembic.ini`` list uses an explicit colon for cross-platform
+# commands that inspect the graph without loading this environment module.
 config.set_main_option(
     "version_locations",
     os.pathsep.join(discover_version_locations(MAIN_LINEAR, MODULES_ROOT)),

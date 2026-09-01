@@ -1,0 +1,90 @@
+{
+  "migrationImport": {
+    "settingsCard": {
+      "title": "ترحيل البيانات (dental-bridge)",
+      "description": "استورد ملف DPMF أنشأه dental-bridge ويشمل المرضى والمواعيد وعروض الأسعار والمدفوعات والمستندات."
+    },
+    "page": {
+      "title": "ترحيل البيانات",
+      "subtitle": "استورد البيانات المستخرجة بواسطة dental-bridge إلى هذه العيادة."
+    },
+    "upload": {
+      "dropFile": "أفلت ملف .dpm هنا أو انقر لاختياره",
+      "passphrase": "عبارة المرور (للملفات المشفرة فقط)",
+      "passphraseHelp": "مطلوبة فقط لملفات .dpm.enc / .dpm.zst.enc",
+      "submit": "رفع والتحقق",
+      "uploading": "جارٍ الرفع…",
+      "error": "فشل الرفع"
+    },
+    "validate": {
+      "running": "جارٍ التحقق من الملف…",
+      "ok": "الملف صالح",
+      "failed": "فشل التحقق"
+    },
+    "preview": {
+      "title": "معاينة",
+      "entities": "الكيانات",
+      "samples": "عينات",
+      "warnings": "تحذيرات",
+      "files": "الملفات المرفقة",
+      "filesTotal": "الإجمالي",
+      "filesWithSha": "تحتوي على sha256",
+      "filesWithoutSha": "بدون sha256",
+      "verifactuCheckbox": "استيراد بيانات Verifactu القانونية",
+      "verifactuHelp": "يحافظ على البصمات القانونية (Verifactu) في الفواتير. يتاح فقط عند تثبيت وحدة Verifactu واحتواء الملف على هذه البيانات.",
+      "confirm": "تأكيد وبدء الاستيراد",
+      "warning": "لا يمكن التراجع عن هذا الإجراء. راجع البيانات قبل التأكيد."
+    },
+    "filters": {
+      "title": "تصفية أعضاء الفريق",
+      "description": "يتم استيراد أعضاء الفريق المُستبعدين كغير نشطين، مع الاحتفاظ بهم للمراجع التاريخية وإخفائهم من جدول المواعيد. يمكنك إعادة تفعيلهم لاحقًا من الإعدادات ← المستخدمون.",
+      "totalLabel": "الإجمالي",
+      "deactivatedLabel": "غير نشط في المصدر",
+      "orphansLabel": "أعمدة موجودة في جدول المواعيد فقط",
+      "stale24mLabel": "لا نشاط خلال آخر 24 شهرًا",
+      "minActivityLabel": "الحد الأدنى للنشاط (بالأشهر)",
+      "minActivityHelp": "عطّل أعضاء الفريق مؤقتًا إذا لم توجد لهم آثار سريرية أحدث من هذا العدد من الأشهر. استخدم 0 لتعطيل هذا الشرط.",
+      "excludeOrphans": "استبعاد أعمدة جدول المواعيد التي لا ترتبط بسجل موظف حقيقي",
+      "excludeInactive": "استبعاد أعضاء الفريق المعلَّمين كغير نشطين في المصدر",
+      "excludeNonClinical": "استيراد أطباء الأسنان وأخصائيي صحة الفم فقط، وتجاوز المساعدين والموظفين الإداريين"
+    },
+    "execute": {
+      "running": "جارٍ الاستيراد…",
+      "progress": "تمت معالجة {processed} من {total} كيانًا",
+      "ok": "اكتمل الاستيراد",
+      "failed": "فشل الاستيراد"
+    },
+    "proposals": {
+      "title": "مراجعة ربط عناصر الكتالوج",
+      "subtitle": "اربط كل علاج في Gesdén بعنصر كتالوج Dentora قبل الاستيراد.",
+      "build": "حساب الاقتراحات",
+      "building": "جارٍ الحساب…",
+      "summary": "{total} اقتراحًا: {link} مرتبط، {fuzzy} تطابق تقريبي، {create} للإنشاء",
+      "bulkAccept": "قبول كل التطابقات ذات الثقة ≥ 0.9",
+      "accepted": "تم قبول {n} اقتراحًا.",
+      "columnSource": "علاج Gesdén",
+      "columnProposed": "الاقتراح",
+      "columnAction": "الإجراء",
+      "columnStatus": "الحالة",
+      "actionLink": "ربط بالكتالوج",
+      "actionFuzzy": "تطابق تقريبي",
+      "actionCreate": "إنشاء جديد",
+      "operatorPending": "قيد الانتظار",
+      "operatorAccepted": "مقبول",
+      "operatorRelinked": "أُعيد ربطه",
+      "operatorCreated": "إنشاء جديد",
+      "operatorIgnored": "تم تجاهله",
+      "acceptRow": "قبول",
+      "ignoreRow": "تجاهل"
+    },
+    "status": {
+      "uploaded": "تم الرفع",
+      "validating": "جارٍ التحقق",
+      "validated": "تم التحقق",
+      "previewing": "معاينة",
+      "executing": "جارٍ الاستيراد",
+      "completed": "مكتمل",
+      "failed": "فشل"
+    }
+  }
+}

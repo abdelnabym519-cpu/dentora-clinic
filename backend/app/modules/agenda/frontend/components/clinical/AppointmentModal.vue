@@ -20,7 +20,7 @@ const props = defineProps<{
   /** Pre-fill the cabinet field (#61, mobile free-slot tap when track = cabinet). */
   initialCabinet?: string | null
   initialPatientId?: string
-  existingAppointments?: Appointment[]
+  existingAppointments?: readonly Appointment[]
 }>()
 
 const emit = defineEmits<{
@@ -346,8 +346,7 @@ watch(() => props.open, async (isOpen) => {
               names: t.names,
               default_price: t.default_price != null ? String(t.default_price) : null
             }
-          : undefined,
-        media: []
+          : undefined
       }))
     } else {
       selectedTreatments.value = []

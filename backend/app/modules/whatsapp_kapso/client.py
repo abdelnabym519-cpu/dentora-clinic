@@ -40,8 +40,9 @@ def text_payload(to: str, body: str) -> dict:
 def build_named_components(context: dict) -> list[dict]:
     """Build a single body component from context using NAMED parameters.
 
-    v1 constraint: the Meta template must use named variables matching the
-    context keys (e.g. ``{{patient_name}}``). Internal keys are skipped.
+    The Meta template must use named variables matching the public context
+    keys (e.g. ``{{patient_name}}``). ``locale`` and underscore-prefixed keys
+    are internal correlation/debug metadata and are never sent to Meta.
     # ponytail: named params avoid needing a stored positional order; if a
     # clinic's template uses {{1}},{{2}} instead, map order at the mapping step.
     """
@@ -49,7 +50,7 @@ def build_named_components(context: dict) -> list[dict]:
     params = [
         {"type": "text", "parameter_name": k, "text": str(v)}
         for k, v in context.items()
-        if k not in skip and v is not None
+        if k not in skip and not str(k).startswith("_") and v is not None
     ]
     return [{"type": "body", "parameters": params}] if params else []
 

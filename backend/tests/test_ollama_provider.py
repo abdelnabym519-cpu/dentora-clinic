@@ -1,13 +1,14 @@
 """Ollama provider: factory, configuration and copilot validation.
 
-Ollama reuses the OpenAI-compatible client against its ``/v1`` endpoint
-(streaming + tool calling + usage are wire-compatible), so these tests
-focus on the seams this integration owns:
+Ollama reuses the OpenAI-compatible client (``OllamaProvider``) against
+its ``/v1`` endpoint (streaming + tool calling + usage are
+wire-compatible), so these tests focus on the seams this integration
+owns:
 
 * factory resolution of ``"ollama"`` (and that the OpenAI / AI-gateway
   paths are untouched),
-* ``OLLAMA_BASE_URL`` / ``COPILOT_MODEL_OLLAMA`` configuration,
-* the per-clinic copilot settings validation for the new provider,
+* ``OLLAMA_BASE_URL`` / ``COPILOT_MODEL_CHAT_OLLAMA`` configuration,
+* the per-clinic copilot settings handling for the provider,
 * the client-level endpoint + streaming/tool-call event mapping that an
   Ollama deployment exercises.
 """
@@ -56,22 +57,21 @@ class TestOllamaFactory:
     def test_supported_providers_lists_all_live_providers(self):
         assert SUPPORTED_PROVIDERS == ("openai", "ollama", "cloudflare")
 
-    def test_ollama_default_config_is_empty(self):
-        # Backward compatibility: a deployment that sets no OLLAMA env
-        # var keeps exactly the previous behavior.
-        assert settings.OLLAMA_BASE_URL == ""
-        assert settings.COPILOT_MODEL_OLLAMA
+    def test_ollama_default_config_points_at_client_build_endpoint(self):
+        # Client builds ship a default Ollama endpoint (host.docker.internal)
+        # and a default model, so a fresh deploy resolves "ollama" with no
+        # explicit env.
+        assert settings.OLLAMA_BASE_URL == "http://host.docker.internal:11434/v1/"
+        assert settings.COPILOT_MODEL_CHAT_OLLAMA
 
-    def test_ollama_without_base_url_raises_config_error(self):
+    def test_ollama_resolvable_without_explicit_base_url(self):
+        # OllamaProvider always resolves (it carries a default endpoint);
+        # an empty/whitespace OLLAMA_BASE_URL falls back to no base_url
+        # rather than raising at factory time.
         with SettingsPatch(OLLAMA_BASE_URL=""):
-            with pytest.raises(LLMConfigError) as exc:
-                get_provider("ollama")
-        assert "OLLAMA_BASE_URL" in str(exc.value)
-
-    def test_ollama_rejects_whitespace_only_base_url(self):
-        with SettingsPatch(OLLAMA_BASE_URL="   "):
-            with pytest.raises(LLMConfigError):
-                get_provider("ollama")
+            provider = get_provider("ollama")
+        assert isinstance(provider, OpenAIProvider)
+        assert provider._base_url is None
 
     def test_ollama_returns_openai_compatible_client_target(self):
         with SettingsPatch(OLLAMA_BASE_URL="http://ollama.example.test:11434/v1"):
@@ -359,22 +359,30 @@ async def _dispose_global_pool():
 
 
 class TestCopilotSettingsValidation:
-    async def test_ollama_rejected_when_base_url_not_configured(
+    async def test_ollama_accepted_and_model_auto_defaults(
         self, db_session: AsyncSession, client: AsyncClient, auth_headers: dict, test_clinic
     ) -> None:
-        with SettingsPatch(OLLAMA_BASE_URL=""):
-            res = await client.patch(
-                "/api/v1/copilot/settings",
-                headers=auth_headers,
-                json={"provider": "ollama"},
-            )
-        assert res.status_code == 400, res.text
-        assert "OLLAMA_BASE_URL" in res.json()["message"]
-        # Stored provider is untouched.
-        res = await client.get("/api/v1/copilot/settings", headers=auth_headers)
-        assert res.json()["data"]["provider"] == "openai"
+        # Ollama is always a valid provider (no deployment gate); switching
+        # to it without an explicit model re-defaults to the provider's
+        # configured model.
+        res = await client.patch(
+            "/api/v1/copilot/settings",
+            headers=auth_headers,
+            json={"provider": "ollama"},
+        )
+        assert res.status_code == 200, res.text
+        data = res.json()["data"]
+        assert data["provider"] == "ollama"
+        assert data["model"] == settings.COPILOT_MODEL_CHAT_OLLAMA
 
-    async def test_ollama_accepted_when_base_url_configured(
+        # New conversations inherit the Ollama provider + default model.
+        res = await client.post("/api/v1/copilot/sessions", headers=auth_headers, json={})
+        assert res.status_code == 201, res.text
+        conv = res.json()["data"]
+        assert conv["provider"] == "ollama"
+        assert conv["model"] == settings.COPILOT_MODEL_CHAT_OLLAMA
+
+    async def test_ollama_explicit_model_kept(
         self, db_session: AsyncSession, client: AsyncClient, auth_headers: dict, test_clinic
     ) -> None:
         with SettingsPatch(OLLAMA_BASE_URL="http://ollama.example.test:11434/v1"):

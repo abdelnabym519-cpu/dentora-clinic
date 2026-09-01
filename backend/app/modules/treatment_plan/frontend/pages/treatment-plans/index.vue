@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PipelineTab } from '~/composables/usePipeline'
+import type { PipelineTab } from '../../composables/usePipeline'
 import { PERMISSIONS } from '~~/app/config/permissions'
 
 type ActiveTab = PipelineTab | 'listado'

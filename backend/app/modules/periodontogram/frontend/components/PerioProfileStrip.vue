@@ -60,7 +60,7 @@ function siteX(toothIdx: number, siteIdx: number): number {
   // Three sites per tooth, evenly spaced across the column at 20/50/80%.
   // The middle site sits over the centre of the tooth silhouette.
   const offsets = [0.2, 0.5, 0.8]
-  return toothIdx * COL_W + COL_W * offsets[siteIdx]
+  return toothIdx * COL_W + COL_W * (offsets[siteIdx] ?? 0.5)
 }
 
 interface PathPoint { x: number, y: number }
@@ -82,7 +82,9 @@ function buildPath(
 
 function siteAt(ti: number, si: number) {
   const tooth = props.teeth[ti]
-  return tooth.sites.find(s => s.site_code === sites.value[si])
+  const code = sites.value[si]
+  if (!tooth || !code) return undefined
+  return tooth.sites.find(s => s.site_code === code)
 }
 
 const gmPath = computed(() =>

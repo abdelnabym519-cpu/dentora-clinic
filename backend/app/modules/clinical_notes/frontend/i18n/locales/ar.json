@@ -1,0 +1,124 @@
+{
+  "clinicalNotes": {
+    "types": {
+      "administrative": "إدارية",
+      "diagnosis": "تشخيص",
+      "treatment": "علاج",
+      "treatment_plan": "خطة العلاج",
+      "appointment_clinical": "سريرية",
+      "appointment_administrative": "إدارية"
+    },
+    "appointment": {
+      "addByType": "إضافة ملاحظة {label}",
+      "empty": "لا توجد ملاحظات لهذا الموعد بعد. استخدم الأزرار أعلاه لإضافة ملاحظة."
+    },
+    "feed": {
+      "filterLabel": "عوامل التصفية",
+      "filterAll": "الكل",
+      "filterClear": "مسح عوامل التصفية",
+      "filterStatus": "عرض {n} من أصل {total} أنواع",
+      "addAdministrative": "ملاحظة إدارية",
+      "loadMore": "تحميل المزيد",
+      "empty": {
+        "title": "لا توجد ملاحظات بعد",
+        "help": "ستظهر الملاحظات الإدارية والتشخيصية والعلاجية هنا بترتيب زمني."
+      }
+    },
+    "diagnosisSidebar": {
+      "title": "الملاحظات",
+      "addNote": "إضافة ملاحظة",
+      "empty": "لا توجد ملاحظات في هذه الفئة."
+    },
+    "treatmentButton": {
+      "title": "ملاحظات العلاج",
+      "add": "إضافة ملاحظة",
+      "empty": "لا توجد ملاحظات لهذا العلاج بعد.",
+      "aria": "ملاحظات العلاج ({n})"
+    },
+    "timeline": {
+      "addPlanNote": "ملاحظة على الخطة",
+      "empty": "لا توجد ملاحظات بعد.",
+      "emptyForFilter": "لا توجد ملاحظات مطابقة لعامل التصفية.",
+      "source": {
+        "plan": "الخطة",
+        "treatment": "العلاج",
+        "visit": "الزيارة"
+      }
+    },
+    "byPlan": {
+      "empty": "لا توجد لهذا المريض ملاحظات سريرية مرتبطة بخطة حتى الآن.",
+      "planNotesLabel": "ملاحظات الخطة",
+      "unknownTreatment": "العلاج",
+      "noNotesForTreatment": "لا توجد ملاحظات لهذا العلاج بعد."
+    },
+    "composer": {
+      "placeholder": "اكتب الملاحظة…",
+      "templates": "القوالب",
+      "attach": "إرفاق صورة أو مستند",
+      "bindToTooth": "ربط بالسن {n}"
+    },
+    "linked": {
+      "tooth": "السن {n}",
+      "treatment": "العلاج",
+      "treatmentOnTooth": "{label} (السن {n})",
+      "plan": "الخطة",
+      "planNamed": "الخطة: {label}"
+    },
+    "actions": {
+      "showMore": "عرض المزيد",
+      "showLess": "عرض أقل",
+      "openLinked": "فتح السياق"
+    },
+    "author": {
+      "unknown": "مؤلف غير معروف"
+    },
+    "time": {
+      "justNow": "الآن",
+      "minutesAgo": "منذ {n} د",
+      "hoursAgo": "منذ {n} س",
+      "daysAgo": "منذ {n} ي"
+    },
+    "toasts": {
+      "saved": "تم حفظ الملاحظة",
+      "deleted": "تم حذف الملاحظة",
+      "saveFailed": "تعذّر حفظ الملاحظة"
+    },
+    "confirms": {
+      "delete": "هل تريد حذف هذه الملاحظة؟ تتطلب استعادتها التواصل مع الدعم."
+    },
+    "templates": {
+      "endo": {
+        "singleVisit": "علاج جذور (زيارة واحدة)",
+        "multiVisit": "علاج جذور (زيارات متعددة)"
+      },
+      "perio": {
+        "scaling": "إزالة الجير / تسوية الجذور"
+      },
+      "implant": {
+        "placement": "تركيب الزرعة"
+      },
+      "diagnosis": {
+        "caries": "تسوّس",
+        "periapical": "آفة حول ذروية"
+      },
+      "admin": {
+        "phoneCall": "مكالمة هاتفية مع المريض",
+        "reschedule": "طلب إعادة الجدولة"
+      },
+      "general": {
+        "followUp": "متابعة عامة"
+      }
+    },
+    "templateBodies": {
+      "endo_single_visit": "التشخيص: \nالتخدير: \nالقنوات التي تم تحديدها: \nطول العمل: \nحشو القنوات: \nما بعد الإجراء: ",
+      "endo_multi_visit": "الجلسة: \nالقنوات التي تم العمل عليها: \nدواء داخل القناة: \nالموعد التالي: ",
+      "perio_scaling": "الأرباع المعالَجة: \nعمق الجيوب: \nالنزف عند الجس: \nتعليمات العناية بالفم: ",
+      "implant_placement": "الزرعة (العلامة / القطر / الطول): \nعزم التثبيت النهائي (Ncm): \nالثبات الأولي: \nالطُعم: \nما بعد الإجراء: ",
+      "diagnosis_caries": "الملاحظة: تسوّس \nالعمق: \nالأعراض: \nاختبار الحيوية: \nالعلاج المقترح: ",
+      "diagnosis_periapical": "آفة حول ذروية \nالسن: \nالأشعة: \nالاختبارات (القرع، الجس): \nالتشخيص: ",
+      "admin_phone_call": "مكالمة المريض: \nالسبب: \nالإجراء المتخذ: \nالمتابعة: ",
+      "admin_reschedule": "طلب إعادة الجدولة: \nالتاريخ الحالي: \nالموعد الجديد المقترح: ",
+      "general_follow_up": "الملاحظات: \nالإجراء المنفذ: \nتعليمات المريض: "
+    }
+  }
+}

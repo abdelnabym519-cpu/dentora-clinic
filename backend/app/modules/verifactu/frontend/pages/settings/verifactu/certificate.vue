@@ -85,7 +85,7 @@ async function submit() {
     await uploadCertificate(file.value, password.value)
     file.value = null
     password.value = ''
-    toast?.add({ title: t('verifactu.certificate.uploaded'), color: 'green' })
+    toast?.add({ title: t('verifactu.certificate.uploaded'), color: 'success' })
     await refresh()
   } catch (e: unknown) {
     error.value = errorMessage(e, t('verifactu.certificate.uploadFailed'))
@@ -328,7 +328,7 @@ onMounted(refresh)
 
         <UAlert
           v-if="error"
-          color="red"
+          color="error"
           variant="soft"
           icon="i-lucide-alert-triangle"
           :title="error"
@@ -403,7 +403,7 @@ onMounted(refresh)
           class="py-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"
         >
           <UBadge
-            :color="c.is_active ? 'green' : 'gray'"
+            :color="c.is_active ? 'success' : 'neutral'"
             variant="subtle"
             size="sm"
           >

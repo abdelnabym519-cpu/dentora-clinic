@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
-import type { RecallSettings } from '../composables/useRecalls'
+import type { RecallReason, RecallSettings } from '../composables/useRecalls'
 import { errorDetail } from '~~/app/utils/error'
 
 const { t } = useI18n()
@@ -73,7 +73,7 @@ const categoryRows = computed(() => {
 })
 
 const newCategoryKey = ref('')
-const newCategoryReason = ref<string>('hygiene')
+const newCategoryReason = ref<RecallReason>('hygiene')
 
 function addCategory() {
   if (!settings.value || !newCategoryKey.value) return

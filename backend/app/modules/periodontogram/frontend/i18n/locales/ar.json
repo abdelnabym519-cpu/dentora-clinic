@@ -1,0 +1,84 @@
+{
+  "periodontogram": {
+    "tab": {
+      "label": "مخطط دواعم الأسنان"
+    },
+    "empty": {
+      "title": "لا توجد فحوص دواعم أسنان بعد",
+      "description": "ابدأ جلسة جديدة لتسجيل أعماق الجيوب والنزف واللويحة وبقية مؤشرات SEPA.",
+      "cta": "بدء الفحص"
+    },
+    "session": {
+      "draftBadge": "مسودة قيد العمل",
+      "closedBadge": "جلسة مغلقة",
+      "recordedAt": "سُجلت في {date}",
+      "openDraft": "فتح جلسة جديدة",
+      "continueDraft": "متابعة المسودة",
+      "closeTitle": "إغلاق جلسة دواعم الأسنان",
+      "closeDescription": "بعد الإغلاق تصبح الجلسة غير قابلة للتعديل وتظهر في السجل. لإجراء تصحيح يجب فتح جلسة جديدة.",
+      "closeButton": "إغلاق الجلسة",
+      "discardTitle": "حذف المسودة",
+      "discardDescription": "سيتم حذف جميع البيانات المُدخلة في هذه الجلسة. لا يمكن التراجع عن هذا الإجراء.",
+      "discardButton": "حذف",
+      "cancel": "إلغاء",
+      "closeSession": "إغلاق الجلسة",
+      "discardDraft": "حذف المسودة"
+    },
+    "indices": {
+      "bop": "النزف",
+      "pi": "اللويحة",
+      "calMean": "متوسط CAL",
+      "deepPockets": "جيوب ≥5 مم"
+    },
+    "saveState": {
+      "saving": "جارٍ الحفظ…",
+      "dirty": "تغييرات غير محفوظة",
+      "saved": "تم حفظ التغييرات"
+    },
+    "history": {
+      "viewingSession": "عرض جلسة بتاريخ {date} (للقراءة فقط).",
+      "returnToCurrent": "العودة إلى الحالي"
+    },
+    "arch": {
+      "upper": "علوي",
+      "lower": "سفلي",
+      "palatal": "حنكي",
+      "lingual": "لساني",
+      "vestibular": "دهليزي",
+      "probing": "عمق الجيب",
+      "margin": "الحافة",
+      "bleeding": "النزف",
+      "plaque": "اللويحة",
+      "probingTitle": "قياس الجيب {code} (0–15 مم)",
+      "marginTitle": "حافة اللثة {code} (-5 إلى 10 مم)",
+      "plaqueTitle": "لويحة {code} (انقر للتبديل)",
+      "bleedingTitle": "نزف {code} (انقر للتبديل)",
+      "implant": "زرعة",
+      "implantToggleOn": "زرعة (انقر للإزالة)",
+      "implantToggleOff": "انقر لوضع علامة زرعة",
+      "mobility": "الحركة",
+      "mobilityTitle": "انقر لتغيير درجة الحركة (0–3)",
+      "prognosis": "الإنذار",
+      "prognosisTitle": "جيد / متوسط / مشكوك فيه / ميؤوس منه",
+      "furcaV": "تفرع دهليزي",
+      "furcaVTitle": "تفرع دهليزي (0/I/II/III)",
+      "furcaLP": "تفرع لساني/حنكي",
+      "furcaLPTitle": "تفرع لساني/حنكي (0/I/II/III)",
+      "gingivalWidth": "عرض اللثة",
+      "siteMarkerAria": "الموضع {code}، عمق الجيب {depth}"
+    },
+    "chart": {
+      "ariaLabel": "مخطط دواعم الأسنان — القوسان العلوي والسفلي"
+    },
+    "indicesBanner": {
+      "observationsPlaceholder": "ملاحظات الفحص…",
+      "noteLabel": "ملاحظة (اختياري)"
+    },
+    "loading": "جارٍ تحميل مخطط دواعم الأسنان…",
+    "errors": {
+      "loadFailed": "تعذّر تحميل مخطط دواعم الأسنان.",
+      "saveFailed": "تعذّر حفظ التغيير.",
+      "checkConnection": "تحقق من اتصالك وحاول مرة أخرى."
+    }
+  }
+}

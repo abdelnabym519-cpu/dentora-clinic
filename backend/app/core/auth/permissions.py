@@ -25,6 +25,25 @@ ROLES: Final[list[str]] = [
     "receptionist",
 ]
 
+# Platform / super-admin role. This is NOT a clinic role (it never
+# appears in ``clinic_memberships.role``); it is granted via
+# ``users.is_platform_admin`` and represents cross-tenant operational
+# access. It is listed separately so the RBAC helpers can expand its
+# grants for the frontend.
+PLATFORM_ADMIN_ROLE: Final[str] = "platform_admin"
+
+# Permissions that only a platform admin may hold. They govern tenant
+# and clinic provisioning across the whole deployment. Clinic-scoped
+# admins cannot reach these endpoints regardless of wildcard grants.
+PLATFORM_PERMISSIONS: Final[list[str]] = [
+    "platform.tenants.read",
+    "platform.tenants.write",
+    "platform.clinics.read",
+    "platform.clinics.write",
+    "platform.users.read",
+    "platform.users.write",
+]
+
 # Roles that imply ``ClinicMembership.is_professional`` at creation.
 # The flag — not the role — is what agenda/schedules/treatment_plan
 # query, so a solo admin-dentist can be marked professional without
@@ -130,6 +149,35 @@ def has_permission(role: str, required_permission: str) -> bool:
     """Check if a role has a specific permission."""
     role_perms = get_role_permissions(role)
     return any(permission_matches(required_permission, perm) for perm in role_perms)
+
+
+def get_platform_admin_permissions(all_permissions: list[str] | None = None) -> list[str]:
+    """Return the full permission set for a platform admin.
+
+    Platform admins hold every clinic permission (so they can operate a
+    clinic when impersonating one) *plus* the platform.* grants. The
+    expanded set is computed from the registry + core permissions, the
+    same way a clinic ``admin`` wildcard is expanded.
+    """
+    if all_permissions is None:
+        from app.core.plugins import module_registry
+
+        all_permissions = module_registry.get_all_permissions() + CORE_PERMISSIONS
+    # Admin wildcard expands to everything clinic-scoped...
+    expanded = set(expand_permissions(["*"], all_permissions))
+    # ...plus platform-only grants.
+    expanded.update(PLATFORM_PERMISSIONS)
+    return sorted(expanded)
+
+
+def has_platform_permission(is_platform_admin: bool, required_permission: str) -> bool:
+    """Authorize a platform-only endpoint."""
+    if not is_platform_admin:
+        return False
+    if required_permission in PLATFORM_PERMISSIONS:
+        return True
+    # Platform admins also satisfy any clinic-scoped permission.
+    return has_permission("admin", required_permission)
 
 
 def expand_permissions(role_perms: list[str], all_permissions: list[str]) -> list[str]:

@@ -1,0 +1,57 @@
+{
+  "prescriptions": {
+    "title": "Electronic Prescriptions",
+    "subtitle": "Create, issue, deliver by WhatsApp and audit prescriptions for the selected clinic.",
+    "new": "New prescription",
+    "patient": "Patient",
+    "searchPatient": "Search patient",
+    "remove": "Remove",
+    "addMedication": "Add medication",
+    "createDraft": "Create draft",
+    "history": "Prescriptions",
+    "transitionReason": "Reason for cancel / void",
+    "empty": "No prescriptions recorded yet.",
+    "issue": "Issue",
+    "cancel": "Cancel",
+    "sendWhatsApp": "Send / retry WhatsApp",
+    "void": "Void",
+    "whatsapp": "WhatsApp",
+    "attempts": "attempts {attempts}/{max}",
+    "delivered": "delivered",
+    "read": "read",
+    "noDeliveryAttempt": "WhatsApp: no delivery attempt recorded.",
+    "immutable": "Issued/terminal prescription content is immutable.",
+    "fields": {
+      "medication": "Medication",
+      "strength": "Strength",
+      "dose": "Dose",
+      "frequency": "Frequency",
+      "duration": "Duration",
+      "route": "Route",
+      "quantity": "Quantity",
+      "quantityUnit": "Quantity unit",
+      "instructions": "Instructions"
+    },
+    "status": {
+      "draft": "draft",
+      "issued": "issued",
+      "cancelled": "cancelled",
+      "voided": "voided"
+    },
+    "deliveryStatus": {
+      "queued": "queued",
+      "sending": "sending",
+      "sent": "sent",
+      "delivered": "delivered",
+      "read": "read",
+      "failed": "failed"
+    },
+    "errors": {
+      "create": "Could not create prescription.",
+      "issue": "Could not issue prescription.",
+      "whatsapp": "Could not queue WhatsApp delivery.",
+      "cancel": "Could not cancel prescription.",
+      "void": "Could not void prescription."
+    }
+  }
+}

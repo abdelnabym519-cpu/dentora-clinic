@@ -1,0 +1,30 @@
+{
+  "voice": {
+    "title": "Dentora Voice",
+    "close": "Fermer",
+    "listen": "Écouter",
+    "stop": "Arrêter",
+    "reset": "Réinitialiser",
+    "localOnly": "La reconnaissance vocale s’exécute uniquement sur le runtime local en loopback.",
+    "states": {
+      "idle": "Prêt",
+      "listening": "Écoute…",
+      "processing": "Transcription locale…",
+      "executing": "Exécution…",
+      "success": "Terminé",
+      "error": "Impossible d’exécuter la commande",
+      "confirmation_required": "Confirmation requise",
+      "clarification_required": "Clarification requise"
+    },
+    "errors": {
+      "voice_target_unavailable": "Le contrôle Dentora demandé n’est pas disponible sur cet écran.",
+      "patient_context_required": "Ouvrez un patient ou prononcez son nom.",
+      "patient_not_found": "Aucun patient correspondant n’a été trouvé.",
+      "ambiguous_patient": "Plusieurs patients correspondent. Soyez plus précis.",
+      "cbct_not_available": "Aucun examen CBCT n’est disponible pour ce patient.",
+      "segmentation_not_available": "Aucun résultat de segmentation dentaire n’est disponible.",
+      "nerve_not_available": "Aucun résultat de nerf n’est disponible.",
+      "voice_command_failed": "La commande vocale n’a pas pu être exécutée."
+    }
+  }
+}

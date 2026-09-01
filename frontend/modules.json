@@ -4,20 +4,22 @@
     "/module_layers/catalog/frontend",
     "/module_layers/odontogram/frontend",
     "/module_layers/agenda/frontend",
+    "/module_layers/patients_clinical/frontend",
+    "/module_layers/patient_timeline/frontend",
+    "/module_layers/media/frontend",
+    "/module_layers/copilot/frontend",
     "/module_layers/budget/frontend",
     "/module_layers/payments/frontend",
     "/module_layers/billing/frontend",
     "/module_layers/schedules/frontend",
     "/module_layers/booking/frontend",
-    "/module_layers/copilot/frontend",
-    "/module_layers/media/frontend",
-    "/module_layers/patients_clinical/frontend",
     "/module_layers/treatment_plan/frontend",
     "/module_layers/clinical_notes/frontend",
     "/module_layers/recalls/frontend",
     "/module_layers/notifications/frontend",
-    "/module_layers/patient_timeline/frontend",
-    "/module_layers/reports/frontend"
+    "/module_layers/prescriptions/frontend",
+    "/module_layers/reports/frontend",
+    "/module_layers/voice/frontend"
   ],
   "modules": [
     {
@@ -35,6 +37,22 @@
     {
       "name": "agenda",
       "path": "/module_layers/agenda/frontend"
+    },
+    {
+      "name": "patients_clinical",
+      "path": "/module_layers/patients_clinical/frontend"
+    },
+    {
+      "name": "patient_timeline",
+      "path": "/module_layers/patient_timeline/frontend"
+    },
+    {
+      "name": "media",
+      "path": "/module_layers/media/frontend"
+    },
+    {
+      "name": "copilot",
+      "path": "/module_layers/copilot/frontend"
     },
     {
       "name": "budget",
@@ -57,18 +75,6 @@
       "path": "/module_layers/booking/frontend"
     },
     {
-      "name": "copilot",
-      "path": "/module_layers/copilot/frontend"
-    },
-    {
-      "name": "media",
-      "path": "/module_layers/media/frontend"
-    },
-    {
-      "name": "patients_clinical",
-      "path": "/module_layers/patients_clinical/frontend"
-    },
-    {
       "name": "treatment_plan",
       "path": "/module_layers/treatment_plan/frontend"
     },
@@ -85,12 +91,16 @@
       "path": "/module_layers/notifications/frontend"
     },
     {
-      "name": "patient_timeline",
-      "path": "/module_layers/patient_timeline/frontend"
+      "name": "prescriptions",
+      "path": "/module_layers/prescriptions/frontend"
     },
     {
       "name": "reports",
       "path": "/module_layers/reports/frontend"
+    },
+    {
+      "name": "voice",
+      "path": "/module_layers/voice/frontend"
     }
   ],
   "version": 1

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChannelRegistry:
-    """Maps a channel to its active adapter (last-writer-wins per channel)."""
+    """Maps adapter names to process-wide channel adapter instances."""
 
     def __init__(self) -> None:
         self._adapters: dict[str, ChannelAdapter] = {}  # adapter_name -> adapter
@@ -40,16 +40,18 @@ class ChannelRegistry:
         self._adapters.pop(adapter_name, None)
 
     def get_for_channel(self, channel: Channel | str) -> ChannelAdapter | None:
-        """Return the adapter handling ``channel``, or None.
+        """Return the legacy last-registered adapter for ``channel``."""
+        candidates = self.candidates_for_channel(channel)
+        return candidates[0] if candidates else None
 
-        With multiple adapters for one channel the last registered wins —
-        fine for v1 (one vendor per channel per deployment).
-        """
-        channel = Channel(channel)
-        for adapter in reversed(list(self._adapters.values())):
-            if adapter.channel == channel:
-                return adapter
-        return None
+    def candidates_for_channel(self, channel: Channel | str) -> list[ChannelAdapter]:
+        """Return channel adapters in legacy priority order (last registered first)."""
+        resolved = Channel(channel)
+        return [
+            adapter
+            for adapter in reversed(list(self._adapters.values()))
+            if adapter.channel == resolved
+        ]
 
     def get_by_name(self, adapter_name: str) -> ChannelAdapter | None:
         return self._adapters.get(adapter_name)

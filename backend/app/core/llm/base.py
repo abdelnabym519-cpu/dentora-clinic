@@ -128,4 +128,5 @@ class Provider(Protocol):
         tools: list[dict],
         model: str,
         max_tokens: int,
+        response_schema: dict[str, Any] | None = None,
     ) -> AsyncIterator[ProviderEvent]: ...

@@ -6,7 +6,7 @@
 //    El servidor sella timestamp + user_id como evidencia para una
 //    inspección AEAT (RD 1007/2023 art. 13).
 // 3. Descarga el PDF firmado para archivo / distribución a clínicas.
-import type { ProducerInfoUpdate, VerifactuSettings, ProducerDefaults } from '~/composables/useVerifactu'
+import type { ProducerInfoUpdate, VerifactuSettings, ProducerDefaults } from '../../../composables/useVerifactu'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorMessage } from '~~/app/utils/error'
 
@@ -80,7 +80,7 @@ async function saveDraft() {
   error.value = null
   try {
     settings.value = await updateProducer({ ...form.value, sign_declaracion: false })
-    toast?.add({ title: t('verifactu.producer.draftSaved'), color: 'green' })
+    toast?.add({ title: t('verifactu.producer.draftSaved'), color: 'success' })
   } catch (e: unknown) {
     error.value = errorMessage(e, t('verifactu.producer.saveFailed'))
   } finally {
@@ -96,7 +96,7 @@ async function revokeNow() {
     settings.value = await revokeDeclaration()
     showRevokeConfirm.value = false
     acceptedDeclaration.value = false
-    toast?.add({ title: t('verifactu.producer.revokedToast'), color: 'amber' })
+    toast?.add({ title: t('verifactu.producer.revokedToast'), color: 'warning' })
   } catch (e: unknown) {
     error.value = errorMessage(e, t('verifactu.producer.saveFailed'))
   } finally {
@@ -111,7 +111,7 @@ async function signNow() {
   try {
     settings.value = await updateProducer({ ...form.value, sign_declaracion: true })
     acceptedDeclaration.value = false
-    toast?.add({ title: t('verifactu.producer.signedToast'), color: 'green' })
+    toast?.add({ title: t('verifactu.producer.signedToast'), color: 'success' })
   } catch (e: unknown) {
     error.value = errorMessage(e, t('verifactu.producer.saveFailed'))
   } finally {
@@ -206,7 +206,7 @@ onMounted(refresh)
     <!-- 3-step process explainer. Always visible so the user has the
          mental model of what's required before scrolling. -->
     <UAlert
-      color="blue"
+      color="info"
       variant="soft"
       :title="t('verifactu.producer.process.title')"
     >
@@ -245,7 +245,7 @@ onMounted(refresh)
 
         <UAlert
           v-if="alreadySigned"
-          color="amber"
+          color="warning"
           variant="soft"
           icon="i-lucide-lock"
           :title="t('verifactu.producer.step1.lockedTitle')"
@@ -255,7 +255,7 @@ onMounted(refresh)
           <template #actions>
             <UButton
               v-if="canManage"
-              color="amber"
+              color="warning"
               variant="solid"
               size="xs"
               icon="i-lucide-unlock"
@@ -335,7 +335,7 @@ onMounted(refresh)
               </h2>
             </div>
             <UBadge
-              :color="alreadySigned ? 'green' : 'amber'"
+              :color="alreadySigned ? 'success' : 'warning'"
               variant="subtle"
               :icon="alreadySigned ? 'i-lucide-check-circle' : 'i-lucide-clock'"
             >
@@ -392,7 +392,7 @@ onMounted(refresh)
 
           <UAlert
             v-if="error"
-            color="red"
+            color="error"
             variant="soft"
             :title="error"
           />
@@ -499,7 +499,7 @@ onMounted(refresh)
                 {{ t('common.cancel') }}
               </UButton>
               <UButton
-                color="amber"
+                color="warning"
                 :loading="revoking"
                 icon="i-lucide-unlock"
                 @click="revokeNow"

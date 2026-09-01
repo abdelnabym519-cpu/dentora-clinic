@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings as app_settings
 from app.core.agents.models import Agent, AgentAuditLog
 from app.core.llm.base import ContentBlock
+from app.core.llm.factory import SUPPORTED_PROVIDERS, get_default_model
 
 from .models import CopilotConversation, CopilotMessage, CopilotNudge, CopilotSettings
 from .serde import content_to_json
@@ -28,15 +29,10 @@ class CopilotSettingsService:
         row = await db.get(CopilotSettings, clinic_id)
         if row is not None:
             return CopilotSettingsService._roll_period(row)
-        default_provider = app_settings.COPILOT_PROVIDER_DEFAULT
-        default_model = {
-            "ollama": app_settings.COPILOT_MODEL_OLLAMA,
-            "cloudflare": app_settings.CLOUDFLARE_AI_MODEL,
-        }.get(default_provider, app_settings.COPILOT_MODEL_CHAT_OPENAI)
         row = CopilotSettings(
             clinic_id=clinic_id,
-            provider=default_provider,
-            model=default_model,
+            provider=app_settings.COPILOT_PROVIDER_DEFAULT,
+            model=get_default_model(app_settings.COPILOT_PROVIDER_DEFAULT),
             redaction_enabled=app_settings.COPILOT_REDACTION_DEFAULT,
             period_start=datetime.now(UTC).date().replace(day=1),
         )
@@ -66,17 +62,21 @@ class CopilotSettingsService:
         # Validate only when the caller is changing the provider; otherwise a
         # digest-only PATCH would fail on clinics whose stored provider is
         # "openai" but whose deployment has no key (the digest is no-LLM).
-        if data.get("provider") == "openai" and not app_settings.OPENAI_API_KEY:
-            raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
-        if data.get("provider") == "ollama" and not app_settings.OLLAMA_BASE_URL:
-            raise ValueError("Ollama provider selected but OLLAMA_BASE_URL is not configured")
-        if data.get("provider") == "cloudflare" and not (
-            app_settings.CLOUDFLARE_ACCOUNT_ID and app_settings.CLOUDFLARE_API_TOKEN
-        ):
-            raise ValueError(
-                "Cloudflare provider selected but CLOUDFLARE_ACCOUNT_ID / "
-                "CLOUDFLARE_API_TOKEN are not configured"
-            )
+        requested_provider = data.get("provider")
+        if requested_provider is not None:
+            if requested_provider not in SUPPORTED_PROVIDERS:
+                raise ValueError(f"Unsupported LLM provider: {requested_provider}")
+            if requested_provider == "openai" and not app_settings.OPENAI_API_KEY:
+                raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
+            if requested_provider == "cloudflare" and not (
+                app_settings.CLOUDFLARE_ACCOUNT_ID and app_settings.CLOUDFLARE_API_TOKEN
+            ):
+                raise ValueError(
+                    "Cloudflare provider selected but CLOUDFLARE_ACCOUNT_ID / "
+                    "CLOUDFLARE_API_TOKEN are not configured"
+                )
+            if data.get("model") is None:
+                row.model = get_default_model(requested_provider)
         for field in (
             "provider",
             "model",

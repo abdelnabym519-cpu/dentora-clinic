@@ -196,6 +196,10 @@ from app.core.agents.router import router as agents_router  # noqa: E402
 
 app.include_router(agents_router, prefix="/api/v1")
 
+from app.core.tenancy.platform_router import router as platform_router  # noqa: E402
+
+app.include_router(platform_router, prefix="/api/v1")
+
 
 @app.get("/health")
 async def health_check() -> JSONResponse:
@@ -207,14 +211,14 @@ async def health_check() -> JSONResponse:
 async def readiness_check(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> JSONResponse:
-    """Readiness probe — schema is reachable."""
+    """Readiness probe — schema is reachable without exposing internal errors."""
     try:
         await db.execute(text("SELECT 1 FROM users LIMIT 1"))
     except Exception as exc:
         logger.error("Readiness check failed: %s", exc)
         return JSONResponse(
             status_code=503,
-            content={"status": "unready", "version": "2.0.0", "error": str(exc)},
+            content={"status": "unready", "version": "2.0.0"},
         )
     return JSONResponse(content={"status": "ready", "version": "2.0.0"})
 

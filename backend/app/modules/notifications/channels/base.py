@@ -62,8 +62,8 @@ class OutboundMessage:
     context: dict = field(default_factory=dict)
     to_name: str | None = None
     patient_id: UUID | None = None
-    # "template" = pre-approved template (the only kind allowed for proactive
-    # WhatsApp, outside the 24h session window); "session" = free-form.
+    # "template" = provider/template-driven send; "session" = a free-form
+    # conversation reply; "text" = provider-capability-gated proactive text.
     message_kind: str = "template"
     provider_template_name: str | None = None
     subject: str | None = None
@@ -74,13 +74,20 @@ class OutboundMessage:
 
 @dataclass
 class AdapterResult:
-    """Outcome of an adapter ``send``. Mirrors ``EmailResult``."""
+    """Outcome of one adapter attempt.
+
+    ``retryable`` defaults to True for backward compatibility. Providers that
+    can classify failures should set it False for permanent failures (invalid
+    destination, authorization/config errors, malformed requests) so the
+    outbox stops immediately instead of burning the remaining retry budget.
+    """
 
     status: SendStatus
     provider: str
     provider_message_id: str | None = None
     error_message: str | None = None
     sent_at: datetime | None = None
+    retryable: bool = True
 
     @property
     def is_sent(self) -> bool:

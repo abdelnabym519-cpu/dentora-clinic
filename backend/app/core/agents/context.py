@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
@@ -50,6 +51,11 @@ class AgentContext:
     # themselves (e.g. copilot's inline confirmation) pass a config that
     # disables the approval-queue triggers. ``None`` → module default.
     guardrail_config: GuardrailConfig | None = None
+    # Optional, surface-owned audit sanitizer. Default None preserves the
+    # exact historical behavior for every existing agent surface. Dentora
+    # Voice supplies one so transcript-derived PHI is not persisted in
+    # tool arguments/results while execution still uses the real values.
+    audit_sanitizer: Callable[[Any], Any] | None = None
 
 
 @dataclass

@@ -14,14 +14,15 @@
   Switching between `openai` / `ollama` / `cloudflare` is
   configuration-only. See `tests/test_cloudflare_provider.py`.
 
-- feat(providers): Ollama as a self-hosted LLM provider. Reuses the
-  existing OpenAI-compatible client against `OLLAMA_BASE_URL` (an
-  external Ollama's OpenAI-compatible `/v1` endpoint, e.g.
-  `http://<host>:11434/v1`); no changes to the OpenAI / AI-gateway
-  paths. `PATCH /settings` validates `provider="ollama"` against the
-  deployment (400 when `OLLAMA_BASE_URL` is unset), and clinics whose
-  `COPILOT_PROVIDER_DEFAULT=ollama` start on `COPILOT_MODEL_OLLAMA`
-  (default `llama3.1:8b`). See `tests/test_ollama_provider.py`.
+- feat(providers): Ollama as a self-hosted LLM provider.
+  `OllamaProvider` (a thin subclass of the OpenAI-compatible client)
+  targets `OLLAMA_BASE_URL` (default
+  `http://host.docker.internal:11434/v1/` for client builds); no
+  changes to the OpenAI / AI-gateway paths. Clinics whose
+  `COPILOT_PROVIDER_DEFAULT=ollama` start on `COPILOT_MODEL_CHAT_OLLAMA`
+  (default `qwen3:8b`), and switching providers without an explicit
+  model re-defaults to the provider's model. See
+  `tests/test_ollama_provider.py`.
 
 - style(lint): first ESLint pass over this module's frontend layer —
   module layers were outside the linter's base path until now, so

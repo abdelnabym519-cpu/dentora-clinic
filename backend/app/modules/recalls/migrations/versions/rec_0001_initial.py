@@ -8,7 +8,7 @@ Tables:
 Lives on its own Alembic branch (``recalls``) per ADR 0002.
 
 Revision ID: rec_0001
-Revises:
+Revises: 0001
 Create Date: 2026-05-01
 """
 

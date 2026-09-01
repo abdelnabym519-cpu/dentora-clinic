@@ -1,7 +1,7 @@
 """AI Case Summary persistence and dentist review state.
 
 Revision ID: acs_0001
-Revises: ci_0001
+Revises: 0001
 Create Date: 2026-08-25
 """
 
@@ -15,7 +15,11 @@ from alembic import op
 revision: str = "acs_0001"
 down_revision: str | None = "0001"
 branch_labels: str | Sequence[str] | None = ("ai_case_summary",)
-depends_on: str | Sequence[str] | None = None
+# ai_case_summaries.patient_id FKs patients, created by ``pat_0001`` on the
+# main chain. Without this edge alembic may run acs_0001 (branched off 0001)
+# before pat_0001 on a clean upgrade, so the FK target doesn't exist yet.
+# depends_on forces the correct order (same pattern as cop_0001).
+depends_on: str | Sequence[str] | None = "pat_0001"
 
 
 def upgrade() -> None:

@@ -68,6 +68,13 @@ class CopilotSettingsService:
                 raise ValueError(f"Unsupported LLM provider: {requested_provider}")
             if requested_provider == "openai" and not app_settings.OPENAI_API_KEY:
                 raise ValueError("OpenAI provider selected but OPENAI_API_KEY is not configured")
+            if requested_provider == "cloudflare" and not (
+                app_settings.CLOUDFLARE_ACCOUNT_ID and app_settings.CLOUDFLARE_API_TOKEN
+            ):
+                raise ValueError(
+                    "Cloudflare provider selected but CLOUDFLARE_ACCOUNT_ID / "
+                    "CLOUDFLARE_API_TOKEN are not configured"
+                )
             if data.get("model") is None:
                 row.model = get_default_model(requested_provider)
         for field in (

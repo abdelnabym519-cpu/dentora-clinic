@@ -1,7 +1,7 @@
 """case_intelligence append-only unified case snapshots.
 
 Revision ID: ci_0001
-Revises: d3d_0006
+Revises: 0001
 Create Date: 2026-08-25
 """
 
@@ -15,7 +15,11 @@ from alembic import op
 revision: str = "ci_0001"
 down_revision: str | None = "0001"
 branch_labels: str | Sequence[str] | None = ("case_intelligence",)
-depends_on: str | Sequence[str] | None = None
+# case_snapshots.patient_id FKs patients, created by ``pat_0001`` on the main
+# chain. Without this edge alembic may run ci_0001 (branched off 0001)
+# before pat_0001 on a clean upgrade, so the FK target doesn't exist yet.
+# depends_on forces the correct order (same pattern as cop_0001).
+depends_on: str | Sequence[str] | None = "pat_0001"
 
 
 def upgrade() -> None:

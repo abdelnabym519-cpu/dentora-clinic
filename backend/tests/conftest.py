@@ -61,6 +61,10 @@ from app.modules.payments.models import (  # noqa: F401
     PaymentHistory,
     Refund,
 )
+from app.modules.pathology_detection.models import (  # noqa: F401
+    PathologyAnalysis,
+    PathologyFinding,
+)
 from app.modules.periodontogram.models import (  # noqa: F401
     PeriodontogramSite,
     PeriodontogramSnapshot,

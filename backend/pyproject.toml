@@ -51,14 +51,27 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Pathology detection (app/modules/pathology_detection). Optional so the
+# core image stays lean: clinics install with `pip install .[ai-pathology]`.
+# Weights are NEVER bundled with this package — see
+# docs/technical/pathology_detection/provenance.md.
+ai-pathology = [
+    "torch>=2.4.0",
+    "torchvision>=0.19.0",
+    # Preprocessing (engine/preprocess.py) is PIL + numpy only.
+    "numpy>=1.26.0",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",
     "httpx>=0.26.0",
     "ruff>=0.1.0",
+    # engine/preprocess.py unit tests.
+    "numpy>=1.26.0",
 ]
 
 [project.entry-points."dentora.modules"]
+pathology_detection = "app.modules.pathology_detection:PathologyDetectionModule"
 patients = "app.modules.patients:PatientsModule"
 patients_clinical = "app.modules.patients_clinical:PatientsClinicalModule"
 agenda = "app.modules.agenda:AgendaModule"

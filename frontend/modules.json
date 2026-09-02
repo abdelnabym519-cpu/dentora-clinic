@@ -17,7 +17,8 @@
     "module_layers/recalls/frontend",
     "module_layers/notifications/frontend",
     "module_layers/patient_timeline/frontend",
-    "module_layers/reports/frontend"
+    "module_layers/reports/frontend",
+    "module_layers/pathology_detection/frontend"
   ],
   "modules": [
     {
@@ -91,6 +92,10 @@
     {
       "name": "reports",
       "path": "module_layers/reports/frontend"
+    },
+    {
+      "name": "pathology_detection",
+      "path": "module_layers/pathology_detection/frontend"
     }
   ],
   "version": 1

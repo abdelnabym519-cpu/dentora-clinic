@@ -53,6 +53,14 @@ from app.modules.odontogram.models import (  # noqa: F401
     Treatment,
     TreatmentTooth,
 )
+from app.modules.orthodontic_planning.models import (  # noqa: F401
+    OrthoAssessment,
+    OrthoPlanProposal,
+)
+from app.modules.pathology_detection.models import (  # noqa: F401
+    PathologyAnalysis,
+    PathologyFinding,
+)
 from app.modules.patients.models import Patient  # noqa: F401
 from app.modules.payments.models import (  # noqa: F401
     PatientEarnedEntry,
@@ -60,10 +68,6 @@ from app.modules.payments.models import (  # noqa: F401
     PaymentAllocation,
     PaymentHistory,
     Refund,
-)
-from app.modules.pathology_detection.models import (  # noqa: F401
-    PathologyAnalysis,
-    PathologyFinding,
 )
 from app.modules.periodontogram.models import (  # noqa: F401
     PeriodontogramSite,

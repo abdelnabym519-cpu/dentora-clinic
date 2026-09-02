@@ -77,6 +77,9 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 | `odontogram.treatment.deleted` | `EventType.ODONTOGRAM_TREATMENT_DELETED` | `odontogram` | — |
 | `odontogram.treatment.performed` | `EventType.ODONTOGRAM_TREATMENT_PERFORMED` | `odontogram` | `budget`, `patient_timeline`, `payments`, `periodontogram`, `treatment_plan` |
 | `odontogram.treatment.status_changed` | `EventType.ODONTOGRAM_TREATMENT_STATUS_CHANGED` | `odontogram` | — |
+| `orthodontic_planning.plan_refused` | `EventType.ORTHO_PLAN_REFUSED` | `orthodontic_planning` | — |
+| `orthodontic_planning.proposal_created` | `EventType.ORTHO_PROPOSAL_CREATED` | `orthodontic_planning` | — |
+| `orthodontic_planning.proposal_reviewed` | `EventType.ORTHO_PROPOSAL_REVIEWED` | `orthodontic_planning` | — |
 | `patient.archived` | `EventType.PATIENT_ARCHIVED` | `patients` | `media`, `periodontogram`, `recalls` |
 | `patient.created` | `EventType.PATIENT_CREATED` | `patients` | `notifications` |
 | `patient.medical_updated` | `EventType.PATIENT_MEDICAL_UPDATED` | `patients_clinical` | `patient_timeline` |
@@ -618,6 +621,27 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 - **Constant:** `EventType.ODONTOGRAM_TREATMENT_STATUS_CHANGED`
 - **Publishers:**
   - `odontogram` — `backend/app/modules/odontogram/service.py:771`
+- **Subscribers:** —
+
+### `orthodontic_planning.plan_refused`
+
+- **Constant:** `EventType.ORTHO_PLAN_REFUSED`
+- **Publishers:**
+  - `orthodontic_planning` — `backend/app/modules/orthodontic_planning/service.py:253`
+- **Subscribers:** —
+
+### `orthodontic_planning.proposal_created`
+
+- **Constant:** `EventType.ORTHO_PROPOSAL_CREATED`
+- **Publishers:**
+  - `orthodontic_planning` — `backend/app/modules/orthodontic_planning/service.py:290`
+- **Subscribers:** —
+
+### `orthodontic_planning.proposal_reviewed`
+
+- **Constant:** `EventType.ORTHO_PROPOSAL_REVIEWED`
+- **Publishers:**
+  - `orthodontic_planning` — `backend/app/modules/orthodontic_planning/service.py:352`
 - **Subscribers:** —
 
 ### `patient.archived`

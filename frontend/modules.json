@@ -18,7 +18,8 @@
     "module_layers/notifications/frontend",
     "module_layers/patient_timeline/frontend",
     "module_layers/reports/frontend",
-    "module_layers/pathology_detection/frontend"
+    "module_layers/pathology_detection/frontend",
+    "module_layers/orthodontic_planning/frontend"
   ],
   "modules": [
     {
@@ -96,6 +97,10 @@
     {
       "name": "pathology_detection",
       "path": "module_layers/pathology_detection/frontend"
+    },
+    {
+      "name": "orthodontic_planning",
+      "path": "module_layers/orthodontic_planning/frontend"
     }
   ],
   "version": 1

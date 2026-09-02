@@ -124,6 +124,14 @@ class Settings(BaseSettings):
     PATHOLOGY_NMS_IOU_THRESHOLD: float = 0.5
     PATHOLOGY_MAX_SIDE: int = 1024
 
+    # Orthodontic planning (decision-support module). Names the planning
+    # provider resolved from the module's registry; the shipped default
+    # is the deterministic reference planner. A future offline-trained
+    # ML/RL policy registers under another name — unknown names fail
+    # closed (HTTP 503), and every provider output passes the same
+    # deterministic safety gate before persistence.
+    ORTHO_PLANNING_PROVIDER: str = "heuristic_v1"
+
     @property
     def ai_gateway_base_url(self) -> str:
         """Resolve the OpenAI-compatible Dentora AI gateway base URL."""

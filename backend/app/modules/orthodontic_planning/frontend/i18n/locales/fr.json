@@ -1,0 +1,23 @@
+{
+  "orthodontic_planning": {
+    "card": {
+      "title": "Planification orthodontique",
+      "empty": "Aucune évaluation orthodontique enregistrée.",
+      "ready": "Prêt à planifier",
+      "needsData": "Données du cas insuffisantes",
+      "stages": "Étapes",
+      "months": "mois",
+      "score": "Score",
+      "confidence": "Confiance",
+      "findings": "constat(s) clinique(s) à réviser",
+      "incomplete": "Évaluation incomplète — compléter l'odontogramme et les mesures pour planifier.",
+      "open": "Ouvrir le dossier clinique"
+    },
+    "status": {
+      "draft": "En attente de révision",
+      "approved": "Plan approuvé",
+      "rejected": "Plan rejeté"
+    },
+    "disclaimer": "Aide à la décision uniquement — les propositions exigent une révision clinique ; le système ne prescrit jamais de façon autonome."
+  }
+}

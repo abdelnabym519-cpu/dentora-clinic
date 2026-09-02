@@ -8,7 +8,7 @@ WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm install --no-audit --no-fund
 
-COPY backend/app/modules /module_layers
+COPY backend/app/modules /backend/app/modules
 
 COPY frontend/ ./
 

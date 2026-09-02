@@ -142,7 +142,7 @@ function getItemName(item: PlannedTreatmentItem): string {
     if (name) return name
   }
   const clinicalType = item.treatment?.clinical_type
-  if (clinicalType === 'migrated' && item.treatment?.notes) {
+  if (String(clinicalType) === 'migrated' && item.treatment?.notes) {
     const trimmed = item.treatment.notes.trim()
     if (trimmed.length > 0) {
       return trimmed.length > 60 ? `${trimmed.slice(0, 60)}…` : trimmed

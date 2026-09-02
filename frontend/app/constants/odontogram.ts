@@ -4,7 +4,7 @@
  * FDI notation tooth numbers and related constants for dental charts.
  */
 
-import type { Surface, ToothCondition, TreatmentType } from '~/types'
+import type { Surface, ToothCondition } from '~/types'
 
 // ============================================================================
 // Tooth Layouts (FDI Notation)
@@ -52,8 +52,6 @@ export const CONDITION_COLORS: Record<ToothCondition, string> = {
   missing: '#9CA3AF',
   root_canal: '#8B5CF6',
   implant: '#10B981',
-  bridge_pontic: '#F97316',
-  bridge_abutment: '#FBBF24',
   extraction_indicated: '#DC2626',
   sealant: '#06B6D4',
   fracture: '#BE185D'
@@ -77,7 +75,7 @@ export const SURFACE_LABELS: Record<Surface, string> = {
 // ============================================================================
 
 /** Keyboard shortcuts for quick treatment selection (1-8 keys) */
-export const TREATMENT_SHORTCUTS: Record<string, TreatmentType> = {
+export const TREATMENT_SHORTCUTS: Record<string, string> = {
   1: 'extraction',
   2: 'filling',
   3: 'root_canal',

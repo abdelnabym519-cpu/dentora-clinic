@@ -24,6 +24,10 @@ const { t } = useI18n()
 const selectedDraftId = ref<string>('')
 
 // Options for dropdown when multiple drafts exist
+const singleDraftPlan = computed(() =>
+  props.draftPlans.length === 1 ? props.draftPlans[0] : null
+)
+
 const draftOptions = computed(() =>
   props.draftPlans.map(plan => ({
     label: plan.title || t('treatmentPlans.untitledPlan'),
@@ -61,12 +65,12 @@ function handleContinue() {
 
       <!-- 1 draft: Continue that plan -->
       <UButton
-        v-else-if="draftPlans.length === 1"
+        v-else-if="singleDraftPlan"
         color="primary"
         icon="i-lucide-arrow-right"
-        @click="emit('continue', draftPlans[0].id)"
+        @click="emit('continue', singleDraftPlan.id)"
       >
-        {{ t('clinical.diagnosis.continuePlan', { name: draftPlans[0].title || t('treatmentPlans.untitledPlan') }) }}
+        {{ t('clinical.diagnosis.continuePlan', { name: singleDraftPlan.title || t('treatmentPlans.untitledPlan') }) }}
       </UButton>
 
       <!-- N drafts: Dropdown to select -->

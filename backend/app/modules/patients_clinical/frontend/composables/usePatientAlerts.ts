@@ -70,8 +70,8 @@ export function usePatientAlerts(patientId: Ref<string | undefined>) {
   }
 
   // Get color for severity
-  function getSeverityColor(severity: PatientAlert['severity']): string {
-    const colors: Record<PatientAlert['severity'], string> = {
+  function getSeverityColor(severity: PatientAlert['severity']): 'error' | 'warning' | 'info' | 'neutral' {
+    const colors: Record<PatientAlert['severity'], 'error' | 'warning' | 'info' | 'neutral'> = {
       critical: 'error',
       high: 'warning',
       medium: 'info',

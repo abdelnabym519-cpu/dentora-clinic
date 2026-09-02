@@ -508,7 +508,7 @@ export function resolveTreatmentIconKey(
 
 // Get icon SVG for a treatment type
 export function getTreatmentIcon(treatmentType: string): string {
-  return TREATMENT_ICONS[treatmentType] || TREATMENT_ICONS.filling
+  return TREATMENT_ICONS[treatmentType] ?? TREATMENT_ICONS.filling ?? ''
 }
 
 // Check if treatment requires surface selection (re-export with same name for compatibility)

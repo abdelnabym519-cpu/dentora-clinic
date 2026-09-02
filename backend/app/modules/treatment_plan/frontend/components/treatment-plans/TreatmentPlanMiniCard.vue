@@ -27,8 +27,10 @@ const progress = computed(() => {
 const statusColors: Record<TreatmentPlanStatus, 'success' | 'warning' | 'neutral' | 'info' | 'error'> = {
   active: 'success',
   draft: 'warning',
+  pending: 'warning',
   completed: 'info',
   cancelled: 'error',
+  closed: 'error',
   archived: 'neutral'
 }
 

@@ -24,7 +24,7 @@ const REASONS = [
   'other'
 ] as const
 
-const reason = ref<string>('cancelled_by_clinic')
+const reason = ref<(typeof REASONS)[number]>('cancelled_by_clinic')
 const note = ref('')
 
 const reasonOptions = computed(() =>

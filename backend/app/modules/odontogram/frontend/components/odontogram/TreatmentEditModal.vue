@@ -50,13 +50,17 @@ const treatmentLabel = computed(() => {
 // Treatment color
 const treatmentColor = computed(() => {
   if (!props.treatment) return '#9CA3AF'
-  return TREATMENT_COLORS[props.treatment.treatment_type] || '#9CA3AF'
+  return TREATMENT_COLORS[props.treatment.treatment_type]?.light ?? '#9CA3AF'
 })
 
 // All status options
-const allStatusOptions = [
-  { value: 'existing' as TreatmentStatus, label: () => t('odontogram.status.existing'), color: 'neutral' },
-  { value: 'planned' as TreatmentStatus, label: () => t('odontogram.status.planned'), color: 'warning' }
+const allStatusOptions: Array<{
+  value: TreatmentStatus
+  label: () => string
+  color: 'neutral' | 'warning'
+}> = [
+  { value: 'existing', label: () => t('odontogram.status.existing'), color: 'neutral' },
+  { value: 'planned', label: () => t('odontogram.status.planned'), color: 'warning' }
 ]
 
 // Status options filtered by treatment type

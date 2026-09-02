@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DeepReadonly } from 'vue'
 import type { Appointment } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorDetail } from '~~/app/utils/error'
@@ -27,7 +28,7 @@ onActivated(() => {
   fetchTomorrowUnconfirmed()
 })
 
-async function confirm(a: Appointment) {
+async function confirm(a: DeepReadonly<Appointment>) {
   if (!canWrite.value || busyIds.value.has(a.id)) return
   const next = new Set(busyIds.value)
   next.add(a.id)
@@ -60,7 +61,7 @@ function isoDay(iso: string): string {
   return `${y}-${m}-${day}`
 }
 
-function appointmentHref(a: Appointment): string {
+function appointmentHref(a: DeepReadonly<Appointment>): string {
   return `/appointments?highlight=${a.id}&date=${isoDay(a.start_time)}`
 }
 </script>

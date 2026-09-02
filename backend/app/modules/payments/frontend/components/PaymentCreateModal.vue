@@ -132,7 +132,8 @@ watch(() => props.open, async (isOpen) => {
 watch(() => form.value.amount, (newAmount) => {
   if (splitManually.value) return
   if (form.value.allocations.length !== 1) return
-  form.value.allocations[0].amount = Number(newAmount) || 0
+  const allocation = form.value.allocations[0]
+  if (allocation) allocation.amount = Number(newAmount) || 0
 })
 
 const allocationsSum = computed(() =>

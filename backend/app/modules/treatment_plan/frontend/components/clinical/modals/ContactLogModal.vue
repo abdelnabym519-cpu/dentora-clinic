@@ -19,7 +19,7 @@ const { t } = useI18n()
 
 const CHANNELS = ['call', 'whatsapp', 'email', 'in_person', 'other'] as const
 
-const channel = ref<string>('call')
+const channel = ref<(typeof CHANNELS)[number]>('call')
 const note = ref('')
 
 const channelLabels: Record<string, string> = {

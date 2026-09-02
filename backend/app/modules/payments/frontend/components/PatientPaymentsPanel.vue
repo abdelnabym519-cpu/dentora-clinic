@@ -226,7 +226,7 @@ function openRefund(entry: PatientLedgerEntry) {
 
 function rowMenuItems(entry: PatientLedgerEntry) {
   if (entry.entry_type !== 'payment') return []
-  const items: Array<{ label: string, icon: string, to?: string, onSelect?: () => void, color?: string }> = [
+  const items: Array<{ label: string, icon: string, to?: string, onSelect?: () => void, color?: 'error' }> = [
     {
       label: t('payments.patientPanel.timeline.rowMenu.detail'),
       icon: 'i-lucide-eye',

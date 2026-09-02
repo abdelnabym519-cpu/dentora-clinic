@@ -16,7 +16,14 @@ export default withNuxt(
     name: 'dentora/module-layers/routes',
     files: ['module_layers/*/frontend/{pages,layouts}/**/*.{js,ts,jsx,tsx,vue}'],
     rules: {
-      'vue/multi-word-component-names': 'off'
+      'vue/multi-word-component-names': 'off',
+      // Module-layer pages are valid Vue 3 fragment components (a list
+      // layout followed by teleported modals). `@nuxt/eslint-config`
+      // applies the Nuxt host's single-root convention to these pages
+      // only once the layers resolve (see `nuxt/vue/single-root` in the
+      // generated .nuxt config), so keep the carve-out explicit, like
+      // the multi-word rule above.
+      'vue/no-multiple-template-root': 'off'
     }
   },
   {

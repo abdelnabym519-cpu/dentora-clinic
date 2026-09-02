@@ -44,7 +44,7 @@ function formatDate(dateStr: string): string {
 }
 
 function getTreatmentColor(treatmentType: string): string {
-  return TREATMENT_COLORS[treatmentType] || '#9CA3AF'
+  return TREATMENT_COLORS[treatmentType]?.light ?? '#9CA3AF'
 }
 
 function getStatusBadgeColor(status: string): 'success' | 'warning' | 'neutral' {

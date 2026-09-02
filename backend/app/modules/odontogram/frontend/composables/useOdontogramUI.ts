@@ -3,7 +3,7 @@
  * Handles view mode, dentition selection, and panel visibility
  */
 
-import { PERMANENT_TEETH, DECIDUOUS_TEETH } from '~/composables/useOdontogram'
+import { PERMANENT_TEETH, DECIDUOUS_TEETH } from './useOdontogram'
 
 export type DentitionMode = 'permanent' | 'deciduous'
 

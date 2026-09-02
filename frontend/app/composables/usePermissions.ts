@@ -2,7 +2,7 @@ import { PERMISSIONS } from '~/config/permissions'
 
 export function usePermissions() {
   const auth = useAuth()
-  const permissions = computed<string[]>(() => auth.permissions.value ?? [])
+  const permissions = computed(() => auth.permissions.value ?? [])
 
   function can(permission: string): boolean {
     return permissions.value.includes(permission)

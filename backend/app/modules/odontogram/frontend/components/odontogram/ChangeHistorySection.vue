@@ -101,7 +101,7 @@ function getConditionLabel(condition?: string): string {
 
 function getConditionColor(condition?: string): string {
   if (!condition) return '#E5E7EB'
-  return TREATMENT_COLORS[condition] || '#E5E7EB'
+  return TREATMENT_COLORS[condition]?.light || '#E5E7EB'
 }
 
 function getChangeTypeLabel(changeType: string): string {

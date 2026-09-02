@@ -22,6 +22,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
 | `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
 | `odontogram` | 0.3.0 | official | patients, catalog | auto | no | 4 | 7 | 0 | yes |
+| `pathology_detection` | 0.1.0 | official | patients, media | manual | yes | 2 | 0 | 0 | yes |
 | `patient_timeline` | 0.1.0 | official | patients | auto | no | 1 | 0 | 35 | yes |
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
 | `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
@@ -332,6 +333,23 @@ Dental charting, tooth state, clinical treatments.
   - `odontogram.treatment.status_changed`
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/odontogram/CLAUDE.md`](../backend/app/modules/odontogram/CLAUDE.md)
+
+### `pathology_detection` — v0.1.0
+
+AI pathology detection on panoramic X-rays — caries, deep caries, periapical lesions, impacted teeth with FDI enumeration.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=True
+- **Depends:** `patients`, `media`
+- **Frontend layer:** `frontend`
+- **Permissions:**
+  - `pathology_detection.read`
+  - `pathology_detection.write`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/pathology_detection/CLAUDE.md`](../backend/app/modules/pathology_detection/CLAUDE.md)
 
 ### `patient_timeline` — v0.1.0
 

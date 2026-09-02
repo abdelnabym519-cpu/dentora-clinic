@@ -1,0 +1,41 @@
+{
+  "pathology_detection": {
+    "tab": {
+      "label": "Pathologie IA"
+    },
+    "loading": "Chargement de la vue pathologie…",
+    "engine": {
+      "title": "Moteur de pathologie IA non configuré",
+      "reason": "Définissez PATHOLOGY_MODEL_PATH (et installez l'extra ai-pathology) sur le backend pour activer l'analyse. Voir docs/technical/pathology_detection/provenance.md."
+    },
+    "image": {
+      "label": "Radiographie / photo",
+      "placeholder": "Sélectionnez une radiographie ou photo clinique…",
+      "none": "Aucun aperçu disponible pour ce document."
+    },
+    "run": {
+      "cta": "Lancer l'analyse IA",
+      "done": "Analyse terminée",
+      "failed": "Échec de l'analyse — consultez le rapport pour plus de détails"
+    },
+    "result": {
+      "title": "Constats détectés",
+      "failed": "Échec",
+      "tooth": "Dent (FDI)",
+      "diagnosis": "Constat",
+      "confidence": "Confiance",
+      "none": "Aucune anomalie détectée sur cette image."
+    },
+    "diagnosis": {
+      "caries": "Caries",
+      "deep_caries": "Caries profonde",
+      "periapical_lesion": "Lésion périapicale",
+      "impacted_tooth": "Dent incluse"
+    },
+    "history": {
+      "title": "Historique des analyses",
+      "delete": "Supprimer l'analyse"
+    },
+    "disclaimer": "Dépistage assisté par IA uniquement — ne remplace pas le diagnostic du dentiste."
+  }
+}

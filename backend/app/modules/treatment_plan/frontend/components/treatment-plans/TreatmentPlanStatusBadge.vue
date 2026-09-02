@@ -8,15 +8,17 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const colorMap: Record<TreatmentPlanStatus, string> = {
-  draft: 'gray',
-  active: 'blue',
-  completed: 'green',
+const colorMap: Record<TreatmentPlanStatus, 'neutral' | 'warning' | 'success' | 'info' | 'error'> = {
+  draft: 'neutral',
+  pending: 'warning',
+  active: 'success',
+  completed: 'info',
   archived: 'neutral',
-  cancelled: 'red'
+  closed: 'error',
+  cancelled: 'error'
 }
 
-const color = computed(() => colorMap[props.status] || 'gray')
+const color = computed(() => colorMap[props.status] ?? 'neutral')
 const label = computed(() => t(`treatmentPlans.status.${props.status}`))
 </script>
 

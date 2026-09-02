@@ -1,0 +1,41 @@
+{
+  "pathology_detection": {
+    "tab": {
+      "label": "AI Pathology"
+    },
+    "loading": "Loading pathology view…",
+    "engine": {
+      "title": "AI pathology engine not provisioned",
+      "reason": "Set PATHOLOGY_MODEL_PATH (and install the ai-pathology extra) on the backend to enable analysis. See docs/technical/pathology_detection/provenance.md."
+    },
+    "image": {
+      "label": "Radiograph / photo",
+      "placeholder": "Select an X-ray or clinical photo…",
+      "none": "No preview available for this document."
+    },
+    "run": {
+      "cta": "Run AI analysis",
+      "done": "Analysis completed",
+      "failed": "Analysis failed — check the report for details"
+    },
+    "result": {
+      "title": "Detected findings",
+      "failed": "Failed",
+      "tooth": "Tooth (FDI)",
+      "diagnosis": "Finding",
+      "confidence": "Confidence",
+      "none": "No abnormalities detected in this image."
+    },
+    "diagnosis": {
+      "caries": "Caries",
+      "deep_caries": "Deep caries",
+      "periapical_lesion": "Periapical lesion",
+      "impacted_tooth": "Impacted tooth"
+    },
+    "history": {
+      "title": "Analysis history",
+      "delete": "Delete analysis"
+    },
+    "disclaimer": "AI-assisted screening only — it does not replace a dentist's diagnosis."
+  }
+}

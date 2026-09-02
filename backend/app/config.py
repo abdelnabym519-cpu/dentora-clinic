@@ -114,6 +114,16 @@ class Settings(BaseSettings):
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
 
+    # Pathology detection (AI imaging module). The model checkpoint is
+    # never downloaded by the app — operators provision it from data
+    # they are licensed to use (see docs/technical/pathology_detection/provenance.md).
+    PATHOLOGY_ENGINE: str = "torchvision_fasterrcnn"
+    PATHOLOGY_MODEL_PATH: str = ""
+    PATHOLOGY_DEVICE: str = "cpu"
+    PATHOLOGY_CONFIDENCE_THRESHOLD: float = 0.35
+    PATHOLOGY_NMS_IOU_THRESHOLD: float = 0.5
+    PATHOLOGY_MAX_SIDE: int = 1024
+
     @property
     def ai_gateway_base_url(self) -> str:
         """Resolve the OpenAI-compatible Dentora AI gateway base URL."""

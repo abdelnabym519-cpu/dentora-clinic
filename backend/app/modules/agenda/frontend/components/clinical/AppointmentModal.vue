@@ -346,8 +346,7 @@ watch(() => props.open, async (isOpen) => {
               names: t.names,
               default_price: t.default_price != null ? String(t.default_price) : null
             }
-          : undefined,
-        media: []
+          : undefined
       }))
     } else {
       selectedTreatments.value = []

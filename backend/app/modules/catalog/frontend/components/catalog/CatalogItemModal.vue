@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type {
   CatalogItemSessionInput,
+  PricingStrategy,
   TreatmentCatalogCategory,
   TreatmentCatalogItem,
   TreatmentCatalogItemUpdate,
-  TreatmentCatalogItemCreate
+  TreatmentCatalogItemCreate,
+  TreatmentClinicalCategory,
+  TreatmentScope
 } from '~~/app/types'
 import {
   ALL_TREATMENT_TYPES,
@@ -12,6 +15,11 @@ import {
   VISUALIZATION_RULES,
   isSurfaceTreatment
 } from '~~/app/config/odontogramConstants'
+
+// Catalog mappings accept the full treatment-key vocabulary (including
+// legacy aliases such as `filling` / `root_canal`), which is wider than
+// the odontogram `ClinicalType` union.
+type TreatmentTypeKey = (typeof ALL_TREATMENT_TYPES)[number]
 
 const props = defineProps<{
   item: TreatmentCatalogItem | null
@@ -71,8 +79,8 @@ const itemName = computed({
 })
 
 // Odontogram mapping
-const odontogramType = ref<string | undefined>(undefined)
-const clinicalCategory = ref<string | undefined>(undefined)
+const odontogramType = ref<TreatmentTypeKey | undefined>(undefined)
+const clinicalCategory = ref<TreatmentClinicalCategory | undefined>(undefined)
 
 // Sessions
 interface SessionRow {
@@ -139,8 +147,8 @@ watch(
         is_active: newItem.is_active
       }
       if (newItem.odontogram_mapping) {
-        odontogramType.value = newItem.odontogram_mapping.odontogram_treatment_type
-        clinicalCategory.value = newItem.odontogram_mapping.clinical_category
+        odontogramType.value = newItem.odontogram_mapping.odontogram_treatment_type as TreatmentTypeKey
+        clinicalCategory.value = newItem.odontogram_mapping.clinical_category as TreatmentClinicalCategory
       } else {
         odontogramType.value = undefined
         clinicalCategory.value = undefined
@@ -195,7 +203,7 @@ watch(sessionsEnabled, (enabled) => {
 })
 
 // Scope options with icons
-const scopeOptionsVisual = computed(() => [
+const scopeOptionsVisual = computed<Array<{ value: TreatmentScope, label: string, icon: string }>>(() => [
   { value: 'tooth', label: t('catalog.scopeTypes.tooth'), icon: 'i-lucide-circle-dot' },
   { value: 'multi_tooth', label: t('catalog.scopeTypes.multi_tooth'), icon: 'i-lucide-grip' },
   { value: 'global_arch', label: t('catalog.scopeTypes.global_arch'), icon: 'i-lucide-rectangle-horizontal' },
@@ -203,7 +211,7 @@ const scopeOptionsVisual = computed(() => [
 ])
 
 // Pricing strategy with icons
-const strategyOptionsVisual = computed(() => [
+const strategyOptionsVisual = computed<Array<{ value: PricingStrategy, label: string, icon: string }>>(() => [
   { value: 'flat', label: t('catalog.pricingStrategy.flat'), icon: 'i-lucide-equal' },
   { value: 'per_tooth', label: t('catalog.pricingStrategy.per_tooth'), icon: 'i-lucide-x' },
   { value: 'per_surface', label: t('catalog.pricingStrategy.per_surface'), icon: 'i-lucide-layers' },
@@ -333,9 +341,9 @@ function handleSubmit() {
   cleanData.sessions = sessionsEnabled.value ? sessionsToPayload() : []
 
   if (isCreateMode.value) {
-    emit('create', cleanData as TreatmentCatalogItemCreate)
+    emit('create', cleanData as unknown as TreatmentCatalogItemCreate)
   } else {
-    emit('save', cleanData as TreatmentCatalogItemUpdate)
+    emit('save', cleanData as unknown as TreatmentCatalogItemUpdate)
   }
 }
 
@@ -487,7 +495,7 @@ function handleClose() {
               <UFormField :label="t('catalog.materialNotes')">
                 <UTextarea
                   v-model="formData.material_notes"
-                  rows="2"
+                  :rows="2"
                   :placeholder="t('catalog.materialNotesPlaceholder')"
                 />
               </UFormField>

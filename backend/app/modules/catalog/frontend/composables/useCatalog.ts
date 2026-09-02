@@ -88,7 +88,7 @@ export function useCatalog() {
     try {
       const response = await api.post<ApiResponse<TreatmentCatalogCategory>>(
         '/api/v1/catalog/categories',
-        data as Record<string, unknown>
+        data
       )
 
       toast.add({
@@ -127,7 +127,7 @@ export function useCatalog() {
     try {
       const response = await api.put<ApiResponse<TreatmentCatalogCategory>>(
         `/api/v1/catalog/categories/${categoryId}`,
-        data as Record<string, unknown>
+        data
       )
 
       toast.add({
@@ -255,7 +255,7 @@ export function useCatalog() {
     try {
       const response = await api.post<ApiResponse<TreatmentCatalogItem>>(
         '/api/v1/catalog/items',
-        data as Record<string, unknown>
+        data
       )
 
       toast.add({
@@ -300,7 +300,7 @@ export function useCatalog() {
     try {
       const response = await api.put<ApiResponse<TreatmentCatalogItem>>(
         `/api/v1/catalog/items/${itemId}`,
-        data as Record<string, unknown>
+        data
       )
 
       toast.add({

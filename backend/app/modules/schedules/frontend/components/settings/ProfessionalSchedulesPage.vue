@@ -17,7 +17,7 @@ const {
   deleteOverride
 } = useProfessionalHours()
 
-const selectedProfessional = ref<string | null>(null)
+const selectedProfessional = ref<string | undefined>(undefined)
 
 const isAdmin = computed(() => can(PERMISSIONS.schedules.professionalRead) || can(PERMISSIONS.schedules.professionalWrite))
 const canWrite = computed(() => {
@@ -39,7 +39,7 @@ const professionalOptions = computed(() =>
 
 const showOverrideModal = ref(false)
 const editingOverride = ref<ProfessionalOverride | null>(null)
-const overrideForm = ref<ProfessionalOverridePayload>({
+const overrideForm = ref<Omit<ProfessionalOverridePayload, 'reason'> & { reason: string }>({
   start_date: new Date().toISOString().slice(0, 10),
   end_date: new Date().toISOString().slice(0, 10),
   kind: 'unavailable',

@@ -34,6 +34,7 @@ const {
   total,
   loading,
   fetchPlans,
+  fetchPatientPlans,
   fetchPlan,
   updatePlanStatus,
   generateBudget

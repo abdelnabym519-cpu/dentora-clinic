@@ -284,7 +284,10 @@ export function useTreatmentCatalog() {
     if (useCatalog.value) {
       const treatments = treatmentsByCategory.value[categoryKey]
       if (treatments && treatments.length > 0) {
-        return treatments[0].category_names[loc] || treatments[0].category_names.es || treatments[0].category_names.en || categoryKey
+        const names = treatments[0]?.category_names
+        if (names) {
+          return names[loc] || names.es || names.en || categoryKey
+        }
       }
     }
 

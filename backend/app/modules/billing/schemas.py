@@ -288,6 +288,28 @@ class InvoicePaymentApply(BaseModel):
         return v
 
 
+class InvoicePaymentBrief(BaseModel):
+    """Scalar view of the underlying Payment for invoice payment rows.
+
+    Only column attributes (no relationship access) so it can be
+    serialized from a ``joinedload(InvoicePayment.payment)`` row inside
+    an async session without triggering lazy loads.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    amount: Decimal
+    currency: str
+    method: str
+    payment_date: date
+    reference: str | None = None
+    notes: str | None = None
+    recorded_by: UUID
+    created_at: datetime
+    updated_at: datetime
+
+
 class InvoicePaymentResponse(BaseModel):
     """Link row between an invoice and a payment."""
 
@@ -297,6 +319,9 @@ class InvoicePaymentResponse(BaseModel):
     amount: Decimal
     created_by: UUID
     created_at: datetime
+    # Underlying payment (joinedload in service) — the UI displays
+    # method / payment_date from here.
+    payment: InvoicePaymentBrief | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

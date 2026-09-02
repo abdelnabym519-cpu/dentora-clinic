@@ -26,7 +26,8 @@ function appointmentTime(a: Appointment): string | null {
 }
 
 function appointmentTreatment(a: Appointment): string | null {
-  if (a.treatments?.length) return a.treatments[0]?.name ?? null
+  const first = a.treatments?.[0]
+  if (first) return first.names?.[locale.value] ?? first.names?.es ?? null
   return a.treatment_type ?? null
 }
 

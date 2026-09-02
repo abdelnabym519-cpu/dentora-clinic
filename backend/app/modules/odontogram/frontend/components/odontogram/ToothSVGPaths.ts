@@ -230,6 +230,12 @@ const TOOTH_DISPLAY_CONFIG: Record<number, ToothDisplayConfig> = {
   8: { scale: 1.20, offsetY: 0, displayHeight: 100 }
 }
 
+function resolveConfig<T>(config: Record<number, T>, position: number, label: string): T {
+  const entry = config[position] ?? config[1]
+  if (entry !== undefined) return entry
+  throw new Error(`Missing ${label} configuration for tooth position ${position}`)
+}
+
 export function getToothDisplayConfig(toothNumber: number): ToothDisplayConfig {
   const isDeciduous = isDeciduousTooth(toothNumber)
   let position = getToothPosition(toothNumber)
@@ -238,7 +244,7 @@ export function getToothDisplayConfig(toothNumber: number): ToothDisplayConfig {
     position = DECIDUOUS_TO_PERMANENT_MAP[position] || 1
   }
 
-  return TOOTH_DISPLAY_CONFIG[position] || TOOTH_DISPLAY_CONFIG[1]
+  return resolveConfig(TOOTH_DISPLAY_CONFIG, position, 'tooth display')
 }
 
 // Paths indexed by position (1-8) - using actual SVG paths from reference
@@ -492,7 +498,7 @@ export function getLateralPath(toothNumber: number): LateralPaths {
     position = DECIDUOUS_TO_PERMANENT_MAP[position] || 1
   }
 
-  return LATERAL_PATHS_BY_POSITION[position] || LATERAL_PATHS_BY_POSITION[1]
+  return resolveConfig(LATERAL_PATHS_BY_POSITION, position, 'lateral paths')
 }
 
 export function getOcclusalPath(toothNumber: number): OcclusalPaths {
@@ -504,7 +510,7 @@ export function getOcclusalPath(toothNumber: number): OcclusalPaths {
     position = DECIDUOUS_TO_PERMANENT_MAP[position] || 1
   }
 
-  return OCCLUSAL_PATHS_BY_POSITION[position] || OCCLUSAL_PATHS_BY_POSITION[1]
+  return resolveConfig(OCCLUSAL_PATHS_BY_POSITION, position, 'occlusal paths')
 }
 
 // ============================================================================

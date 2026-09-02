@@ -230,16 +230,7 @@ const { format: formatCurrency } = useCurrency()
                   <span class="text-sm text-muted">
                     {{ formatDate(budget.created_at) }}
                   </span>
-                  <span
-                    v-if="budget.treatment_plan_id"
-                    class="text-caption text-subtle flex items-center gap-1"
-                  >
-                    <UIcon
-                      name="i-lucide-link"
-                      class="w-3 h-3"
-                    />
-                    {{ t('budget.linkedToPlan') }}
-                  </span>
+
                 </div>
               </div>
               <div class="flex items-center gap-4">

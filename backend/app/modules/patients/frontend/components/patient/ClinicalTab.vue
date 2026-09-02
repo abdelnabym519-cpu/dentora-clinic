@@ -9,9 +9,12 @@
  * - appointments: View and manage patient appointments
  */
 
-import type { ClinicalMode } from '../clinical/ClinicalModeToggle.vue'
 import type { TreatmentPlan } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+// ClinicalModeToggle lives in the odontogram layer; importing it here
+// makes the component + its `ClinicalMode` type resolve for this host
+// page (module-layers are resolved via `module_layers` symlink).
+import ClinicalModeToggle, { type ClinicalMode } from '../../../../odontogram/frontend/components/clinical/ClinicalModeToggle.vue'
 
 const props = defineProps<{
   patientId: string

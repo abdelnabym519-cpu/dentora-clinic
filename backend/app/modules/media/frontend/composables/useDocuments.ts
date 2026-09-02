@@ -91,9 +91,9 @@ export function useDocuments() {
           // Note: browser handles Content-Type for FormData automatically
           onRequest({ options }) {
             // Remove content-type to let browser set it with boundary
-            if (options.headers) {
-              delete (options.headers as Record<string, string>)['Content-Type']
-            }
+            const headers = new Headers(options.headers)
+            headers.delete('Content-Type')
+            options.headers = headers
           },
           onRequestError() {
             uploadProgress.value = null

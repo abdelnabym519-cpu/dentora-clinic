@@ -36,14 +36,12 @@ const treatmentsByType = computed(() => {
   > = {}
 
   for (const treatment of perToothTreatments.value) {
-    if (!grouped[treatment.treatment_type]) {
-      grouped[treatment.treatment_type] = { count: 0, teeth: [], treatments: [] }
+    const bucket = grouped[treatment.treatment_type] ??= { count: 0, teeth: [], treatments: [] }
+    bucket.count++
+    if (!bucket.teeth.includes(treatment.tooth_number)) {
+      bucket.teeth.push(treatment.tooth_number)
     }
-    grouped[treatment.treatment_type].count++
-    if (!grouped[treatment.treatment_type].teeth.includes(treatment.tooth_number)) {
-      grouped[treatment.treatment_type].teeth.push(treatment.tooth_number)
-    }
-    grouped[treatment.treatment_type].treatments.push(treatment)
+    bucket.treatments.push(treatment)
   }
 
   return Object.entries(grouped)
@@ -128,7 +126,7 @@ function getTreatmentLabel(type: string): string {
       >
         <span
           class="status-dot"
-          :style="{ backgroundColor: STATUS_STYLES[status].border }"
+          :style="{ backgroundColor: STATUS_STYLES[status as keyof typeof STATUS_STYLES]?.border ?? 'transparent' }"
         />
         <span class="status-count">{{ count }}</span>
         <span class="status-label">{{ t(`odontogram.status.${status}`) }}</span>

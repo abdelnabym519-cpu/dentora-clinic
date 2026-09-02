@@ -89,7 +89,7 @@ const isEmpty = computed(() =>
         <ul class="pl-5 text-muted">
           <li
             v-for="a in topAllergies"
-            :key="a.id"
+            :key="a.name"
             class="truncate"
           >
             · {{ a.name }}

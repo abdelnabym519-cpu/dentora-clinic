@@ -66,6 +66,8 @@ class TreatmentBrief(BaseModel):
     catalog_item_id: UUID | None = None
     catalog_item: CatalogItemBrief | None = None
     price_snapshot: Decimal | None = None
+    # Free-text clinical notes (migrated free-text treatments use them as label)
+    notes: str | None = None
     teeth: list[TreatmentToothBrief] = Field(default_factory=list)
 
 
@@ -191,6 +193,11 @@ class TreatmentPlanDetailResponse(TreatmentPlanResponse):
 
     diagnosis_notes: str | None = None
     internal_notes: str | None = None
+    # Workflow metadata (populated for pending / closed plans).
+    confirmed_at: datetime | None = None
+    closed_at: datetime | None = None
+    closure_reason: str | None = None
+    closure_note: str | None = None
     items: list["PlannedTreatmentItemResponse"] = []
 
 

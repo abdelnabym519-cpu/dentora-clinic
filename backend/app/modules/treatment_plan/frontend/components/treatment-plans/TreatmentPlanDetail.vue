@@ -88,8 +88,8 @@ function getItemPrice(item: PlannedTreatmentItem): number | null {
   return typeof def === 'number' ? def : null
 }
 
-function getBudgetStatusColor(status: string): string {
-  const colors: Record<string, string> = {
+function getBudgetStatusColor(status: string): 'neutral' | 'info' | 'success' | 'error' {
+  const colors: Record<string, 'success' | 'info' | 'neutral' | 'error'> = {
     accepted: 'success',
     sent: 'info',
     draft: 'neutral',

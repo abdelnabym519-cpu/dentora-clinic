@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DeepReadonly } from 'vue'
 import type { Appointment } from '~~/app/types'
 
 defineProps<{ ctx?: unknown }>()
@@ -72,7 +73,7 @@ const nowLabel = computed(() =>
   now.value.toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
 )
 
-interface Lane { id: string, label: string, color: string, appts: Appointment[] }
+interface Lane { id: string, label: string, color: string, appts: DeepReadonly<Appointment>[] }
 
 const professionalLanes = computed<Lane[]>(() => {
   const map = new Map<string, Lane>()
@@ -96,7 +97,7 @@ function formatApptTime(iso: string): string {
   return new Date(iso).toLocaleTimeString(locale.value, { hour: '2-digit', minute: '2-digit' })
 }
 
-function statusIcon(a: Appointment): string | null {
+function statusIcon(a: DeepReadonly<Appointment>): string | null {
   switch (a.status) {
     case 'completed': return 'i-lucide-check'
     case 'in_treatment': return 'i-lucide-circle-dot'
@@ -108,7 +109,7 @@ function statusIcon(a: Appointment): string | null {
   }
 }
 
-function apptTitle(a: Appointment): string {
+function apptTitle(a: DeepReadonly<Appointment>): string {
   const name = [a.patient?.first_name, a.patient?.last_name].filter(Boolean).join(' ') || '—'
   return `${formatApptTime(a.start_time)} · ${name}`
 }
@@ -121,7 +122,7 @@ function isoDay(iso: string): string {
   return `${y}-${m}-${day}`
 }
 
-function openAppointment(a: Appointment) {
+function openAppointment(a: DeepReadonly<Appointment>) {
   navigateTo(`/appointments?highlight=${a.id}&date=${isoDay(a.start_time)}`)
 }
 

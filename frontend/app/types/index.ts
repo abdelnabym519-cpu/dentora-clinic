@@ -167,16 +167,16 @@ export interface Patient {
 export interface PatientCreate {
   first_name: string
   last_name: string
-  phone?: string
-  email?: string
-  date_of_birth?: string
-  notes?: string
+  phone?: string | null
+  email?: string | null
+  date_of_birth?: string | null
+  notes?: string | null
   do_not_contact?: boolean
   // Billing fields
-  billing_name?: string
-  billing_tax_id?: string
-  billing_address?: PatientBillingAddress
-  billing_email?: string
+  billing_name?: string | null
+  billing_tax_id?: string | null
+  billing_address?: PatientBillingAddress | null
+  billing_email?: string | null
 }
 
 export interface PatientUpdate extends Partial<PatientCreate> {
@@ -1389,6 +1389,17 @@ export interface InvoicePayment {
   amount: number
   created_by: string
   created_at: string
+  // Underlying payment details (populated by GET /invoices/{id}/payments).
+  payment?: {
+    id: string
+    method: string
+    payment_date: string
+    amount: number
+    currency: string
+    recorded_by: string
+    created_at: string
+    updated_at: string
+  } | null
 }
 
 export interface InvoicePaymentApply {
@@ -1912,14 +1923,14 @@ export interface PatientExtended extends Patient {
 
 export interface PatientExtendedUpdate extends PatientUpdate {
   // Extended demographics
-  gender?: string
-  national_id?: string
-  national_id_type?: string
-  profession?: string
-  workplace?: string
-  preferred_language?: string
-  address?: PatientAddress
-  photo_url?: string
+  gender?: string | null
+  national_id?: string | null
+  national_id_type?: string | null
+  profession?: string | null
+  workplace?: string | null
+  preferred_language?: string | null
+  address?: PatientAddress | null
+  photo_url?: string | null
 
   // Emergency contact
   emergency_contact?: EmergencyContact
@@ -2050,20 +2061,21 @@ export interface AttachmentCreate {
 // Treatment Plan Types
 // ============================================================================
 
-export type TreatmentPlanStatus = 'draft' | 'active' | 'completed' | 'archived' | 'cancelled'
+export type TreatmentPlanStatus = 'draft' | 'pending' | 'active' | 'completed' | 'archived' | 'closed' | 'cancelled'
 
 export type PlannedItemStatus = 'pending' | 'completed' | 'cancelled'
 
 /** Nested Treatment brief embedded in plan items (subset of Treatment). */
 export interface TreatmentBrief {
   id: string
-  clinical_type: ClinicalType
+  clinical_type: ClinicalType | string
   scope: 'tooth' | 'multi_tooth' | 'global_mouth' | 'global_arch'
   arch?: 'upper' | 'lower' | null
   status: TreatmentStatus
   catalog_item_id?: string | null
   catalog_item?: TreatmentCatalogItemBrief | null
   price_snapshot?: string | null
+  notes?: string | null
   teeth: Array<{
     tooth_number: number
     role?: 'pillar' | 'pontic' | null
@@ -2318,6 +2330,10 @@ export interface TreatmentPlan {
 export interface TreatmentPlanDetail extends TreatmentPlan {
   diagnosis_notes?: string
   internal_notes?: string
+  confirmed_at?: string | null
+  closed_at?: string | null
+  closure_reason?: string | null
+  closure_note?: string | null
   items: PlannedTreatmentItem[]
   patient?: PatientBrief
   budget?: BudgetBrief

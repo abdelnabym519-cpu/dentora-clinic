@@ -48,6 +48,20 @@ dependencies = [
     # (app/core/llm/). The Provider protocol is vendor-agnostic, so
     # Anthropic/Ollama slot in later without touching callers.
     "openai>=1.40",
+    # dental_3d Phase 5.1: header-only DICOM validation/normalization.
+    # Keep pixel decoding out of the ingestion foundation; pydicom stays
+    # behind the module's infrastructure adapter (ADR 0023).
+    "pydicom>=3.0.2,<4.0",
+    # dental_3d patient-specific rigid registration. Open3D remains behind
+    # RegistrationPort; NumPy is declared because the adapter imports it.
+    "numpy>=1.26,<3.0",
+    "open3d-cpu>=0.19,<0.20; platform_system == 'Linux'",
+    "open3d>=0.19,<0.20; platform_system != 'Linux'",
+    # dental_3d deterministic implant-planning geometry. SciPy supplies
+    # bounded analytic minimization; trimesh builds parametric cylinders.
+    # No implant-placement AI model or research-only weights are loaded.
+    "scipy>=1.12,<2.0",
+    "trimesh>=4.4,<5.0",
 ]
 
 [project.optional-dependencies]
@@ -90,6 +104,8 @@ recalls = "app.modules.recalls:RecallsModule"
 verifactu = "app.modules.verifactu:VerifactuModule"
 migration_import = "app.modules.migration_import:MigrationImportModule"
 copilot = "app.modules.copilot:CopilotModule"
+dental_3d = "app.modules.dental_3d:Dental3DModule"
+orthodontic_simulator = "app.modules.orthodontic_simulator:OrthodonticSimulatorModule"
 
 [tool.setuptools.packages.find]
 where = ["."]

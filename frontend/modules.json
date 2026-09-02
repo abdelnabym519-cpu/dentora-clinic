@@ -18,7 +18,9 @@
     "module_layers/notifications/frontend",
     "module_layers/patient_timeline/frontend",
     "module_layers/reports/frontend",
-    "module_layers/pathology_detection/frontend"
+    "module_layers/pathology_detection/frontend",
+    "module_layers/dental_3d/frontend",
+    "module_layers/orthodontic_simulator/frontend"
   ],
   "modules": [
     {
@@ -96,6 +98,14 @@
     {
       "name": "pathology_detection",
       "path": "module_layers/pathology_detection/frontend"
+    },
+    {
+      "name": "dental_3d",
+      "path": "module_layers/dental_3d/frontend"
+    },
+    {
+      "name": "orthodontic_simulator",
+      "path": "module_layers/orthodontic_simulator/frontend"
     }
   ],
   "version": 1

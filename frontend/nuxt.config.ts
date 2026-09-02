@@ -34,7 +34,8 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui',
-    '@nuxtjs/i18n'
+    '@nuxtjs/i18n',
+    '@tresjs/nuxt'
   ],
 
   components: [
@@ -92,6 +93,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-15',
 
   vite: {
+    // ES module workers are required by the Cornerstone3D DICOM image
+    // loader used by the dental_3d module's CBCT/MPR viewer.
+    worker: {
+      format: 'es'
+    },
     optimizeDeps: {
       // Pre-bundle deps that Vite otherwise discovers at runtime. Runtime
       // discovery triggers a full page reload, which in CI races Playwright's
@@ -101,7 +107,17 @@ export default defineNuxtConfig({
         'nprogress',
         '@vueuse/core',
         '@vue/devtools-core',
-        '@vue/devtools-kit'
+        '@vue/devtools-kit',
+        'three',
+        'three/addons/controls/OrbitControls.js',
+        'three/addons/loaders/OBJLoader.js',
+        'three/addons/loaders/PLYLoader.js',
+        'three/addons/loaders/STLLoader.js',
+        '@tresjs/core',
+        'three-mesh-bvh',
+        '@cornerstonejs/core',
+        '@cornerstonejs/tools',
+        '@cornerstonejs/dicom-image-loader'
       ]
     }
   },

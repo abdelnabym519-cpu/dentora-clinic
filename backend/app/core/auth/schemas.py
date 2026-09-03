@@ -137,6 +137,21 @@ class MeResponse(BaseModel):
     permissions: list[str]
 
 
+class ClinicSwitchRequest(BaseModel):
+    """Body for selecting the active clinic."""
+
+    clinic_id: UUID
+
+
+class ClinicSwitchResponse(BaseModel):
+    """Result of a clinic switch: refreshed profile + new access token."""
+
+    user: UserResponse
+    clinics: list[ClinicResponse]
+    permissions: list[str]
+    access_token: str
+
+
 class AuthResponse(BaseModel):
     """Schema for auth response with user info (login/refresh)."""
 

@@ -162,3 +162,67 @@ Estas reglas entran en `CLAUDE.md` tras Fase 1 ejecutada.
 - **Resolver**: componente que dado un request (o un slug) devuelve el `TenantContext` correspondiente.
 - **`modules_enabled`**: subset de módulos visibles para un tenant. Self-hosted = todo el registry. SaaS = lo que dicte el plan.
 - **Costura** (seam): punto de extensión vía interfaz que permite sustituir implementación sin tocar consumidores.
+
+---
+
+## 8. Implementación Multi-Tenant / Multi-Clinic (fase ejecutada)
+
+La base anterior (Fase 1) solo definía las interfaces; esta fase convierte
+el `MultiTenantResolver` en la implementación por defecto y completa el
+soporte multi-clínica sobre **PostgreSQL compartido con aislamiento
+fuerte por filas**. No se requiere database-per-tenant hoy; el diseño
+deja la puerta abierta a DB dedicada por tenant sin tocar core.
+
+### 8.1 Piezas añadidas (`backend/app/core/tenancy/`)
+
+| Archivo | Responsabilidad (capa) |
+|---------|------------------------|
+| `models.py` | Entidad `Tenant` (slug, `db_url` opcional, `settings`, `is_active`). |
+| `ports.py` | Protocolos `TenantGateway` y DTOs inmutables (`TenantRecord`, `ClinicMembershipRecord`). |
+| `provisioning.py` | Casos de uso `ProvisionTenant`, `ProvisionClinic`, `AssignMembership` + comandos. Sin框架. |
+| `selection.py` | Lógica pura `resolve_tenant_slug` y `select_clinic` (selección por header/JWT, permisos por clínica). |
+| `adapters.py` | Adaptador SQLAlchemy que implementa los puertos. |
+| `resolver_impl.py` | `MultiTenantResolver` real: host/header/JWT → tenant activo, publica `tenant.resolved`. |
+| `engines.py` | Registro de engines por URL — habilita DB dedicada por tenant en el futuro. |
+| `bootstrap.py` | Garantiza el tenant `default` y asigna clínicas huérfanas (idempotente, migración con upgrade cero-downtime). |
+| `guards.py` | Defensa en profundidad a nivel repositorio/servicio (`assert_same_clinic`, `assert_clinic_in_tenant`). |
+| `platform_router.py` | API `/api/v1/platform/*` para Super Admin (provisionar tenants/clínicas/usuarios). |
+
+### 8.2 Modelo de datos
+
+- `tenants`: una fila por cuenta/despliegue. En self-hosted existe la
+  fila `default` (UUID estable `00000000-0000-0000-0000-000000000001`).
+- `clinics.tenant_id` (FK, NOT NULL tras backfill): ancla de aislamiento.
+- `clinics.is_active`: suspensión blanda de una clínica.
+- `users.is_platform_admin`: Super Admin de plataforma (ortogonal al rol
+  por clínica; no tiene acceso implícito a datos clínicos sin impersonar).
+
+Migración: `alembic/versions/0007_multi_tenant.py`, totalmente reversible.
+
+### 8.3 Resolución y selección
+
+1. **Tenant** — `MultiTenantResolver` inspecciona `X-Tenant-Id`, host
+   (`acme.dentora.app`) y claim JWT; en self-hosted cae al default.
+2. **Clínica** — `get_clinic_context` calcula los permisos desde el rol
+   que el usuario tiene en la clínica **seleccionada**, no desde el
+   primer membership. La selección llega por `X-Clinic-Id`, query param o
+   claim JWT. Las concesiones se recalculan al cambiar de clínica.
+3. **Cambio de clínica** — `POST /api/v1/auth/select-clinic` valida el
+   membership y emite un token ligado a esa clínica. El frontend guarda
+   la selección en cookie y la envía en cada request.
+
+### 8.4 Aislamiento y defensa en profundidad
+
+- Todas las tablas de dominio siguen filtrando por `clinic_id`.
+- `ClinicContext.assert_clinic(id)` valida accesos cruzados en servicios.
+- `guards.assert_clinic_in_tenant` verifica pertenencia tenant↔clínica.
+- Tests dedicados: `tests/core/test_cross_clinic_isolation.py`,
+  `test_tenant_selection.py`, `test_provisioning.py`,
+  `test_multi_tenant_resolver.py`.
+
+### 8.5 Compatibilidad self-hosted
+
+Una instalación con una sola `DATABASE_URL` y una clínica funciona
+exactamente igual: hay un tenant `default`, la clínica le pertenece, el
+resolver cae en el default y el switcher de clínica se oculta cuando hay
+una sola opción.

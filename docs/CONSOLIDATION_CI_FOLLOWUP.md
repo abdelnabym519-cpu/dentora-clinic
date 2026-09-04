@@ -124,7 +124,11 @@ These remain unverified and must not be treated as production-validated:
   in CI.
 - **WhatsApp production delivery** — requires live provider credentials.
 - **Voice microphone / audio hardware** — unit tests only; no hardware.
-- **Ollama end-to-end against a live server** — the donor's E2E harness was
-  hard-bound to the replaced native `/api/chat` provider and was dropped;
-  the canonical `/v1` provider retains unit coverage in
-  `tests/test_ollama_provider.py`.
+- **Ollama against a real *model*** — `tests/test_ollama_v1_e2e.py` now
+  drives the five clinical endpoints through the real provider factory over
+  a real socket against an OpenAI-compatible `/v1` server, so the wire path
+  (SSE parsing, streaming, `reasoning_effort: "none"`, token budget, model
+  echo) **is** verified. What is still unverified is inference quality
+  against a genuine Ollama daemon with real weights — the stub returns
+  deterministic payloads. Point `OLLAMA_BASE_URL` at a live daemon to close
+  that last step.

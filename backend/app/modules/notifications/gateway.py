@@ -198,17 +198,42 @@ class NotificationGateway:
 
         Each row is locked ``FOR UPDATE SKIP LOCKED`` so concurrent dispatch
         ticks never grab the same message. Per-row exceptions are isolated.
+
+        Fairness: at most ``NOTIFICATIONS_MAX_PER_CLINIC_PER_TICK`` rows per
+        clinic are attempted per tick (oldest first), so one clinic flooding
+        the outbox cannot delay every other clinic's reminders behind a
+        global FIFO. The global ``limit`` still bounds the tick itself.
         """
+        from app.config import settings
+
+        per_clinic = settings.NOTIFICATIONS_MAX_PER_CLINIC_PER_TICK
         now = datetime.now(UTC)
+        ranked = (
+            select(
+                CommunicationMessage.id,
+                func.row_number()
+                .over(
+                    partition_by=CommunicationMessage.clinic_id,
+                    order_by=CommunicationMessage.created_at,
+                )
+                .label("rn"),
+            )
+            .where(
+                CommunicationMessage.status.in_(("queued", "failed")),
+                CommunicationMessage.attempts < CommunicationMessage.max_attempts,
+                (CommunicationMessage.next_attempt_at.is_(None))
+                | (CommunicationMessage.next_attempt_at <= now),
+            )
+            .subquery()
+        )
         rows = (
             (
                 await db.execute(
                     select(CommunicationMessage)
                     .where(
-                        CommunicationMessage.status.in_(("queued", "failed")),
-                        CommunicationMessage.attempts < CommunicationMessage.max_attempts,
-                        (CommunicationMessage.next_attempt_at.is_(None))
-                        | (CommunicationMessage.next_attempt_at <= now),
+                        CommunicationMessage.id.in_(
+                            select(ranked.c.id).where(ranked.c.rn <= per_clinic)
+                        ),
                     )
                     .order_by(CommunicationMessage.created_at)
                     .limit(limit)

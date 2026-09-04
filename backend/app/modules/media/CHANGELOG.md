@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- feat(isolation): cap upload bytes + enforce per-clinic storage quota.
+  Both upload endpoints now read through `read_capped_upload`
+  (streaming 1 MiB chunks, 413 past `STORAGE_MAX_FILE_SIZE`) instead of
+  an unbounded `await file.read()` that could exhaust worker memory /
+  shared disk for every clinic. `DocumentService.create_document` (the
+  single chokepoint for documents + photos) rejects uploads that would
+  push the clinic past `STORAGE_QUOTA_BYTES_PER_CLINIC` (default
+  10 GiB, `None` disables) with 413. Covered by
+  `tests/test_tenant_resource_isolation.py`.
+
 - fix(events): repair the `patient.archived` cascade, which had never
   run (audit event-bus #1, #95). The handler signature took
   `(self, db, data)` but the bus calls `handler(data)`, raising

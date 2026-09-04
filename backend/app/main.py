@@ -30,6 +30,7 @@ from app.core.plugins.processor import PendingProcessor
 from app.core.plugins.service import ModuleService
 from app.core.scheduler import init_scheduler, shutdown_scheduler
 from app.core.schemas import ErrorResponse
+from app.core.tenant_limits import tenant_limits_middleware
 from app.database import async_session_maker, engine, get_db
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def tenant_limits(request: Request, call_next):
+    """Per-tenant rate + concurrency guard (see app.core.tenant_limits).
+
+    Registered outermost so excess load from one clinic is shed before
+    touching auth, routers, or the shared DB pool.
+    """
+    return await tenant_limits_middleware(request, call_next)
 
 
 @app.middleware("http")

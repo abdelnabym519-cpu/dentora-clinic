@@ -21,6 +21,30 @@ _PHOTO_MIME_EXTRA = frozenset(
 )
 
 
+async def read_capped_upload(file: UploadFile, *, chunk_size: int = 1 << 20) -> bytes:
+    """Read an upload enforcing ``STORAGE_MAX_FILE_SIZE`` on actual bytes.
+
+    ``validate_file_size`` can only trust the client-supplied
+    ``Content-Length`` header (often absent on chunked multipart bodies),
+    so both upload endpoints must read through this helper: it streams in
+    1 MiB chunks and aborts with 413 before an oversized body can exhaust
+    worker memory or shared disk and degrade every other clinic.
+    """
+    cap = settings.STORAGE_MAX_FILE_SIZE
+    buf = bytearray()
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        buf += chunk
+        if len(buf) > cap:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File exceeds limit of {cap // (1024 * 1024)}MB",
+            )
+    return bytes(buf)
+
+
 def validate_file_size(file: UploadFile, content_length: int | None = None) -> None:
     """Validate file size against limit.
 

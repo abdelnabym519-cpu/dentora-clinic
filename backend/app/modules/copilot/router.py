@@ -13,7 +13,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -204,21 +204,64 @@ async def end_session(
 # --- Streaming chat -----------------------------------------------------
 
 
-def _stream(coro_factory):
+# In-flight copilot streams per clinic. Each stream holds a dedicated DB
+# session (pool connection) for its whole lifetime, so unbounded parallel
+# streams from one clinic could exhaust the shared pool for everyone.
+# Counter-based (not a Semaphore) so the configured cap is re-read per
+# request and tests can shrink it freely. Single-worker deployment makes
+# the in-memory gauge correct; see the resource-isolation doc.
+_active_streams: dict[UUID, int] = {}
+
+
+def _try_acquire_stream(clinic_id: UUID) -> bool:
+    from app.config import settings
+
+    cap = settings.COPILOT_MAX_CONCURRENT_STREAMS_PER_CLINIC
+    if _active_streams.get(clinic_id, 0) >= cap:
+        return False
+    _active_streams[clinic_id] = _active_streams.get(clinic_id, 0) + 1
+    return True
+
+
+def _release_stream(clinic_id: UUID) -> None:
+    current = _active_streams.get(clinic_id, 0)
+    if current <= 1:
+        _active_streams.pop(clinic_id, None)
+    else:
+        _active_streams[clinic_id] = current - 1
+
+
+def reset_stream_counters() -> None:
+    """Clear in-flight stream gauges. Tests only."""
+    _active_streams.clear()
+
+
+def _stream(coro_factory, *, clinic_id: UUID):
     """Wrap a bridge generator in a self-contained DB session + SSE frames."""
 
     async def gen():
-        async with async_session_maker() as db:
-            try:
-                async for ev in coro_factory(db):
-                    frame = _frame(ev)
-                    if frame is not None:
-                        yield frame
-                await db.commit()
-            except Exception as exc:  # surface as an SSE error, not a 500 mid-stream
-                await db.rollback()
-                yield _sse("error", {"detail": str(exc)})
+        try:
+            async with async_session_maker() as db:
+                try:
+                    async for ev in coro_factory(db):
+                        frame = _frame(ev)
+                        if frame is not None:
+                            yield frame
+                    await db.commit()
+                except Exception as exc:  # surface as an SSE error, not a 500 mid-stream
+                    await db.rollback()
+                    yield _sse("error", {"detail": str(exc)})
+        finally:
+            _release_stream(clinic_id)
 
+    if not _try_acquire_stream(clinic_id):
+        message = (
+            "Too many concurrent copilot streams for this clinic; finish or cancel one and retry."
+        )
+        return JSONResponse(
+            status_code=429,
+            content={"data": None, "message": message, "errors": [message]},
+        )
     return StreamingResponse(gen(), media_type="text/event-stream")
 
 
@@ -258,7 +301,7 @@ async def send_message(
         ):
             yield ev
 
-    return _stream(factory)
+    return _stream(factory, clinic_id=clinic_id)
 
 
 @router.post("/sessions/{conversation_id}/confirmations/{call_id}")
@@ -291,7 +334,7 @@ async def confirm_tool(
         ):
             yield ev
 
-    return _stream(factory)
+    return _stream(factory, clinic_id=clinic_id)
 
 
 # --- Settings -----------------------------------------------------------

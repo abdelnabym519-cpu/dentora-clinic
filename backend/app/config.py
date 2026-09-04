@@ -28,6 +28,41 @@ class Settings(BaseSettings):
     LOGIN_RATE_LIMIT: str = "5/minute"
     REGISTER_RATE_LIMIT: str = "3/hour"
 
+    # Tenant resource isolation (per-clinic guards so one clinic cannot
+    # degrade the shared process / pool / disk for the others).
+    # The middleware in app/core/tenant_limits.py enforces both knobs on
+    # authenticated API traffic; public/unauthenticated surfaces keep the
+    # existing slowapi IP limits. Generous by design: normal clinic use
+    # (a handful of users clicking) sits orders of magnitude below these
+    # ceilings — they only bite during abuse, runaway integrations, or
+    # retry storms.
+    TENANT_LIMITS_ENABLED: bool = True
+    TENANT_MAX_CONCURRENT_REQUESTS: int = 50
+    TENANT_MAX_REQUESTS_PER_MINUTE: int = 600
+
+    # Shared-engine safety net: kill any single statement past this budget
+    # so one pathological query (report over huge data, adversarial filter)
+    # cannot pin pool connections and starve every tenant. Applies to all
+    # sessions from the global engine, including background jobs.
+    DB_STATEMENT_TIMEOUT_MS: int = 30000
+
+    # Long-lived copilot SSE streams each hold a dedicated pool connection
+    # for the whole stream; cap concurrent streams per clinic so one tenant
+    # cannot exhaust the shared pool (pool_size + max_overflow = 30).
+    COPILOT_MAX_CONCURRENT_STREAMS_PER_CLINIC: int = 5
+
+    # Shared-disk safety net: cap total stored document bytes per clinic.
+    # Enforced in DocumentService.create_document (single chokepoint for
+    # both upload endpoints). Thumbnails/derivatives are small overhead
+    # and intentionally not double-counted.
+    STORAGE_QUOTA_BYTES_PER_CLINIC: int | None = 10 * 1024 * 1024 * 1024  # 10 GiB
+
+    # Outbox fairness: one noisy clinic may not monopolise the global
+    # dispatch tick and delay every other clinic's reminders. At most this
+    # many messages per clinic are attempted per tick (global
+    # _DISPATCH_BATCH still bounds the tick itself).
+    NOTIFICATIONS_MAX_PER_CLINIC_PER_TICK: int = 10
+
     # Testing
     TESTING: bool = False
 

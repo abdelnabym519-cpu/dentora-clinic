@@ -25,6 +25,15 @@ engine = create_async_engine(
     pool_recycle=3600,
     pool_pre_ping=True,
     echo=settings.ENVIRONMENT == "development",
+    # Per-statement kill-switch for the shared pool: one pathological
+    # query must not pin connections and starve every tenant. Enforced
+    # server-side by Postgres on every session this engine opens
+    # (see TENANT resource-isolation docs + DB_STATEMENT_TIMEOUT_MS).
+    connect_args={
+        "server_settings": {
+            "statement_timeout": str(settings.DB_STATEMENT_TIMEOUT_MS),
+        },
+    },
 )
 
 # ``expire_on_commit=False`` keeps ORM objects hydrated after a commit

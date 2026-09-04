@@ -93,6 +93,40 @@ class DocumentService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    async def _enforce_storage_quota(
+        db: AsyncSession, clinic_id: UUID, incoming_bytes: int
+    ) -> None:
+        """Reject the upload when the clinic's stored bytes would exceed quota.
+
+        All clinics share one disk, so an unbounded tenant can fill it and
+        break uploads (and anything else writing) for everyone. ``None``
+        quota disables the check (single-clinic installs that manage disk
+        themselves); otherwise 413 with the usage figures.
+        """
+        from app.config import settings
+
+        quota = settings.STORAGE_QUOTA_BYTES_PER_CLINIC
+        if quota is None:
+            return
+        used = (
+            await db.scalar(
+                select(func.coalesce(func.sum(Document.file_size), 0)).where(
+                    Document.clinic_id == clinic_id
+                )
+            )
+            or 0
+        )
+        if used + incoming_bytes > quota:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=(
+                    f"Clinic storage quota exceeded: "
+                    f"{used + incoming_bytes} bytes would exceed the "
+                    f"{quota} byte limit ({used} already stored)."
+                ),
+            )
+
+    @staticmethod
     async def create_document(
         db: AsyncSession,
         clinic_id: UUID,
@@ -122,6 +156,8 @@ class DocumentService:
 
         if paired_document_id is not None:
             await PhotoService._validate_pair_target(db, clinic_id, patient_id, paired_document_id)
+
+        await DocumentService._enforce_storage_quota(db, clinic_id, len(file_data))
 
         storage = get_storage_backend()
         storage_path = DocumentService.generate_storage_path(

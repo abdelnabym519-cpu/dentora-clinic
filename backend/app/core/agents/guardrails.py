@@ -56,6 +56,13 @@ default_config = GuardrailConfig()
 # Per-session rate-limit windows: session_id -> deque of timestamps.
 _windows: dict[UUID, deque[float]] = {}
 
+# Per-session lifetime action totals: session_id -> count. The 60s
+# ``_windows`` deque cannot serve as the session cap (it forgets old
+# actions); without this a session could run forever at
+# ``max_actions_per_minute`` and ``max_actions_per_session`` would be
+# dead config.
+_totals: dict[UUID, int] = {}
+
 
 def _window_for(session_id: UUID) -> deque[float]:
     window = _windows.get(session_id)
@@ -65,9 +72,17 @@ def _window_for(session_id: UUID) -> deque[float]:
     return window
 
 
+def _bump_total(session_id: UUID) -> int:
+    """Count one executed action for the session; return the new total."""
+    total = _totals.get(session_id, 0) + 1
+    _totals[session_id] = total
+    return total
+
+
 def reset_counters() -> None:
     """Clear all per-session counters. Test-only."""
     _windows.clear()
+    _totals.clear()
 
 
 def _matches_any(qualified_name: str, patterns: list[str]) -> bool:
@@ -93,21 +108,25 @@ def check(
         window.popleft()
     if len(window) >= cfg.max_actions_per_minute:
         return GuardrailDecision.BLOCK
-    if len(window) >= cfg.max_actions_per_session:
+    if _totals.get(ctx.session_id, 0) >= cfg.max_actions_per_session:
         return GuardrailDecision.BLOCK
 
     # In supervised mode, every write action is human-reviewed.
     if ctx.mode.value == "supervised" and tool.category is not ToolCategory.READ:
         window.append(now)
+        _bump_total(ctx.session_id)
         return GuardrailDecision.REQUIRE_APPROVAL
 
     if cfg.auto_require_approval_for_destructive and tool.category is ToolCategory.DESTRUCTIVE:
         window.append(now)
+        _bump_total(ctx.session_id)
         return GuardrailDecision.REQUIRE_APPROVAL
 
     if _matches_any(qualified_name, cfg.require_approval_for):
         window.append(now)
+        _bump_total(ctx.session_id)
         return GuardrailDecision.REQUIRE_APPROVAL
 
     window.append(now)
+    _bump_total(ctx.session_id)
     return GuardrailDecision.ALLOW

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- feat(isolation): per-clinic fairness in `dispatch_outbox`. The tick
+  used a global oldest-first FIFO, so one clinic flooding the outbox
+  delayed everyone else's reminders; at most
+  `NOTIFICATIONS_MAX_PER_CLINIC_PER_TICK` (default 10) rows per clinic
+  are now attempted per tick (oldest first, global batch still bounds
+  the tick). Covered by `tests/test_tenant_resource_isolation.py`.
+
 - style(lint): first ESLint pass over this module's frontend layer —
   module layers were outside the linter's base path until now, so
   CI had never checked them. Mostly auto-fixed formatting; see the

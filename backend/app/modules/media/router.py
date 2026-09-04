@@ -34,6 +34,7 @@ from .service import AttachmentService, DocumentService, PhotoService
 from .thumbnails import MEDIUM_SUFFIX, THUMB_SUFFIX, is_thumbnailable
 from .validation import (
     DOCUMENT_TYPES,
+    read_capped_upload,
     validate_document_type,
     validate_file_size,
     validate_mime_type,
@@ -92,7 +93,9 @@ async def upload_document(
     validate_file_size(file)
     mime_type = validate_mime_type(file)
 
-    file_data = await file.read()
+    # Capped streaming read: an uncapped read lets one oversized upload
+    # exhaust worker memory / shared disk for every clinic.
+    file_data = await read_capped_upload(file)
 
     document = await DocumentService.create_document(
         db=db,

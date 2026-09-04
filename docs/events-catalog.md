@@ -382,14 +382,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.DOCUMENT_DELETED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:218`
+  - `media` — `backend/app/modules/media/service.py:254`
 - **Subscribers:** —
 
 ### `document.uploaded`
 
 - **Constant:** `EventType.DOCUMENT_UPLOADED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:167`
+  - `media` — `backend/app/modules/media/service.py:203`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -397,7 +397,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_FAILED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:562`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:587`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -405,7 +405,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.EMAIL_SENT`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:560`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:585`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -462,21 +462,21 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.ATTACHMENT_LINKED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:510`
+  - `media` — `backend/app/modules/media/service.py:546`
 - **Subscribers:** —
 
 ### `media.attachment_unlinked`
 
 - **Constant:** `EventType.ATTACHMENT_UNLINKED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:546`
+  - `media` — `backend/app/modules/media/service.py:582`
 - **Subscribers:** —
 
 ### `media.pair_created`
 
 - **Constant:** `EventType.PAIR_CREATED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:382`
+  - `media` — `backend/app/modules/media/service.py:418`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -484,14 +484,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.PAIR_REMOVED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:406`
+  - `media` — `backend/app/modules/media/service.py:442`
 - **Subscribers:** —
 
 ### `media.photo_uploaded`
 
 - **Constant:** `EventType.PHOTO_UPLOADED`
 - **Publishers:**
-  - `media` — `backend/app/modules/media/service.py:181`
+  - `media` — `backend/app/modules/media/service.py:217`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -534,14 +534,14 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.NOTIFICATION_DELIVERED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:322`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:347`
 - **Subscribers:** —
 
 ### `notification.failed`
 
 - **Constant:** `EventType.NOTIFICATION_FAILED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:292`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:317`
 - **Subscribers:** —
 
 ### `notification.queued`
@@ -555,7 +555,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.NOTIFICATION_REPLY_RECEIVED`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:382`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:407`
 - **Subscribers:**
   - `patient_timeline`
 
@@ -563,7 +563,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.NOTIFICATION_SENT`
 - **Publishers:**
-  - `notifications` — `backend/app/modules/notifications/gateway.py:279`
+  - `notifications` — `backend/app/modules/notifications/gateway.py:304`
 - **Subscribers:** —
 
 ### `odontogram.condition.changed`

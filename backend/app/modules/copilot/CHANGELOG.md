@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- feat(isolation): cap concurrent SSE streams per clinic
+  (`COPILOT_MAX_CONCURRENT_STREAMS_PER_CLINIC`, default 5). Each stream
+  holds a dedicated pool connection for its whole lifetime, so an
+  unbounded burst from one clinic could starve the shared pool; excess
+  streams now get 429 and slots release in a `finally`. Covered by
+  `tests/test_tenant_resource_isolation.py`.
+
 - style(lint): first ESLint pass over this module's frontend layer —
   module layers were outside the linter's base path until now, so
   CI had never checked them. Mostly auto-fixed formatting; see the

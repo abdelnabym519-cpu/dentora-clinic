@@ -118,10 +118,23 @@ One non-fatal startup error appears in the sandbox only:
 
 These remain unverified and must not be treated as production-validated:
 
-- **Playwright E2E** — the browser CDN is unreachable from the sandbox
-  (`Failed to download Chrome for Testing ... Download failure`), and the
-  system font/dependency packages are unavailable. Run `npx playwright test`
-  in CI.
+- **Playwright E2E** — cannot execute here. Every Chromium source is
+  network-blocked from the sandbox (verified: `cdn.playwright.dev`,
+  `playwright.download.prss.microsoft.com` and `storage.googleapis.com` all
+  fail to connect, while `registry.npmjs.org` and `github.com` return 200),
+  and the system font/dependency packages are unavailable, so
+  `npx playwright install [--with-deps] chromium` and the
+  `@playwright/browser-chromium` npm package all fail.
+
+  What **was** checked, short of running a browser:
+  - `npx playwright test --list` enumerates **47 tests across 14 spec
+    files** — the config and all specs parse, so the consolidation did not
+    break the E2E project.
+  - `npx tsc --noEmit` is clean.
+  - The equivalent user journeys are covered server-side: 377 live API
+    paths smoke-tested over HTTP (see section 3) plus 1684 backend tests.
+
+  Run `npx playwright test` in CI, where the browser can be downloaded.
 - **WhatsApp production delivery** — requires live provider credentials.
 - **Voice microphone / audio hardware** — unit tests only; no hardware.
 - **Ollama against a real *model*** — `tests/test_ollama_v1_e2e.py` now

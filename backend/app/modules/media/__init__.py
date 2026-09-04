@@ -45,7 +45,7 @@ class MediaModule(BaseModule):
                 "attachments.write",
             ],
             "assistant": ["*"],
-            "receptionist": ["*"],
+            "receptionist": [],
         },
         "frontend": {
             "layer_path": "frontend",
@@ -73,7 +73,8 @@ class MediaModule(BaseModule):
         }
 
     async def _on_patient_archived(self, data: dict) -> None:
-        """Cascade soft-archive of a patient's documents when they are archived.
+        """Cascade soft-archive of a patient's documents when they are
+        archived.
 
         The event bus calls handlers as ``handler(data)`` and publishes
         before the request commits, so this opens its own session and

@@ -24,8 +24,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.models import Clinic
 from app.core.events import EventType, event_bus
 from app.modules.media import MediaModule
+from app.modules.patients.composition import build_patient_service
 from app.modules.patients.models import Patient
-from app.modules.patients.service import PatientService
 
 
 @pytest.mark.asyncio
@@ -41,7 +41,8 @@ async def test_archive_patient_payload_includes_clinic_id(
 
     event_bus.subscribe(EventType.PATIENT_ARCHIVED, _spy)
     try:
-        await PatientService.archive_patient(db_session, test_patient)
+        service = build_patient_service(db_session)
+        await service.archive_patient(test_clinic.id, test_patient.id)
     finally:
         event_bus.unsubscribe(EventType.PATIENT_ARCHIVED, _spy)
 

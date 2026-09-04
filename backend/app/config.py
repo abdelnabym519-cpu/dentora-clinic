@@ -159,6 +159,11 @@ class Settings(BaseSettings):
     COPILOT_PROVIDER_DEFAULT: str = "openai"
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
     COPILOT_MODEL_CHAT_OLLAMA: str = "qwen3:8b"
+    # Model id advertised to a self-hosted Ollama server. Kept as an
+    # explicit setting (mirroring COPILOT_MODEL_CHAT_OLLAMA) so live
+    # Ollama deployments and the Ollama E2E harness can pin the pulled
+    # model without editing per-clinic copilot settings.
+    OLLAMA_MODEL: str = "qwen3:8b"
     # Cloudflare Workers AI (external service). Reuses the
     # OpenAI-compatible client against the official OpenAI-compatible
     # endpoint https://api.cloudflare.com/<CLOUDFLARE_ACCOUNT_ID>/ai/v1,
@@ -171,6 +176,24 @@ class Settings(BaseSettings):
     CLOUDFLARE_AI_MODEL: str = "@cf/meta/llama-3.1-8b-instruct"
     COPILOT_MAX_TOKENS: int = 4096
     COPILOT_REDACTION_DEFAULT: bool = True
+
+    # Pathology detection (AI imaging module). The model checkpoint is
+    # never downloaded by the app — operators provision it from data
+    # they are licensed to use (see docs/technical/pathology_detection/provenance.md).
+    PATHOLOGY_ENGINE: str = "torchvision_fasterrcnn"
+    PATHOLOGY_MODEL_PATH: str = ""
+    PATHOLOGY_DEVICE: str = "cpu"
+    PATHOLOGY_CONFIDENCE_THRESHOLD: float = 0.35
+    PATHOLOGY_NMS_IOU_THRESHOLD: float = 0.5
+    PATHOLOGY_MAX_SIDE: int = 1024
+
+    # Orthodontic planning (decision-support module). Names the planning
+    # provider resolved from the module's registry; the shipped default
+    # is the deterministic reference planner. A future offline-trained
+    # ML/RL policy registers under another name — unknown names fail
+    # closed (HTTP 503), and every provider output passes the same
+    # deterministic safety gate before persistence.
+    ORTHO_PLANNING_PROVIDER: str = "heuristic_v1"
 
     @property
     def ai_gateway_base_url(self) -> str:

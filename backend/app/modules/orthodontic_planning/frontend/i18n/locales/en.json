@@ -1,0 +1,23 @@
+{
+  "orthodontic_planning": {
+    "card": {
+      "title": "Orthodontic planning",
+      "empty": "No orthodontic assessment recorded.",
+      "ready": "Ready to plan",
+      "needsData": "Needs case data",
+      "stages": "Stages",
+      "months": "months",
+      "score": "Score",
+      "confidence": "Confidence",
+      "findings": "clinical finding(s) to review",
+      "incomplete": "Assessment incomplete — chart the odontogram and measurements to enable planning.",
+      "open": "Open clinical tab"
+    },
+    "status": {
+      "draft": "Awaiting review",
+      "approved": "Plan approved",
+      "rejected": "Plan rejected"
+    },
+    "disclaimer": "Decision support only — proposals require clinician review; the system never prescribes autonomously."
+  }
+}

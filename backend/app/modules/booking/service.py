@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.models import Clinic, ClinicMembership, User
 from app.modules.agenda.models import Appointment
 from app.modules.agenda.service import AppointmentService
+from app.modules.patients.composition import build_patient_service
 from app.modules.patients.models import Patient
-from app.modules.patients.service import PatientService
 from app.modules.schedules.services.free_slots import FreeSlotService
 
 from .models import BookingSettings
@@ -228,8 +228,7 @@ class BookingService:
         if patient is not None:
             return patient
 
-        return await PatientService.create_patient(
-            db,
+        return await build_patient_service(db).create_patient(
             clinic_id,
             {
                 "first_name": data.first_name.strip(),

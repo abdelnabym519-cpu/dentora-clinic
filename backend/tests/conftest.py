@@ -9,6 +9,7 @@ os.environ["TESTING"] = "true"
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -17,6 +18,7 @@ from app.config import settings
 # Import all models so SQLAlchemy can configure relationships
 from app.core.auth.models import Clinic, ClinicMembership, User  # noqa: F401
 from app.core.plugins.loader import load_modules
+from app.core.retrieval.models import RetrievalEmbedding, RetrievalQueryAudit  # noqa: F401
 from app.core.tenancy.models import Tenant  # noqa: F401
 from app.database import Base, get_db
 from app.database import engine as app_engine
@@ -55,6 +57,14 @@ from app.modules.odontogram.models import (  # noqa: F401
     ToothRecord,
     Treatment,
     TreatmentTooth,
+)
+from app.modules.orthodontic_planning.models import (  # noqa: F401
+    OrthoAssessment,
+    OrthoPlanProposal,
+)
+from app.modules.pathology_detection.models import (  # noqa: F401
+    PathologyAnalysis,
+    PathologyFinding,
 )
 from app.modules.patients.models import Patient  # noqa: F401
 from app.modules.payments.models import (  # noqa: F401
@@ -126,6 +136,9 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
     )
 
     async with test_engine.begin() as conn:
+        # Retrieval models use pgvector; enable the extension so
+        # Base.metadata.create_all matches the migration-owned schema.
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
 
     async with test_session_maker() as session:

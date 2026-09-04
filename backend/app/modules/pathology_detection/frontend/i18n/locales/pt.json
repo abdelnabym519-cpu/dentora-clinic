@@ -1,0 +1,41 @@
+{
+  "pathology_detection": {
+    "tab": {
+      "label": "Patologia IA"
+    },
+    "loading": "A carregar a vista de patologia…",
+    "engine": {
+      "title": "Motor de patologia IA não configurado",
+      "reason": "Defina PATHOLOGY_MODEL_PATH (e instale o extra ai-pathology) no backend para ativar a análise. Ver docs/technical/pathology_detection/provenance.md."
+    },
+    "image": {
+      "label": "Radiografia / foto",
+      "placeholder": "Selecione uma radiografia ou foto clínica…",
+      "none": "Sem pré-visualização disponível para este documento."
+    },
+    "run": {
+      "cta": "Executar análise IA",
+      "done": "Análise concluída",
+      "failed": "A análise falhou — consulte o relatório para mais detalhes"
+    },
+    "result": {
+      "title": "Achados detetados",
+      "failed": "Falhou",
+      "tooth": "Dente (FDI)",
+      "diagnosis": "Achado",
+      "confidence": "Confiança",
+      "none": "Sem anomalias detetadas nesta imagem."
+    },
+    "diagnosis": {
+      "caries": "Cárie",
+      "deep_caries": "Cárie profunda",
+      "periapical_lesion": "Lesão periapical",
+      "impacted_tooth": "Dente incluso"
+    },
+    "history": {
+      "title": "Histórico de análises",
+      "delete": "Eliminar análise"
+    },
+    "disclaimer": "Apenas rastreio assistido por IA — não substitui o diagnóstico do médico dentista."
+  }
+}

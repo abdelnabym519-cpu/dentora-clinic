@@ -250,3 +250,11 @@ class EventType:
     COPILOT_TOOL_INVOKED = "copilot.tool.invoked"
     COPILOT_BUDGET_THRESHOLD_REACHED = "copilot.budget.threshold_reached"
     COPILOT_DIGEST_SENT = "copilot.digest.sent"
+
+    # Orthodontic planning (decision support). Payloads carry ids and
+    # status only — never clinical measurements. plan_refused fires when
+    # provider output fails the deterministic safety gate and is
+    # deliberately NOT persisted.
+    ORTHO_PROPOSAL_CREATED = "orthodontic_planning.proposal_created"
+    ORTHO_PROPOSAL_REVIEWED = "orthodontic_planning.proposal_reviewed"
+    ORTHO_PLAN_REFUSED = "orthodontic_planning.plan_refused"

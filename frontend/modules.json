@@ -19,7 +19,9 @@
     "/module_layers/notifications/frontend",
     "/module_layers/prescriptions/frontend",
     "/module_layers/reports/frontend",
-    "/module_layers/voice/frontend"
+    "/module_layers/voice/frontend",
+    "/module_layers/pathology_detection/frontend",
+    "/module_layers/orthodontic_planning/frontend"
   ],
   "modules": [
     {
@@ -101,6 +103,14 @@
     {
       "name": "voice",
       "path": "/module_layers/voice/frontend"
+    },
+    {
+      "name": "pathology_detection",
+      "path": "/module_layers/pathology_detection/frontend"
+    },
+    {
+      "name": "orthodontic_planning",
+      "path": "/module_layers/orthodontic_planning/frontend"
     }
   ],
   "version": 1

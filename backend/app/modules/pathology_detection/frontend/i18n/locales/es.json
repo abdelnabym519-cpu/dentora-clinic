@@ -1,0 +1,41 @@
+{
+  "pathology_detection": {
+    "tab": {
+      "label": "Patología IA"
+    },
+    "loading": "Cargando vista de patología…",
+    "engine": {
+      "title": "Motor de patología IA no configurado",
+      "reason": "Configure PATHOLOGY_MODEL_PATH (e instale el extra ai-pathology) en el backend para habilitar el análisis. Véase docs/technical/pathology_detection/provenance.md."
+    },
+    "image": {
+      "label": "Radiografía / foto",
+      "placeholder": "Seleccione una radiografía o foto clínica…",
+      "none": "No hay vista previa disponible para este documento."
+    },
+    "run": {
+      "cta": "Ejecutar análisis IA",
+      "done": "Análisis completado",
+      "failed": "El análisis falló — revise el informe para más detalles"
+    },
+    "result": {
+      "title": "Hallazgos detectados",
+      "failed": "Fallido",
+      "tooth": "Diente (FDI)",
+      "diagnosis": "Hallazgo",
+      "confidence": "Confianza",
+      "none": "No se detectaron anomalías en esta imagen."
+    },
+    "diagnosis": {
+      "caries": "Caries",
+      "deep_caries": "Caries profunda",
+      "periapical_lesion": "Lesión periapical",
+      "impacted_tooth": "Diente incluido"
+    },
+    "history": {
+      "title": "Historial de análisis",
+      "delete": "Eliminar análisis"
+    },
+    "disclaimer": "Solo cribado asistido por IA — no sustituye el diagnóstico del dentista."
+  }
+}

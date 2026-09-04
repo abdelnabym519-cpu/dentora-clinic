@@ -37,7 +37,7 @@ from datetime import date
 from typing import Any
 from uuid import UUID
 
-from app.modules.patients.service import PatientService
+from app.modules.patients.composition import build_patient_service
 
 from .base import MapperContext
 from .patient_alert import PatientAlertMapper
@@ -263,7 +263,7 @@ class PatientMapper:
         # Drop None to let SQLAlchemy column defaults apply.
         data = {k: v for k, v in data.items() if v is not None}
 
-        patient = await PatientService.create_patient(ctx.db, ctx.clinic_id, data)
+        patient = await build_patient_service(ctx.db).create_patient(ctx.clinic_id, data)
 
         # Gesdén stores a free-text patient-level narrative in
         # ``Pacientes.Notas`` (dental-bridge exports it as

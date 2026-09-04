@@ -1,0 +1,23 @@
+{
+  "orthodontic_planning": {
+    "card": {
+      "title": "Planificación ortodóncica",
+      "empty": "Sin evaluación ortodóncica registrada.",
+      "ready": "Listo para planificar",
+      "needsData": "Faltan datos del caso",
+      "stages": "Etapas",
+      "months": "meses",
+      "score": "Puntuación",
+      "confidence": "Confianza",
+      "findings": "hallazgo(s) clínico(s) por revisar",
+      "incomplete": "Evaluación incompleta — completa el odontograma y las medidas para planificar.",
+      "open": "Abrir ficha clínica"
+    },
+    "status": {
+      "draft": "Pendiente de revisión",
+      "approved": "Plan aprobado",
+      "rejected": "Plan rechazado"
+    },
+    "disclaimer": "Solo apoyo a la decisión — las propuestas requieren revisión del profesional; el sistema nunca prescribe de forma autónoma."
+  }
+}

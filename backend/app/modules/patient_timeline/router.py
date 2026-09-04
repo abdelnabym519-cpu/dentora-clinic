@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
 from app.core.schemas import ApiResponse
 from app.database import get_db
-from app.modules.patients.service import PatientService
+from app.modules.patients.composition import build_patient_service
 
 from .schemas import TimelineResponse
 from .service import TimelineService
@@ -31,7 +31,7 @@ async def get_patient_timeline(
     page_size: int = Query(default=20, ge=1, le=100),
 ) -> ApiResponse[TimelineResponse]:
     """Paginated timeline for a patient, optionally filtered by category."""
-    patient = await PatientService.get_patient(db, ctx.clinic_id, patient_id)
+    patient = await build_patient_service(db).get_patient(ctx.clinic_id, patient_id)
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

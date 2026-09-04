@@ -98,6 +98,12 @@ class AuditService:
         # historical audit payloads because ``audit_sanitizer`` defaults
         # to None. Voice opts in and redacts transcript-derived PHI before
         # persistence; the actual tool handler already received real values.
+        # tool_arguments / result are persisted as JSONB. Tool args often
+        # carry UUID/date values (e.g. patient_id) which are not JSON
+        # serialisable, so coerce both through the shared jsonify() helper
+        # instead of letting the audit write poison the transaction.
+        from app.core.agents.tooling import jsonify
+
         audit_arguments = arguments
         audit_result = result
         if ctx.audit_sanitizer is not None:
@@ -110,8 +116,8 @@ class AuditService:
             clinic_id=ctx.clinic_id,
             supervisor_id=ctx.supervisor_id,
             tool_name=tool_name,
-            tool_arguments=audit_arguments,
-            result=audit_result,
+            tool_arguments=jsonify(audit_arguments),
+            result=jsonify(audit_result) if audit_result is not None else None,
             error=error,
             status=status,
             execution_time_ms=execution_time_ms,

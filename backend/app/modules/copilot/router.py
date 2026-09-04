@@ -14,6 +14,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +37,14 @@ from app.core.schemas import ApiResponse, PaginatedApiResponse
 from app.database import async_session_maker, get_db
 
 from .bridge import drive_turn, resume_turn
+from .clinical import (
+    ClinicalAIError,
+    generate_case_intelligence,
+    generate_case_summary,
+    generate_clinical_report,
+    generate_second_review,
+    generate_treatment_suggestions,
+)
 from .schemas import (
     ConfirmRequest,
     ConversationResponse,
@@ -292,6 +301,108 @@ async def confirm_tool(
             yield ev
 
     return _stream(factory)
+
+
+# --- Patient-scoped clinical AI (Case Summary / Report / Second Review /
+#     Treatment suggestions / Case Intelligence) -------------------------
+#
+# All five reuse the existing AI stack: RBAC via copilot.chat, clinic +
+# patient scoping through the agent-tool registry, PII redaction, and the
+# real Provider via get_provider(). They NEVER fabricate output: an
+# unconfigured/failed/invalid provider returns a clean 503 with an
+# AI_UNAVAILABLE code rather than a fake clinical result.
+
+
+class ClinicalAIRequest(BaseModel):
+    patient_id: UUID
+
+
+def _clinical_feature(fn):
+    """Bind a clinical AI generator to an authenticated, scoped request."""
+
+    async def endpoint(
+        body: ClinicalAIRequest,
+        ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+        _: Annotated[None, Depends(require_permission("copilot.chat"))],
+        db: Annotated[AsyncSession, Depends(get_db)],
+    ):
+        permissions = get_role_permissions(ctx.role)
+        try:
+            result = await fn(
+                db,
+                clinic_id=ctx.clinic_id,
+                user_id=ctx.user_id,
+                role=ctx.role,
+                permissions=permissions,
+                patient_id=body.patient_id,
+            )
+        except ClinicalAIError as exc:
+            status_code = (
+                status.HTTP_404_NOT_FOUND
+                if exc.code == "PATIENT_NOT_FOUND"
+                else status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+            # The app's HTTPException envelope renders ``detail`` as a
+            # message; encode the machine-readable code in the headers so
+            # callers can branch on it while users see a clear message.
+            raise HTTPException(
+                status_code=status_code,
+                detail=f"[{exc.code}] {exc.detail}",
+                headers={"X-AI-Error-Code": exc.code},
+            )
+        return ApiResponse(data=result.model_dump(mode="json"))
+
+    return endpoint
+
+
+@router.post("/clinical/case-summary", response_model=ApiResponse)
+async def case_summary(
+    body: ClinicalAIRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("copilot.chat"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await _clinical_feature(generate_case_summary)(body, ctx, _, db)
+
+
+@router.post("/clinical/report", response_model=ApiResponse)
+async def clinical_report(
+    body: ClinicalAIRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("copilot.chat"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await _clinical_feature(generate_clinical_report)(body, ctx, _, db)
+
+
+@router.post("/clinical/second-review", response_model=ApiResponse)
+async def second_review(
+    body: ClinicalAIRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("copilot.chat"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await _clinical_feature(generate_second_review)(body, ctx, _, db)
+
+
+@router.post("/clinical/treatment-suggestions", response_model=ApiResponse)
+async def treatment_suggestions(
+    body: ClinicalAIRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("copilot.chat"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await _clinical_feature(generate_treatment_suggestions)(body, ctx, _, db)
+
+
+@router.post("/clinical/case-intelligence", response_model=ApiResponse)
+async def case_intelligence(
+    body: ClinicalAIRequest,
+    ctx: Annotated[ClinicContext, Depends(get_clinic_context)],
+    _: Annotated[None, Depends(require_permission("copilot.chat"))],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    return await _clinical_feature(generate_case_intelligence)(body, ctx, _, db)
 
 
 # --- Settings -----------------------------------------------------------

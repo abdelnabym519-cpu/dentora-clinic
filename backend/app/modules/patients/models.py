@@ -13,7 +13,7 @@ from datetime import date
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Date, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -67,6 +67,12 @@ class Patient(Base, TimestampMixin):
     # ``back_populates`` — callers that need ``patient.appointments``
     # must query agenda explicitly.
     clinic: Mapped[Clinic] = relationship(back_populates="patients")
+
+    # Tenant-safe composite key (migration pat_0004). Lets tenant-scoped
+    # children (e.g. core/retrieval embeddings) declare a composite FK on
+    # (patient_id, clinic_id) so a row can never reference a patient from
+    # another clinic.
+    __table_args__ = (UniqueConstraint("id", "clinic_id", name="uq_patients_id_clinic"),)
 
     @property
     def full_name(self) -> str:

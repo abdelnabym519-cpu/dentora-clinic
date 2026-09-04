@@ -57,8 +57,7 @@ def get_provider(name: str, *, api_key: str | None = None) -> Provider:
         api_token = settings.CLOUDFLARE_API_TOKEN.strip()
         if not account_id or not api_token:
             raise LLMConfigError(
-                "Cloudflare provider requires CLOUDFLARE_ACCOUNT_ID and "
-                "CLOUDFLARE_API_TOKEN"
+                "Cloudflare provider requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN"
             )
 
         return OpenAIProvider(

@@ -82,7 +82,39 @@ caused by the consolidation.
 
 ---
 
-## 3. NOT verifiable in this environment
+## 3. Runtime smoke verification (performed)
+
+The consolidated app was booted against the real database and exercised
+over HTTP, which is as close to E2E as this environment allows:
+
+- **Startup**: all 39 modules reconciled into `core_module`, schedulers
+  registered, `Application startup complete`.
+- **Route surface**: **377** OpenAPI paths served, including the newly
+  integrated ones:
+  - `/api/v1/copilot/clinical/{case-summary,report,second-review,treatment-suggestions,case-intelligence}`
+  - `/api/v1/pathology_detection/{capabilities,patients/{id}/analyses,analyses/{id}}`
+  - `/api/v1/orthodontic_planning/{capabilities,assessments,proposals,proposals/{id}/review,...}`
+  - voice (16 paths), prescriptions (8 paths)
+- **WhatsApp automation wired**: the scheduler logs
+  `Added job "Process appointment messages (every 5 minutes)"`, confirming
+  `process_appointment_message_automation` replaced the old reminder job.
+- **AuthN enforced**: unauthenticated `POST /copilot/clinical/case-summary`
+  and `GET /pathology_detection/capabilities` both return **401**.
+- **Guardrail G4 confirmed at runtime**: with `ENVIRONMENT=development`,
+  `/docs` -> 200; with `ENVIRONMENT=production`, `/docs` -> **404** and
+  `/redoc` -> **404**, while `/health` stays 200.
+
+Note: `/openapi.json` remains reachable in production. This is
+**pre-existing baseline behaviour** — `backend/app/main.py` lines 73-74 are
+byte-identical to the approved root `3a49246e` and only gate `docs_url` and
+`redoc_url`. Flagged for the reviewer; not changed here because it is out of
+scope for this consolidation.
+
+One non-fatal startup error appears in the sandbox only:
+`Frontend layer sync failed (non-fatal) ... PermissionError: '/host_frontend'`
+— that path is a container mount point that does not exist here.
+
+## 4. NOT verifiable in this environment
 
 These remain unverified and must not be treated as production-validated:
 

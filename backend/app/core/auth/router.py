@@ -1,5 +1,7 @@
 """Authentication router with rate limiting."""
 
+import math
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
@@ -26,6 +28,7 @@ from .permissions import (
     expand_permissions,
     get_role_permissions,
 )
+from .refresh_chains import consume_chain, create_chain
 from .schemas import (
     AuthResponse,
     ClinicMetadataResponse,
@@ -47,8 +50,9 @@ from .service import (
     create_refresh_token,
     decode_token,
     hash_password,
+    login_backoff_remaining,
     validate_password_strength,
-    verify_password,
+    verify_password_constant_time,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -140,10 +144,15 @@ async def setup(
     db.add(ClinicMembership(user_id=user.id, clinic_id=clinic.id, role="admin"))
     await db.commit()
 
+    chain = await create_chain(db, user.id, datetime.now(UTC))
+    await db.commit()
+
     access_token = create_access_token(
         user.id, clinic_id=clinic.id, token_version=user.token_version
     )
-    refresh_token = create_refresh_token(user.id, token_version=user.token_version)
+    refresh_token = create_refresh_token(
+        user.id, token_version=user.token_version, jti=chain.current_jti
+    )
 
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
@@ -161,8 +170,37 @@ async def login(
         select(User).options(selectinload(User.memberships)).where(User.email == form_data.username)
     )
     user = result.scalar_one_or_none()
+    now = datetime.now(UTC)
 
-    if not user or not verify_password(form_data.password, user.password_hash):
+    if user is not None:
+        # Per-account online-guessing throttle (IP limits alone cannot stop
+        # distributed stuffing). Enforced with 429 + Retry-After, never by
+        # sleeping a worker.
+        wait = login_backoff_remaining(
+            user.failed_login_attempts or 0, user.failed_login_last_at, now
+        )
+        if wait > timedelta(0):
+            retry_after = math.ceil(wait.total_seconds())
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail={
+                    "code": "login_throttled",
+                    "message": "Too many failed login attempts. Try again later.",
+                    "retry_after_seconds": retry_after,
+                },
+                headers={"Retry-After": str(retry_after)},
+            )
+
+    # Unknown emails burn the same bcrypt cost as a real check so timing
+    # alone cannot enumerate accounts; the 401 message stays identical.
+    password_ok = verify_password_constant_time(
+        form_data.password, user.password_hash if user is not None else None
+    )
+    if user is None or not password_ok:
+        if user is not None:
+            user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+            user.failed_login_last_at = now
+            await db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
@@ -180,13 +218,21 @@ async def login(
     if user.memberships:
         clinic_id = user.memberships[0].clinic_id
 
+    if user.failed_login_attempts:
+        user.failed_login_attempts = 0
+        user.failed_login_last_at = None
+    chain = await create_chain(db, user.id, now)
+    await db.commit()
+
     # Generate tokens
     access_token = create_access_token(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
     )
-    refresh_token = create_refresh_token(user.id, token_version=user.token_version)
+    refresh_token = create_refresh_token(
+        user.id, token_version=user.token_version, jti=chain.current_jti
+    )
 
     return TokenResponse(
         access_token=access_token,
@@ -239,6 +285,16 @@ async def refresh_token(
             detail="Token has been revoked",
         )
 
+    # Rotation-chain check: a superseded-outside-grace (or unknown) token
+    # id proves theft — every session of this user has just been revoked.
+    outcome, chain = await consume_chain(db, user.id, payload.get("jti"), datetime.now(UTC))
+    if outcome == "revoked" or chain is None:
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+        )
+
     # Fetch memberships with clinics for response
     memberships_result = await db.execute(
         select(ClinicMembership)
@@ -261,13 +317,17 @@ async def refresh_token(
     if memberships:
         clinic_id = memberships[0].clinic_id
 
-    # Generate new tokens
+    # Generate new tokens (the refresh token carries the chain's live id;
+    # a raced retry inside the grace window is handed the same live id).
     access_token = create_access_token(
         user.id,
         clinic_id=clinic_id,
         token_version=user.token_version,
     )
-    new_refresh_token = create_refresh_token(user.id, token_version=user.token_version)
+    new_refresh_token = create_refresh_token(
+        user.id, token_version=user.token_version, jti=chain.current_jti
+    )
+    await db.commit()
 
     return AuthResponse(
         access_token=access_token,

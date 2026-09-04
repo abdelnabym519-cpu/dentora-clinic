@@ -1,9 +1,10 @@
 """Core authentication and authorization models."""
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-from sqlalchemy import ForeignKey, String, text
+from sqlalchemy import DateTime, ForeignKey, String, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -65,15 +66,52 @@ class User(Base, TimestampMixin):
     professional_id: Mapped[str | None] = mapped_column(String(50))  # Colegiado number
     is_active: Mapped[bool] = mapped_column(default=True)
     token_version: Mapped[int] = mapped_column(default=0)  # For token revocation
+    # Online-guessing throttle state (see app.core.auth.service login policy).
+    # Reset on every successful login; failures older than one day decay.
+    failed_login_attempts: Mapped[int] = mapped_column(default=0)
+    failed_login_last_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
     # Relationships
     memberships: Mapped[list["ClinicMembership"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    refresh_chains: Mapped[list["RefreshTokenChain"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+
+class RefreshTokenChain(Base, TimestampMixin):
+    """Server-side record of one refresh-token rotation chain.
+
+    Refresh tokens rotate on every ``/auth/refresh`` call. The row tracks
+    the currently valid token id (``current_jti``) plus the immediately
+    superseded one (``previous_jti`` + ``rotated_at``) so a client that
+    races or retries with the just-rotated token still succeeds inside a
+    short grace window, while reuse of any older token proves theft and
+    wipes every chain of the user (all sessions revoked).
+    """
+
+    __tablename__ = "refresh_token_chains"
+
+    id: Mapped[UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    current_jti: Mapped[str] = mapped_column(String(64), nullable=False)
+    previous_jti: Mapped[str | None] = mapped_column(String(64), default=None)
+    rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    user: Mapped["User"] = relationship(back_populates="refresh_chains")
 
 
 def _derive_is_professional(context) -> bool:  # noqa: ANN001 — SQLAlchemy ExecutionContext

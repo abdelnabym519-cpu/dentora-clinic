@@ -34,6 +34,7 @@ from .service import AttachmentService, DocumentService, PhotoService
 from .thumbnails import MEDIUM_SUFFIX, THUMB_SUFFIX, is_thumbnailable
 from .validation import (
     DOCUMENT_TYPES,
+    content_disposition_filename,
     read_capped_upload,
     validate_document_type,
     validate_file_size,
@@ -313,7 +314,7 @@ async def download_document(
 
     headers = {"Content-Length": str(len(content))}
     if variant == "full":
-        headers["Content-Disposition"] = f'attachment; filename="{document.original_filename}"'
+        headers["Content-Disposition"] = content_disposition_filename(document.original_filename)
     return Response(content=content, media_type=media_type, headers=headers)
 
 

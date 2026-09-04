@@ -30,6 +30,7 @@ from app.core.plugins.processor import PendingProcessor
 from app.core.plugins.service import ModuleService
 from app.core.scheduler import init_scheduler, shutdown_scheduler
 from app.core.schemas import ErrorResponse
+from app.core.security_headers import security_headers_middleware
 from app.core.tenant_limits import tenant_limits_middleware
 from app.database import async_session_maker, engine, get_db
 
@@ -107,6 +108,12 @@ async def tenant_limits(request: Request, call_next):
     touching auth, routers, or the shared DB pool.
     """
     return await tenant_limits_middleware(request, call_next)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Baseline hardening headers on every response (see app.core.security_headers)."""
+    return await security_headers_middleware(request, call_next)
 
 
 @app.middleware("http")

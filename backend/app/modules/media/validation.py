@@ -104,15 +104,48 @@ def validate_document_type(document_type: str) -> None:
         )
 
 
+_MAX_EXTENSION_LENGTH = 10
+
+
 def get_file_extension(filename: str) -> str:
-    """Extract file extension from filename.
+    """Extract a sanitized file extension from a filename.
+
+    The result feeds server-generated storage paths, so it must never
+    carry path separators (``../../x`` / ``sub/dir`` smuggled through a
+    crafted ``original_filename`` would otherwise escape the intended
+    prefix or create attacker-chosen subdirectories) nor unbounded
+    attacker-controlled length. Only ``[a-z0-9]`` up to
+    ``_MAX_EXTENSION_LENGTH`` chars survive; anything else yields ``""``
+    and the caller stores the object extensionless.
 
     Args:
         filename: Original filename
 
     Returns:
-        Extension without dot (e.g., "pdf")
+        Sanitized extension without dot (e.g., "pdf")
     """
-    if "." in filename:
-        return filename.rsplit(".", 1)[1].lower()
-    return ""
+    if "." not in filename:
+        return ""
+    raw = filename.rsplit(".", 1)[1].lower()
+    cleaned = "".join(ch for ch in raw if ch.isascii() and ch.isalnum())
+    return cleaned[:_MAX_EXTENSION_LENGTH]
+
+
+def content_disposition_filename(original_filename: str) -> str:
+    """Build a safe ``Content-Disposition`` header value for a download.
+
+    ``original_filename`` is user-controlled. Interpolating it raw inside
+    ``filename="..."`` lets quotes break out of the parameter and CR/LF
+    bytes (rejected by h11 with a 500, or worse, smuggled through proxies)
+    corrupt the response. This helper strips CR/LF, quotes and backslashes
+    for the legacy ``filename`` parameter and appends an RFC 5987
+    ``filename*`` parameter so non-ASCII names (common in Spanish
+    filenames) still download with their real name.
+    """
+    from urllib.parse import quote
+
+    safe = (original_filename or "download").replace("\r", "").replace("\n", "")
+    safe = safe.replace("\\", "").replace('"', "")
+    safe = safe.strip() or "download"
+    ascii_fallback = "".join(ch for ch in safe if ch.isascii()) or "download"
+    return f"attachment; filename=\"{ascii_fallback}\"; filename*=UTF-8''{quote(safe)}"

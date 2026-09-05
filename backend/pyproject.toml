@@ -129,6 +129,12 @@ orthodontic_planning = "app.modules.orthodontic_planning:OrthodonticPlanningModu
 
 [tool.setuptools.packages.find]
 where = ["."]
+# Defensive exclusion. CI creates backend/app/modules/node_modules as a
+# symlink to frontend/node_modules so the host Nuxt module layers resolve
+# packages. That symlink is no longer tracked, but if it exists on disk
+# setuptools' namespace finder (os.walk(..., followlinks=True)) would
+# otherwise enumerate every JS package as a Python namespace package.
+exclude = ["app.modules.node_modules*"]
 
 [tool.ruff]
 target-version = "py311"

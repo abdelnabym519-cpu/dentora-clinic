@@ -49,7 +49,7 @@ def test_backup_fingerprints_the_complete_modular_alembic_head_set() -> None:
     script = _read("scripts/dentora_backup_restore.ps1")
     assert "Get-SchemaFingerprint" in script
     assert "Sort-Object -Unique" in script
-    assert r"(?:\s+\([^)]*\))?" in script
+    assert r"(?:\s+\([^)]*\))*" in script
     assert "(?:effective )?head" in script
     assert "exec alembic current" in script
     assert "DENTORA_SCHEMA_DATABASE=$Database" in script

@@ -2,7 +2,7 @@ name: Source Snapshot
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, integration/dentora-canonical]
 
 jobs:
   snapshot:

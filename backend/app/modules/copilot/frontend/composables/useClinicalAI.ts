@@ -66,11 +66,11 @@ export function useClinicalAI() {
     'case-intelligence': null
   })
 
-  function _errorMessage(message: string | undefined): string {
+  function _errorMessage(message: string | null | undefined): string {
     if (!message) return t('copilot.clinical.errorGeneric')
     // Backend prefixes messages with [CODE]; surface the human part.
     const match = message.match(/^\[[A-Z_]+\]\s*(.*)$/)
-    return match ? match[1] : message
+    return match?.[1] ?? message
   }
 
   async function run(feature: ClinicalFeature, patientId: string): Promise<void> {

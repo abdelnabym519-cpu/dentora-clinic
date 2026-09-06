@@ -30,9 +30,8 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
 | `odontogram` | 0.3.0 | official | patients, catalog | auto | no | 4 | 7 | 0 | yes |
 | `orthodontic_planning` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 3 | 0 | yes |
-| `pathology_detection` | 0.1.0 | official | patients, media | manual | yes | 2 | 0 | 0 | yes |
-| `orthodontic_planning` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 3 | 0 | yes |
 | `orthodontic_simulator` | 0.1.0 | official | patients, dental_3d | manual | yes | 2 | 0 | 0 | yes |
+| `pathology_detection` | 0.1.0 | official | patients, media | manual | yes | 2 | 0 | 0 | yes |
 | `patient_presentation_mode` | 1.0.0 | official | patients, case_intelligence, ai_case_summary | manual | no | 1 | 0 | 0 | no |
 | `patient_timeline` | 0.1.0 | official | patients | auto | no | 1 | 0 | 35 | yes |
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
@@ -509,22 +508,6 @@ Local deterministic orthodontic movement sandbox over reviewed per-tooth Dental3
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/orthodontic_simulator/CLAUDE.md`](../backend/app/modules/orthodontic_simulator/CLAUDE.md)
 
-### `patient_presentation_mode` — v1.0.0
-
-Clinician-controlled patient presentation of accepted, current, evidence-traceable case summaries without clinical-record mutation.
-
-- **Author:** Dentora Core Team
-- **License:** BSL-1.1
-- **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
-- **Depends:** `patients`, `case_intelligence`, `ai_case_summary`
-- **Frontend layer:** —
-- **Permissions:**
-  - `patient_presentation_mode.read`
-- **Events emitted:** —
-- **Events consumed:** —
-- **Module CLAUDE.md:** [`backend/app/modules/patient_presentation_mode/CLAUDE.md`](../backend/app/modules/patient_presentation_mode/CLAUDE.md)
-
 ### `pathology_detection` — v0.1.0
 
 AI pathology detection on panoramic X-rays — caries, deep caries, periapical lesions, impacted teeth with FDI enumeration.
@@ -541,6 +524,22 @@ AI pathology detection on panoramic X-rays — caries, deep caries, periapical l
 - **Events emitted:** —
 - **Events consumed:** —
 - **Module CLAUDE.md:** [`backend/app/modules/pathology_detection/CLAUDE.md`](../backend/app/modules/pathology_detection/CLAUDE.md)
+
+### `patient_presentation_mode` — v1.0.0
+
+Clinician-controlled patient presentation of accepted, current, evidence-traceable case summaries without clinical-record mutation.
+
+- **Author:** Dentora Core Team
+- **License:** BSL-1.1
+- **Category:** official
+- **Install policy:** installable=True · auto_install=False · removable=False
+- **Depends:** `patients`, `case_intelligence`, `ai_case_summary`
+- **Frontend layer:** —
+- **Permissions:**
+  - `patient_presentation_mode.read`
+- **Events emitted:** —
+- **Events consumed:** —
+- **Module CLAUDE.md:** [`backend/app/modules/patient_presentation_mode/CLAUDE.md`](../backend/app/modules/patient_presentation_mode/CLAUDE.md)
 
 ### `patient_timeline` — v0.1.0
 

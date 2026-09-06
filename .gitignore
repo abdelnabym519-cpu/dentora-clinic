@@ -49,7 +49,11 @@ venv/
 ENV/
 
 # Node
-node_modules/
+# NOTE: no trailing slash on purpose. A trailing slash matches directories
+# only, and git treats a symlink as a non-directory -- so `node_modules/`
+# did NOT ignore the CI-created `backend/app/modules/node_modules` symlink
+# and it got committed. See Phase 2B consolidation audit.
+node_modules
 .nuxt/
 .output/
 .nitro/

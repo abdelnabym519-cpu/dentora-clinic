@@ -5,7 +5,7 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, integration/dentora-canonical]
 
 permissions:
   contents: read
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15-alpine
+        image: pgvector/pgvector:0.8.3-pg15
         env:
           POSTGRES_DB: dental_clinic_test
           POSTGRES_USER: dental

@@ -41,7 +41,7 @@ onMounted(async () => {
     if (fromQuery && patients.value.some(p => p.id === fromQuery)) {
       patientId.value = fromQuery
     } else if (patients.value.length) {
-      patientId.value = patients.value[0].id
+      patientId.value = patients.value[0]?.id ?? ''
     }
   } catch {
     toast.add({ title: t('copilot.clinical.loadPatientsError'), color: 'error' })

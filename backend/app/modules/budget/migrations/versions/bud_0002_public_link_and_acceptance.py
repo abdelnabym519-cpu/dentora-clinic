@@ -101,9 +101,18 @@ def upgrade() -> None:
     # Backfill: every existing budget needs a public_token (unique)
     # and a public_auth_method (NOT NULL). Existing accepted ones are
     # tagged ``accepted_via='manual'``.
+    # gen_random_uuid() is built into PostgreSQL 13+ (and the official
+    # postgres Docker image also ships pgcrypto). Only install pgcrypto on
+    # the rare/old build where the function is genuinely absent, so the
+    # migration succeeds on minimal PostgreSQL distributions too.
     op.execute(
         """
-        CREATE EXTENSION IF NOT EXISTS pgcrypto
+        DO $$
+        BEGIN
+            IF to_regprocedure('gen_random_uuid()') IS NULL THEN
+                CREATE EXTENSION IF NOT EXISTS pgcrypto;
+            END IF;
+        END $$;
         """
     )
     op.execute(

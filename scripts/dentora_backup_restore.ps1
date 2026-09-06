@@ -141,7 +141,7 @@ function Get-ExpectedSchemaRevision {
     $output = Invoke-Compose -Arguments @("run", "--rm", "--no-deps", "--entrypoint", "alembic", "backend", "heads") -Capture
     $matches = [Regex]::Matches(
         $output,
-        '(?m)^([A-Za-z0-9_-]+)(?:\s+\([A-Za-z0-9_-]+\))?\s+\((?:effective )?head\)\s*$'
+        '(?m)^([A-Za-z0-9_-]+)(?:\s+\([^)]*\))?\s+\((?:effective )?head\)(?:\s+\([^)]*\))*\s*$'
     )
     return Get-SchemaFingerprint -Revisions @($matches | ForEach-Object { $_.Groups[1].Value })
 }
@@ -157,7 +157,7 @@ function Get-DatabaseSchemaRevision {
     ) -Capture
     $matches = [Regex]::Matches(
         $output,
-        '(?m)^([A-Za-z0-9_-]+)(?:\s+\([A-Za-z0-9_-]+\))?\s+\((?:effective )?head\)\s*$'
+        '(?m)^([A-Za-z0-9_-]+)(?:\s+\([^)]*\))?\s+\((?:effective )?head\)(?:\s+\([^)]*\))*\s*$'
     )
     return Get-SchemaFingerprint -Revisions @($matches | ForEach-Object { $_.Groups[1].Value })
 }

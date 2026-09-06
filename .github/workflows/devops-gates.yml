@@ -3,7 +3,7 @@ name: DevOps Gates
 on:
   workflow_call:
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, integration/dentora-canonical]
   push:
     branches: [main, develop]
 

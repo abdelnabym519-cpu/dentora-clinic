@@ -167,9 +167,12 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
     """Upsert the normalized patients_clinical rows (medical + emergency)."""
     made = 0
 
-    mc = await db.get(MedicalContext, _uuid(10))
+    # MedicalContext is a 1:1 per-patient row whose PRIMARY KEY is patient_id
+    # (there is no ``id`` column — see patients_clinical/models.py). So it must
+    # be keyed/looked-up by GOLDEN_PATIENT_ID, not by a synthetic ``id``.
+    mc = await db.get(MedicalContext, GOLDEN_PATIENT_ID)
     if mc is None:
-        mc = MedicalContext(id=_uuid(10), patient_id=GOLDEN_PATIENT_ID, clinic_id=CLINIC_ID)
+        mc = MedicalContext(patient_id=GOLDEN_PATIENT_ID, clinic_id=CLINIC_ID)
         db.add(mc)
         made += 1
     mc.is_pregnant = False
@@ -187,6 +190,9 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
     mc.anesthesia_reaction_details = None
 
     def _upsert(model, offset: int, **fields) -> None:
+        # Generic helper for the N:1 clinical rows, all of which carry a real
+        # surrogate ``id`` column. (MedicalContext is handled above because it
+        # does NOT have an ``id`` column — it is keyed by patient_id.)
         nonlocal made
         row = db.get(model, _uuid(offset))
         if row is None:

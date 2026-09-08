@@ -189,12 +189,13 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
     mc.adverse_reactions_to_anesthesia = False
     mc.anesthesia_reaction_details = None
 
-    def _upsert(model, offset: int, **fields) -> None:
+    async def _upsert(model, offset: int, **fields) -> None:
         # Generic helper for the N:1 clinical rows, all of which carry a real
         # surrogate ``id`` column. (MedicalContext is handled above because it
         # does NOT have an ``id`` column — it is keyed by patient_id.)
+        # ``db`` is an AsyncSession, so ``get()`` must be awaited.
         nonlocal made
-        row = db.get(model, _uuid(offset))
+        row = await db.get(model, _uuid(offset))
         if row is None:
             row = model(id=_uuid(offset), patient_id=GOLDEN_PATIENT_ID, clinic_id=CLINIC_ID)
             db.add(row)
@@ -202,7 +203,7 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
         for k, v in fields.items():
             setattr(row, k, v)
 
-    _upsert(
+    await _upsert(
         SystemicDisease,
         11,
         name="Diabetes mellitus type 2",
@@ -213,7 +214,7 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
         medications="Metformin 850 mg",
         notes="Controlled T2DM; relevant to implant and periodontal planning.",
     )
-    _upsert(
+    await _upsert(
         Allergy,
         12,
         name="Penicillin",
@@ -222,7 +223,7 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
         reaction="Skin rash",
         notes="Avoid beta-lactam antibiotics.",
     )
-    _upsert(
+    await _upsert(
         Medication,
         13,
         name="Metformin",
@@ -231,7 +232,7 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
         start_date=date(2019, 9, 1),
         notes="For type 2 diabetes.",
     )
-    _upsert(
+    await _upsert(
         SurgicalHistory,
         14,
         procedure="Extraction of lower right first molar (#46 site, history)",
@@ -239,7 +240,7 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
         complications=None,
         notes="Uneventful healing.",
     )
-    _upsert(
+    await _upsert(
         EmergencyContact,
         15,
         name="Jordan Demo",

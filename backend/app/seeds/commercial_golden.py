@@ -46,16 +46,16 @@ Usage (inside the backend container):
 from __future__ import annotations
 
 import asyncio
-import sys
 from datetime import UTC, date, datetime
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.auth.models import Clinic, ClinicMembership, User
+from app.core.auth.models import Clinic, User
 from app.database import async_session_maker
 from app.modules.odontogram.models import ToothRecord
+from app.modules.patient_timeline.models import PatientTimeline
 from app.modules.patients.models import Patient
 from app.modules.patients_clinical.models import (
     Allergy,
@@ -65,7 +65,6 @@ from app.modules.patients_clinical.models import (
     SurgicalHistory,
     SystemicDisease,
 )
-from app.modules.patient_timeline.models import PatientTimeline
 from app.seeds.demo_data import (
     CLINIC_ID,
     USER_ADMIN_ID,
@@ -240,15 +239,22 @@ async def _ensure_patients_clinical(db: AsyncSession) -> int:
         complications=None,
         notes="Uneventful healing.",
     )
-    await _upsert(
-        EmergencyContact,
-        15,
-        name="Jordan Demo",
-        relationship="spouse",
-        phone="+34 600 000 001",
-        email="jordan.demo@demo.clinic",
-        is_legal_guardian=False,
-    )
+
+    # EmergencyContact is a 1:1 per-patient row whose PRIMARY KEY is patient_id
+    # (there is NO surrogate ``id`` column — see patients_clinical/models.py).
+    # So, like MedicalContext above, it must be keyed by GOLDEN_PATIENT_ID and
+    # constructed without an ``id`` argument (not via the id-based _upsert).
+    ec = await db.get(EmergencyContact, GOLDEN_PATIENT_ID)
+    if ec is None:
+        ec = EmergencyContact(patient_id=GOLDEN_PATIENT_ID, clinic_id=CLINIC_ID)
+        db.add(ec)
+        made += 1
+    ec.name = "Jordan Demo"
+    ec.relationship = "spouse"
+    ec.phone = "+34 600 000 001"
+    ec.email = "jordan.demo@demo.clinic"
+    ec.is_legal_guardian = False
+
     return made
 
 
@@ -313,8 +319,8 @@ _PERIO_MM: dict[int, list[int]] = {
 async def _ensure_periodontogram(db: AsyncSession, dentist_id: UUID) -> int:
     """Create/repair one *closed* periodontogram snapshot for the golden patient."""
     from app.modules.periodontogram.models import (
-        PeriodontogramSnapshot,
         PeriodontogramSite,
+        PeriodontogramSnapshot,
         PeriodontogramTooth,
     )
 
@@ -394,6 +400,7 @@ async def _ensure_periodontogram(db: AsyncSession, dentist_id: UUID) -> int:
 async def _ensure_timeline(db: AsyncSession) -> int:
     """Create a few coherent timeline entries for the golden patient."""
     made = 0
+    # (offset, category, event_type, title, description, occurred_at, source_table)
     events = [
         (
             600,
@@ -402,6 +409,7 @@ async def _ensure_timeline(db: AsyncSession) -> int:
             "Completed periodontal exam",
             "Full-mouth periodontal charting (SEPA protocol).",
             datetime(2026, 5, 20, 11, 0, tzinfo=UTC),
+            "agenda",
         ),
         (
             601,
@@ -410,6 +418,7 @@ async def _ensure_timeline(db: AsyncSession) -> int:
             "Initial periodontal diagnosis",
             "Generalized chronic periodontitis stage III, grade B.",
             datetime(2026, 5, 20, 12, 0, tzinfo=UTC),
+            "clinical_notes",
         ),
         (
             602,
@@ -418,9 +427,13 @@ async def _ensure_timeline(db: AsyncSession) -> int:
             "Periodontal treatment plan proposed",
             "Scaling & root planing quadrants, review, implant assessment #46.",
             datetime(2026, 5, 21, 9, 0, tzinfo=UTC),
+            "treatment_plan",
         ),
     ]
-    for offset, category, etype, title, desc, occurred in events:
+    # source_id is a required, non-nullable UUID (no FK) — a synthetic
+    # deterministic value in the demo namespace is used since these demo events
+    # have no backing database row to reference.
+    for i, (offset, category, etype, title, desc, occurred, source_table) in enumerate(events):
         row = await db.get(PatientTimeline, _uuid(offset))
         if row is None:
             row = PatientTimeline(
@@ -432,9 +445,19 @@ async def _ensure_timeline(db: AsyncSession) -> int:
                 title=title,
                 description=desc,
                 occurred_at=occurred,
+                source_table=source_table,
+                source_id=_uuid(700 + i),
             )
             db.add(row)
             made += 1
+        # Repair on re-run so existing rows always match the intended data.
+        row.event_category = category
+        row.event_type = etype
+        row.title = title
+        row.description = desc
+        row.occurred_at = occurred
+        row.source_table = source_table
+        row.source_id = _uuid(700 + i)
     return made
 
 

@@ -54,7 +54,12 @@ function validateClinic(): boolean {
   return !errors.clinicName && !errors.taxId
 }
 
-function goNext() {
+function goNext(event?: MouseEvent) {
+  // Advancement to Step 2 must come ONLY from an explicit, real user click on
+  // the "التالي" button. Untrusted/synthetic events — browser autofill
+  // automation, password managers, or programmatic dispatches — never carry a
+  // trusted click and can therefore never advance the step.
+  if (!event?.isTrusted) return
   errorMessage.value = ''
   if (validateAccount()) step.value = 2
 }
@@ -149,17 +154,17 @@ async function onSubmit() {
 
       <!-- Step 1: admin account -->
       <!--
-        Advancement to Step 2 must be driven ONLY by an explicit user action
-        (clicking "التالي" or pressing Enter), never by the browser autofilling
-        or auto-submitting the form. The Next control is therefore a plain
-        button (no native `type="submit"`), and Enter is handled explicitly via
-        a keydown, so no implicit/automatic native form submission can advance
-        the step. Validation still gates every path in `goNext`.
+        Advancement to Step 2 must be driven ONLY by an explicit, trusted user
+        click on the "التالي" button — never by the browser autofilling or
+        auto-submitting the form, never by a stray Enter keydown. The Next
+        control is therefore a plain `type="button"` with no form submit path,
+        and there is deliberately NO form-level `@keydown.enter` handler, so no
+        implicit/automatic event can advance the step. `goNext` additionally
+        requires a trusted click event. Validation still gates `goNext`.
       -->
       <form
         v-if="step === 1"
         class="space-y-4"
-        @keydown.enter.prevent="goNext"
       >
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField

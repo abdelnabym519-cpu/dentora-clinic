@@ -148,10 +148,18 @@ async function onSubmit() {
       </div>
 
       <!-- Step 1: admin account -->
+      <!--
+        Advancement to Step 2 must be driven ONLY by an explicit user action
+        (clicking "التالي" or pressing Enter), never by the browser autofilling
+        or auto-submitting the form. The Next control is therefore a plain
+        button (no native `type="submit"`), and Enter is handled explicitly via
+        a keydown, so no implicit/automatic native form submission can advance
+        the step. Validation still gates every path in `goNext`.
+      -->
       <form
         v-if="step === 1"
         class="space-y-4"
-        @submit.prevent="goNext"
+        @keydown.enter.prevent="goNext"
       >
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <UFormField
@@ -227,10 +235,11 @@ async function onSubmit() {
         </UFormField>
 
         <UButton
-          type="submit"
+          type="button"
           color="primary"
           variant="soft"
           block
+          @click="goNext"
         >
           {{ t('setup.next') }}
         </UButton>

@@ -432,6 +432,60 @@ async def _ensure_timeline(db: AsyncSession) -> int:
 
 
 # ---------------------------------------------------------------------------
+# Model registration (root-cause fix)
+# ---------------------------------------------------------------------------
+def _register_all_models() -> None:
+    """Register every ORM model before the first mapper configuration.
+
+    Core mappers declare string ``relationship()`` to models that live in other
+    modules — e.g. ``Clinic.appointments`` → ``agenda.Appointment``,
+    ``Clinic.cabinets`` → ``agenda.Cabinet``, ``TreatmentPlan`` → ``budget``.
+    SQLAlchemy resolves those names from the global class registry when mappers
+    are configured, which happens automatically on the first DB call.
+
+    In the running app every module is imported by ``load_modules()``
+    (``app/core/plugins/loader.py``) so the registry is complete. Alembic and
+    the test suite guarantee the same for their standalone processes by
+    importing all module models in ``alembic/env.py`` / ``tests/conftest.py``.
+    A standalone seed (``python -m app.seeds.commercial_golden``) runs in a
+    fresh process that performs none of that, so it must import the module
+    models itself. Without this the very first ``db.get``/``select`` triggers
+    ``configure_mappers()`` on a partial registry and fails with e.g.
+    ``InvalidRequestError: expression 'Appointment' failed to locate a name``.
+    """
+    import importlib
+    import logging
+    import pkgutil
+    from pathlib import Path
+
+    logger = logging.getLogger(__name__)
+
+    # Core model modules referenced by core mappers (mirror alembic/env.py).
+    for mod in (
+        "app.core.agents.models",
+        "app.core.auth.models",
+        "app.core.plugins.db_models",
+        "app.core.retrieval.models",
+        "app.core.tenancy.models",
+    ):
+        importlib.import_module(mod)
+
+    modules_dir = Path(__file__).resolve().parents[1] / "modules"
+    for info in pkgutil.iter_modules([str(modules_dir)]):
+        if not info.ispkg:
+            continue
+        try:
+            importlib.import_module(f"app.modules.{info.name}.models")
+        except ModuleNotFoundError as exc:
+            # No ``models`` module for this package (logic-only) — skip it.
+            if exc.name == f"app.modules.{info.name}.models":
+                continue
+            logger.warning("Could not import %s.models: %s", info.name, exc)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("Could not import %s.models: %s", info.name, exc)
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 async def run(db: AsyncSession) -> dict:
@@ -440,6 +494,11 @@ async def run(db: AsyncSession) -> dict:
     ``db`` must be an active session (commit is left to the caller). The
     standalone ``main`` opens + commits a session and calls this.
     """
+    # Register every ORM model before the first query so mapper configuration
+    # succeeds (see _register_all_models docstring). Idempotent — importing an
+    # already-imported module is a no-op.
+    _register_all_models()
+
     users = await _require_demo_clinic_and_users(db)
 
     counts: dict[str, int] = {"patient": 0, "patients_clinical": 0, "odontogram": 0,

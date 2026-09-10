@@ -29,6 +29,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.core.auth.models import Clinic, ClinicMembership, User
 from app.core.auth.service import hash_password
 from app.database import async_session_maker
@@ -61,6 +62,8 @@ from app.modules.treatment_plan.models import (
 )
 from app.seeds.demo_data import (
     CLINIC_ID,
+    DEMO_OWNER_EMAIL,
+    DEMO_OWNER_PASSWORD,
     USER_DENTIST_ID,
     USER_HYGIENIST_ID,
     USER_RECEPTIONIST_ID,
@@ -79,6 +82,40 @@ from app.seeds.demo_data import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+async def seed_demo_owner(db: AsyncSession) -> None:
+    """Create the documented demo administrator (local demo only).
+
+    ``admin@dentora.local`` / ``Dentora#Demo2026`` — deterministic so any
+    developer can log in immediately after seeding. Created directly via
+    the ORM (the /setup endpoint intentionally rejects reserved .local
+    e-mail domains; this account exists only in seeded demo environments).
+    Idempotent: skipped when the account already exists.
+    """
+    existing = await db.scalar(select(User).where(User.email == DEMO_OWNER_EMAIL))
+    if existing is not None:
+        print("  Demo administrator already exists (skipped).")
+        return
+
+    user = User(
+        email=DEMO_OWNER_EMAIL,
+        password_hash=hash_password(DEMO_OWNER_PASSWORD),
+        first_name="Ahmed",
+        last_name="Mohamed",
+        is_active=True,
+        token_version=0,
+    )
+    db.add(user)
+    await db.flush()
+    db.add(
+        ClinicMembership(
+            user_id=user.id,
+            clinic_id=CLINIC_ID,
+            role="admin",
+        )
+    )
+    print(f"  Created demo administrator: {DEMO_OWNER_EMAIL}")
 
 
 async def check_existing_data(db: AsyncSession) -> bool:
@@ -603,22 +640,33 @@ Examples:
   python scripts/seed_demo.py --lang es    # Spanish
   python scripts/seed_demo.py --lang en    # English (explicit)
   python scripts/seed_demo.py --lang fr    # French
+  python scripts/seed_demo.py --lang ar    # Egyptian Arabic demo (Cairo clinic)
+
+Demo logins (LOCAL DEMO ONLY — never use these values in production):
+  Documented demo administrator: admin@dentora.local / Dentora#Demo2026
+  Staff logins (per language set): admin@demo.clinic, dentist@demo.clinic, ... / demo1234
         """,
     )
     parser.add_argument(
         "--lang",
         "-l",
-        choices=["en", "es", "fr"],
+        choices=["en", "es", "fr", "ar"],
         default="en",
-        help="Language for demo data (default: en)",
+        help="Language for demo data (default: en; 'ar' = Egyptian Arabic demo)",
     )
     return parser.parse_args()
 
 
 async def main(lang: str = "en") -> None:
     """Seed the full demo clinical workflow."""
+    if settings.ENVIRONMENT == "production":
+        raise SystemExit(
+            "REFUSING to seed: ENVIRONMENT=production. The demo seeder is "
+            "restricted to local/development environments."
+        )
+
     set_language(lang)
-    lang_names = {"en": "English", "es": "Spanish", "fr": "French"}
+    lang_names = {"en": "English", "es": "Spanish", "fr": "French", "ar": "Egyptian Arabic"}
     lang_name = lang_names.get(lang, lang)
 
     print("\n" + "=" * 60)
@@ -642,6 +690,11 @@ async def main(lang: str = "en") -> None:
 
             print("\n[2/10] Creating users...")
             await seed_users(db, password_hash)
+            await seed_demo_owner(db)
+            print(
+                f"    -> demo login: {DEMO_OWNER_EMAIL} / {DEMO_OWNER_PASSWORD}"
+                " (LOCAL DEMO ONLY)"
+            )
 
             print("\n[3/10] Creating patients...")
             await seed_patients(db)
@@ -745,13 +798,18 @@ async def main(lang: str = "en") -> None:
 
     users_data = get_users_data()
     print("\n" + "-" * 60)
-    print("DEMO CREDENTIALS (all passwords: demo1234)")
+    print("DEMO CREDENTIALS (LOCAL DEMO ONLY)")
     print("-" * 60)
     print(f"{'Email':<30} {'Role':<15} {'Name'}")
     print("-" * 60)
+    print(
+        f"{DEMO_OWNER_EMAIL:<30} {'admin':<15} Ahmed Mohamed"
+        "  <- password: Dentora#Demo2026"
+    )
     for user in users_data:
         print(f"{user['email']:<30} {user['role']:<15} {user['first_name']} {user['last_name']}")
     print("-" * 60)
+    print("(staff accounts above use the password: demo1234)")
     print("\nOpen http://localhost:3000 to access the application.\n")
 
 

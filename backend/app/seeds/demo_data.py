@@ -11,11 +11,13 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID, uuid4
 
+from .demo_data_ar import CLINIC_AR, PATIENTS_AR, PROFESSIONAL_ID_AR, USERS_AR
+
 # =============================================================================
 # Language Configuration
 # =============================================================================
 
-SupportedLang = Literal["es", "en", "fr"]
+SupportedLang = Literal["es", "en", "fr", "ar"]
 LANG: SupportedLang = "en"  # Default language
 
 
@@ -50,6 +52,15 @@ MEMBERSHIP_DENTIST_ID = UUID("c1eebc99-9c0b-4ef8-bb6d-6bb9bd380a34")
 MEMBERSHIP_HYGIENIST_ID = UUID("c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a35")
 MEMBERSHIP_ASSISTANT_ID = UUID("c3eebc99-9c0b-4ef8-bb6d-6bb9bd380a36")
 MEMBERSHIP_RECEPTIONIST_ID = UUID("c4eebc99-9c0b-4ef8-bb6d-6bb9bd380a37")
+
+# Documented local-demo administrator (added by the demo mission).
+# Created ONLY by scripts/seed_demo.py — never by the /setup endpoint
+# (whose EmailStr policy rejects reserved .local domains by design).
+# LOCAL/DEMO USE ONLY — never provision these values in production.
+USER_DEMO_OWNER_ID = UUID("b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a30")
+MEMBERSHIP_DEMO_OWNER_ID = UUID("c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a40")
+DEMO_OWNER_EMAIL = "admin@dentora.local"
+DEMO_OWNER_PASSWORD = "Dentora#Demo2026"  # strong + deterministic; local demo only
 
 # Patients (15 patients) - Using hex digits only (0-9, a-f)
 PATIENT_IDS = [
@@ -86,21 +97,41 @@ def get_clinic_data() -> dict:
                 "es": "Clínica Dental Demo",
                 "en": "Demo Dental Clinic",
                 "fr": "Clinique Dentaire Démo",
+                "ar": CLINIC_AR["name"],
             }
         ),
-        "tax_id": t({"es": "B12345678", "en": "12-3456789", "fr": "12-3456789"}),
+        "tax_id": t({"es": "B12345678", "en": "12-3456789", "fr": "12-3456789", "ar": CLINIC_AR["tax_id"]}),
         "address": {
             "street": t(
-                {"es": "Calle Gran Vía 123", "en": "123 Main Street", "fr": "123 Rue Principale"}
+                {
+                    "es": "Calle Gran Vía 123",
+                    "en": "123 Main Street",
+                    "fr": "123 Rue Principale",
+                    "ar": CLINIC_AR["address"]["street"],
+                }
             ),
-            "city": t({"es": "Madrid", "en": "New York", "fr": "Paris"}),
-            "postal_code": t({"es": "28013", "en": "10001", "fr": "75001"}),
-            "country": t({"es": "España", "en": "USA", "fr": "France"}),
+            "city": t({"es": "Madrid", "en": "New York", "fr": "Paris", "ar": CLINIC_AR["address"]["city"]}),
+            "postal_code": t({"es": "28013", "en": "10001", "fr": "75001", "ar": CLINIC_AR["address"]["postal_code"]}),
+            "country": t({"es": "España", "en": "USA", "fr": "France", "ar": CLINIC_AR["address"]["country"]}),
         },
-        "phone": t({"es": "+34 912 345 678", "en": "+1 (212) 555-0100", "fr": "+33 1 23 45 67 89"}),
+        "phone": t(
+            {
+                "es": "+34 912 345 678",
+                "en": "+1 (212) 555-0100",
+                "fr": "+33 1 23 45 67 89",
+                "ar": CLINIC_AR["phone"],
+            }
+        ),
         "email": "info@demo.clinic",
-        "currency": t({"es": "EUR", "en": "USD", "fr": "EUR"}),
-        "timezone": t({"es": "Europe/Madrid", "en": "America/New_York", "fr": "Europe/Paris"}),
+        "currency": t({"es": "EUR", "en": "USD", "fr": "EUR", "ar": CLINIC_AR["currency"]}),
+        "timezone": t(
+            {
+                "es": "Europe/Madrid",
+                "en": "America/New_York",
+                "fr": "Europe/Paris",
+                "ar": CLINIC_AR["timezone"],
+            }
+        ),
         "settings": {
             "slot_duration_min": 30,
             "working_hours": {
@@ -130,26 +161,31 @@ USERS_I18N = {
         "es": {"first_name": "Admin", "last_name": "Demo"},
         "en": {"first_name": "Admin", "last_name": "Demo"},
         "fr": {"first_name": "Admin", "last_name": "Démo"},
+        "ar": {"first_name": USERS_AR["admin"]["first_name"], "last_name": USERS_AR["admin"]["last_name"]},
     },
     "dentist": {
         "es": {"first_name": "María", "last_name": "García López"},
         "en": {"first_name": "Sarah", "last_name": "Johnson"},
         "fr": {"first_name": "Marie", "last_name": "Dubois Laurent"},
+        "ar": {"first_name": USERS_AR["dentist"]["first_name"], "last_name": USERS_AR["dentist"]["last_name"]},
     },
     "hygienist": {
         "es": {"first_name": "Carlos", "last_name": "López Martínez"},
         "en": {"first_name": "Michael", "last_name": "Williams"},
         "fr": {"first_name": "Thomas", "last_name": "Moreau"},
+        "ar": {"first_name": USERS_AR["hygienist"]["first_name"], "last_name": USERS_AR["hygienist"]["last_name"]},
     },
     "assistant": {
         "es": {"first_name": "Ana", "last_name": "Martínez Ruiz"},
         "en": {"first_name": "Emily", "last_name": "Davis"},
         "fr": {"first_name": "Camille", "last_name": "Petit"},
+        "ar": {"first_name": USERS_AR["assistant"]["first_name"], "last_name": USERS_AR["assistant"]["last_name"]},
     },
     "receptionist": {
         "es": {"first_name": "Laura", "last_name": "Sánchez Pérez"},
         "en": {"first_name": "Jessica", "last_name": "Brown"},
         "fr": {"first_name": "Julie", "last_name": "Bernard"},
+        "ar": {"first_name": USERS_AR["receptionist"]["first_name"], "last_name": USERS_AR["receptionist"]["last_name"]},
     },
 }
 
@@ -170,7 +206,9 @@ def get_users_data() -> list[dict]:
             "email": "dentist@demo.clinic",
             "first_name": USERS_I18N["dentist"][LANG]["first_name"],
             "last_name": USERS_I18N["dentist"][LANG]["last_name"],
-            "professional_id": t({"es": "28/12345", "en": "DDS-12345", "fr": "DF-12345"}),
+            "professional_id": t(
+                {"es": "28/12345", "en": "DDS-12345", "fr": "DF-12345", "ar": PROFESSIONAL_ID_AR["dentist"]}
+            ),
             "role": "dentist",
             "membership_id": MEMBERSHIP_DENTIST_ID,
         },
@@ -179,7 +217,9 @@ def get_users_data() -> list[dict]:
             "email": "hygienist@demo.clinic",
             "first_name": USERS_I18N["hygienist"][LANG]["first_name"],
             "last_name": USERS_I18N["hygienist"][LANG]["last_name"],
-            "professional_id": t({"es": "28/54321", "en": "RDH-54321", "fr": "OEF-54321"}),
+            "professional_id": t(
+                {"es": "28/54321", "en": "RDH-54321", "fr": "OEF-54321", "ar": PROFESSIONAL_ID_AR["hygienist"]}
+            ),
             "role": "hygienist",
             "membership_id": MEMBERSHIP_HYGIENIST_ID,
         },
@@ -1105,7 +1145,31 @@ def _translate_medical_history(mh: dict | None) -> dict | None:
 def get_patients_data() -> list[dict]:
     """Get patients data in current language."""
     patients = []
-    for p in PATIENTS_I18N:
+    for idx, p in enumerate(PATIENTS_I18N):
+        # Egyptian demo overlay: when LANG == "ar", merge the Arabic data
+        # from demo_data_ar over the English baseline so any field not
+        # translated here still falls back to English (never KeyError).
+        if LANG == "ar" and idx < len(PATIENTS_AR):
+            overlay = PATIENTS_AR[idx]
+            p = {**p, "ar": {**p.get("en", {}), **overlay.get("ar", {})}}
+            if isinstance(p.get("phone"), dict) and "phone" in overlay:
+                p["phone"] = {**p["phone"], "ar": overlay["phone"]}
+            ec_overlay = overlay.get("emergency_contact")
+            if ec_overlay is not None:
+                base_ec = p.get("emergency_contact") or {}
+                en_ec = base_ec.get("en", {}) if isinstance(base_ec, dict) else {}
+                p["emergency_contact"] = {
+                    **base_ec,
+                    "ar": {
+                        "name": ec_overlay.get("name"),
+                        "relationship": ec_overlay.get("relationship"),
+                        "phone": ec_overlay.get("phone"),
+                        "email": ec_overlay.get("email"),
+                        # structural flag is language-independent
+                        "is_legal_guardian": en_ec.get("is_legal_guardian", False),
+                    },
+                }
+
         # Handle phone: dict with translations or None
         phone = p["phone"]
         if isinstance(phone, dict):

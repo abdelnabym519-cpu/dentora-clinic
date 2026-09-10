@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { mapSetupError, type SetupErrorShape } from '~/utils/setupError'
+
 definePageMeta({
   layout: 'guest'
 })
@@ -88,16 +90,11 @@ async function onSubmit() {
     toast.add({ title: t('setup.success'), color: 'success' })
     await navigateTo('/')
   } catch (error: unknown) {
-    const apiError = error as { statusCode?: number, data?: { detail?: unknown } }
-    const status = apiError.statusCode
-    if (status === 409) {
-      errorMessage.value = t('setup.alreadyInitialized')
-    } else if (status === 422) {
-      const detail = apiError.data?.detail
-      errorMessage.value = typeof detail === 'string' ? detail : t('setup.error')
-    } else {
-      errorMessage.value = t('setup.error')
-    }
+    // Surface the REAL failure (validation detail, backend message, or a
+    // CORS/network outage) instead of one opaque fallback — see
+    // utils/setupError.ts for the exact response shapes handled.
+    const mapped = mapSetupError(error as SetupErrorShape)
+    errorMessage.value = 'key' in mapped ? t(mapped.key) : mapped.text
   } finally {
     isLoading.value = false
   }

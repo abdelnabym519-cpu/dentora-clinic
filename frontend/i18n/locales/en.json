@@ -77,7 +77,9 @@
     "clinicNameRequired": "Enter the clinic name",
     "taxIdRequired": "Enter the Tax ID",
     "alreadyInitialized": "The system is already set up. Please log in.",
-    "error": "Setup could not be completed. Please try again"
+    "error": "Setup could not be completed. Please try again",
+
+    "networkError": "Could not reach the Dentora API. Check that the backend is running and that API_BASE_URL / ALLOWED_ORIGINS include this frontend origin."
   },
   "actions": {
     "edit": "Edit",

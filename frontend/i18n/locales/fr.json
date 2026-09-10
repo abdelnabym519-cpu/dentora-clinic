@@ -77,7 +77,9 @@
     "clinicNameRequired": "Saisissez le nom de la clinique",
     "taxIdRequired": "Saisissez l'identifiant fiscal",
     "alreadyInitialized": "Le système est déjà configuré. Veuillez vous connecter.",
-    "error": "La configuration n'a pas pu être terminée. Veuillez réessayer"
+    "error": "La configuration n'a pas pu être terminée. Veuillez réessayer",
+
+    "networkError": "Impossible de joindre l'API Dentora. Vérifiez que le backend est démarré et que API_BASE_URL / ALLOWED_ORIGINS incluent l'origine de ce frontend."
   },
   "actions": {
     "edit": "Modifier",

@@ -77,7 +77,9 @@
     "clinicNameRequired": "Introduza o nome da clínica",
     "taxIdRequired": "Introduza o NIF",
     "alreadyInitialized": "O sistema já está configurado. Inicie sessão.",
-    "error": "Não foi possível concluir a configuração. Tente novamente"
+    "error": "Não foi possível concluir a configuração. Tente novamente",
+
+    "networkError": "Não foi possível contactar a API do Dentora. Verifique se o backend está em execução e se API_BASE_URL / ALLOWED_ORIGINS incluem a origem deste frontend."
   },
   "actions": {
     "edit": "Editar",

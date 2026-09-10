@@ -26,7 +26,7 @@ class ClinicalCopilotModule(BaseModule):
             "copilot",
         ],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": False,
         "role_permissions": {
             "admin": ["read"],
@@ -34,6 +34,10 @@ class ClinicalCopilotModule(BaseModule):
             "hygienist": ["read"],
             "assistant": [],
             "receptionist": [],
+        },
+        "frontend": {
+            "layer_path": "frontend",
+            "navigation": [],
         },
     }
 

@@ -25,7 +25,7 @@ class AICaseSummaryModule(BaseModule):
         "category": "official",
         "depends": ["case_intelligence", "patients", "risk_engine"],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": False,
         "role_permissions": {
             "admin": ["read", "generate"],
@@ -33,6 +33,10 @@ class AICaseSummaryModule(BaseModule):
             "hygienist": ["read"],
             "assistant": ["read"],
             "receptionist": [],
+        },
+        "frontend": {
+            "layer_path": "frontend",
+            "navigation": [],
         },
     }
 

@@ -28,7 +28,7 @@ class AISecondReviewModule(BaseModule):
             "patients",
         ],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": False,
         "role_permissions": {
             "admin": ["read"],
@@ -36,6 +36,10 @@ class AISecondReviewModule(BaseModule):
             "hygienist": ["read"],
             "assistant": ["read"],
             "receptionist": [],
+        },
+        "frontend": {
+            "layer_path": "frontend",
+            "navigation": [],
         },
     }
 

@@ -21,7 +21,7 @@ class RiskEngineModule(BaseModule):
         "category": "official",
         "depends": ["case_intelligence", "patients", "dental_3d"],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": False,
         "role_permissions": {
             "admin": ["read", "generate"],

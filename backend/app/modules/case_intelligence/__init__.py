@@ -34,7 +34,7 @@ class CaseIntelligenceModule(BaseModule):
             "dental_3d",
         ],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": False,
         "role_permissions": {
             "admin": ["*"],
@@ -42,6 +42,10 @@ class CaseIntelligenceModule(BaseModule):
             "hygienist": ["read"],
             "assistant": ["read"],
             "receptionist": [],
+        },
+        "frontend": {
+            "layer_path": "frontend",
+            "navigation": [],
         },
     }
 

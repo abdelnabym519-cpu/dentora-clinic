@@ -82,10 +82,14 @@ allowed_origins = settings.allowed_origins_list.copy()
 if settings.ENVIRONMENT == "development":
     allowed_origins.extend(
         [
+            # Legacy dev ports (npm run dev without Docker) …
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             "http://localhost:3001",
             "http://127.0.0.1:3001",
+            # … and the Docker Compose published frontend port (3100:3000).
+            "http://localhost:3100",
+            "http://127.0.0.1:3100",
         ]
     )
 

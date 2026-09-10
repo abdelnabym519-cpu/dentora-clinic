@@ -59,8 +59,19 @@ docker compose exec backend python scripts/seed_demo.py
 ```
 
 Existing environment (modules not yet installed): run the install commands
-above first, then the seed. Re-seeding is a no-op ("AI demo cases already
-exist").
+above first, then the seed.
+
+**Reconciling behavior (existing demo databases).** The seeder no longer
+stops at "clinic exists": when the demo clinic is already present it
+preserves every existing clinic/user/patient untouched and reconciles only
+the synthetic AI demo cases — missing patients are created, existing ones
+are left as-is, and repeated runs are no-ops. A database seeded before this
+dataset existed is therefore brought to the full demo state by the same one
+command, with no destructive reset.
+
+Local stack ports (docker-compose.yml): frontend `3100`, backend `8100`,
+database host port `55434`; host Ollama is reached by the backend at
+`host.docker.internal:11434`.
 
 ## Activating on an existing environment
 

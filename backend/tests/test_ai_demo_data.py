@@ -7,6 +7,8 @@ site codes, and a deterministic STL fixture that passes the dental_3d
 mesh content validation.
 """
 
+import pytest  # noqa: E402
+
 from app.seeds.ai_demo_data import (  # noqa: E402
     AI_COMPLETE_ID,
     AI_DEMO_CASES,
@@ -92,3 +94,85 @@ def test_implant_case_stays_external_service_gated() -> None:
     raw = repr(AI_DEMO_CASES)
     for forbidden in ("nerve_pathway", "alignment_matrix", "dicom", "centerline"):
         assert forbidden not in raw.lower()
+
+
+# --- Reconciling-seed regression (existing demo database) -------------------
+
+async def _seed_pre_ai_demo_base(db) -> None:
+    """Mimic a database created by a pre-AI revision: the demo clinic and
+    its users exist, but none of the synthetic AI patients do."""
+    from uuid import UUID, uuid4
+
+    from app.core.auth.models import Clinic, ClinicMembership, User
+    from app.seeds.demo_data import CLINIC_ID, USER_DENTIST_ID
+
+    db.add(
+        Clinic(
+            id=CLINIC_ID,
+            name="Demo Dental Clinic",
+            tax_id="B12345678",
+            tenant_id=UUID("00000000-0000-0000-0000-000000000001"),
+            is_active=True,
+        )
+    )
+    db.add(
+        User(
+            id=USER_DENTIST_ID,
+            email="dentist@demo.clinic",
+            password_hash="test",
+            first_name="Sofia",
+            last_name="Dentist",
+            is_active=True,
+            token_version=0,
+        )
+    )
+    db.add(
+        ClinicMembership(
+            id=uuid4(),
+            user_id=USER_DENTIST_ID,
+            clinic_id=CLINIC_ID,
+            role="dentist",
+        )
+    )
+    await db.commit()
+
+
+@pytest.mark.asyncio
+async def test_seeder_reconciles_ai_cases_into_existing_demo_database(
+    db_session,
+) -> None:
+    """CASE 2 (pre-AI demo DB): running the seeder must NOT stop at
+    "clinic exists" — it must create the missing synthetic AI patients,
+    preserve everything else, and stay idempotent on the second run."""
+    from sqlalchemy import select
+
+    from app.core.plugins.service import ModuleService
+    from app.modules.patients.models import Patient
+    from app.seeds.ai_demo_data import AI_DEMO_PATIENT_IDS
+    from app.seeds.demo_data import USER_DENTIST_ID
+    from scripts.seed_demo import _ensure_module_registry, seed_ai_demo_cases
+
+    _ensure_module_registry()
+    await ModuleService(db_session).reconcile_with_db()
+    await _seed_pre_ai_demo_base(db_session)
+
+    await seed_ai_demo_cases(db_session, dentist_id=USER_DENTIST_ID)
+    await db_session.commit()
+
+    first = (
+        await db_session.execute(
+            select(Patient).where(Patient.id.in_(AI_DEMO_PATIENT_IDS))
+        )
+    ).scalars().all()
+    assert len(first) == 5
+
+    # Second run: sentinel short-circuits, zero duplicates.
+    await seed_ai_demo_cases(db_session, dentist_id=USER_DENTIST_ID)
+    await db_session.commit()
+    second = (
+        await db_session.execute(
+            select(Patient).where(Patient.id.in_(AI_DEMO_PATIENT_IDS))
+        )
+    ).scalars().all()
+    assert len(second) == 5
+    assert {p.id for p in second} == {p.id for p in first}

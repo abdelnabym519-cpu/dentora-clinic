@@ -265,6 +265,23 @@ async def check_existing_data(db: AsyncSession) -> bool:
     return result.scalar_one_or_none() is not None
 
 
+def _ensure_module_registry() -> None:
+    """Populate the in-process module registry when it is still empty.
+
+    Idempotent: the app boot and the CLI do the same registration, so by
+    the time the seeder runs the registry is usually already populated.
+    """
+    from app.core.plugins.loader import discover_modules
+    from app.core.plugins.registry import module_registry
+
+    if not module_registry.list_modules():
+        for module in discover_modules():
+            try:
+                module_registry.register(module)
+            except ValueError:
+                pass
+
+
 async def _module_is_installed(db: AsyncSession, name: str) -> bool:
     """True when ``core_module`` has the module in the ``installed`` state.
 
@@ -811,9 +828,37 @@ async def main(lang: str = "en") -> None:
 
     async with async_session_maker() as db:
         if await check_existing_data(db):
+            # Pre-existing demo database (e.g. seeded before the synthetic
+            # AI demo dataset existed). The base demo data stays untouched:
+            # no resets, no deletions, no re-creation of the clinic, users
+            # or patients. Only the synthetic AI demo cases are reconciled
+            # (missing ones are created, existing ones preserved, repeated
+            # runs are no-ops), so a database that predates the AI dataset
+            # still reaches the demo state with the same one command.
             print("Demo data already exists!")
-            print("To reset, run: ./scripts/reset-db.sh")
-            print("Then run this script again.\n")
+            print("To fully reset instead, run: ./scripts/reset-db.sh")
+            print(
+                "\nReconciling synthetic AI demo cases "
+                "(missing ones are created; existing data is preserved)..."
+            )
+            _ensure_module_registry()
+            from app.core.plugins.service import ModuleService
+
+            await ModuleService(db).reconcile_with_db()
+            try:
+                if await _module_is_installed(db, "patients_clinical"):
+                    await seed_ai_demo_cases(db, dentist_id=USER_DENTIST_ID)
+                else:
+                    print(
+                        "  patients_clinical module not installed — install it"
+                        " (see docs/ai-activation.md) and re-run to add the"
+                        " clinical context."
+                    )
+                await db.commit()
+            except Exception as e:
+                await db.rollback()
+                print(f"\nError reconciling AI demo cases: {e}")
+                raise
             return
 
         print("Creating demo data...\n")
@@ -823,16 +868,9 @@ async def main(lang: str = "en") -> None:
         # seeds (schedules, timeline, AI demo cases, ...) run even when the
         # seeder executes before the first backend boot. Same mechanism the
         # CLI uses (app.cli.modules._run).
-        from app.core.plugins.loader import discover_modules
-        from app.core.plugins.registry import module_registry
+        _ensure_module_registry()
         from app.core.plugins.service import ModuleService
 
-        if not module_registry.list_modules():
-            for module in discover_modules():
-                try:
-                    module_registry.register(module)
-                except ValueError:
-                    pass
         await ModuleService(db).reconcile_with_db()
 
         password_hash = hash_password("demo1234")

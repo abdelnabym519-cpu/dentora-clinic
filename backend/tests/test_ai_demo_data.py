@@ -176,3 +176,82 @@ async def test_seeder_reconciles_ai_cases_into_existing_demo_database(
     ).scalars().all()
     assert len(second) == 5
     assert {p.id for p in second} == {p.id for p in first}
+
+
+# --- Demo-user authentication reconciliation --------------------------------
+
+@pytest.mark.asyncio
+async def test_seeder_reconciles_stale_demo_credentials(db_session) -> None:
+    """A pre-existing demo database whose users kept stale passwords must
+    be repaired to the documented credential through the real bcrypt
+    mechanism — preserving id, membership and role."""
+    from sqlalchemy import select
+
+    from app.core.auth.models import ClinicMembership, User
+    from app.core.auth.service import hash_password, verify_password
+    from app.seeds.demo_data import CLINIC_ID, USER_DENTIST_ID
+    from scripts.seed_demo import DEMO_PASSWORD, _ensure_module_registry, reconcile_demo_users
+
+    await _seed_pre_ai_demo_base(db_session)
+    # stale credential on the existing dentist
+    found = await db_session.execute(select(User).where(User.id == USER_DENTIST_ID))
+    dentist = found.scalar_one()
+    dentist.password_hash = hash_password("StaleLegacyPass1!")
+    dentist.is_active = True
+    await db_session.commit()
+    original_id = dentist.id
+
+    _ensure_module_registry()
+    created, repaired = await reconcile_demo_users(db_session)
+    await db_session.commit()
+
+    assert created >= 1  # the other four demo users were missing
+    assert any("credentials" in r for r in repaired)
+    refreshed = (
+        await db_session.execute(select(User).where(User.id == original_id))
+    ).scalar_one()
+    assert verify_password(DEMO_PASSWORD, refreshed.password_hash)
+    assert not verify_password("StaleLegacyPass1!", refreshed.password_hash)
+    membership = (
+        await db_session.execute(
+            select(ClinicMembership).where(
+                ClinicMembership.user_id == original_id,
+                ClinicMembership.clinic_id == CLINIC_ID,
+            )
+        )
+    ).scalar_one()
+    assert membership.role == "dentist"
+
+
+@pytest.mark.asyncio
+async def test_seeder_user_reconciliation_is_idempotent_and_preserves_valid_hash(
+    db_session,
+) -> None:
+    """When credentials already verify, reconcile must not rewrite the
+    bcrypt hash (bcrypt salts differ per call — a rewrite is observable)."""
+    from sqlalchemy import select
+
+    from app.core.auth.models import User
+    from app.core.auth.service import verify_password
+    from app.seeds.demo_data import USER_DENTIST_ID
+    from scripts.seed_demo import DEMO_PASSWORD, _ensure_module_registry, reconcile_demo_users
+
+    await _seed_pre_ai_demo_base(db_session)
+    _ensure_module_registry()
+    created, repaired = await reconcile_demo_users(db_session)
+    await db_session.commit()
+    assert created >= 1  # first pass creates the missing demo users
+
+    dentist = (
+        await db_session.execute(select(User).where(User.id == USER_DENTIST_ID))
+    ).scalar_one()
+    assert verify_password(DEMO_PASSWORD, dentist.password_hash)
+    stable_hash = dentist.password_hash
+
+    created2, repaired2 = await reconcile_demo_users(db_session)
+    await db_session.commit()
+    assert created2 == 0 and repaired2 == []
+    refreshed = (
+        await db_session.execute(select(User).where(User.id == USER_DENTIST_ID))
+    ).scalar_one()
+    assert refreshed.password_hash == stable_hash, "valid hash must not be rewritten"

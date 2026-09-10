@@ -25,7 +25,7 @@ import argparse
 import asyncio
 from collections import Counter
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -259,10 +259,86 @@ async def seed_ai_demo_cases(db: AsyncSession, dentist_id: UUID) -> None:
     )
 
 
+# The documented demo credential (script docstring + DEMO CREDENTIALS
+# printout). The reconciling seeder repairs demo-user authentication to
+# exactly this credential through the project's bcrypt hashing.
+DEMO_PASSWORD = "demo1234"
+
+
 async def check_existing_data(db: AsyncSession) -> bool:
     """Check if demo data already exists."""
     result = await db.execute(select(Clinic).where(Clinic.id == CLINIC_ID))
     return result.scalar_one_or_none() is not None
+
+
+async def reconcile_demo_users(db: AsyncSession) -> tuple[int, list[str]]:
+    """Ensure the documented demo users exist and can authenticate.
+
+    Safe/idempotent reconciliation for pre-existing demo databases:
+    missing demo users are created with their fixed IDs and clinic
+    memberships; existing ones keep their id, email and roles — only an
+    inactive flag, a missing demo-clinic membership, or a password that no
+    longer verifies against the documented demo password is repaired,
+    using the project's existing bcrypt hashing. Returns
+    (created_count, repaired_descriptions).
+    """
+    from app.core.auth.models import ClinicMembership, User
+    from app.core.auth.service import verify_password
+
+    created: list[str] = []
+    repaired: list[str] = []
+    for user_data in get_users_data():
+        user = await db.get(User, user_data["id"])
+        if user is None:
+            found = await db.execute(
+                select(User).where(User.email == user_data["email"])
+            )
+            user = found.scalar_one_or_none()
+        if user is None:
+            user = User(
+                id=user_data["id"],
+                email=user_data["email"],
+                password_hash=hash_password(DEMO_PASSWORD),
+                first_name=user_data["first_name"],
+                last_name=user_data["last_name"],
+                professional_id=user_data.get("professional_id"),
+                is_active=True,
+                token_version=0,
+            )
+            db.add(user)
+            await db.flush()
+            created.append(user_data["email"])
+        else:
+            if not user.is_active:
+                user.is_active = True
+                repaired.append(f"{user_data['email']} (reactivated)")
+            try:
+                credentials_ok = verify_password(DEMO_PASSWORD, user.password_hash)
+            except ValueError:
+                # Un-parseable/legacy hash formats: bcrypt raises instead of
+                # returning False — treat as stale and repair.
+                credentials_ok = False
+            if not credentials_ok:
+                user.password_hash = hash_password(DEMO_PASSWORD)
+                repaired.append(f"{user_data['email']} (credentials)")
+        membership = await db.execute(
+            select(ClinicMembership).where(
+                ClinicMembership.user_id == user.id,
+                ClinicMembership.clinic_id == CLINIC_ID,
+            )
+        )
+        if membership.scalar_one_or_none() is None:
+            db.add(
+                ClinicMembership(
+                    id=uuid4(),
+                    user_id=user.id,
+                    clinic_id=CLINIC_ID,
+                    role=user_data["role"],
+                )
+            )
+            repaired.append(f"{user_data['email']} (membership)")
+    await db.flush()
+    return len(created), repaired
 
 
 def _ensure_module_registry() -> None:
@@ -846,6 +922,13 @@ async def main(lang: str = "en") -> None:
 
             await ModuleService(db).reconcile_with_db()
             try:
+                created_users, repaired_users = await reconcile_demo_users(db)
+                if created_users:
+                    print(f"  Created {created_users} missing demo user(s).")
+                if repaired_users:
+                    print("  Repaired: " + ", ".join(sorted(set(repaired_users))))
+                if not created_users and not repaired_users:
+                    print("  Demo users OK.")
                 if await _module_is_installed(db, "patients_clinical"):
                     await seed_ai_demo_cases(db, dentist_id=USER_DENTIST_ID)
                 else:
@@ -873,7 +956,7 @@ async def main(lang: str = "en") -> None:
 
         await ModuleService(db).reconcile_with_db()
 
-        password_hash = hash_password("demo1234")
+        password_hash = hash_password(DEMO_PASSWORD)
 
         try:
             print("[1/10] Creating clinic...")

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Seed Dentora with demo data
-# Usage: ./scripts/seed-demo.sh [--lang en|es]
+# Usage: ./scripts/seed-demo.sh [--lang en|es|fr|ar]   (ar = Egyptian Arabic demo)
 #
 # Examples:
 #   ./scripts/seed-demo.sh              # English (default)

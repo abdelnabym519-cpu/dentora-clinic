@@ -80,12 +80,19 @@ app.add_middleware(SlowAPIMiddleware)
 
 allowed_origins = settings.allowed_origins_list.copy()
 if settings.ENVIRONMENT == "development":
+    # The docker-compose dev stack serves the frontend on :3100 (see the
+    # compose ports mapping); :3000/:3001 cover a bare `npm run dev`.
+    # Without these a fresh local stack's very first browser API call
+    # (the /setup POST) is CORS-blocked and the browser shows a generic
+    # failure even though the backend processed the request.
     allowed_origins.extend(
         [
             "http://localhost:3000",
             "http://127.0.0.1:3000",
             "http://localhost:3001",
             "http://127.0.0.1:3001",
+            "http://localhost:3100",
+            "http://127.0.0.1:3100",
         ]
     )
 

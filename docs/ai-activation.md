@@ -29,6 +29,39 @@ inside the patient Summary workflow.
 | `ai_clinical_report` | Real LLM (pipeline compilation) | Patient Summary: AI Clinical Report card | Readiness gates + explicit limitations |
 | `clinical_copilot` | Real LLM behind readiness gates | Patient Summary: Clinical Copilot card | Dentist-only by safety design (`dentist_control_required`) |
 
+## Synthetic AI demo dataset (one command)
+
+`python scripts/seed_demo.py` now also seeds five clearly-marked **synthetic**
+demo patients with structured clinical evidence (module-gated, idempotent, and
+refusing to run with `ENVIRONMENT=production`):
+
+| Patient | Archetype | Evidence highlights |
+|---|---|---|
+| Nora Farouk (SYNTHETIC) | clean baseline | healthy dentition, healthy closed periodontogram |
+| Omar Sami (SYNTHETIC) | restorative | caries + fillings/planned composites |
+| Layla Adel (SYNTHETIC) | periodontal risk | smoker + closed perio with BOP/plaque/suppuration |
+| Sam Youssef (SYNTHETIC) | implant planning | missing teeth + synthetic scan geometry |
+| **Amina Hassan (SYNTHETIC)** | **Complete AI Demo Case** | anticoagulants, anesthesia reaction, bruxism, smoking, allergy, medications, hypertension, caries, failing restoration, generalized periodontitis (closed perio), synthetic scan |
+
+The complete case exercises the chain **Case Intelligence → Risk Engine
+(7/10 observed-fact factors genuinely present) → AI Treatment Planning →
+dentist acceptance → Treatment Simulation → AI Second Review → AI Clinical
+Report → Clinical Copilot**. All data is fictional; every row is marked
+synthetic. The seeder also pins the demo clinic's Copilot engine to the local
+provider: **Ollama / `qwen3:8b`** (per-clinic `copilot_settings` — change in
+Settings → Copilot if desired).
+
+Fresh environment:
+
+```bash
+docker compose up -d          # backend boots, modules auto-install
+docker compose exec backend python scripts/seed_demo.py
+```
+
+Existing environment (modules not yet installed): run the install commands
+above first, then the seed. Re-seeding is a no-op ("AI demo cases already
+exist").
+
 ## Activating on an existing environment
 
 Fresh databases install the modules above automatically. For a database that
@@ -69,6 +102,18 @@ Cloudflare Workers AI is also supported (`CLOUDFLARE_ACCOUNT_ID` +
 return an explicit `503 …_provider_unavailable` (or the copilot chat stream
 emits an `error` SSE frame) — the UI shows the actionable state and never a
 fabricated result.
+
+Two knobs control which provider is used where:
+
+* **Copilot chat** — per-clinic selection via Settings → Copilot
+  (`PATCH /api/v1/copilot/settings`; the demo seed pins it to
+  `ollama`/`qwen3:8b`).
+* **Clinical-AI generation** (case summary, treatment planning, second
+  review, clinical report, clinical copilot) — the deployment-level default
+  `COPILOT_PROVIDER_DEFAULT` (see `backend/app/config.py`). For a fully
+  local demo set `COPILOT_PROVIDER_DEFAULT=ollama` in the backend
+  environment (`.env`) so these endpoints resolve the Ollama factory
+  without any cloud dependency.
 
 ## Voice STT runtime
 

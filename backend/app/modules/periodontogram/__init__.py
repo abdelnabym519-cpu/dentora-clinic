@@ -30,7 +30,7 @@ class PeriodontogramModule(BaseModule):
         "category": "official",
         "depends": ["patients", "odontogram"],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": True,
         "role_permissions": {
             "admin": ["*"],

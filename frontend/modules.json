@@ -21,6 +21,7 @@
     "/module_layers/patients/frontend",
     "/module_layers/patients_clinical/frontend",
     "/module_layers/payments/frontend",
+    "/module_layers/periodontogram/frontend",
     "/module_layers/prescriptions/frontend",
     "/module_layers/recalls/frontend",
     "/module_layers/reports/frontend",
@@ -113,6 +114,10 @@
     {
       "name": "payments",
       "path": "/module_layers/payments/frontend"
+    },
+    {
+      "name": "periodontogram",
+      "path": "/module_layers/periodontogram/frontend"
     },
     {
       "name": "prescriptions",

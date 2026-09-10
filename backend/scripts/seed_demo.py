@@ -24,11 +24,14 @@ All users have password: demo1234
 import argparse
 import asyncio
 from collections import Counter
+from datetime import UTC, datetime
+from uuid import UUID
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import settings
 from app.core.auth.models import Clinic, ClinicMembership, User
 from app.core.auth.service import hash_password
 from app.database import async_session_maker
@@ -59,6 +62,14 @@ from app.modules.treatment_plan.models import (
     PlannedTreatmentItemSession,
     TreatmentPlan,
 )
+from app.seeds.ai_demo_data import (
+    AI_DEMO_CASES,
+    AI_DEMO_PATIENT_IDS,
+    COPILOT_DEMO_SETTINGS,
+    MESH_FILENAME,
+    MESH_TITLE,
+    build_demo_arch_stl,
+)
 from app.seeds.demo_data import (
     CLINIC_ID,
     USER_DENTIST_ID,
@@ -79,6 +90,173 @@ from app.seeds.demo_data import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+async def seed_ai_demo_cases(db: AsyncSession, dentist_id: UUID) -> None:
+    """Seed the synthetic AI-activation demo cases (LOCAL DEMO ONLY).
+
+    Five clearly-marked synthetic patients with structured clinical evidence
+    (medical context, allergies, medications, odontogram, closed
+    periodontograms, treatment history and synthetic intraoral-scan-style
+    geometry) so the activated clinical-AI pipeline — Case Intelligence →
+    Risk Engine → AI Treatment Planning → dentist acceptance → Treatment
+    Simulation → AI Second Review → AI Clinical Report → Clinical Copilot —
+    can be demonstrated end-to-end on a fresh local environment.
+
+    Idempotent: skipped when the cases already exist. Module-gated: sections
+    belonging to uninstalled modules are skipped individually.
+    """
+    sentinel = await db.get(Patient, AI_DEMO_PATIENT_IDS[0])
+    if sentinel is not None:
+        print("  AI demo cases already exist (skipped).")
+        return
+
+    from app.modules.odontogram.models import ToothRecord, Treatment, TreatmentTooth
+    from app.seeds.ai_demo_data import build_tooth_records
+
+    patients_clinical_installed = await _module_is_installed(db, "patients_clinical")
+    perio_installed = await _module_is_installed(db, "periodontogram")
+    dental3d_installed = await _module_is_installed(db, "dental_3d")
+    copilot_installed = await _module_is_installed(db, "copilot")
+
+    now = datetime.now(UTC)
+    created = 0
+    for case in AI_DEMO_CASES:
+        patient = Patient(
+            id=case["id"],
+            clinic_id=CLINIC_ID,
+            first_name=case["first_name"],
+            last_name=case["last_name"],
+            phone=case["phone"],
+            email=case["email"],
+            date_of_birth=case["date_of_birth"],
+            gender=case.get("gender"),
+            notes=case["notes"],
+            status="active",
+        )
+        db.add(patient)
+        await db.flush()
+        created += 1
+
+        if patients_clinical_installed:
+            _seed_patient_clinical(db, case)
+
+        # Odontogram: one ToothRecord per permanent tooth + treatments.
+        tooth_record_ids: dict[int, UUID] = {}
+        for spec in build_tooth_records(case.get("tooth_specs")):
+            record = ToothRecord(
+                clinic_id=CLINIC_ID,
+                patient_id=patient.id,
+                tooth_number=spec["tooth_number"],
+                tooth_type=spec["tooth_type"],
+                general_condition=spec["general_condition"],
+                surfaces=spec.get("surfaces", {}),
+                notes=spec.get("notes"),
+            )
+            db.add(record)
+            await db.flush()
+            tooth_record_ids[spec["tooth_number"]] = record.id
+
+        for tspec in case["treatments"]:
+            treatment = Treatment(
+                clinic_id=CLINIC_ID,
+                patient_id=patient.id,
+                clinical_type=tspec["clinical_type"],
+                scope="tooth",
+                status=tspec["status"],
+                recorded_at=now,
+                performed_at=now if tspec["status"] == "performed" else None,
+                notes="Synthetic demo treatment",
+            )
+            db.add(treatment)
+            await db.flush()
+            for n in tspec["teeth"]:
+                db.add(
+                    TreatmentTooth(
+                        treatment_id=treatment.id,
+                        tooth_record_id=tooth_record_ids[n],
+                        tooth_number=n,
+                        surfaces=None,
+                    )
+                )
+
+        # Closed periodontogram snapshot (immutable by contract).
+        if perio_installed and case.get("perio"):
+            from app.modules.periodontogram.models import (
+                PeriodontogramSite,
+                PeriodontogramSnapshot,
+                PeriodontogramTooth,
+            )
+
+            snapshot = PeriodontogramSnapshot(
+                clinic_id=CLINIC_ID,
+                patient_id=patient.id,
+                status="closed",
+                recorded_at=now,
+                recorded_by=dentist_id,
+                closed_at=now,
+                closed_by=dentist_id,
+                notes="Synthetic demo snapshot (closed) — not real clinical data.",
+            )
+            db.add(snapshot)
+            await db.flush()
+            for tooth_spec in case["perio"]["teeth"]:
+                tooth = PeriodontogramTooth(
+                    snapshot_id=snapshot.id,
+                    tooth_number=tooth_spec["tooth_number"],
+                    is_present=tooth_spec["is_present"],
+                    is_implant=tooth_spec["is_implant"],
+                    mobility=tooth_spec.get("mobility"),
+                )
+                db.add(tooth)
+                await db.flush()
+                for site_spec in tooth_spec["sites"]:
+                    db.add(
+                        PeriodontogramSite(
+                            snapshot_id=snapshot.id,
+                            tooth_id=tooth.id,
+                            tooth_number=tooth_spec["tooth_number"],
+                            site_code=site_spec["site_code"],
+                            probing_depth_mm=site_spec["probing_depth_mm"],
+                            gingival_margin_mm=site_spec["gingival_margin_mm"],
+                            bleeding_on_probing=site_spec["bleeding_on_probing"],
+                            plaque=site_spec["plaque"],
+                            suppuration=site_spec["suppuration"],
+                        )
+                    )
+
+        # Synthetic intraoral-scan-style geometry (deterministic, clearly
+        # labeled) through the module's real ingest/validation path.
+        if dental3d_installed and case.get("mesh"):
+            from app.modules.dental_3d.service import DentalMeshService
+
+            await DentalMeshService.ingest(
+                db,
+                clinic_id=CLINIC_ID,
+                patient_id=patient.id,
+                user_id=dentist_id,
+                filename=MESH_FILENAME,
+                content_type="model/stl",
+                data=build_demo_arch_stl(),
+                title=MESH_TITLE,
+            )
+
+    if copilot_installed:
+        # Existing per-clinic settings service handles NOT-NULL defaults
+        # (period_start, budgets, ...); we only pin provider + model.
+        from app.modules.copilot.service import CopilotSettingsService
+
+        settings_row = await CopilotSettingsService.get_or_create(db, CLINIC_ID)
+        settings_row.provider = COPILOT_DEMO_SETTINGS["provider"]
+        settings_row.model = COPILOT_DEMO_SETTINGS["model"]
+
+    await db.flush()
+    print(f"  Created {created} synthetic AI demo patients (5 archetypes).")
+    print(
+        "  Complete AI Demo Case: Amina Hassan (SYNTHETIC) — exercises "
+        "Case Intelligence → Risk Engine → AI Treatment Planning → "
+        "acceptance → Simulation → Second Review → Report → Clinical Copilot."
+    )
 
 
 async def check_existing_data(db: AsyncSession) -> bool:
@@ -617,6 +795,12 @@ Examples:
 
 async def main(lang: str = "en") -> None:
     """Seed the full demo clinical workflow."""
+    if settings.ENVIRONMENT == "production":
+        raise SystemExit(
+            "REFUSING to seed: ENVIRONMENT=production. The demo seeder is "
+            "restricted to local/development environments."
+        )
+
     set_language(lang)
     lang_names = {"en": "English", "es": "Spanish", "fr": "French"}
     lang_name = lang_names.get(lang, lang)
@@ -633,6 +817,23 @@ async def main(lang: str = "en") -> None:
             return
 
         print("Creating demo data...\n")
+
+        # Self-sufficient module state: populate the registry and reconcile
+        # module records exactly like the app boot does, so module-gated
+        # seeds (schedules, timeline, AI demo cases, ...) run even when the
+        # seeder executes before the first backend boot. Same mechanism the
+        # CLI uses (app.cli.modules._run).
+        from app.core.plugins.loader import discover_modules
+        from app.core.plugins.registry import module_registry
+        from app.core.plugins.service import ModuleService
+
+        if not module_registry.list_modules():
+            for module in discover_modules():
+                try:
+                    module_registry.register(module)
+                except ValueError:
+                    pass
+        await ModuleService(db).reconcile_with_db()
 
         password_hash = hash_password("demo1234")
 
@@ -685,6 +886,10 @@ async def main(lang: str = "en") -> None:
             # Optional modules — only seed when installed. Looked up by
             # name in ``core_module`` so a future ``dentora modules
             # uninstall schedules`` cleanly skips this step.
+            if await _module_is_installed(db, "patients_clinical"):
+                print("\n[opt] Creating synthetic AI demo cases (activation demo)...")
+                await seed_ai_demo_cases(db, dentist_id=USER_DENTIST_ID)
+
             if await _module_is_installed(db, "schedules"):
                 print("\n[opt] Creating schedules demo (module installed)...")
                 from app.modules.schedules.seed import seed_schedules_demo

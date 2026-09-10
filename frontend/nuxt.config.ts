@@ -1,31 +1,21 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { loadModuleLayers } from './module-layers.mjs'
 
 /**
- * Load Nuxt Layer paths from `modules.json`.
+ * Load Nuxt Layer directories from `modules.json`.
  *
  * The backend writes this file whenever a module with a declared
- * `manifest.frontend.layer_path` is installed. When absent (fresh
- * checkout, no community modules yet), returns an empty array.
+ * `manifest.frontend.layer_path` is installed. Every entry is validated
+ * and (when the `/module_layers` mount is absent, e.g. a plain Windows
+ * checkout or the image build stage) mapped onto the real module source
+ * in `backend/app/modules`; entries that cannot be resolved are reported
+ * and skipped instead of crashing the build with ENOTDIR/ENOENT.
+ * When the file is absent (fresh checkout, no community modules yet),
+ * the layer list is empty.
  */
-function loadModuleLayers(): string[] {
-  const path = resolve(__dirname, 'modules.json')
-  try {
-    const raw = readFileSync(path, 'utf-8')
-    const payload = JSON.parse(raw) as { layers?: string[] }
-    return Array.isArray(payload.layers) ? payload.layers : []
-  } catch (err: unknown) {
-    const code = (err as { code?: string }).code
-    if (code !== 'ENOENT') {
-      console.warn('[nuxt.config] modules.json is malformed, using empty layers:', err)
-    }
-    return []
-  }
-}
-
-const moduleLayers = loadModuleLayers()
 const modulesJsonPath = resolve(__dirname, 'modules.json')
+const { layers: moduleLayers } = loadModuleLayers({ modulesJsonPath, warn: console.warn })
 
 export default defineNuxtConfig({
 

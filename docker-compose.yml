@@ -23,7 +23,10 @@ services:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-dental}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-dental_clinic}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       ENVIRONMENT: ${ENVIRONMENT:-development}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      # Dev-safe default: the documented compose flow serves the UI on
+      # http://localhost:3100 (and 3000 for a bare `npm run dev`). Real
+      # deployments must set ALLOWED_ORIGINS explicitly in .env.
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3100,http://localhost:3000}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
       STORAGE_LOCAL_PATH: ${STORAGE_LOCAL_PATH:-/app/storage}
       DENTAL_3D_NERVE_INFERENCE_URL: ${DENTAL_3D_NERVE_INFERENCE_URL:-}
@@ -78,14 +81,14 @@ services:
       target: builder
       args:
         # The browser resolves this URL, so it must be reachable from the
-        # device running it. Set API_BASE_URL=http://<host-lan-ip>:8000 in
+        # device running it. Set API_BASE_URL=http://<host-lan-ip>:8100 in
         # .env (plus the same origin in ALLOWED_ORIGINS) to reach the app
         # from a phone or another machine.
-        API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+        API_BASE_URL: ${API_BASE_URL:-http://localhost:8100}
     environment:
       NITRO_HOST: 0.0.0.0
       NITRO_PORT: 3000
-      NUXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+      NUXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-http://localhost:8100}
       NUXT_PUBLIC_TRIAL_MODE: ${TRIAL_MODE:-false}
       NUXT_PUBLIC_TRIAL_STARTED_AT: ${TRIAL_STARTED_AT:-}
       NUXT_PUBLIC_TRIAL_DAYS: ${TRIAL_DAYS:-3}

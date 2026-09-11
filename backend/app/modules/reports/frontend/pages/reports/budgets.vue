@@ -5,6 +5,7 @@ import type {
   BudgetByTreatment,
   BudgetByStatus
 } from '../../composables/useReports'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -90,7 +91,13 @@ watch(selectedRange, (range) => {
 })
 
 // Load all report data
+// A date-range change re-reads every section, and the previous load is often
+// still in flight. The slower earlier answer must not replace the numbers for
+// the range now on screen: that is a financial misreading, not a flicker.
+const reportGuard = latestGuard()
+
 async function loadReports() {
+  const isLatest = reportGuard.begin()
   isLoading.value = true
   clearErrors()
 
@@ -102,6 +109,8 @@ async function loadReports() {
       fetchBudgetsByStatus(dateFrom.value, dateTo.value)
     ])
 
+    if (!isLatest()) return
+
     summary.value = summaryData
     byProfessional.value = professionalsData
     byTreatment.value = treatmentsData
@@ -109,7 +118,7 @@ async function loadReports() {
   } catch (e) {
     console.error('Failed to load budget reports:', e)
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 

@@ -7,6 +7,7 @@ import type {
   ProfessionalBillingSummary,
   VatSummaryItem
 } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -95,8 +96,14 @@ watch(selectedRange, (range) => {
   dateTo.value = to.toISOString().slice(0, 10)
 })
 
+// A date-range change re-reads every section, and the previous load is often
+// still in flight. The slower earlier answer must not replace the numbers for
+// the range now on screen: that is a financial misreading, not a flicker.
+const reportGuard = latestGuard()
+
 // Load all report data
 async function loadReports() {
+  const isLatest = reportGuard.begin()
   isLoading.value = true
   clearErrors()
 
@@ -117,6 +124,8 @@ async function loadReports() {
       fetchNumberingGaps()
     ])
 
+    if (!isLatest()) return
+
     summary.value = summaryData
     overdueInvoices.value = overdueData
     paymentMethods.value = paymentMethodsData
@@ -126,7 +135,7 @@ async function loadReports() {
   } catch (e) {
     console.error('Failed to load reports:', e)
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { InvoiceSeries, InvoiceSeriesCreate, InvoiceSeriesUpdate, SeriesResetRequest } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const { t } = useI18n()
 const { isAdmin } = usePermissions()
@@ -58,12 +59,19 @@ onMounted(async () => {
   await loadSeries()
 })
 
+// The "show inactive" toggle re-reads the list; a late answer for the previous
+// toggle state must not replace the one now on screen.
+const seriesGuard = latestGuard()
+
 async function loadSeries() {
+  const isLatest = seriesGuard.begin()
   isLoading.value = true
   try {
-    series.value = await fetchSeries(undefined, !showInactive.value)
+    const fetched = await fetchSeries(undefined, !showInactive.value)
+    if (!isLatest()) return
+    series.value = fetched ?? []
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 

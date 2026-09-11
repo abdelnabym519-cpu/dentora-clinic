@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import type { Recall, RecallStatus, RecallReason, RecallPriority } from '../../composables/useRecalls'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 definePageMeta({ middleware: ['auth'] })
 
@@ -76,7 +77,12 @@ const priorityOptions = computed(() => [
   }))
 ])
 
+// Month, reason, status, priority, overdue and page all re-trigger this list.
+// A slow answer for the filter the user left must not replace the current one.
+const recallsGuard = latestGuard()
+
 async function load() {
+  const isLatest = recallsGuard.begin()
   isLoading.value = true
   try {
     const filters: Record<string, unknown> = {
@@ -93,7 +99,8 @@ async function load() {
       recallsApi.list(filters),
       recallsApi.dashboardStats()
     ])
-    items.value = list.data
+    if (!isLatest()) return
+    items.value = list.data ?? []
     total.value = list.total
     stats.value = dash.data
   } finally {

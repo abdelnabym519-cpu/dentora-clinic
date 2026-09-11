@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ApiResponse } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 type ProfessionalState = 'free' | 'in_treatment' | 'on_break' | 'off'
 
@@ -43,7 +44,12 @@ const pills = ref<StripPill[]>([])
 const isLoading = ref(false)
 const hasError = ref(false)
 
+// The strip follows the selected day and polls every 30 s; a late answer for
+// the previous day must not relabel the lanes under the day now on screen.
+const stripGuard = latestGuard()
+
 async function load(options: { silent?: boolean } = {}) {
+  const isLatest = stripGuard.begin()
   const year = props.currentDate.getFullYear()
   const month = String(props.currentDate.getMonth() + 1).padStart(2, '0')
   const day = String(props.currentDate.getDate()).padStart(2, '0')
@@ -56,7 +62,8 @@ async function load(options: { silent?: boolean } = {}) {
       // decorative lane would be noise attributed to the board itself.
       { silent: options.silent === true, operation: t('appointments.professionals.strip') }
     )
-    pills.value = response.data.professionals
+    if (!isLatest()) return
+    pills.value = response.data?.professionals ?? []
     hasError.value = false
   } catch {
     // Not an empty strip: "nobody is working today" and "we could not

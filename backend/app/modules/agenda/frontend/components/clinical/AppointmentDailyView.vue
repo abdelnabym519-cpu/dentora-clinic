@@ -3,6 +3,7 @@ import type { Appointment, Professional } from '~~/app/types'
 import type { BlockedSegment } from '../../composables/useBlockedSegments'
 import { calculateOverlapGroups } from '../../composables/calculateOverlapGroups'
 import { formatLocalDate } from '../../utils/date'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const notesIndicator = useAppointmentNotesIndicator()
 
@@ -55,16 +56,25 @@ const { compute: computeBlockedSegments } = useBlockedSegments({
 
 const blockedSegments = ref<BlockedSegment[]>([])
 
+// Re-runs on every date click and whenever the professional list changes, with
+// two awaits in between: a slow run for the previous day would otherwise reset
+// the day's bounds and blocked segments under the day now displayed.
+const availabilityGuard = latestGuard()
+
 async function refreshAvailability() {
+  const isLatest = availabilityGuard.begin()
   const bounds = await computeCalendarBounds({ start: props.currentDate, end: props.currentDate })
+  if (!isLatest()) return
   startHour.value = bounds.startHour
   endHour.value = bounds.endHour
 
-  blockedSegments.value = await computeBlockedSegments({
+  const segments = await computeBlockedSegments({
     start: props.currentDate,
     end: props.currentDate,
     professionals: props.professionals
   })
+  if (!isLatest()) return
+  blockedSegments.value = segments
 }
 
 watch(

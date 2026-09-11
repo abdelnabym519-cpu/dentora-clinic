@@ -20,6 +20,7 @@ import type {
   AgingBuckets,
   RefundsReport
 } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -92,38 +93,60 @@ const granularityOptions = computed(() => [
   { value: 'month', label: t('payments.reports.granularity.month') }
 ])
 
+// `watch(range, …, { deep: true })` and `watch(granularity, …)` re-read these
+// on every change; two loads overlap routinely and the stale one must not
+// replace the figures for the range now selected.
+const primaryGuard = latestGuard()
+const trendsGuard = latestGuard()
+const deltaGuard = latestGuard()
+
 async function refreshPrimary() {
   if (!range.value.from || !range.value.to) return
+  const isLatest = primaryGuard.begin()
   loadingPrimary.value = true
-  const [s, m, p, a, r] = await Promise.all([
-    summary(range.value.from, range.value.to),
-    byMethod(range.value.from, range.value.to),
-    byProfessional(range.value.from, range.value.to),
-    aging(),
-    refunds(range.value.from, range.value.to)
-  ])
-  summaryData.value = s
-  methodsData.value = m
-  profData.value = p
-  agingData.value = a
-  refundsData.value = r
-  loadingPrimary.value = false
+  try {
+    const [s, m, p, a, r] = await Promise.all([
+      summary(range.value.from, range.value.to),
+      byMethod(range.value.from, range.value.to),
+      byProfessional(range.value.from, range.value.to),
+      aging(),
+      refunds(range.value.from, range.value.to)
+    ])
+    if (!isLatest()) return
+    summaryData.value = s
+    methodsData.value = m
+    profData.value = p
+    agingData.value = a
+    refundsData.value = r
+  } finally {
+    if (isLatest()) loadingPrimary.value = false
+  }
 }
 
 async function refreshTrends() {
   if (!range.value.from || !range.value.to) return
+  const isLatest = trendsGuard.begin()
   loadingTrends.value = true
-  trendsData.value = await trends(range.value.from, range.value.to, granularity.value)
-  loadingTrends.value = false
+  try {
+    const data = await trends(range.value.from, range.value.to, granularity.value)
+    if (!isLatest()) return
+    trendsData.value = data
+  } finally {
+    if (isLatest()) loadingTrends.value = false
+  }
 }
 
 async function refreshDelta() {
   const prev = previousRange(range.value)
   if (!prev || !prev.from || !prev.to) {
+    deltaGuard.invalidate()
     previousSummary.value = null
     return
   }
-  previousSummary.value = await summary(prev.from, prev.to)
+  const isLatest = deltaGuard.begin()
+  const data = await summary(prev.from, prev.to)
+  if (!isLatest()) return
+  previousSummary.value = data
 }
 
 async function refreshAll() {

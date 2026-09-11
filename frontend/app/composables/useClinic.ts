@@ -26,8 +26,9 @@ export function useClinic() {
     try {
       // Get user's clinics (for MVP, we just use the first one)
       const response = await api.get<PaginatedResponse<Clinic>>('/api/v1/auth/clinics')
-      if (response.data.length > 0) {
-        currentClinic.value = response.data[0] ?? null
+      const clinics = response.data ?? []
+      if (clinics.length > 0) {
+        currentClinic.value = clinics[0] ?? null
       }
     } catch (error) {
       console.error('Failed to fetch clinic:', error)

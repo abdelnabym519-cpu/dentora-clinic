@@ -26,6 +26,12 @@ const invoicePayments = ref<Map<string, Payment[]>>(new Map())
 const loadingPayments = ref<Set<string>>(new Set())
 /** Per-invoice reason when its payments could not be read. */
 const paymentErrors = ref<Map<string, string>>(new Map())
+/**
+ * Reason when the invoice list itself could not be read. Without it a denied
+ * read rendered the empty state — "this patient has no invoices" — which is a
+ * financial claim nobody established.
+ */
+const invoicesError = ref<string | null>(null)
 
 // Page clicks and patient switches both re-read this list; the slower earlier
 // answer must not replace the page (or the patient) now on screen.
@@ -39,16 +45,20 @@ async function loadInvoices() {
     page_size: String(pageSize)
   })
   try {
+    // Silent: this component owns the surface, so one failure is reported once.
     const response = await api.get<PaginatedResponse<InvoiceListItem>>(
-      `/api/v1/billing/invoices?${params.toString()}`
+      `/api/v1/billing/invoices?${params.toString()}`,
+      { silent: true }
     )
     if (!isLatest()) return
     invoices.value = response.data ?? []
     invoicesTotal.value = response.total
-  } catch {
+    invoicesError.value = null
+  } catch (e) {
     if (!isLatest()) return
     invoices.value = []
     invoicesTotal.value = 0
+    invoicesError.value = errorMessage(e, t('errors.loadFailed'))
   }
 }
 
@@ -264,9 +274,33 @@ watch(() => props.patientId, () => {
           </UButton>
         </div>
 
+        <!-- A failed read is not "this patient has no invoices". -->
+        <div
+          v-if="invoicesError"
+          class="space-y-2 py-4"
+          data-testid="patient-invoices-load-error"
+        >
+          <UAlert
+            color="error"
+            variant="soft"
+            icon="i-lucide-alert-triangle"
+            :title="t('errors.loadFailed')"
+            :description="invoicesError"
+          />
+          <UButton
+            variant="ghost"
+            size="sm"
+            icon="i-lucide-refresh-cw"
+            data-testid="patient-invoices-retry"
+            @click="loadInvoices()"
+          >
+            {{ t('common.retry') }}
+          </UButton>
+        </div>
+
         <!-- Empty state -->
         <div
-          v-if="invoicesTotal === 0"
+          v-else-if="invoicesTotal === 0"
           class="text-center py-12 bg-surface-muted/30 rounded-lg"
         >
           <UIcon

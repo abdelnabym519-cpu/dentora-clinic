@@ -5,6 +5,7 @@
  */
 import type { VatType, VatTypeCreate, VatTypeUpdate, ApiResponse } from '~~/app/types'
 import { errorMessage } from '~~/app/utils/error'
+import { useSharedLatestGuard } from '~~/app/utils/latestGuard'
 
 export function useVatTypes() {
   const api = useApi()
@@ -44,7 +45,12 @@ export function useVatTypes() {
   }
 
   // Fetch all VAT types for the clinic
+  // The settings page re-reads on the "show inactive" toggle; the list is
+  // shared `useState`, so the counter is too.
+  const vatTypesGuard = useSharedLatestGuard('catalog:vat-types')
+
   async function fetchVatTypes(includeInactive = false): Promise<void> {
+    const isLatest = vatTypesGuard.begin()
     isLoading.value = true
     try {
       const params = includeInactive ? '?include_inactive=true' : ''
@@ -55,15 +61,17 @@ export function useVatTypes() {
         `/api/v1/catalog/vat-types${params}`,
         { silent: true }
       )
+      if (!isLatest()) return
       vatTypes.value = response.data ?? []
     } catch (e) {
+      if (!isLatest()) return
       toast.add({
         title: t('common.error'),
         description: errorMessage(e, t('vatTypes.loadError')),
         color: 'error'
       })
     } finally {
-      isLoading.value = false
+      if (isLatest()) isLoading.value = false
     }
   }
 

@@ -10,6 +10,7 @@ import type {
   SchedulingSummary,
   WaitingTimeStats
 } from '../../composables/useReports'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -133,7 +134,13 @@ const tabOptions = computed(() => [
 ])
 
 // ─── Data load ───────────────────────────────────────────────────────
+// Dates, cabinet and professional all re-read nine sections at once, so two
+// loads overlap routinely. The stale one must not replace the figures for the
+// filters now selected.
+const reportGuard = latestGuard()
+
 async function loadReports() {
+  const isLatest = reportGuard.begin()
   isLoading.value = true
   clearErrors()
 
@@ -160,6 +167,8 @@ async function loadReports() {
       fetchFunnel(dateFrom.value, dateTo.value, analyticsFilters.value)
     ])
 
+    if (!isLatest()) return
+
     summary.value = summaryData
     firstVisits.value = firstVisitsData
     hoursByProfessional.value = hoursData
@@ -172,7 +181,7 @@ async function loadReports() {
   } catch (e) {
     console.error('Failed to load scheduling reports:', e)
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 

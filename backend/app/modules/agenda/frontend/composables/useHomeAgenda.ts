@@ -1,4 +1,5 @@
 import type { Appointment, PaginatedResponse } from '~~/app/types'
+import { useSharedLatestGuard } from '~~/app/utils/latestGuard'
 
 /**
  * Shared state for agenda widgets on the home dashboard. Today's and
@@ -33,38 +34,51 @@ export function useHomeAgenda() {
     return { start, end }
   }
 
+  // The home tiles re-read on a 30 s poll and on tab focus. Overlapping polls
+  // are the norm, and a stale failure would otherwise raise the error flag on
+  // top of a newer success (or stale rows on top of newer ones). The tiles are
+  // `useState`, so the counters are shared with every component reading them.
+  const todayGuard = useSharedLatestGuard('agenda.home:today')
+  const tomorrowGuard = useSharedLatestGuard('agenda.home:tomorrow')
+
   async function fetchToday(): Promise<Appointment[]> {
     const { start, end } = rangeFor(0)
+    const isLatest = todayGuard.begin()
     try {
       const res = await api.get<PaginatedResponse<Appointment>>(
         `/api/v1/agenda/appointments?start_date=${start}&end_date=${end}&page_size=500`,
         { silent: true }
       )
+      if (!isLatest()) return todayAppointments.value
       todayAppointments.value = res.data ?? []
       todayError.value = false
     } catch {
+      if (!isLatest()) return todayAppointments.value
       todayAppointments.value = []
       todayError.value = true
     } finally {
-      todayLoaded.value = true
+      if (isLatest()) todayLoaded.value = true
     }
     return todayAppointments.value
   }
 
   async function fetchTomorrowUnconfirmed(): Promise<Appointment[]> {
     const { start, end } = rangeFor(1)
+    const isLatest = tomorrowGuard.begin()
     try {
       const res = await api.get<PaginatedResponse<Appointment>>(
         `/api/v1/agenda/appointments?start_date=${start}&end_date=${end}&status=scheduled&page_size=500`,
         { silent: true }
       )
+      if (!isLatest()) return tomorrowUnconfirmed.value
       tomorrowUnconfirmed.value = res.data ?? []
       tomorrowError.value = false
     } catch {
+      if (!isLatest()) return tomorrowUnconfirmed.value
       tomorrowUnconfirmed.value = []
       tomorrowError.value = true
     } finally {
-      tomorrowLoaded.value = true
+      if (isLatest()) tomorrowLoaded.value = true
     }
     return tomorrowUnconfirmed.value
   }

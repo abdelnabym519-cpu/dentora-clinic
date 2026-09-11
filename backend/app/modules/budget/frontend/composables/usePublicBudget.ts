@@ -70,6 +70,35 @@ export type VerifyError
     | 'invalid'
     | 'unknown'
 
+/**
+ * Why the budget itself could not be read. Kept as a code, not a message:
+ * this composable has no i18n dependency, and the page already owns copy for
+ * every one of these cases.
+ */
+export type PublicLoadError = 'not_found' | 'expired' | 'locked' | 'generic'
+
+/**
+ * These are raw `$fetch` calls to public endpoints, so nothing else reports
+ * them: no `useApi` toast, no auth interceptor. Without this mapping a patient
+ * opening a link after a network blip or a purged token stared at loading
+ * skeletons forever.
+ */
+function toLoadError(e: unknown): PublicLoadError {
+  const status = (e as { statusCode?: number, status?: number })?.statusCode
+    ?? (e as { statusCode?: number, status?: number })?.status
+  switch (status) {
+    case 404:
+      return 'not_found'
+    case 410:
+      return 'expired'
+    case 403:
+    case 423:
+      return 'locked'
+    default:
+      return 'generic'
+  }
+}
+
 function apiBase(): string {
   const config = useRuntimeConfig()
   // The host frontend exposes the backend URL as ``public.apiBaseUrl``
@@ -90,6 +119,7 @@ export function usePublicBudget(token: string) {
   const submitting = ref(false)
   const verifyAttemptsLeft = ref<number | null>(null)
   const lastError = ref<VerifyError | null>(null)
+  const loadError = ref<PublicLoadError | null>(null)
   const decided = ref<'accepted' | 'rejected' | null>(null)
 
   const baseUrl = computed(() => `${apiBase()}/api/v1/budget/public/budgets/${token}`)
@@ -97,11 +127,17 @@ export function usePublicBudget(token: string) {
   async function fetchMeta() {
     loading.value = true
     lastError.value = null
+    loadError.value = null
     try {
       const res = await $fetch<{ data: PublicMeta }>(`${baseUrl.value}/meta`, {
         credentials: 'include'
       })
       meta.value = res.data
+    } catch (e) {
+      // Was try/finally with no catch: the rejection escaped the page's
+      // onMounted and `meta` stayed null, which the template renders as an
+      // endless skeleton.
+      loadError.value = toLoadError(e)
     } finally {
       loading.value = false
     }
@@ -109,11 +145,14 @@ export function usePublicBudget(token: string) {
 
   async function fetchBudget() {
     loading.value = true
+    loadError.value = null
     try {
       const res = await $fetch<{ data: PublicBudget }>(baseUrl.value, {
         credentials: 'include'
       })
       budget.value = res.data
+    } catch (e) {
+      loadError.value = toLoadError(e)
     } finally {
       loading.value = false
     }
@@ -223,6 +262,7 @@ export function usePublicBudget(token: string) {
     submitting,
     verifyAttemptsLeft,
     lastError,
+    loadError,
     decided,
     fetchMeta,
     fetchBudget,

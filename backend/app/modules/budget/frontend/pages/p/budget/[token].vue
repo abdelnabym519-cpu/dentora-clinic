@@ -25,9 +25,11 @@ const token = computed(() => route.params.token as string)
 const {
   meta,
   budget,
+  loading,
   verifying,
   submitting,
   lastError,
+  loadError,
   fetchMeta,
   fetchBudget,
   verify,
@@ -82,7 +84,7 @@ async function applyClinicLanguage() {
   }
 }
 
-onMounted(async () => {
+async function loadPage() {
   await fetchMeta()
   await applyClinicLanguage()
   if (
@@ -92,6 +94,23 @@ onMounted(async () => {
     && !meta.value.expired
   ) {
     await fetchBudget()
+  }
+}
+
+onMounted(loadPage)
+
+// Copy for the load-failure card. Every case reuses strings the page already
+// ships, so no new translation was needed in five languages.
+const loadErrorTitle = computed(() => {
+  switch (loadError.value) {
+    case 'not_found':
+      return t('budget.errors.notFound')
+    case 'expired':
+      return t('budget.public.expired')
+    case 'locked':
+      return t('budget.public.locked')
+    default:
+      return t('budget.errors.load')
   }
 })
 
@@ -241,9 +260,56 @@ const greeting = computed(() => {
 
 <template>
   <div class="public-budget">
+    <!--
+      Load failure. This page talks to public endpoints with raw $fetch, so
+      nothing else reports a failure: without this branch a patient opening a
+      valid link during a network blip watched skeletons forever.
+    -->
+    <div
+      v-if="loadError"
+      class="container py-8 space-y-4"
+      data-testid="public-budget-load-error"
+    >
+      <UCard>
+        <div class="flex flex-col items-center text-center gap-3 py-8 px-4">
+          <div class="w-14 h-14 rounded-full flex items-center justify-center bg-red-100">
+            <UIcon
+              :name="loadError === 'expired'
+                ? 'i-lucide-clock-alert'
+                : loadError === 'locked'
+                  ? 'i-lucide-shield-alert'
+                  : 'i-lucide-alert-triangle'"
+              class="w-7 h-7 text-red-600"
+            />
+          </div>
+          <h1 class="text-xl font-semibold">
+            {{ loadErrorTitle }}
+          </h1>
+          <p
+            v-if="loadError === 'generic'"
+            class="text-sm text-gray-600 max-w-md"
+          >
+            {{ t('budget.public.needHelp') }}
+          </p>
+          <div class="pt-2">
+            <UButton
+              color="primary"
+              variant="soft"
+              icon="i-lucide-refresh-cw"
+              :loading="loading"
+              data-testid="public-budget-retry"
+              @click="loadPage"
+            >
+              {{ t('common.retry') }}
+            </UButton>
+          </div>
+        </div>
+      </UCard>
+    </div>
+
     <!-- Loading -->
     <div
-      v-if="!meta"
+      v-else-if="!meta"
       class="container space-y-3 py-6"
     >
       <USkeleton class="h-12 w-2/3" />

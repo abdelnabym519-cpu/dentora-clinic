@@ -30,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const toast = useToast()
 const auth = useAuth()
 const clinic = useClinic()
@@ -503,7 +504,7 @@ async function handleSave() {
         return rStart < formEnd && rEnd > formStart
       })
       if (conflict) {
-        const confirmed = window.confirm(t('schedules.availability.confirmOutside'))
+        const confirmed = await confirmDialog({ title: t('schedules.availability.confirmOutside') })
         if (!confirmed) {
           isSubmitting.value = false
           return

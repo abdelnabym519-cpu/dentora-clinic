@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const { settings, loading, saving, fetch, update } = useCommunicationsSettings()
+const { settings, loading, saving, error, fetch, update } = useCommunicationsSettings()
 
 const language = ref<'es' | 'en' | 'fr' | 'pt'>('es')
 
@@ -25,7 +25,30 @@ async function save() {
 </script>
 
 <template>
-  <UCard v-if="!loading">
+  <!-- A failed load is not "the clinic speaks Spanish": the picker would be
+       showing a default nobody chose, one click away from being saved. -->
+  <div
+    v-if="error"
+    class="space-y-3"
+    data-testid="clinic-language-load-error"
+  >
+    <UAlert
+      color="error"
+      variant="soft"
+      icon="i-lucide-alert-triangle"
+      :title="t('errors.loadFailed')"
+      :description="error"
+    />
+    <UButton
+      variant="ghost"
+      size="sm"
+      icon="i-lucide-refresh-cw"
+      @click="fetch()"
+    >
+      {{ t('common.retry') }}
+    </UButton>
+  </div>
+  <UCard v-else-if="!loading">
     <div class="space-y-4">
       <div>
         <p class="font-medium">

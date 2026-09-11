@@ -13,6 +13,7 @@ import BudgetSignatureCard from '../../components/budget/BudgetSignatureCard.vue
 const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const toast = useToast()
 const { can } = usePermissions()
 const api = useApi()
@@ -174,7 +175,7 @@ function handleItemAdded() {
 
 async function handleRemoveItem(item: BudgetItem) {
   if (!currentBudget.value) return
-  if (!confirm(t('budget.items.remove') + '?')) return
+  if (!await confirmDialog({ title: t('budget.items.remove') + '?', danger: true })) return
 
   try {
     await removeItem(currentBudget.value.id, item.id)
@@ -247,7 +248,7 @@ function resetSignatureForm() {
 
 async function handleCancel() {
   if (!currentBudget.value) return
-  if (!confirm(t('budget.confirmations.cancel'))) return
+  if (!await confirmDialog({ title: t('budget.confirmations.cancel'), danger: true })) return
 
   try {
     await cancelBudget(currentBudget.value.id)
@@ -304,7 +305,7 @@ function resetSendForm() {
 
 async function handleResend() {
   if (!currentBudget.value) return
-  if (!confirm(t('budget.confirmations.resend'))) return
+  if (!await confirmDialog({ title: t('budget.confirmations.resend') })) return
 
   try {
     const newBudget = await resendBudget(currentBudget.value.id)

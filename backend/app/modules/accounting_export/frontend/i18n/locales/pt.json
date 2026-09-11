@@ -3,28 +3,9 @@
     "accountingExport": "Exportação para o contabilista"
   },
   "accountingExport": {
-    "title": "Exportação para o contabilista",
-    "subtitle": "Descarregue as faturas e os pagamentos do período para entregar ao seu contabilista.",
-    "period": "Período",
-    "from": "De",
-    "to": "Até",
-    "presets": {
-      "currentMonth": "Mês atual",
-      "previousMonth": "Mês anterior",
-      "currentQuarter": "Trimestre atual",
-      "previousQuarter": "Trimestre anterior",
-      "yearToDate": "Ano até à data",
-      "custom": "Personalizado"
-    },
     "actions": {
       "preview": "Pré-visualizar",
       "download": "Descarregar (.zip)"
-    },
-    "counters": {
-      "invoices": "Faturas",
-      "payments": "Pagamentos",
-      "base": "Base",
-      "total": "Total"
     },
     "cols": {
       "numero": "Número",
@@ -35,6 +16,29 @@
       "cuota_iva": "IVA",
       "total": "Total",
       "estado": "Estado"
-    }
+    },
+    "counters": {
+      "invoices": "Faturas",
+      "payments": "Pagamentos",
+      "base": "Base",
+      "total": "Total"
+    },
+    "errors": {
+      "downloadFailed": "Não foi possível baixar a exportação",
+      "previewFailed": "Não foi possível gerar a pré-visualização"
+    },
+    "from": "De",
+    "period": "Período",
+    "presets": {
+      "currentMonth": "Mês atual",
+      "previousMonth": "Mês anterior",
+      "currentQuarter": "Trimestre atual",
+      "previousQuarter": "Trimestre anterior",
+      "yearToDate": "Ano até à data",
+      "custom": "Personalizado"
+    },
+    "subtitle": "Descarregue as faturas e os pagamentos do período para entregar ao seu contabilista.",
+    "title": "Exportação para o contabilista",
+    "to": "Até"
   }
 }

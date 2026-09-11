@@ -24,17 +24,16 @@ function parseFrame(frame: string): { event: string, data: Record<string, unknow
 
 export function useCopilotStream() {
   const config = useRuntimeConfig()
-  const { accessToken } = useAuth()
+  const apiHeaders = useApiHeaders()
 
   async function stream(path: string, body: unknown, handlers: StreamHandlers): Promise<void> {
     let res: Response
     try {
       res = await fetch(`${config.public.apiBaseUrl}${path}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken.value}`
-        },
+        // SSE over fetch: EventSource cannot send headers, so this request
+        // bypasses useApi — including its clinic selection (see useApiHeaders).
+        headers: apiHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(body)
       })
     } catch (e) {
@@ -43,7 +42,18 @@ export function useCopilotStream() {
     }
 
     if (!res.ok || !res.body) {
-      handlers.onError?.(`HTTP ${res.status}`)
+      // Keep the server's own reason: a 403 names the missing permission and a
+      // provider failure explains itself. "HTTP 403" in the chat transcript
+      // gives the clinician nothing to act on.
+      let reason = ''
+      try {
+        const payload = await res.json() as { detail?: unknown, message?: unknown }
+        if (typeof payload?.detail === 'string') reason = payload.detail
+        else if (typeof payload?.message === 'string') reason = payload.message
+      } catch {
+        // A non-JSON error body (or an empty one) adds nothing to the status.
+      }
+      handlers.onError?.(reason || `HTTP ${res.status}`)
       return
     }
 

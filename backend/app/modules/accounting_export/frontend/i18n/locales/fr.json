@@ -3,28 +3,9 @@
     "accountingExport": "Export comptable"
   },
   "accountingExport": {
-    "title": "Export comptable",
-    "subtitle": "Téléchargez les factures et paiements de la période pour les transmettre à votre comptable.",
-    "period": "Période",
-    "from": "Du",
-    "to": "Au",
-    "presets": {
-      "currentMonth": "Mois en cours",
-      "previousMonth": "Mois précédent",
-      "currentQuarter": "Trimestre en cours",
-      "previousQuarter": "Trimestre précédent",
-      "yearToDate": "Année en cours",
-      "custom": "Personnalisé"
-    },
     "actions": {
       "preview": "Aperçu",
       "download": "Télécharger (.zip)"
-    },
-    "counters": {
-      "invoices": "Factures",
-      "payments": "Paiements",
-      "base": "Base",
-      "total": "Total"
     },
     "cols": {
       "numero": "Numéro",
@@ -35,6 +16,29 @@
       "cuota_iva": "TVA",
       "total": "Total",
       "estado": "Statut"
-    }
+    },
+    "counters": {
+      "invoices": "Factures",
+      "payments": "Paiements",
+      "base": "Base",
+      "total": "Total"
+    },
+    "errors": {
+      "downloadFailed": "L’export n’a pas pu être téléchargé",
+      "previewFailed": "L’aperçu n’a pas pu être généré"
+    },
+    "from": "Du",
+    "period": "Période",
+    "presets": {
+      "currentMonth": "Mois en cours",
+      "previousMonth": "Mois précédent",
+      "currentQuarter": "Trimestre en cours",
+      "previousQuarter": "Trimestre précédent",
+      "yearToDate": "Année en cours",
+      "custom": "Personnalisé"
+    },
+    "subtitle": "Téléchargez les factures et paiements de la période pour les transmettre à votre comptable.",
+    "title": "Export comptable",
+    "to": "Au"
   }
 }

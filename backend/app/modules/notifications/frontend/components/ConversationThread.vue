@@ -47,6 +47,24 @@ function statusLabel(status: string) {
       v-if="conv.loading.value"
       class="h-24 w-full"
     />
+    <!-- A thread that failed to load must not read as "no conversation yet". -->
+    <div
+      v-else-if="conv.error.value"
+      class="space-y-2"
+      data-testid="conversation-load-error"
+    >
+      <p class="text-sm text-[var(--color-danger-accent)]">
+        {{ conv.error.value }}
+      </p>
+      <UButton
+        variant="ghost"
+        size="xs"
+        icon="i-lucide-refresh-cw"
+        @click="conv.fetchThread()"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
     <div v-else>
       <p
         v-if="!conv.messages.value.length"

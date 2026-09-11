@@ -124,6 +124,7 @@
       "body": "After this treatment we suggest a recall in {month} ({reason}).",
       "create": "Create recall",
       "dismiss": "Dismiss"
-    }
+    },
+    "exportFailed": "The recall list could not be exported"
   }
 }

@@ -124,6 +124,7 @@
       "body": "Após este tratamento sugerimos uma reconvocação em {month} ({reason}).",
       "create": "Criar reconvocação",
       "dismiss": "Dispensar"
-    }
+    },
+    "exportFailed": "Não foi possível exportar a lista de reconvocações"
   }
 }

@@ -124,6 +124,7 @@
       "body": "Tras este tratamiento sugerimos un recordatorio en {month} ({reason}).",
       "create": "Crear recordatorio",
       "dismiss": "Descartar"
-    }
+    },
+    "exportFailed": "No se pudo exportar la lista de recordatorios"
   }
 }

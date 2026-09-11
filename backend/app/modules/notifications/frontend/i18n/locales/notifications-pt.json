@@ -1,10 +1,11 @@
 {
   "notifications": {
     "conversation": {
-      "title": "Conversa de WhatsApp",
       "empty": "Ainda não há mensagens.",
+      "loadError": "Não foi possível carregar a conversa",
       "placeholder": "Escreva uma resposta…",
       "replyError": "Não foi possível enviar a resposta",
+      "title": "Conversa de WhatsApp",
       "windowClosed": "A janela de 24 h está fechada. Use um modelo para reabrir a conversa."
     },
     "smtp": {

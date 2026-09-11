@@ -1,10 +1,11 @@
 {
   "notifications": {
     "conversation": {
-      "title": "محادثة واتساب",
       "empty": "لا توجد رسائل بعد.",
+      "loadError": "تعذّر تحميل المحادثة",
       "placeholder": "اكتب ردًا…",
       "replyError": "تعذّر إرسال الرد",
+      "title": "محادثة واتساب",
       "windowClosed": "انتهت نافذة الـ24 ساعة. استخدم قالبًا لإعادة فتح المحادثة."
     },
     "status": {

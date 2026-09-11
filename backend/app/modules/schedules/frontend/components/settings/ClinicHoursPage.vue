@@ -4,6 +4,7 @@ import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorDetail } from '~~/app/utils/error'
 
 const { t } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const toast = useToast()
 const { can } = usePermissions()
 const {
@@ -129,7 +130,7 @@ async function saveOverride() {
 }
 
 async function confirmDelete(o: ClinicOverride) {
-  if (!window.confirm(t('schedules.overrides.confirmDelete'))) return
+  if (!await confirmDialog({ title: t('schedules.overrides.confirmDelete'), danger: true })) return
   await deleteOverride(o.id)
   overrides.value = await fetchOverrides()
 }

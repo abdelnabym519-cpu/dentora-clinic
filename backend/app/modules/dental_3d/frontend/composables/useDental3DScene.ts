@@ -116,17 +116,14 @@ export function useDental3DScene(patientId: () => string) {
  */
 export function useDental3DMeshIO() {
   const config = useRuntimeConfig()
-  const auth = useAuth()
 
   const apiBaseUrl = computed(() =>
     import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
   )
 
-  function authHeaders(): Record<string, string> {
-    return auth.accessToken.value
-      ? { Authorization: `Bearer ${auth.accessToken.value}` }
-      : {}
-  }
+  // Binary downloads (meshes, DICOM) cannot go through useApi, but they must
+  // still carry the clinic selection — see useApiHeaders.
+  const authHeaders = useApiHeaders()
 
   /** Download mesh content through media's authorized download route. */
   async function fetchMeshContent(

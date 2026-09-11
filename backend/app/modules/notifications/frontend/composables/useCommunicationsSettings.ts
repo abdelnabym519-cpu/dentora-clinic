@@ -1,5 +1,5 @@
 import type { ApiResponse } from '~~/app/types'
-import { errorDetail } from '~~/app/utils/error'
+import { errorDetail, errorMessage } from '~~/app/utils/error'
 
 export interface CommunicationsSettings {
   language: string
@@ -15,14 +15,27 @@ export function useCommunicationsSettings() {
   const settings = ref<CommunicationsSettings | null>(null)
   const loading = ref(false)
   const saving = ref(false)
+  /**
+   * Set when the current settings could not be read: the page shows this
+   * with a retry rather than a language picker initialised to a default the
+   * clinic never chose.
+   */
+  const error = ref<string | null>(null)
 
   async function fetch() {
     loading.value = true
+    error.value = null
     try {
       const response = await api.get<ApiResponse<CommunicationsSettings>>(
-        '/api/v1/auth/clinic/settings/communications'
+        '/api/v1/auth/clinic/settings/communications',
+        { silent: true }
       )
       settings.value = response.data
+    } catch (e) {
+      // Was try/finally with no catch: unhandled rejection from
+      // `onMounted(fetch)` and a form rendered from defaults.
+      console.error('Error loading communications settings:', e)
+      error.value = errorMessage(e, t('errors.loadFailed'))
     } finally {
       loading.value = false
     }
@@ -50,5 +63,5 @@ export function useCommunicationsSettings() {
     }
   }
 
-  return { settings, loading, saving, fetch, update }
+  return { settings, loading, saving, error, fetch, update }
 }

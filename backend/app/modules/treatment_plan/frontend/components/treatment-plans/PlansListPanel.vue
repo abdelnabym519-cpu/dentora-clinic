@@ -8,6 +8,7 @@ const props = defineProps<{
 }>()
 
 const { t, locale } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const router = useRouter()
 const toast = useToast()
 const { can } = usePermissions()
@@ -65,7 +66,7 @@ function createPlan() {
 
 async function handleDelete(plan: TreatmentPlan, event: Event) {
   event.stopPropagation()
-  if (!confirm(t('treatmentPlans.confirmations.delete'))) return
+  if (!await confirmDialog({ title: t('treatmentPlans.confirmations.delete'), danger: true })) return
 
   try {
     await deletePlan(plan.id)

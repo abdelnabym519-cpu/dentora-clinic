@@ -2,10 +2,12 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import type { Recall, RecallStatus, RecallReason, RecallPriority } from '../../composables/useRecalls'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { errorMessage } from '~~/app/utils/error'
 
 definePageMeta({ middleware: ['auth'] })
 
 const { t } = useI18n()
+const toast = useToast()
 const route = useRoute()
 const router = useRouter()
 const recallsApi = useRecalls()
@@ -127,7 +129,7 @@ function onChanged(updated: Recall) {
 
 const conversionPct = computed(() => stats.value ? Math.round(stats.value.conversion_rate * 100) : 0)
 
-const auth = useAuth()
+const apiHeaders = useApiHeaders()
 const config = useRuntimeConfig()
 const isExporting = ref(false)
 
@@ -142,12 +144,19 @@ async function downloadCsv() {
       priority: priority.value === ANY ? undefined : priority.value || undefined,
       overdue: overdue.value || undefined
     })
-    const res = await fetch(url, {
-      headers: auth.accessToken.value
-        ? { Authorization: `Bearer ${auth.accessToken.value}` }
-        : {}
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const res = await fetch(url, { headers: apiHeaders() })
+    if (!res.ok) {
+      // Raw fetch: keep the server's own reason (a 403 names the missing
+      // permission) rather than a bare status nobody can act on.
+      let detail = ''
+      try {
+        const payload = await res.json() as { detail?: unknown }
+        if (typeof payload?.detail === 'string') detail = payload.detail
+      } catch {
+        // A non-JSON error body adds nothing to the status line.
+      }
+      throw new Error(detail || `HTTP ${res.status}`)
+    }
     const blob = await res.blob()
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -157,6 +166,14 @@ async function downloadCsv() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(blobUrl)
+  } catch (e) {
+    // Was try/finally with no catch: the rejection escaped the click handler,
+    // so a failed export was a spinner that stopped and nothing else.
+    toast.add({
+      title: t('common.error'),
+      description: errorMessage(e, t('recalls.exportFailed')),
+      color: 'error'
+    })
   } finally {
     isExporting.value = false
   }

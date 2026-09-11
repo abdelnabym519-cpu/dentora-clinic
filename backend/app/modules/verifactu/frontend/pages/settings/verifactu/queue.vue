@@ -4,6 +4,7 @@ import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorMessage } from '~~/app/utils/error'
 
 const { t } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const {
   listQueue,
   retryRecord,
@@ -62,7 +63,7 @@ async function retry(item: VerifactuQueueItem) {
 }
 
 async function retryAll() {
-  if (!confirm(t('verifactu.queue.retryAllConfirm'))) return
+  if (!await confirmDialog({ title: t('verifactu.queue.retryAllConfirm') })) return
   retryingAll.value = true
   try {
     const r = await retryAllRejected({ silent: true })

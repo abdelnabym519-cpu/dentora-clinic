@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const { settings, loading, saving, fetch, update } = useBudgetSettings()
+const { settings, loading, saving, error, fetch, update } = useBudgetSettings()
 
 const remindersEnabled = ref(false)
 
@@ -16,7 +16,31 @@ async function save() {
 </script>
 
 <template>
-  <UCard v-if="!loading">
+  <!-- A failed load is not "this setting is off": rendering the form from
+       defaults would invite the user to save a value that was never the
+       clinic's. -->
+  <div
+    v-if="error"
+    class="space-y-3"
+    data-testid="budget-reminders-load-error"
+  >
+    <UAlert
+      color="error"
+      variant="soft"
+      icon="i-lucide-alert-triangle"
+      :title="t('errors.loadFailed')"
+      :description="error"
+    />
+    <UButton
+      variant="ghost"
+      size="sm"
+      icon="i-lucide-refresh-cw"
+      @click="fetch()"
+    >
+      {{ t('common.retry') }}
+    </UButton>
+  </div>
+  <UCard v-else-if="!loading">
     <div class="space-y-4">
       <div class="flex items-start justify-between gap-4">
         <div>

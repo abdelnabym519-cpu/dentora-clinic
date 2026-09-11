@@ -1,10 +1,11 @@
 {
   "notifications": {
     "conversation": {
-      "title": "WhatsApp conversation",
       "empty": "No messages yet.",
+      "loadError": "The conversation could not be loaded",
       "placeholder": "Type a reply…",
       "replyError": "Could not send the reply",
+      "title": "WhatsApp conversation",
       "windowClosed": "The 24h window is closed. Use a template to reopen the conversation."
     },
     "status": {

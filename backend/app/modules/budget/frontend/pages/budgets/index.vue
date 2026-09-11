@@ -34,6 +34,7 @@ interface PatientBrief {
 }
 
 const { t, locale } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const router = useRouter()
 const toast = useToast()
 const api = useApi()
@@ -291,7 +292,7 @@ async function handleDownloadPDF(b: BudgetListItem, ev: Event) {
 async function handleDelete(b: BudgetListItem, ev: Event) {
   ev.preventDefault()
   ev.stopPropagation()
-  if (!confirm(t('budget.confirmations.delete'))) return
+  if (!await confirmDialog({ title: t('budget.confirmations.delete'), danger: true })) return
   try {
     await deleteBudget(b.id)
     toast.add({ title: t('common.success'), description: t('budget.messages.deleted'), color: 'success' })

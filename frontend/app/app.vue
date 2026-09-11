@@ -31,5 +31,12 @@ useSeoMeta({
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
+
+    <!--
+      App-wide host for the promise-based confirm dialog that replaces
+      window.confirm (blocked, and therefore silently a "no", inside a
+      sandboxed iframe). See useConfirmDialog.
+    -->
+    <ConfirmDialogHost />
   </UApp>
 </template>

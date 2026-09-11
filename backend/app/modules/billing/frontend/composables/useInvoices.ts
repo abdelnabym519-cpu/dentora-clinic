@@ -49,7 +49,7 @@ export interface InvoiceListParams {
 export function useInvoices() {
   const api = useApi()
   const config = useRuntimeConfig()
-  const auth = useAuth()
+  const apiHeaders = useApiHeaders()
   const { t } = useI18n()
 
   // State
@@ -443,15 +443,10 @@ export function useInvoices() {
 
   async function downloadPDF(id: string, locale: string = 'es'): Promise<void> {
     const baseUrl = config.public.apiBaseUrl
-    const token = auth.accessToken.value
 
     const response = await fetch(
       `${baseUrl}/api/v1/billing/invoices/${id}/pdf?locale=${locale}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
+      { headers: apiHeaders() }
     )
 
     if (!response.ok) {

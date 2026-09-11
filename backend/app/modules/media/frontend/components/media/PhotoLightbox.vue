@@ -19,7 +19,7 @@ const { t } = useI18n()
 const { pairPhotos, unpair } = usePhotos()
 
 const config = useRuntimeConfig()
-const auth = useAuth()
+const apiHeaders = useApiHeaders()
 const apiBaseUrl = computed(() =>
   import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
 )
@@ -54,7 +54,7 @@ async function fetchBlob(path: string): Promise<string | null> {
   try {
     const response = await $fetch<Blob>(path, {
       baseURL: apiBaseUrl.value,
-      headers: { Authorization: `Bearer ${auth.accessToken.value}` },
+      headers: apiHeaders(),
       responseType: 'blob'
     })
     return URL.createObjectURL(response)

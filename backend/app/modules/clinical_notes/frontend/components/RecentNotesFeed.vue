@@ -17,6 +17,7 @@ const props = defineProps<{
 
 const router = useRouter()
 const { t } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const { can } = usePermissions()
 const { metaFor, allTypes } = useNoteTypeMeta()
 const {
@@ -156,7 +157,7 @@ async function handleSubmit(
 }
 
 async function handleDelete(entry: RecentNoteEntry) {
-  const confirmed = window.confirm(t('clinicalNotes.confirms.delete'))
+  const confirmed = await confirmDialog({ title: t('clinicalNotes.confirms.delete'), danger: true })
   if (!confirmed) return
   const ok = await deleteNote(entry.id)
   if (ok) await refresh()

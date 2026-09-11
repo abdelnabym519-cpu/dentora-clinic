@@ -21,6 +21,7 @@ import { errorMessage } from '~~/app/utils/error'
  */
 
 const { t, locale } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const router = useRouter()
 const toast = useToast()
 const api = useApi()
@@ -173,7 +174,7 @@ async function handleDelete(inv: InvoiceListItem, ev: Event) {
     })
     return
   }
-  if (!confirm(t('invoice.confirmations.delete'))) return
+  if (!await confirmDialog({ title: t('invoice.confirmations.delete'), danger: true })) return
   try {
     await deleteInvoice(inv.id)
     toast.add({ title: t('common.success'), description: t('invoice.messages.deleted'), color: 'success' })

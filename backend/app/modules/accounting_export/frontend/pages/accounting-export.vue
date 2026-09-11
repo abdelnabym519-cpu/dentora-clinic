@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { errorMessage } from '~~/app/utils/error'
 import { useAccountingExport, type ExportPreview } from '../composables/useAccountingExport'
 
 definePageMeta({ middleware: ['auth'] })
 
 const { t } = useI18n()
+const toast = useToast()
 const { can } = usePermissions()
 const exportApi = useAccountingExport()
 
@@ -45,6 +47,7 @@ const range = computed(() => {
 const isCustom = computed(() => selectedPreset.value === 'custom')
 
 const preview = ref<ExportPreview | null>(null)
+const previewError = ref<string | null>(null)
 const loadingPreview = ref(false)
 const downloading = ref(false)
 
@@ -54,8 +57,15 @@ function filters() {
 
 async function runPreview() {
   loadingPreview.value = true
+  previewError.value = null
   try {
     preview.value = (await exportApi.preview(filters())).data
+  } catch (e) {
+    // Was try/finally with no catch: the rejection escaped the click handler
+    // and, for the statuses the shared layer never toasts (422 on a bad
+    // range, 404), the button simply appeared to do nothing.
+    preview.value = null
+    previewError.value = errorMessage(e, t('accountingExport.errors.previewFailed'))
   } finally {
     loadingPreview.value = false
   }
@@ -65,6 +75,14 @@ async function download() {
   downloading.value = true
   try {
     await exportApi.download(filters())
+  } catch (e) {
+    // This one bypasses useApi entirely (authenticated blob download), so no
+    // shared report exists: without this catch a failed export was silent.
+    toast.add({
+      title: t('common.error'),
+      description: errorMessage(e, t('accountingExport.errors.downloadFailed')),
+      color: 'error'
+    })
   } finally {
     downloading.value = false
   }
@@ -139,6 +157,18 @@ const invoiceCols = ['numero', 'fecha_emision', 'cliente', 'nif', 'base', 'cuota
           </UButton>
         </div>
       </div>
+
+      <!-- A preview that failed is not "this period has no invoices". -->
+      <UAlert
+        v-if="previewError"
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        class="mt-4"
+        :title="t('accountingExport.errors.previewFailed')"
+        :description="previewError"
+        data-testid="accounting-export-preview-error"
+      />
     </UCard>
 
     <section

@@ -10,6 +10,7 @@ import type { InfoItem } from '~~/app/components/shared/EntityInfoCard.vue'
 const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
+const { confirmDialog } = useConfirmDialog()
 const toast = useToast()
 const { can } = usePermissions()
 const { currentClinic } = useClinic()
@@ -157,7 +158,7 @@ async function handleIssue() {
 
 async function handleVoid() {
   if (!currentInvoice.value) return
-  if (!confirm(t('invoice.confirmations.void'))) return
+  if (!await confirmDialog({ title: t('invoice.confirmations.void'), danger: true })) return
 
   isProcessing.value = true
   try {

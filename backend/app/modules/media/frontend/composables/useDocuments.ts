@@ -8,7 +8,7 @@ interface UploadProgress {
 
 export function useDocuments() {
   const config = useRuntimeConfig()
-  const auth = useAuth()
+  const apiHeaders = useApiHeaders()
   const { t } = useI18n()
   const toast = useToast()
 
@@ -41,9 +41,7 @@ export function useDocuments() {
 
       const response = await $fetch<PaginatedResponse<Document>>(url, {
         baseURL: apiBaseUrl.value,
-        headers: {
-          Authorization: `Bearer ${auth.accessToken.value}`
-        }
+        headers: apiHeaders()
       })
 
       documents.value = response.data
@@ -85,9 +83,7 @@ export function useDocuments() {
           baseURL: apiBaseUrl.value,
           method: 'POST',
           body: formData,
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          },
+          headers: apiHeaders(),
           // Note: browser handles Content-Type for FormData automatically
           onRequest({ options }) {
             // Remove content-type to let browser set it with boundary
@@ -133,9 +129,7 @@ export function useDocuments() {
         `/api/v1/media/documents/${documentId}/download`,
         {
           baseURL: apiBaseUrl.value,
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          },
+          headers: apiHeaders(),
           responseType: 'blob'
         }
       )
@@ -169,9 +163,7 @@ export function useDocuments() {
         `/api/v1/media/documents/${documentId}/download`,
         {
           baseURL: apiBaseUrl.value,
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          },
+          headers: apiHeaders(),
           responseType: 'blob'
         }
       )
@@ -194,9 +186,7 @@ export function useDocuments() {
         {
           baseURL: apiBaseUrl.value,
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${auth.accessToken.value}`
-          }
+          headers: apiHeaders()
         }
       )
 
@@ -232,10 +222,7 @@ export function useDocuments() {
           baseURL: apiBaseUrl.value,
           method: 'PUT',
           body: data,
-          headers: {
-            'Authorization': `Bearer ${auth.accessToken.value}`,
-            'Content-Type': 'application/json'
-          }
+          headers: apiHeaders({ 'Content-Type': 'application/json' })
         }
       )
 

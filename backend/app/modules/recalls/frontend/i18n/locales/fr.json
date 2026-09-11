@@ -124,6 +124,7 @@
       "body": "Après ce traitement, nous suggérons un rappel dans {month} ({reason}).",
       "create": "Créer le rappel",
       "dismiss": "Ignorer"
-    }
+    },
+    "exportFailed": "La liste de rappels n’a pas pu être exportée"
   }
 }

@@ -3,28 +3,9 @@
     "accountingExport": "Accountant export"
   },
   "accountingExport": {
-    "title": "Accountant export",
-    "subtitle": "Download the period's invoices and payments to hand off to your accountant.",
-    "period": "Period",
-    "from": "From",
-    "to": "To",
-    "presets": {
-      "currentMonth": "Current month",
-      "previousMonth": "Previous month",
-      "currentQuarter": "Current quarter",
-      "previousQuarter": "Previous quarter",
-      "yearToDate": "Year to date",
-      "custom": "Custom"
-    },
     "actions": {
       "preview": "Preview",
       "download": "Download (.zip)"
-    },
-    "counters": {
-      "invoices": "Invoices",
-      "payments": "Payments",
-      "base": "Base",
-      "total": "Total"
     },
     "cols": {
       "numero": "Number",
@@ -35,6 +16,29 @@
       "cuota_iva": "VAT",
       "total": "Total",
       "estado": "Status"
-    }
+    },
+    "counters": {
+      "invoices": "Invoices",
+      "payments": "Payments",
+      "base": "Base",
+      "total": "Total"
+    },
+    "errors": {
+      "downloadFailed": "The export could not be downloaded",
+      "previewFailed": "The preview could not be generated"
+    },
+    "from": "From",
+    "period": "Period",
+    "presets": {
+      "currentMonth": "Current month",
+      "previousMonth": "Previous month",
+      "currentQuarter": "Current quarter",
+      "previousQuarter": "Previous quarter",
+      "yearToDate": "Year to date",
+      "custom": "Custom"
+    },
+    "subtitle": "Download the period's invoices and payments to hand off to your accountant.",
+    "title": "Accountant export",
+    "to": "To"
   }
 }

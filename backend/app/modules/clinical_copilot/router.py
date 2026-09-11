@@ -43,7 +43,7 @@ async def get_context(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ClinicalCopilotContext]:
     # Composition root — infrastructure edge, imported lazily (see /advise).
-    from app.modules.ai_clinical_report.service import DatabaseSecondReviewReader
+    from app.modules.clinical_copilot.infrastructure import DatabaseSecondReviewReader
 
     context = await ClinicalCopilotGuardedService(
         db, second_review_reader=DatabaseSecondReviewReader(db)
@@ -71,7 +71,7 @@ async def advise(
         # second-review DB adapter makes the dentist-reviewed AI Second
         # Review contract visible to the governor instead of leaving the
         # stage permanently "unavailable".
-        from app.modules.ai_clinical_report.service import DatabaseSecondReviewReader
+        from app.modules.clinical_copilot.infrastructure import DatabaseSecondReviewReader
 
         result = await ClinicalCopilotGuardedService(
             db, second_review_reader=DatabaseSecondReviewReader(db)

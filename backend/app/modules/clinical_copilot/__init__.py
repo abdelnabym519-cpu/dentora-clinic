@@ -23,6 +23,7 @@ class ClinicalCopilotModule(BaseModule):
             "risk_engine",
             "ai_treatment_planning",
             "treatment_simulation",
+            "ai_second_review",
             "copilot",
         ],
         "installable": True,

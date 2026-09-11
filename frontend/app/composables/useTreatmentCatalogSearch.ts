@@ -5,6 +5,7 @@
  */
 import type { TreatmentCatalogItem, ApiResponse } from '~/types'
 import { errorMessage } from '~/utils/error'
+import { latestGuard } from '~/utils/latestGuard'
 
 export function useTreatmentCatalogSearch() {
   const api = useApi()
@@ -44,21 +45,30 @@ export function useTreatmentCatalogSearch() {
     }
   }
 
+  // Search-as-you-type inside the appointment / budget / plan modals. Two
+  // queries are routinely in flight; the stale one must not offer treatments
+  // that do not match what is in the box, because the next click selects one.
+  const searchGuard = latestGuard()
+
   async function search(query: string) {
     if (!query || query.length < 2) {
+      searchGuard.invalidate()
       searchResults.value = []
       return
     }
+    const isLatest = searchGuard.begin()
     isSearching.value = true
     searchError.value = ''
     try {
       const results = await searchItems(query, 12, { silent: true })
+      if (!isLatest()) return
       searchResults.value = results as unknown as TreatmentCatalogItem[]
     } catch (e: unknown) {
+      if (!isLatest()) return
       searchResults.value = []
       searchError.value = errorMessage(e, t('selector.searchFailed'))
     } finally {
-      isSearching.value = false
+      if (isLatest()) isSearching.value = false
     }
   }
 

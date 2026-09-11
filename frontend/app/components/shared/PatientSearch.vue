@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Patient, PaginatedResponse } from '~/types'
+import { latestGuard } from '~/utils/latestGuard'
 
 const props = defineProps<{
   modelValue?: Patient | null
@@ -36,7 +37,14 @@ watch(searchQuery, (val) => {
   }, 300)
 })
 
+// Focus fires this immediately and typing fires it again 300 ms later, so two
+// searches for different text are routinely in flight at once. The slower one
+// answering last would list patients that do not match what is in the box — and
+// the next click selects one of them.
+const searchGuard = latestGuard()
+
 async function searchPatients(query: string) {
+  const isLatest = searchGuard.begin()
   isLoading.value = true
   try {
     const params = new URLSearchParams({
@@ -47,11 +55,13 @@ async function searchPatients(query: string) {
     const response = await api.get<PaginatedResponse<Patient>>(
       `/api/v1/patients?${params.toString()}`
     )
+    if (!isLatest()) return
     patients.value = response.data ?? []
   } catch {
+    if (!isLatest()) return
     patients.value = []
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 

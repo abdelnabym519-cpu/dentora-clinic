@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PlannedTreatmentItem } from '~/types'
+import { latestGuard } from '~/utils/latestGuard'
 
 const props = defineProps<{
   modelValue?: PlannedTreatmentItem[]
@@ -31,14 +32,22 @@ watch(() => props.patientId, async (newPatientId) => {
   }
 }, { immediate: true })
 
+// Follows the selected patient; a late answer for the previous one would offer
+// the wrong patient's pending treatments for selection.
+const pendingGuard = latestGuard()
+
 async function loadPendingItems(patientId: string) {
+  const isLatest = pendingGuard.begin()
   isLoading.value = true
   try {
-    pendingItems.value = await fetchPatientPendingItems(patientId)
+    const fetched = await fetchPatientPendingItems(patientId)
+    if (!isLatest()) return
+    pendingItems.value = fetched ?? []
   } catch {
+    if (!isLatest()) return
     pendingItems.value = []
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 

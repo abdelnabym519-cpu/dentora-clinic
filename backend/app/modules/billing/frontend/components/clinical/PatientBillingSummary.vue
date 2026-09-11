@@ -2,6 +2,7 @@
 import type { ApiResponse, PatientBillingSummary, InvoiceListItem, PaginatedResponse, Payment } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const props = defineProps<{
   patientId: string
@@ -26,7 +27,12 @@ const loadingPayments = ref<Set<string>>(new Set())
 /** Per-invoice reason when its payments could not be read. */
 const paymentErrors = ref<Map<string, string>>(new Map())
 
+// Page clicks and patient switches both re-read this list; the slower earlier
+// answer must not replace the page (or the patient) now on screen.
+const invoicesGuard = latestGuard()
+
 async function loadInvoices() {
+  const isLatest = invoicesGuard.begin()
   const params = new URLSearchParams({
     patient_id: props.patientId,
     page: String(currentPage.value),
@@ -36,25 +42,31 @@ async function loadInvoices() {
     const response = await api.get<PaginatedResponse<InvoiceListItem>>(
       `/api/v1/billing/invoices?${params.toString()}`
     )
+    if (!isLatest()) return
     invoices.value = response.data ?? []
     invoicesTotal.value = response.total
   } catch {
+    if (!isLatest()) return
     invoices.value = []
     invoicesTotal.value = 0
   }
 }
 
 // Fetch data
+const summaryGuard = latestGuard()
+
 async function loadData() {
+  const isLatest = summaryGuard.begin()
   isLoading.value = true
   try {
     const [summaryData] = await Promise.all([
       fetchPatientSummary(props.patientId),
       loadInvoices()
     ])
+    if (!isLatest()) return
     summary.value = summaryData
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 

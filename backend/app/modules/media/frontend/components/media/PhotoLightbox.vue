@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Document } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 interface Props {
   open: boolean
@@ -63,12 +64,24 @@ async function fetchBlob(path: string): Promise<string | null> {
   }
 }
 
+// Arrow-key navigation through clinical photos is exactly the fast, repeated
+// trigger that produces overlapping fetches. A late blob for the previous photo
+// would be displayed under the current one's caption — and the revoke below
+// could free the URL now on screen.
+const blobGuard = latestGuard()
+
 async function loadCurrent() {
   if (!current.value) return
   const path = current.value.medium_url ?? current.value.full_url
   if (!path) return
+  const isLatest = blobGuard.begin()
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value)
-  blobUrl.value = await fetchBlob(path)
+  const url = await fetchBlob(path)
+  if (!isLatest()) {
+    if (url) URL.revokeObjectURL(url)
+    return
+  }
+  blobUrl.value = url
 }
 
 async function loadPartner() {

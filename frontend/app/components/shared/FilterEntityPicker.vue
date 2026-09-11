@@ -9,6 +9,9 @@
  *   - ``labelOf(id)`` — optional resolver to render the chip label when
  *     the value pre-exists (URL hydration); defaults to the id.
  */
+import { errorMessage } from '~/utils/error'
+import { latestGuard } from '~/utils/latestGuard'
+
 interface Option {
   id: string
   label: string
@@ -42,16 +45,33 @@ const isOpen = ref(false)
 const query = ref('')
 const options = ref<Option[]>([])
 const isLoading = ref(false)
+const error = ref<string | null>(null)
 const currentLabel = ref<string | null>(null)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
+// Debounced typing plus `onOpen()` means two searches overlap routinely; the
+// stale one must not repopulate the list under the newer query.
+const searchGuard = latestGuard()
+
 async function search(q: string) {
+  const isLatest = searchGuard.begin()
   isLoading.value = true
+  error.value = null
   try {
-    options.value = await props.fetcher(q)
+    const found = await props.fetcher(q)
+    if (!isLatest()) return
+    options.value = found ?? []
+  } catch (e) {
+    // Was a `try/finally` with no catch: the rejection escaped the debounce
+    // timer as an unhandled promise rejection and the popover rendered "no
+    // results" — a claim the search never established.
+    if (!isLatest()) return
+    console.error('FilterEntityPicker search failed:', e)
+    options.value = []
+    error.value = errorMessage(e, t('errors.loadFailed'))
   } finally {
-    isLoading.value = false
+    if (isLatest()) isLoading.value = false
   }
 }
 
@@ -132,6 +152,24 @@ const isActive = computed(() => Boolean(props.modelValue))
           >
             {{ t('common.loading') }}
           </p>
+          <div
+            v-else-if="error"
+            class="px-2 py-3 space-y-1"
+            data-testid="filter-picker-error"
+          >
+            <p class="text-caption text-danger">
+              {{ error }}
+            </p>
+            <UButton
+              variant="ghost"
+              size="xs"
+              icon="i-lucide-refresh-cw"
+              data-testid="filter-picker-retry"
+              @click="search(query)"
+            >
+              {{ t('common.retry') }}
+            </UButton>
+          </div>
           <p
             v-else-if="!options.length"
             class="px-2 py-3 text-caption text-subtle"

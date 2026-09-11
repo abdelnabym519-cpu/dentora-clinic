@@ -33,7 +33,11 @@ async function load() {
 
 onMounted(() => {
   load()
-  fetchCategories()
+  // Ambient cross-module read: this panel only needs catalog categories to
+  // label its own rules and already falls back to the translated
+  // `getCategoryLabel(key)`. A denial or an outage here belongs to the
+  // catalog, not to the recalls screen the user opened.
+  void fetchCategories(false, { silent: true })
 })
 
 async function save() {

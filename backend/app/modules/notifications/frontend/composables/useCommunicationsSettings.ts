@@ -33,7 +33,8 @@ export function useCommunicationsSettings() {
     try {
       const response = await api.patch<ApiResponse<CommunicationsSettings>>(
         '/api/v1/auth/clinic/settings/communications',
-        payload
+        payload,
+        { silent: true }
       )
       settings.value = response.data
       toast.add({

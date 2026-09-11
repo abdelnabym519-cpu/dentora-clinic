@@ -22,12 +22,21 @@ const selectedCategoryId = ref<string | undefined>(undefined)
 // Track which categories are expanded (all expanded by default)
 const expandedCategories = ref<Set<string>>(new Set())
 
+/**
+ * Both reads report through `catalog.error`, which this page renders inline
+ * with a retry, so the shared toast is suppressed: one accurate message, in
+ * the place the user is looking at, instead of a generic one over the page.
+ */
+async function reload() {
+  await Promise.all([
+    catalog.fetchCategories(false, { silent: true }),
+    catalog.fetchItems({ pageSize: 500, silent: true }) // Load all items for grouping
+  ])
+}
+
 // Load data on mount
 onMounted(async () => {
-  await Promise.all([
-    catalog.fetchCategories(),
-    catalog.fetchItems({ pageSize: 500 }) // Load all items for grouping
-  ])
+  await reload()
   // Expand all categories by default
   expandedCategories.value = new Set(catalog.categories.value.map(c => c.id))
 })
@@ -37,7 +46,8 @@ watch([searchQuery, selectedCategoryId], () => {
   catalog.fetchItems({
     pageSize: 500, // Load all for grouping
     search: searchQuery.value || undefined,
-    categoryId: selectedCategoryId.value
+    categoryId: selectedCategoryId.value,
+    silent: true
   })
 })
 
@@ -470,6 +480,31 @@ const categoryOptions = computed(() => [
         <USkeleton class="h-12 w-full" />
         <USkeleton class="h-12 w-full" />
         <USkeleton class="h-12 w-full" />
+      </div>
+
+      <!-- Load failure: a catalog that could not be read is not an empty
+           catalog, and saying so matters here (an admin could otherwise
+           believe every item had been deleted). -->
+      <div
+        v-else-if="catalog.error.value"
+        class="text-center py-12"
+        data-testid="catalog-load-error"
+      >
+        <UIcon
+          name="i-lucide-alert-triangle"
+          class="w-12 h-12 mx-auto mb-4 text-[var(--color-danger-accent)] opacity-70"
+        />
+        <p class="text-muted mb-3">
+          {{ catalog.error.value }}
+        </p>
+        <UButton
+          variant="soft"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          @click="reload"
+        >
+          {{ t('common.retry') }}
+        </UButton>
       </div>
 
       <!-- Empty state -->

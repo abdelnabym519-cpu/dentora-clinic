@@ -18,6 +18,7 @@ import type {
   ToothRecord,
   ToothRecordUpdate
 } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
 import { ALL_DECIDUOUS_NUMBERS, CONDITION_COLORS } from '~~/app/constants/odontogram'
 
 export function useOdontogramData() {
@@ -97,7 +98,8 @@ export function useOdontogramData() {
     try {
       const response = await api.put<ApiResponse<ToothRecord>>(
         `/api/v1/odontogram/patients/${patientId}/teeth/${toothNumber}`,
-        update as Record<string, unknown>
+        update as Record<string, unknown>,
+        { silent: true }
       )
 
       // Update local state
@@ -119,7 +121,7 @@ export function useOdontogramData() {
     } catch (err) {
       toast.add({
         title: t('common.error'),
-        description: t('odontogram.messages.error'),
+        description: errorMessage(err, t('odontogram.messages.error')),
         color: 'error'
       })
       console.error('Error updating tooth:', err)
@@ -135,7 +137,8 @@ export function useOdontogramData() {
     try {
       const response = await api.patch<ApiResponse<ToothRecord[]>>(
         `/api/v1/odontogram/patients/${patientId}/teeth/bulk`,
-        { updates } as Record<string, unknown>
+        { updates } as Record<string, unknown>,
+        { silent: true }
       )
 
       // Update local state
@@ -161,7 +164,7 @@ export function useOdontogramData() {
     } catch (err) {
       toast.add({
         title: t('common.error'),
-        description: t('odontogram.messages.error'),
+        description: errorMessage(err, t('odontogram.messages.error')),
         color: 'error'
       })
       console.error('Error bulk updating teeth:', err)

@@ -17,6 +17,8 @@ const {
   searchResults,
   isSearching,
   isLoadingPopular,
+  loadError,
+  searchError,
   loadPopularItems,
   search,
   getItemName,
@@ -85,7 +87,7 @@ watch(() => props.modelValue, (newVal) => {
       :search-results="searchResults"
       :is-searching="isSearching || isLoadingPopular"
       :placeholder="placeholder || t('budget.items.searchCatalog')"
-      :empty-label="t('selector.noCommonTreatments')"
+      :empty-label="searchError || loadError || t('selector.noCommonTreatments')"
       :grid-cols="2"
       :in-modal="inModal"
       @update:model-value="handleSelect"

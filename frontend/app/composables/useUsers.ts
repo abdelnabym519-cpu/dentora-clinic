@@ -1,3 +1,4 @@
+import { errorMessage } from '~/utils/error'
 import type { User, UserCreate, UserRole, UserUpdate, PaginatedResponse, ApiResponse } from '~/types'
 
 export interface ClinicUser {
@@ -63,7 +64,7 @@ export function useUsers() {
     error.value = null
 
     try {
-      const response = await api.post<ApiResponse<User>>('/api/v1/auth/users', data)
+      const response = await api.post<ApiResponse<User>>('/api/v1/auth/users', data, { silent: true })
       toast.add({
         title: t('common.success'),
         description: t('settings.messages.userCreated'),
@@ -89,10 +90,10 @@ export function useUsers() {
           color: 'error'
         })
       } else {
-        error.value = t('settings.errors.createUser')
+        error.value = errorMessage(e, t('settings.errors.createUser'))
         toast.add({
           title: t('common.error'),
-          description: t('settings.errors.createUser'),
+          description: error.value,
           color: 'error'
         })
       }
@@ -108,7 +109,7 @@ export function useUsers() {
     error.value = null
 
     try {
-      const response = await api.put<ApiResponse<ClinicUser>>(`/api/v1/auth/users/${userId}`, data)
+      const response = await api.put<ApiResponse<ClinicUser>>(`/api/v1/auth/users/${userId}`, data, { silent: true })
       toast.add({
         title: t('common.success'),
         description: t('settings.messages.userUpdated'),
@@ -141,10 +142,10 @@ export function useUsers() {
           color: 'error'
         })
       } else {
-        error.value = t('settings.errors.updateUser')
+        error.value = errorMessage(e, t('settings.errors.updateUser'))
         toast.add({
           title: t('common.error'),
-          description: t('settings.errors.updateUser'),
+          description: error.value,
           color: 'error'
         })
       }
@@ -160,7 +161,7 @@ export function useUsers() {
     error.value = null
 
     try {
-      await api.del(`/api/v1/auth/users/${userId}`)
+      await api.del(`/api/v1/auth/users/${userId}`, { silent: true })
       toast.add({
         title: t('common.success'),
         description: t('settings.messages.userDeleted'),
@@ -186,10 +187,10 @@ export function useUsers() {
           color: 'error'
         })
       } else {
-        error.value = t('settings.errors.deleteUser')
+        error.value = errorMessage(e, t('settings.errors.deleteUser'))
         toast.add({
           title: t('common.error'),
-          description: t('settings.errors.deleteUser'),
+          description: error.value,
           color: 'error'
         })
       }

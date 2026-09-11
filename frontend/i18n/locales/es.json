@@ -86,7 +86,9 @@
     "create": "Crear",
     "delete": "Eliminar",
     "close": "Cerrar",
-    "remove": "Eliminar"
+    "remove": "Eliminar",
+    "back": "Volver",
+    "change": "Cambiar"
   },
   "patients": {
     "title": "Pacientes",
@@ -524,7 +526,10 @@
         "restauradora": "Restauradora",
         "cirugia": "Cirugía",
         "endodoncia": "Endodoncia",
-        "ortodoncia": "Ortodoncia"
+        "ortodoncia": "Ortodoncia",
+        "common": "Común",
+        "restorative": "Restauradora",
+        "other": "Otra"
       },
       "types": {
         "pulpitis": "Pulpitis",
@@ -696,7 +701,8 @@
       "continuePlan": "Continuar Plan \"{name}\"",
       "selectPlan": "Seleccionar plan",
       "continue": "Continuar",
-      "odontogramTab": "Odontograma"
+      "odontogramTab": "Odontograma",
+      "openNotes": "Abrir notas"
     },
     "plans": {
       "title": "Planes de Tratamiento",
@@ -1208,7 +1214,9 @@
     "noRecentPatients": "No hay pacientes recientes",
     "noCommonTreatments": "No hay tratamientos frecuentes",
     "noMatches": "Sin coincidencias",
-    "typeToSearch": "Escribe para buscar..."
+    "typeToSearch": "Escribe para buscar...",
+    "loadFailed": "No se pudieron cargar los tratamientos comunes",
+    "searchFailed": "No se pudo buscar en el catálogo"
   },
   "density": {
     "switchToCompact": "Vista compacta",
@@ -1311,7 +1319,14 @@
     "copied": "Copiado al portapapeles",
     "copy": "Copiar",
     "copyFailed": "No se pudo copiar",
-    "durationMinutes": "{value} min"
+    "durationMinutes": "{value} min",
+    "download": "Descargar",
+    "more": "más",
+    "status": "Estado",
+    "view": "Ver",
+    "expand": "Mostrar más",
+    "collapse": "Mostrar menos",
+    "optional": "Opcional"
   },
   "cabinet": {
     "toast": {
@@ -1514,7 +1529,8 @@
       "pricing": "Precio",
       "scheduling": "Agenda",
       "clinical": "Clínico"
-    }
+    },
+    "loadFailed": "No se pudo cargar el catálogo de tratamientos"
   },
   "placeholders": {
     "selectRole": "Seleccionar rol..."
@@ -1769,7 +1785,8 @@
         "noteLabel": "Nota (opcional)",
         "submit": "Registrar"
       }
-    }
+    },
+    "pendingLoadFailed": "No se pudieron cargar los tratamientos pendientes"
   },
   "pipeline": {
     "title": "Bandeja de planes",
@@ -2295,7 +2312,8 @@
       "partial": "Pago parcial",
       "paid": "Pagada",
       "cancelled": "Anulada",
-      "voided": "Anulada"
+      "voided": "Anulada",
+      "title": "Estado de la factura"
     },
     "actions": {
       "issue": "Emitir factura",
@@ -2900,7 +2918,8 @@
       "size": "El archivo supera 10 MB."
     },
     "pdfPreviewHint": "Vista previa tras subir",
-    "uploadHelp": "Clasifica el archivo para que aparezca en su categoría."
+    "uploadHelp": "Clasifica el archivo para que aparezca en su categoría.",
+    "viewError": "Error al cargar el documento"
   },
   "photoGallery": {
     "title": "Galería del paciente",
@@ -2973,7 +2992,11 @@
       "compare": "Comparar",
       "unpair": "Quitar",
       "pair": "Emparejar antes/después"
-    }
+    },
+    "fetchError": "Error al cargar las fotos",
+    "uploadError": "Error al subir la foto",
+    "uploadSuccess": "Foto subida",
+    "paired": "Emparejadas"
   },
   "help": {
     "label": "Ayuda",
@@ -2989,5 +3012,14 @@
     "donut": {
       "ariaLabel": "Gráfico circular, {count} segmentos"
     }
+  },
+  "errors": {
+    "loadFailed": "Error al cargar",
+    "createFailed": "Error al crear",
+    "updateFailed": "Error al actualizar",
+    "deleteFailed": "Error al eliminar"
+  },
+  "attachments": {
+    "linkError": "Error al vincular el archivo adjunto"
   }
 }

@@ -1,3 +1,4 @@
+import { errorMessage } from '~~/app/utils/error'
 import type {
   AllergyEntry,
   ApiResponse,
@@ -67,7 +68,8 @@ export function useMedicalHistory(patientId: Ref<string | undefined>) {
     try {
       const response = await api.put<ApiResponse<MedicalHistory>>(
         `/api/v1/patients_clinical/patients/${patientId.value}/medical-history`,
-        medicalHistory.value
+        medicalHistory.value,
+        { silent: true }
       )
       medicalHistory.value = response.data
       toast.add({
@@ -77,10 +79,10 @@ export function useMedicalHistory(patientId: Ref<string | undefined>) {
       })
       return true
     } catch (e) {
-      error.value = t('patients.medicalHistory.saveError')
+      error.value = errorMessage(e, t('patients.medicalHistory.saveError'))
       toast.add({
         title: t('common.error'),
-        description: t('patients.medicalHistory.saveError'),
+        description: error.value,
         color: 'error'
       })
       console.error('Failed to save medical history:', e)

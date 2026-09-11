@@ -15,6 +15,7 @@ import type {
   TreatmentCatalogItemCreate,
   TreatmentCatalogItemUpdate
 } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
 
 /**
  * Extract the FastAPI error `detail` from a fetch error, so toasts can show
@@ -52,7 +53,10 @@ export function useCatalog() {
   // Category Operations
   // ============================================================================
 
-  async function fetchCategories(includeInactive = false): Promise<void> {
+  async function fetchCategories(
+    includeInactive = false,
+    options: { silent?: boolean } = {}
+  ): Promise<void> {
     try {
       loading.value = true
       error.value = null
@@ -61,11 +65,14 @@ export function useCatalog() {
       if (includeInactive) params.set('include_inactive', 'true')
 
       const response = await api.get<ApiResponse<TreatmentCatalogCategory[]>>(
-        `/api/v1/catalog/categories?${params.toString()}`
+        `/api/v1/catalog/categories?${params.toString()}`,
+        { silent: options.silent === true }
       )
       categories.value = response.data
+      error.value = null
     } catch (e) {
-      error.value = 'Failed to fetch categories'
+      // Was a hardcoded English string in a state nothing rendered.
+      error.value = errorMessage(e, t('catalog.loadFailed'))
       console.error('Error fetching categories:', e)
     } finally {
       loading.value = false
@@ -209,6 +216,8 @@ export function useCatalog() {
     treatmentScope?: 'surface' | 'whole_tooth'
     hasOdontogramMapping?: boolean
     search?: string
+    /** Suppress the shared toast when the caller renders `error` itself. */
+    silent?: boolean
   }
 
   async function fetchItems(options: FetchItemsOptions = {}): Promise<void> {
@@ -229,15 +238,17 @@ export function useCatalog() {
       if (options.search) params.set('search', options.search)
 
       const response = await api.get<PaginatedResponse<TreatmentCatalogItem>>(
-        `/api/v1/catalog/items?${params.toString()}`
+        `/api/v1/catalog/items?${params.toString()}`,
+        { silent: options.silent === true }
       )
 
       items.value = response.data
       totalItems.value = response.total
       currentPage.value = response.page
       pageSize.value = response.page_size
+      error.value = null
     } catch (e) {
-      error.value = 'Failed to fetch items'
+      error.value = errorMessage(e, t('catalog.loadFailed'))
       console.error('Error fetching items:', e)
     } finally {
       loading.value = false
@@ -380,15 +391,25 @@ export function useCatalog() {
     is_active: boolean
   }
 
-  async function searchItems(query: string, limit = 20): Promise<SearchItemsResult[]> {
+  async function searchItems(
+    query: string,
+    limit = 20,
+    options: { silent?: boolean } = {}
+  ): Promise<SearchItemsResult[]> {
     try {
       const response = await api.get<ApiResponse<SearchItemsResult[]>>(
-        `/api/v1/catalog/items/search?q=${encodeURIComponent(query)}&limit=${limit}`
+        `/api/v1/catalog/items/search?q=${encodeURIComponent(query)}&limit=${limit}`,
+        { silent: options.silent === true }
       )
       return response.data
     } catch (e) {
+      // Rethrown on purpose: the one consumer (`useTreatmentCatalogSearch`)
+      // has to tell "no matches" apart from "the search failed". Returning
+      // [] here renders an outage — or a missing `catalog.read` — as an
+      // empty result set, which sends the user hunting for a treatment that
+      // exists.
       console.error('Error searching items:', e)
-      return []
+      throw e
     }
   }
 

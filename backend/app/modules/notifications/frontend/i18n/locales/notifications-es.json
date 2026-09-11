@@ -6,6 +6,12 @@
       "placeholder": "Escribe una respuesta…",
       "replyError": "No se pudo enviar la respuesta",
       "windowClosed": "La ventana de 24h está cerrada. Usa una plantilla para reabrir la conversación."
+    },
+    "smtp": {
+      "providerConsole": "Consola (desarrollo)",
+      "providerDisabled": "Desactivado",
+      "securityNone": "Ninguna",
+      "fromNamePlaceholder": "Mi Clínica Dental"
     }
   }
 }

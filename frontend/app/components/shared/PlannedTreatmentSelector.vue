@@ -12,7 +12,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const { fetchPatientPendingItems } = useTreatmentPlans()
+const { fetchPatientPendingItems, pendingItemsError } = useTreatmentPlans()
 const { formatPrice } = useCatalog()
 
 // State
@@ -163,6 +163,32 @@ const hasPendingTreatments = computed(() => {
         name="i-lucide-loader-2"
         class="w-5 h-5 animate-spin text-subtle"
       />
+    </div>
+
+    <!-- Load failure: never render it as "this patient has no pending
+         treatments", which is a clinical statement, not a network one. -->
+    <div
+      v-else-if="pendingItemsError"
+      class="text-sm text-center py-4 bg-surface-muted rounded-lg"
+      data-testid="planned-treatment-load-error"
+    >
+      <UIcon
+        name="i-lucide-alert-triangle"
+        class="w-8 h-8 mx-auto mb-2 text-[var(--color-danger-accent)]"
+      />
+      <p class="text-[var(--color-danger-accent)]">
+        {{ pendingItemsError }}
+      </p>
+      <UButton
+        v-if="patientId"
+        variant="ghost"
+        size="xs"
+        icon="i-lucide-refresh-cw"
+        class="mt-2"
+        @click="loadPendingItems(patientId)"
+      >
+        {{ t('common.retry') }}
+      </UButton>
     </div>
 
     <!-- No pending treatments message -->

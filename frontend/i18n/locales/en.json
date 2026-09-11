@@ -86,7 +86,9 @@
     "create": "Create",
     "delete": "Delete",
     "close": "Close",
-    "remove": "Remove"
+    "remove": "Remove",
+    "back": "Back",
+    "change": "Change"
   },
   "patients": {
     "title": "Patients",
@@ -341,6 +343,33 @@
     },
     "quickActions": {
       "ariaLabel": "Patient quick actions"
+    },
+    "editLegalGuardian": "Edit legal guardian",
+    "legalGuardian": {
+      "title": "Legal guardian",
+      "hasGuardian": "Has a legal guardian",
+      "noGuardian": "No legal guardian registered",
+      "name": "Full name",
+      "namePlaceholder": "Guardian's full name",
+      "relationship": "Relationship",
+      "relationshipPlaceholder": "Select a relationship",
+      "relationships": {
+        "parent": "Parent",
+        "grandparent": "Grandparent",
+        "legal_tutor": "Legal tutor",
+        "other": "Other"
+      },
+      "dni": "National ID",
+      "dniPlaceholder": "Guardian's ID number",
+      "phone": "Phone",
+      "phonePlaceholder": "Contact phone number",
+      "email": "Email",
+      "emailPlaceholder": "guardian{'@'}example.com",
+      "address": "Address",
+      "addressPlaceholder": "Street, number, city",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional details about the guardian",
+      "remove": "Remove guardian"
     }
   },
   "patientDetail": {
@@ -675,7 +704,8 @@
       "continuePlan": "Continue Plan \"{name}\"",
       "selectPlan": "Select plan",
       "continue": "Continue",
-      "odontogramTab": "Odontogram"
+      "odontogramTab": "Odontogram",
+      "openNotes": "Open notes"
     },
     "plans": {
       "title": "Treatment Plans",
@@ -1187,7 +1217,9 @@
     "noRecentPatients": "No recent patients",
     "noCommonTreatments": "No common treatments",
     "noMatches": "No matches",
-    "typeToSearch": "Type to search..."
+    "typeToSearch": "Type to search...",
+    "loadFailed": "Could not load common treatments",
+    "searchFailed": "Could not search the catalog"
   },
   "density": {
     "switchToCompact": "Compact view",
@@ -1289,7 +1321,15 @@
     "yesterday": "Yesterday",
     "copied": "Copied to clipboard",
     "copy": "Copy",
-    "copyFailed": "Could not copy"
+    "copyFailed": "Could not copy",
+    "default": "Default",
+    "download": "Download",
+    "more": "more",
+    "status": "Status",
+    "view": "View",
+    "expand": "Show more",
+    "collapse": "Show less",
+    "optional": "Optional"
   },
   "cabinet": {
     "toast": {
@@ -1492,7 +1532,8 @@
       "pricing": "Pricing",
       "scheduling": "Scheduling",
       "clinical": "Clinical"
-    }
+    },
+    "loadFailed": "Could not load the treatment catalog"
   },
   "placeholders": {
     "selectRole": "Select role..."
@@ -1747,7 +1788,8 @@
         "noteLabel": "Note (optional)",
         "submit": "Log"
       }
-    }
+    },
+    "pendingLoadFailed": "Could not load pending treatments"
   },
   "pipeline": {
     "title": "Plans pipeline",
@@ -2366,7 +2408,8 @@
       "partial": "Partially paid",
       "paid": "Paid",
       "cancelled": "Cancelled",
-      "voided": "Voided"
+      "voided": "Voided",
+      "title": "Invoice status"
     },
     "actions": {
       "issue": "Issue invoice",
@@ -2531,7 +2574,9 @@
       "itemAdded": "Item added",
       "itemUpdated": "Item updated",
       "sentByEmail": "Invoice sent by email",
-      "sentManually": "Invoice marked as sent"
+      "sentManually": "Invoice marked as sent",
+      "paymentRecorded": "Payment recorded",
+      "creditNoteCreated": "Credit note created"
     },
     "send": {
       "title": "Send invoice",
@@ -2865,7 +2910,8 @@
       "size": "File exceeds 10 MB."
     },
     "pdfPreviewHint": "Preview available after upload",
-    "uploadHelp": "Classify the file so it appears in the correct category."
+    "uploadHelp": "Classify the file so it appears in the correct category.",
+    "viewError": "Error loading document"
   },
   "photoGallery": {
     "title": "Patient gallery",
@@ -2938,7 +2984,11 @@
       "compare": "Compare",
       "unpair": "Remove",
       "pair": "Pair before/after"
-    }
+    },
+    "fetchError": "Error loading photos",
+    "uploadError": "Error uploading photo",
+    "uploadSuccess": "Photo uploaded",
+    "paired": "Paired"
   },
   "help": {
     "label": "Help",
@@ -2954,5 +3004,14 @@
     "donut": {
       "ariaLabel": "Donut chart, {count} segments"
     }
+  },
+  "errors": {
+    "loadFailed": "Loading failed",
+    "createFailed": "Creation failed",
+    "updateFailed": "Update failed",
+    "deleteFailed": "Deletion failed"
+  },
+  "attachments": {
+    "linkError": "Error linking attachment"
   }
 }

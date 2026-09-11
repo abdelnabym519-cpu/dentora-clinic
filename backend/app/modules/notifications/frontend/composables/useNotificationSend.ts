@@ -35,7 +35,8 @@ export function useNotificationSend() {
           notification_type: type,
           appointment_id: appointmentId,
           patient_id: patientId
-        }
+        },
+        { silent: true }
       )
       if (response.data.success) {
         toast.add({

@@ -86,7 +86,9 @@
     "create": "Créer",
     "delete": "Supprimer",
     "close": "Fermer",
-    "remove": "Retirer"
+    "remove": "Retirer",
+    "back": "Retour",
+    "change": "Modifier"
   },
   "patients": {
     "title": "Patients",
@@ -341,6 +343,33 @@
     },
     "quickActions": {
       "ariaLabel": "Actions rapides du patient"
+    },
+    "editLegalGuardian": "Modifier le tuteur légal",
+    "legalGuardian": {
+      "title": "Tuteur légal",
+      "hasGuardian": "A un tuteur légal",
+      "noGuardian": "Aucun tuteur légal enregistré",
+      "name": "Nom complet",
+      "namePlaceholder": "Nom complet du tuteur",
+      "relationship": "Lien de parenté",
+      "relationshipPlaceholder": "Choisir un lien de parenté",
+      "relationships": {
+        "parent": "Parent",
+        "grandparent": "Grand-parent",
+        "legal_tutor": "Tuteur légal",
+        "other": "Autre"
+      },
+      "dni": "Numéro d'identité",
+      "dniPlaceholder": "Numéro d'identité du tuteur",
+      "phone": "Téléphone",
+      "phonePlaceholder": "Numéro de téléphone",
+      "email": "E-mail",
+      "emailPlaceholder": "tuteur{'@'}exemple.fr",
+      "address": "Adresse",
+      "addressPlaceholder": "Rue, numéro, ville",
+      "notes": "Notes",
+      "notesPlaceholder": "Précisions sur le tuteur",
+      "remove": "Retirer le tuteur"
     }
   },
   "patientDetail": {
@@ -675,7 +704,8 @@
       "continuePlan": "Continuer le plan « {name} »",
       "selectPlan": "Sélectionner un plan",
       "continue": "Continuer",
-      "odontogramTab": "Odontogramme"
+      "odontogramTab": "Odontogramme",
+      "openNotes": "Ouvrir les notes"
     },
     "plans": {
       "title": "Plans de traitement",
@@ -1187,7 +1217,9 @@
     "noRecentPatients": "Aucun patient récent",
     "noCommonTreatments": "Aucun traitement courant",
     "noMatches": "Aucune correspondance",
-    "typeToSearch": "Tapez pour rechercher..."
+    "typeToSearch": "Tapez pour rechercher...",
+    "loadFailed": "Impossible de charger les soins courants",
+    "searchFailed": "Impossible de rechercher dans le catalogue"
   },
   "density": {
     "switchToCompact": "Vue compacte",
@@ -1289,7 +1321,15 @@
     "yesterday": "Hier",
     "copied": "Copié dans le presse-papiers",
     "copy": "Copier",
-    "copyFailed": "Impossible de copier"
+    "copyFailed": "Impossible de copier",
+    "default": "Par défaut",
+    "download": "Télécharger",
+    "more": "de plus",
+    "status": "Statut",
+    "view": "Voir",
+    "expand": "Afficher plus",
+    "collapse": "Afficher moins",
+    "optional": "Facultatif"
   },
   "cabinet": {
     "toast": {
@@ -1492,7 +1532,8 @@
       "pricing": "Tarification",
       "scheduling": "Planification",
       "clinical": "Clinique"
-    }
+    },
+    "loadFailed": "Impossible de charger le catalogue de soins"
   },
   "placeholders": {
     "selectRole": "Sélectionner un rôle..."
@@ -1747,7 +1788,8 @@
         "noteLabel": "Note (facultatif)",
         "submit": "Enregistrer"
       }
-    }
+    },
+    "pendingLoadFailed": "Impossible de charger les soins en attente"
   },
   "pipeline": {
     "title": "Pipeline des plans",
@@ -2366,7 +2408,8 @@
       "partial": "Partiellement payée",
       "paid": "Payée",
       "cancelled": "Annulée",
-      "voided": "Annulée"
+      "voided": "Annulée",
+      "title": "Statut de la facture"
     },
     "actions": {
       "issue": "Émettre la facture",
@@ -2531,7 +2574,9 @@
       "itemAdded": "Ligne ajoutée",
       "itemUpdated": "Ligne mise à jour",
       "sentByEmail": "Facture envoyée par email",
-      "sentManually": "Facture marquée comme envoyée"
+      "sentManually": "Facture marquée comme envoyée",
+      "paymentRecorded": "Paiement enregistré",
+      "creditNoteCreated": "Avoir créé"
     },
     "send": {
       "title": "Envoyer la facture",
@@ -2865,7 +2910,8 @@
       "size": "Le fichier dépasse 10 Mo."
     },
     "pdfPreviewHint": "Aperçu disponible après l'envoi",
-    "uploadHelp": "Classez le fichier pour qu'il apparaisse dans la bonne catégorie."
+    "uploadHelp": "Classez le fichier pour qu'il apparaisse dans la bonne catégorie.",
+    "viewError": "Erreur lors du chargement du document"
   },
   "photoGallery": {
     "title": "Galerie du patient",
@@ -2938,7 +2984,11 @@
       "compare": "Comparer",
       "unpair": "Retirer",
       "pair": "Apparier avant/après"
-    }
+    },
+    "fetchError": "Erreur lors du chargement des photos",
+    "uploadError": "Erreur lors du téléversement de la photo",
+    "uploadSuccess": "Photo téléversée",
+    "paired": "Appariées"
   },
   "help": {
     "label": "Aide",
@@ -2954,5 +3004,14 @@
     "donut": {
       "ariaLabel": "Diagramme circulaire, {count} segments"
     }
+  },
+  "errors": {
+    "loadFailed": "Échec du chargement",
+    "createFailed": "Échec de la création",
+    "updateFailed": "Échec de la mise à jour",
+    "deleteFailed": "Échec de la suppression"
+  },
+  "attachments": {
+    "linkError": "Erreur lors de la liaison de la pièce jointe"
   }
 }

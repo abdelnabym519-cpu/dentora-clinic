@@ -80,7 +80,8 @@ export function useNotificationSettings() {
     isLoading.value = true
     try {
       const response = await api.get<ApiResponse<ClinicNotificationSettings>>(
-        '/api/v1/notifications/settings'
+        '/api/v1/notifications/settings',
+        { silent: true }
       )
       settings.value = response.data
     } catch (e) {
@@ -102,7 +103,8 @@ export function useNotificationSettings() {
     try {
       const response = await api.put<ApiResponse<ClinicNotificationSettings>>(
         '/api/v1/notifications/settings',
-        data
+        data,
+        { silent: true }
       )
       settings.value = response.data
       toast.add({
@@ -131,7 +133,8 @@ export function useNotificationSettings() {
     try {
       const response = await api.post<ApiResponse<TestEmailResponse>>(
         '/api/v1/notifications/test',
-        { to_email: toEmail }
+        { to_email: toEmail },
+        { silent: true }
       )
       if (response.data.success) {
         toast.add({
@@ -167,7 +170,8 @@ export function useNotificationSettings() {
     try {
       const response = await api.post<ApiResponse<ManualSendResponse>>(
         '/api/v1/notifications/send',
-        request
+        request,
+        { silent: true }
       )
       if (response.data.success) {
         toast.add({
@@ -255,7 +259,8 @@ export function useNotificationSettings() {
     isSmtpLoading.value = true
     try {
       const response = await api.get<ApiResponse<SmtpSettings>>(
-        '/api/v1/notifications/smtp-settings'
+        '/api/v1/notifications/smtp-settings',
+        { silent: true }
       )
       smtpSettings.value = response.data
     } catch (e) {
@@ -277,7 +282,8 @@ export function useNotificationSettings() {
     try {
       const response = await api.put<ApiResponse<SmtpSettings>>(
         '/api/v1/notifications/smtp-settings',
-        data
+        data,
+        { silent: true }
       )
       smtpSettings.value = response.data
       toast.add({
@@ -306,7 +312,8 @@ export function useNotificationSettings() {
     try {
       const response = await api.post<ApiResponse<TestEmailResponse>>(
         '/api/v1/notifications/smtp-settings/test',
-        request
+        request,
+        { silent: true }
       )
       if (response.data.success) {
         toast.add({

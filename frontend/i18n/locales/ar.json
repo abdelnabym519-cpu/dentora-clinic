@@ -86,7 +86,9 @@
     "create": "إنشاء",
     "delete": "حذف",
     "close": "إغلاق",
-    "remove": "إزالة"
+    "remove": "إزالة",
+    "back": "رجوع",
+    "change": "تغيير"
   },
   "patients": {
     "title": "المرضى",
@@ -341,6 +343,33 @@
     },
     "quickActions": {
       "ariaLabel": "إجراءات سريعة للمريض"
+    },
+    "editLegalGuardian": "تعديل الولي القانوني",
+    "legalGuardian": {
+      "title": "الولي القانوني",
+      "hasGuardian": "لديه ولي قانوني",
+      "noGuardian": "لا يوجد ولي قانوني مسجل",
+      "name": "الاسم الكامل",
+      "namePlaceholder": "الاسم الكامل للولي",
+      "relationship": "صلة القرابة",
+      "relationshipPlaceholder": "اختر صلة القرابة",
+      "relationships": {
+        "parent": "الوالد/الوالدة",
+        "grandparent": "الجد/الجدة",
+        "legal_tutor": "الوصي القانوني",
+        "other": "أخرى"
+      },
+      "dni": "الرقم القومي",
+      "dniPlaceholder": "رقم بطاقة الولي",
+      "phone": "الهاتف",
+      "phonePlaceholder": "رقم هاتف التواصل",
+      "email": "البريد الإلكتروني",
+      "emailPlaceholder": "guardian{'@'}example.com",
+      "address": "العنوان",
+      "addressPlaceholder": "الشارع، الرقم، المدينة",
+      "notes": "ملاحظات",
+      "notesPlaceholder": "تفاصيل إضافية عن الولي",
+      "remove": "إزالة الولي"
     }
   },
   "patientDetail": {
@@ -675,7 +704,8 @@
       "continuePlan": "متابعة الخطة \"{name}\"",
       "selectPlan": "اختر الخطة",
       "continue": "متابعة",
-      "odontogramTab": "مخطط الأسنان"
+      "odontogramTab": "مخطط الأسنان",
+      "openNotes": "فتح الملاحظات"
     },
     "plans": {
       "title": "خطط العلاج",
@@ -1187,7 +1217,9 @@
     "noRecentPatients": "لا يوجد مرضى جدد",
     "noCommonTreatments": "لا توجد علاجات شائعة",
     "noMatches": "لا توجد نتائج مطابقة",
-    "typeToSearch": "اكتب للبحث..."
+    "typeToSearch": "اكتب للبحث...",
+    "loadFailed": "تعذّر تحميل العلاجات الشائعة",
+    "searchFailed": "تعذّر البحث في الكتالوج"
   },
   "density": {
     "switchToCompact": "عرض مضغوط",
@@ -1289,7 +1321,15 @@
     "yesterday": "أمس",
     "copied": "تم النسخ إلى الحافظة",
     "copy": "نسخ",
-    "copyFailed": "تعذر النسخ"
+    "copyFailed": "تعذر النسخ",
+    "default": "افتراضي",
+    "download": "تنزيل",
+    "more": "المزيد",
+    "status": "الحالة",
+    "view": "عرض",
+    "expand": "عرض المزيد",
+    "collapse": "عرض أقل",
+    "optional": "اختياري"
   },
   "cabinet": {
     "toast": {
@@ -1492,7 +1532,8 @@
       "pricing": "التسعير",
       "scheduling": "الجدولة",
       "clinical": "السريري"
-    }
+    },
+    "loadFailed": "تعذّر تحميل كتالوج العلاجات"
   },
   "placeholders": {
     "selectRole": "اختر الدور..."
@@ -1747,7 +1788,8 @@
         "noteLabel": "ملاحظة (اختياري)",
         "submit": "تسجيل"
       }
-    }
+    },
+    "pendingLoadFailed": "تعذّر تحميل العلاجات المعلقة"
   },
   "pipeline": {
     "title": "مسار الخطط",
@@ -2366,7 +2408,8 @@
       "partial": "مدفوعة جزئيًا",
       "paid": "مدفوع",
       "cancelled": "ملغى",
-      "voided": "ملغاة"
+      "voided": "ملغاة",
+      "title": "حالة الفاتورة"
     },
     "actions": {
       "issue": "إصدار الفاتورة",
@@ -2534,7 +2577,9 @@
       "itemAdded": "تمت إضافة البند",
       "itemUpdated": "تم تحديث البند",
       "sentByEmail": "تم إرسال الفاتورة عبر البريد الإلكتروني",
-      "sentManually": "تم تعيين الفاتورة كمرسلة"
+      "sentManually": "تم تعيين الفاتورة كمرسلة",
+      "paymentRecorded": "تم تسجيل الدفعة",
+      "creditNoteCreated": "تم إنشاء إشعار دائن"
     },
     "send": {
       "title": "إرسال الفاتورة",
@@ -2868,7 +2913,8 @@
       "size": "الملف يتجاوز ١٠ ميجابايت."
     },
     "pdfPreviewHint": "المعاينة متاحة بعد الرفع",
-    "uploadHelp": "صنّف الملف ليظهر في الفئة الصحيحة."
+    "uploadHelp": "صنّف الملف ليظهر في الفئة الصحيحة.",
+    "viewError": "خطأ في تحميل المستند"
   },
   "photoGallery": {
     "title": "معرض المريض",
@@ -2941,7 +2987,11 @@
       "compare": "مقارنة",
       "unpair": "إزالة",
       "pair": "اقتران قبل/بعد"
-    }
+    },
+    "fetchError": "خطأ في تحميل الصور",
+    "uploadError": "خطأ في رفع الصورة",
+    "uploadSuccess": "تم رفع الصورة",
+    "paired": "مقترنة"
   },
   "help": {
     "label": "المساعدة",
@@ -2957,5 +3007,14 @@
     "donut": {
       "ariaLabel": "مخطط دائري، {count} قطاعات"
     }
+  },
+  "errors": {
+    "loadFailed": "فشل التحميل",
+    "createFailed": "فشل الإنشاء",
+    "updateFailed": "فشل التحديث",
+    "deleteFailed": "فشل الحذف"
+  },
+  "attachments": {
+    "linkError": "خطأ عند ربط المرفق"
   }
 }

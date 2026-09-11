@@ -86,7 +86,9 @@
     "create": "Criar",
     "delete": "Eliminar",
     "close": "Fechar",
-    "remove": "Remover"
+    "remove": "Remover",
+    "back": "Voltar",
+    "change": "Alterar"
   },
   "patients": {
     "title": "Pacientes",
@@ -341,6 +343,33 @@
     },
     "quickActions": {
       "ariaLabel": "Ações rápidas do paciente"
+    },
+    "editLegalGuardian": "Editar tutor legal",
+    "legalGuardian": {
+      "title": "Tutor legal",
+      "hasGuardian": "Tem tutor legal",
+      "noGuardian": "Sem tutor legal registado",
+      "name": "Nome completo",
+      "namePlaceholder": "Nome completo do tutor",
+      "relationship": "Parentesco",
+      "relationshipPlaceholder": "Seleciona o parentesco",
+      "relationships": {
+        "parent": "Progenitor",
+        "grandparent": "Avô/Avó",
+        "legal_tutor": "Tutor legal",
+        "other": "Outro"
+      },
+      "dni": "Nº de identificação",
+      "dniPlaceholder": "Número de identificação do tutor",
+      "phone": "Telefone",
+      "phonePlaceholder": "Número de telefone",
+      "email": "E-mail",
+      "emailPlaceholder": "tutor{'@'}exemplo.pt",
+      "address": "Morada",
+      "addressPlaceholder": "Rua, número, cidade",
+      "notes": "Notas",
+      "notesPlaceholder": "Detalhes adicionais sobre o tutor",
+      "remove": "Remover tutor"
     }
   },
   "patientDetail": {
@@ -675,7 +704,8 @@
       "continuePlan": "Continuar o plano \"{name}\"",
       "selectPlan": "Selecionar plano",
       "continue": "Continuar",
-      "odontogramTab": "Odontograma"
+      "odontogramTab": "Odontograma",
+      "openNotes": "Abrir notas"
     },
     "plans": {
       "title": "Planos de tratamento",
@@ -1187,7 +1217,9 @@
     "noRecentPatients": "Sem pacientes recentes",
     "noCommonTreatments": "Sem tratamentos comuns",
     "noMatches": "Sem correspondências",
-    "typeToSearch": "Escreva para procurar..."
+    "typeToSearch": "Escreva para procurar...",
+    "loadFailed": "Não foi possível carregar os tratamentos comuns",
+    "searchFailed": "Não foi possível pesquisar no catálogo"
   },
   "density": {
     "switchToCompact": "Vista compacta",
@@ -1289,7 +1321,15 @@
     "yesterday": "Ontem",
     "copied": "Copiado para a área de transferência",
     "copy": "Copiar",
-    "copyFailed": "Não foi possível copiar"
+    "copyFailed": "Não foi possível copiar",
+    "default": "Predefinido",
+    "download": "Descarregar",
+    "more": "mais",
+    "status": "Estado",
+    "view": "Ver",
+    "expand": "Mostrar mais",
+    "collapse": "Mostrar menos",
+    "optional": "Opcional"
   },
   "cabinet": {
     "toast": {
@@ -1492,7 +1532,8 @@
       "pricing": "Preços",
       "scheduling": "Agendamento",
       "clinical": "Clínico"
-    }
+    },
+    "loadFailed": "Não foi possível carregar o catálogo de tratamentos"
   },
   "placeholders": {
     "selectRole": "Selecionar perfil..."
@@ -1747,7 +1788,8 @@
         "noteLabel": "Nota (opcional)",
         "submit": "Registar"
       }
-    }
+    },
+    "pendingLoadFailed": "Não foi possível carregar os tratamentos pendentes"
   },
   "pipeline": {
     "title": "Pipeline de planos",
@@ -2366,7 +2408,8 @@
       "partial": "Parcialmente paga",
       "paid": "Paga",
       "cancelled": "Cancelada",
-      "voided": "Anulada"
+      "voided": "Anulada",
+      "title": "Estado da fatura"
     },
     "actions": {
       "issue": "Emitir fatura",
@@ -2531,7 +2574,9 @@
       "itemAdded": "Linha adicionada",
       "itemUpdated": "Linha atualizada",
       "sentByEmail": "Fatura enviada por email",
-      "sentManually": "Fatura marcada como enviada"
+      "sentManually": "Fatura marcada como enviada",
+      "paymentRecorded": "Pagamento registado",
+      "creditNoteCreated": "Nota de crédito criada"
     },
     "send": {
       "title": "Enviar fatura",
@@ -2865,7 +2910,8 @@
       "size": "O ficheiro excede 10 MB."
     },
     "pdfPreviewHint": "Pré-visualização disponível após o carregamento",
-    "uploadHelp": "Classifique o ficheiro para que apareça na categoria correta."
+    "uploadHelp": "Classifique o ficheiro para que apareça na categoria correta.",
+    "viewError": "Erro ao carregar o documento"
   },
   "photoGallery": {
     "title": "Galeria do paciente",
@@ -2938,7 +2984,11 @@
       "compare": "Comparar",
       "unpair": "Remover",
       "pair": "Emparelhar antes/depois"
-    }
+    },
+    "fetchError": "Falha ao carregar as fotos",
+    "uploadError": "Falha ao enviar a foto",
+    "uploadSuccess": "Foto enviada",
+    "paired": "Emparelhadas"
   },
   "help": {
     "label": "Ajuda",
@@ -2954,5 +3004,14 @@
     "donut": {
       "ariaLabel": "Gráfico de anel, {count} segmentos"
     }
+  },
+  "errors": {
+    "loadFailed": "Falha ao carregar",
+    "createFailed": "Falha ao criar",
+    "updateFailed": "Falha ao atualizar",
+    "deleteFailed": "Falha ao eliminar"
+  },
+  "attachments": {
+    "linkError": "Erro ao vincular o anexo"
   }
 }

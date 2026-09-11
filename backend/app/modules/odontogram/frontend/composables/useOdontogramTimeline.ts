@@ -13,6 +13,8 @@ import type {
   ToothRecord,
   Treatment
 } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 export function useOdontogramTimeline() {
   const api = useApi()
@@ -49,8 +51,16 @@ export function useOdontogramTimeline() {
   // API Methods
   // ============================================================================
 
+  // Two separate slots, two separate guards: the list of history dates, and
+  // the chart rendered *at* one of them. Clicking through dates quickly is the
+  // normal way to read a history, and a late response must not leave the chart
+  // showing one date's teeth under another date's label.
+  const datesGuard = latestGuard()
+  const historicalGuard = latestGuard()
+
   /** Fetch timeline dates for a patient */
   async function fetchTimeline(patientId: string): Promise<void> {
+    const isLatest = datesGuard.begin()
     loading.value = true
     try {
       const response = await api.get<ApiResponse<{
@@ -59,33 +69,39 @@ export function useOdontogramTimeline() {
       }>>(
         `/api/v1/odontogram/patients/${patientId}/odontogram/timeline`
       )
-      timelineDates.value = response.data.dates
+      if (!isLatest()) return
+      timelineDates.value = response.data.dates ?? []
     } catch (err) {
+      if (!isLatest()) return
       console.error('Error fetching timeline:', err)
       timelineDates.value = []
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 
   /** Fetch odontogram state at a specific date */
   async function fetchOdontogramAtDate(patientId: string, date: string): Promise<void> {
+    const isLatest = historicalGuard.begin()
     loading.value = true
     try {
       const response = await api.get<ApiResponse<OdontogramData>>(
         `/api/v1/odontogram/patients/${patientId}/odontogram/at?date=${date}`
       )
-      historicalTeeth.value = response.data.teeth
-      historicalTreatments.value = response.data.treatments || []
+      if (!isLatest()) return
+      historicalTeeth.value = response.data.teeth ?? []
+      historicalTreatments.value = response.data.treatments ?? []
       viewingDate.value = date
     } catch (err) {
+      if (!isLatest()) return
       console.error('Error fetching historical odontogram:', err)
       toast.add({
         title: t('common.error'),
+        description: errorMessage(err, t('errors.loadFailed')),
         color: 'error'
       })
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

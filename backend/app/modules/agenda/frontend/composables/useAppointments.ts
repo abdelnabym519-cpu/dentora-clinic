@@ -1,5 +1,6 @@
 import type { Appointment, AppointmentCreate, AppointmentStatus, AppointmentUpdate, PaginatedResponse, ApiResponse } from '~~/app/types'
 import { errorMessage, errorStatus } from '~~/app/utils/error'
+import { useSharedLatestGuard } from '~~/app/utils/latestGuard'
 
 export interface FetchAppointmentsOptions {
   /**
@@ -40,12 +41,19 @@ export function useAppointments() {
     }
   }
 
+  // The board re-reads the day on every date click, on the 30 s poll and on
+  // tab focus. Those overlap: a slow answer for the day the user left must not
+  // replace the day now on the board. The list lives in `useState`, so the
+  // counter has to be shared by every component that reads it.
+  const appointmentsGuard = useSharedLatestGuard('appointments:list')
+
   // Actions
   async function fetchAppointments(
     startDate: Date,
     endDate: Date,
     options: FetchAppointmentsOptions = {}
   ): Promise<Appointment[]> {
+    const isLatest = appointmentsGuard.begin()
     isLoading.value = true
     error.value = null
 
@@ -61,9 +69,10 @@ export function useAppointments() {
         { silent: options.silent === true, operation: t('appointments.title') }
       )
 
-      appointments.value = response.data ?? []
-      return response.data
+      if (isLatest()) appointments.value = response.data ?? []
+      return response.data ?? []
     } catch (e) {
+      if (!isLatest()) return []
       // Was a hardcoded English string that also dropped the backend's
       // reason. `error` is rendered inline by the board, so it has to be
       // localized and specific: the server's own detail for an HTTP

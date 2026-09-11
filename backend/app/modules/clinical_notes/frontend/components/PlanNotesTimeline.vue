@@ -14,6 +14,7 @@
 
 import type { ClinicalNoteEntry, PlannedTreatmentItem, NoteType } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const props = defineProps<{
   planId: string
@@ -104,12 +105,19 @@ const itemByPlanItemId = computed(() => {
   return map
 })
 
+// `watch(() => props.planId, refresh)` — moving between plans faster than the
+// network answers must not leave the previous plan's notes on screen.
+const notesGuard = latestGuard()
+
 async function refresh() {
+  const isLatest = notesGuard.begin()
   loading.value = true
   try {
-    entries.value = await listMergedForPlan(props.planId, { silent: true })
+    const fetched = await listMergedForPlan(props.planId, { silent: true })
+    if (!isLatest()) return
+    entries.value = fetched
   } finally {
-    loading.value = false
+    if (isLatest()) loading.value = false
   }
 }
 

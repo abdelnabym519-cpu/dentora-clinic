@@ -26,6 +26,7 @@ import type {
   SeriesResetRequest
 } from '~~/app/types'
 import { paymentMethodLabel } from '~~/app/utils/paymentMethod'
+import { useSharedLatestGuard } from '~~/app/utils/latestGuard'
 
 export interface InvoiceListParams {
   page?: number
@@ -107,7 +108,12 @@ export function useInvoices() {
   // CRUD Operations
   // ============================================================================
 
+  // The invoices list is shared state driven by filters, a search box and
+  // pagination; a late answer for the page the user left must not win.
+  const invoicesGuard = useSharedLatestGuard('invoices:list')
+
   async function fetchInvoices(params: InvoiceListParams = {}): Promise<InvoiceListItem[]> {
+    const isLatest = invoicesGuard.begin()
     isLoading.value = true
     error.value = null
 
@@ -136,11 +142,14 @@ export function useInvoices() {
         `/api/v1/billing/invoices?${searchParams.toString()}`
       )
 
-      invoices.value = response.data ?? []
-      total.value = response.total
-      return response.data
+      if (isLatest()) {
+        invoices.value = response.data ?? []
+        total.value = response.total
+      }
+      return response.data ?? []
     } catch (e) {
-      error.value = 'Failed to fetch invoices'
+      if (!isLatest()) return []
+      error.value = errorMessage(e, t('errors.loadFailed'))
       console.error('Failed to fetch invoices:', e)
       return []
     } finally {

@@ -7,6 +7,7 @@ import type {
   SurgicalHistoryEntry,
   SystemicDiseaseEntry
 } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const DEFAULT_MEDICAL_HISTORY: MedicalHistory = {
   allergies: [],
@@ -40,9 +41,15 @@ export function useMedicalHistory(patientId: Ref<string | undefined>) {
   const isSaving = ref(false)
   const error = ref<string | null>(null)
 
+  // Allergies, anticoagulants, pregnancy: this is the record a clinician reads
+  // before treating. `watch(patientId, ...)` re-fires on every patient switch,
+  // so a slow answer for the previous patient must never land on this one.
+  const historyGuard = latestGuard()
+
   async function fetchMedicalHistory() {
     if (!patientId.value) return
 
+    const isLatest = historyGuard.begin()
     isLoading.value = true
     error.value = null
 
@@ -50,12 +57,14 @@ export function useMedicalHistory(patientId: Ref<string | undefined>) {
       const response = await api.get<ApiResponse<MedicalHistory>>(
         `/api/v1/patients_clinical/patients/${patientId.value}/medical-history`
       )
+      if (!isLatest()) return
       medicalHistory.value = response.data || { ...DEFAULT_MEDICAL_HISTORY }
     } catch (e) {
+      if (!isLatest()) return
       error.value = t('patients.medicalHistory.fetchError')
       console.error('Failed to fetch medical history:', e)
     } finally {
-      isLoading.value = false
+      if (isLatest()) isLoading.value = false
     }
   }
 

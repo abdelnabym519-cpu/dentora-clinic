@@ -16,6 +16,7 @@ import type {
   TreatmentCatalogItemUpdate
 } from '~~/app/types'
 import { errorMessage } from '~~/app/utils/error'
+import { useSharedLatestGuard } from '~~/app/utils/latestGuard'
 
 /**
  * Extract the FastAPI error `detail` from a fetch error, so toasts can show
@@ -220,7 +221,12 @@ export function useCatalog() {
     silent?: boolean
   }
 
+  // Search box, category chips and pagination all re-trigger this shared list;
+  // a late answer for the filter the user left must not replace the current one.
+  const itemsGuard = useSharedLatestGuard('catalog:items')
+
   async function fetchItems(options: FetchItemsOptions = {}): Promise<void> {
+    const isLatest = itemsGuard.begin()
     try {
       loading.value = true
       error.value = null
@@ -242,16 +248,18 @@ export function useCatalog() {
         { silent: options.silent === true }
       )
 
+      if (!isLatest()) return
       items.value = response.data ?? []
       totalItems.value = response.total
       currentPage.value = response.page
       pageSize.value = response.page_size
       error.value = null
     } catch (e) {
+      if (!isLatest()) return
       error.value = errorMessage(e, t('catalog.loadFailed'))
       console.error('Error fetching items:', e)
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

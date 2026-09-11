@@ -10,6 +10,7 @@
 
 import type { NoteType, RecentNoteEntry, ClinicalNoteLinked } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const props = defineProps<{
   ctx: { patient: { id: string } }
@@ -45,8 +46,14 @@ const canWrite = computed(() => can(PERMISSIONS.clinicalNotes.write))
 
 const patientId = computed(() => props.ctx?.patient?.id)
 
+// Patient switches and type-filter clicks both re-read this feed, and
+// `loadMore` appends to whatever is on screen — so all three share one guard:
+// a late page of the *previous* patient must never be appended to this one.
+const notesGuard = latestGuard()
+
 async function refresh() {
   if (!patientId.value || !canRead.value) return
+  const isLatest = notesGuard.begin()
   loading.value = true
   try {
     const types = activeFilters.value.size === allTypes().length
@@ -56,6 +63,7 @@ async function refresh() {
       types,
       limit: PAGE_SIZE
     })
+    if (!isLatest()) return
     entries.value = fetched
     hasMore.value = fetched.length === PAGE_SIZE
   } finally {
@@ -66,6 +74,7 @@ async function refresh() {
 async function loadMore() {
   if (!patientId.value || !canRead.value) return
   if (entries.value.length === 0) return
+  const isLatest = notesGuard.begin()
   loadingMore.value = true
   try {
     const before = entries.value[entries.value.length - 1]?.created_at
@@ -77,6 +86,7 @@ async function loadMore() {
       limit: PAGE_SIZE,
       before
     })
+    if (!isLatest()) return
     entries.value.push(...fetched)
     hasMore.value = fetched.length === PAGE_SIZE
   } finally {

@@ -15,6 +15,7 @@
 import type { ClinicalNote, NoteType } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
 import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const props = defineProps<{
   ctx: { appointmentId: string, patientId?: string | null }
@@ -48,13 +49,21 @@ const canWrite = computed(() => can(PERMISSIONS.clinicalNotes.write))
 const appointmentId = computed(() => props.ctx?.appointmentId)
 const patientId = computed(() => props.ctx?.patientId ?? null)
 
+// The panel is re-read every time the selected appointment changes; a late
+// answer for the previous appointment must not appear under the current one.
+const notesGuard = latestGuard()
+
 async function refresh() {
   if (!appointmentId.value || !canRead.value) return
+  const isLatest = notesGuard.begin()
   loading.value = true
   loadError.value = null
   try {
-    entries.value = await listForOwner('appointment', appointmentId.value, { silent: true })
+    const fetched = await listForOwner('appointment', appointmentId.value, { silent: true })
+    if (!isLatest()) return
+    entries.value = fetched
   } catch (e) {
+    if (!isLatest()) return
     // Was try/finally with no catch. `watch(appointmentId, refresh, {
     // immediate: true })` turned a failure into an unhandled rejection, and
     // the panel rendered "no notes for this appointment" — a clinical claim
@@ -63,7 +72,7 @@ async function refresh() {
     entries.value = []
     loadError.value = errorMessage(e, t('errors.loadFailed'))
   } finally {
-    loading.value = false
+    if (isLatest()) loading.value = false
   }
 }
 

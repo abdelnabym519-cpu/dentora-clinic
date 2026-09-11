@@ -1,4 +1,6 @@
 import type { ApiResponse, TimelineCategory, TimelineEntry, TimelineResponse } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 // High-impact events get stronger visual emphasis in the UI (accent bar, denser
 // hover). Everything else renders in the default, low-key style.
@@ -39,8 +41,16 @@ export function usePatientTimeline(patientId: Ref<string | undefined>) {
   const isLoadingMore = ref(false)
   const error = ref<string | null>(null)
 
+  // The patient, the category filter and the infinite-scroll page can all
+  // change faster than the network answers. Without this the slower earlier
+  // response lands last: the timeline of the patient (or category, or page)
+  // the clinician already left, appended to the one now on screen.
+  const timelineGuard = latestGuard()
+
   async function fetchTimeline(reset = true) {
     if (!patientId.value) return
+
+    const isLatest = timelineGuard.begin()
 
     if (reset) {
       isLoading.value = true
@@ -66,20 +76,25 @@ export function usePatientTimeline(patientId: Ref<string | undefined>) {
         `/api/v1/patient_timeline/patients/${patientId.value}?${params.toString()}`
       )
 
+      if (!isLatest()) return
+
       if (reset) {
-        entries.value = response.data.entries
+        entries.value = response.data.entries ?? []
       } else {
-        entries.value = [...entries.value, ...response.data.entries]
+        entries.value = [...entries.value, ...(response.data.entries ?? [])]
       }
 
       total.value = response.data.total
       hasMore.value = response.data.has_more
     } catch (e) {
-      error.value = 'Failed to fetch timeline'
+      if (!isLatest()) return
+      error.value = errorMessage(e, t('errors.loadFailed'))
       console.error('Failed to fetch patient timeline:', e)
     } finally {
-      isLoading.value = false
-      isLoadingMore.value = false
+      if (isLatest()) {
+        isLoading.value = false
+        isLoadingMore.value = false
+      }
     }
   }
 
@@ -91,6 +106,10 @@ export function usePatientTimeline(patientId: Ref<string | undefined>) {
 
   function setCategory(category: TimelineCategory | null) {
     selectedCategory.value = category
+    fetchTimeline(true)
+  }
+
+  function retry() {
     fetchTimeline(true)
   }
 
@@ -161,9 +180,13 @@ export function usePatientTimeline(patientId: Ref<string | undefined>) {
     if (newId) {
       fetchTimeline(true)
     } else {
+      // No patient, no timeline — and anything still in flight for the
+      // previous one must not land here.
+      timelineGuard.invalidate()
       entries.value = []
       total.value = 0
       hasMore.value = false
+      error.value = null
     }
   }, { immediate: true })
 
@@ -177,6 +200,7 @@ export function usePatientTimeline(patientId: Ref<string | undefined>) {
     isLoading,
     isLoadingMore,
     error,
+    retry,
     categoryOptions,
     fetchTimeline,
     loadMore,

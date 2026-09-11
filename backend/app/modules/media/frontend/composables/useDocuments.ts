@@ -1,4 +1,5 @@
 import type { ApiResponse, Document, DocumentType, PaginatedResponse } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 interface UploadProgress {
   loaded: number
@@ -22,6 +23,8 @@ export function useDocuments() {
     import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
   )
 
+  const documentsGuard = latestGuard()
+
   async function fetchDocuments(
     patientId: string,
     documentType?: DocumentType,
@@ -29,6 +32,9 @@ export function useDocuments() {
     pageSize = 20,
     mediaKind?: 'document' | 'photo' | 'xray' | 'scan' | 'video'
   ) {
+    // Type filter and page both re-trigger this; a late answer for the page the
+    // user left must not replace the one now on screen.
+    const isLatest = documentsGuard.begin()
     loading.value = true
     try {
       let url = `/api/v1/media/patients/${patientId}/documents?page=${page}&page_size=${pageSize}`
@@ -44,9 +50,11 @@ export function useDocuments() {
         headers: apiHeaders()
       })
 
+      if (!isLatest()) return
       documents.value = response.data ?? []
       total.value = response.total
     } catch (error) {
+      if (!isLatest()) return
       console.error('Error fetching documents:', error)
       toast.add({
         title: t('common.error'),
@@ -54,7 +62,7 @@ export function useDocuments() {
         color: 'error'
       })
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

@@ -16,6 +16,7 @@ import type {
   TreatmentStatus,
   TreatmentUpdate
 } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 // ---------------------------------------------------------------------------
 // Backend <-> frontend status mapping.
@@ -77,10 +78,16 @@ export function useTreatments() {
   // API
   // ============================================================================
 
+  // The patient and the status/tooth/type filters can both change while a
+  // request is in flight; a late answer for the previous filter must not
+  // replace the list the clinician is now looking at.
+  const treatmentsGuard = latestGuard()
+
   async function fetchTreatments(
     patientId: string,
     filters?: { status?: TreatmentStatus, tooth_number?: number, clinical_type?: string }
   ): Promise<void> {
+    const isLatest = treatmentsGuard.begin()
     loading.value = true
     try {
       let url = `/api/v1/odontogram/patients/${patientId}/treatments`
@@ -91,11 +98,12 @@ export function useTreatments() {
       if (params.toString()) url += `?${params.toString()}`
 
       const response = await api.get<PaginatedResponse<Treatment>>(url)
-      treatments.value = response.data.map(normalizeTreatment)
+      if (!isLatest()) return
+      treatments.value = (response.data ?? []).map(normalizeTreatment)
     } catch (err) {
       console.error('Error fetching treatments:', err)
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

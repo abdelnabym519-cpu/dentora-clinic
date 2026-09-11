@@ -14,8 +14,10 @@ import type {
   TreatmentPlanUpdate
 } from '~~/app/types'
 import { errorDetail, errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 export function useTreatmentPlans() {
+  const plansGuard = latestGuard()
   const api = useApi()
   const toast = useToast()
   const { t } = useI18n()
@@ -43,6 +45,8 @@ export function useTreatmentPlans() {
     page?: number
     page_size?: number
   } = {}) {
+    // Search box, status filter and pagination all re-trigger this list.
+    const isLatest = plansGuard.begin()
     loading.value = true
     try {
       const params = new URLSearchParams()
@@ -59,11 +63,13 @@ export function useTreatmentPlans() {
         `/api/v1/treatment_plan/treatment-plans?${params}`,
         { silent: true }
       )
+      if (!isLatest()) return
       plans.value = response.data ?? []
       total.value = response.total
       page.value = response.page
       pageSize.value = response.page_size
     } catch (error) {
+      if (!isLatest()) return
       console.error('Error fetching treatment plans:', error)
       toast.add({
         title: t('errors.loadFailed'),
@@ -71,7 +77,7 @@ export function useTreatmentPlans() {
         color: 'error'
       })
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

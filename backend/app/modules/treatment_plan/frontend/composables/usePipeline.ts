@@ -7,6 +7,8 @@
  */
 
 import type { PaginatedResponse } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 export type PipelineTab
   = | 'por_presupuestar'
@@ -61,6 +63,12 @@ export interface PipelineFilters {
 
 export function usePipeline() {
   const api = useApi()
+  const { t } = useI18n()
+
+  // Tab, page, doctor filter and search all re-trigger the board. A late
+  // answer used to overwrite `tab` too, so the board could flip itself back to
+  // the column the user had already left.
+  const pipelineGuard = latestGuard()
 
   const tab = ref<PipelineTab>('por_presupuestar')
   const rows = ref<PipelineRow[]>([])
@@ -78,6 +86,7 @@ export function usePipeline() {
     doctor_id?: string
     q?: string
   } = {}) {
+    const isLatest = pipelineGuard.begin()
     loading.value = true
     error.value = null
     try {
@@ -94,17 +103,19 @@ export function usePipeline() {
       const response = await api.get<PaginatedResponse<PipelineRow>>(
         `/api/v1/treatment_plan/treatment-plans/pipeline?${params}`
       )
+      if (!isLatest()) return
       tab.value = targetTab
       rows.value = response.data ?? []
       total.value = response.total
       page.value = response.page
       pageSize.value = response.page_size
     } catch (e) {
-      error.value = (e as Error).message
+      if (!isLatest()) return
+      error.value = errorMessage(e, t('errors.loadFailed'))
       rows.value = []
       total.value = 0
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

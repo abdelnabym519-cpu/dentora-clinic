@@ -20,6 +20,7 @@ import type {
   PaginatedResponse,
   PhotoMetadataUpdate
 } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 interface PhotoFilters {
   media_kind?: MediaKind
@@ -53,7 +54,13 @@ export function usePhotos() {
   const loading = ref(false)
   const uploading = ref(false)
 
+  // Patient, category, subtype, date range and page all re-trigger this. A
+  // late answer for the filter the user already left must not replace the
+  // gallery they are looking at now.
+  const photosGuard = latestGuard()
+
   async function fetchPhotos(patientId: string, filters: PhotoFilters = {}) {
+    const isLatest = photosGuard.begin()
     loading.value = true
     try {
       const params = new URLSearchParams()
@@ -73,9 +80,11 @@ export function usePhotos() {
         `/api/v1/media/patients/${patientId}/photos?${params}`,
         { silent: true }
       )
+      if (!isLatest()) return
       photos.value = response.data ?? []
       total.value = response.total
     } catch (error) {
+      if (!isLatest()) return
       console.error('Error fetching photos:', error)
       toast.add({
         title: t('common.error'),
@@ -83,7 +92,7 @@ export function usePhotos() {
         color: 'error'
       })
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

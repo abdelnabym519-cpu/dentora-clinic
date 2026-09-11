@@ -1,7 +1,10 @@
 import type { ApiResponse, PatientAlert } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 export function usePatientAlerts(patientId: Ref<string | undefined>) {
   const api = useApi()
+  const { t } = useI18n()
 
   const alerts = ref<PatientAlert[]>([])
   const isLoading = ref(false)
@@ -37,9 +40,15 @@ export function usePatientAlerts(patientId: Ref<string | undefined>) {
     alerts.value.some(a => a.type === 'anesthesia_reaction')
   )
 
+  // Alert banners (allergy, anticoagulant…) are read per patient, and the
+  // watcher re-fires on every switch: a late answer for the previous patient
+  // would raise — or hide — the wrong warnings on this one.
+  const alertsGuard = latestGuard()
+
   async function fetchAlerts() {
     if (!patientId.value) return
 
+    const isLatest = alertsGuard.begin()
     isLoading.value = true
     error.value = null
 
@@ -47,12 +56,14 @@ export function usePatientAlerts(patientId: Ref<string | undefined>) {
       const response = await api.get<ApiResponse<{ alerts: PatientAlert[] }>>(
         `/api/v1/patients_clinical/patients/${patientId.value}/alerts`
       )
-      alerts.value = response.data.alerts
+      if (!isLatest()) return
+      alerts.value = response.data?.alerts ?? []
     } catch (e) {
-      error.value = 'Failed to fetch alerts'
+      if (!isLatest()) return
+      error.value = errorMessage(e, t('errors.loadFailed'))
       console.error('Failed to fetch patient alerts:', e)
     } finally {
-      isLoading.value = false
+      if (isLatest()) isLoading.value = false
     }
   }
 

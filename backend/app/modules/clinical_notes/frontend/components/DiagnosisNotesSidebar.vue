@@ -12,6 +12,7 @@
 
 import type { RecentNoteEntry } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const props = defineProps<{
   ctx: {
@@ -52,8 +53,14 @@ const canWrite = computed(() => can(PERMISSIONS.clinicalNotes.write))
 
 const composerToothNumber = computed(() => props.ctx?.selectedTooth ?? null)
 
+// The sidebar follows the selected patient inside the clinical case view, and
+// `loadMore` appends to what is on screen: one shared guard for both, so a late
+// page for the previous patient cannot be appended to this one.
+const notesGuard = latestGuard()
+
 async function refresh() {
   if (!props.ctx?.patientId || !canRead.value) return
+  const isLatest = notesGuard.begin()
   loading.value = true
   try {
     // List shows every note type with its color code; only the composer
@@ -61,6 +68,7 @@ async function refresh() {
     const fetched = await listRecentForPatient(props.ctx.patientId, {
       limit: PAGE_SIZE
     })
+    if (!isLatest()) return
     entries.value = fetched
     hasMore.value = fetched.length === PAGE_SIZE
   } finally {
@@ -71,6 +79,7 @@ async function refresh() {
 async function loadMore() {
   if (!props.ctx?.patientId || !canRead.value) return
   if (entries.value.length === 0) return
+  const isLatest = notesGuard.begin()
   loadingMore.value = true
   try {
     const before = entries.value[entries.value.length - 1]?.created_at
@@ -78,10 +87,11 @@ async function loadMore() {
       limit: PAGE_SIZE,
       before
     })
+    if (!isLatest()) return
     entries.value.push(...fetched)
     hasMore.value = fetched.length === PAGE_SIZE
   } finally {
-    loadingMore.value = false
+    if (isLatest()) loadingMore.value = false
   }
 }
 

@@ -1,3 +1,5 @@
+import { latestGuard } from '~~/app/utils/latestGuard'
+
 export interface PublicBookingClinic {
   clinic_name: string
   clinic_phone: string | null
@@ -151,10 +153,16 @@ export function usePublicBooking(slug: string) {
     }
   }
 
+  // A visitor clicking through days (or professionals) faster than the
+  // network answers must not end up looking at — and booking into — the
+  // previous day's slots. This is a public page: nobody is watching a spinner.
+  const slotsGuard = latestGuard()
+
   async function fetchSlots(
     professionalId: string,
     day: string
   ): Promise<boolean> {
+    const isLatest = slotsGuard.begin()
     loadingSlots.value = true
     resetError()
     slots.value = []
@@ -170,13 +178,15 @@ export function usePublicBooking(slug: string) {
         }
       )
 
+      if (!isLatest()) return true
       slots.value = response.data ?? []
       return true
     } catch (err) {
+      if (!isLatest()) return false
       captureError(err)
       return false
     } finally {
-      loadingSlots.value = false
+      if (isLatest()) loadingSlots.value = false
     }
   }
 
@@ -207,6 +217,8 @@ export function usePublicBooking(slug: string) {
   }
 
   function clearSlots() {
+    // Clearing the selection must also drop whatever is still in flight for it.
+    slotsGuard.invalidate()
     slots.value = []
   }
 

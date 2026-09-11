@@ -10,6 +10,7 @@
  */
 
 import type { PlanNotesGroup } from '~~/app/types'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 const props = defineProps<{
   ctx: { patientId: string }
@@ -21,13 +22,21 @@ const { listGroupedForPatient, error: notesError } = useClinicalNotes()
 const groups = ref<PlanNotesGroup[]>([])
 const loading = ref(false)
 
+// Switching patient re-reads this tab. One patient's notes rendered under
+// another's name is the worst possible outcome here, so a superseded response
+// is dropped instead of written.
+const notesGuard = latestGuard()
+
 async function refresh() {
   if (!props.ctx?.patientId) return
+  const isLatest = notesGuard.begin()
   loading.value = true
   try {
-    groups.value = await listGroupedForPatient(props.ctx.patientId, { silent: true })
+    const fetched = await listGroupedForPatient(props.ctx.patientId, { silent: true })
+    if (!isLatest()) return
+    groups.value = fetched
   } finally {
-    loading.value = false
+    if (isLatest()) loading.value = false
   }
 }
 

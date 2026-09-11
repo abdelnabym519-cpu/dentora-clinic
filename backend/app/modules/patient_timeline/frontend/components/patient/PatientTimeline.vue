@@ -21,6 +21,8 @@ const {
   selectedCategory,
   isLoading,
   isLoadingMore,
+  error,
+  retry,
   categoryOptions,
   loadMore,
   setCategory,
@@ -303,6 +305,31 @@ onMounted(() => {
         :key="i"
         class="h-20 w-full"
       />
+    </div>
+
+    <!-- Load failure. An unreadable timeline must never be presented as a
+         patient who has no history — that is a clinical claim. -->
+    <div
+      v-else-if="error"
+      class="space-y-2 py-4"
+      data-testid="patient-timeline-load-error"
+    >
+      <UAlert
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="error"
+      />
+      <UButton
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-refresh-cw"
+        data-testid="patient-timeline-retry"
+        @click="retry()"
+      >
+        {{ t('common.retry') }}
+      </UButton>
     </div>
 
     <!-- Empty State — contextual -->

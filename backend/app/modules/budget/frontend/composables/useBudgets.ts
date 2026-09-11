@@ -17,6 +17,8 @@ import type {
   BudgetVersionList,
   PaginatedResponse
 } from '~~/app/types'
+import { useSharedLatestGuard } from '~~/app/utils/latestGuard'
+import { errorMessage } from '~~/app/utils/error'
 
 export interface BudgetSignatureMeta {
   id: string
@@ -57,6 +59,7 @@ const STATUS_COLORS: Record<BudgetStatus, string> = {
 
 export function useBudgets() {
   const api = useApi()
+  const { t } = useI18n()
   const config = useRuntimeConfig()
   const apiHeaders = useApiHeaders()
 
@@ -71,7 +74,12 @@ export function useBudgets() {
   // CRUD Operations
   // ============================================================================
 
+  // Filters, search and pagination all re-trigger this shared list; a late
+  // answer for the filter the user left must not replace the current one.
+  const budgetsGuard = useSharedLatestGuard('budgets:list')
+
   async function fetchBudgets(params: BudgetListParams = {}): Promise<BudgetListItem[]> {
+    const isLatest = budgetsGuard.begin()
     isLoading.value = true
     error.value = null
 
@@ -94,11 +102,14 @@ export function useBudgets() {
         `/api/v1/budget/budgets?${searchParams.toString()}`
       )
 
-      budgets.value = response.data ?? []
-      total.value = response.total
-      return response.data
+      if (isLatest()) {
+        budgets.value = response.data ?? []
+        total.value = response.total
+      }
+      return response.data ?? []
     } catch (e) {
-      error.value = 'Failed to fetch budgets'
+      if (!isLatest()) return []
+      error.value = errorMessage(e, t('errors.loadFailed'))
       console.error('Failed to fetch budgets:', e)
       return []
     } finally {

@@ -19,6 +19,7 @@ import type {
   ToothRecordUpdate
 } from '~~/app/types'
 import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 import { ALL_DECIDUOUS_NUMBERS, CONDITION_COLORS } from '~~/app/constants/odontogram'
 
 export function useOdontogramData() {
@@ -71,8 +72,14 @@ export function useOdontogramData() {
   // API Methods
   // ============================================================================
 
+  // Switching patient while the previous chart is still loading must not let
+  // the older response win: that renders one patient's teeth under another's
+  // name. Same for a refetch after an edit.
+  const odontogramGuard = latestGuard()
+
   /** Fetch odontogram for a patient */
   async function fetchOdontogram(patientId: string): Promise<void> {
+    const isLatest = odontogramGuard.begin()
     loading.value = true
     error.value = null
 
@@ -80,12 +87,14 @@ export function useOdontogramData() {
       const response = await api.get<ApiResponse<OdontogramData>>(
         `/api/v1/odontogram/patients/${patientId}/odontogram`
       )
+      if (!isLatest()) return
       odontogramData.value = response.data
     } catch (err) {
-      error.value = 'Failed to load odontogram'
+      if (!isLatest()) return
+      error.value = errorMessage(err, t('errors.loadFailed'))
       console.error('Error fetching odontogram:', err)
     } finally {
-      loading.value = false
+      if (isLatest()) loading.value = false
     }
   }
 

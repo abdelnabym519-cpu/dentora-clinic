@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ApiResponse, PatientBillingSummary, InvoiceListItem, PaginatedResponse, Payment } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { errorMessage } from '~~/app/utils/error'
 
 const props = defineProps<{
   patientId: string
@@ -22,6 +23,8 @@ const isLoading = ref(true)
 const expandedInvoices = ref<Set<string>>(new Set())
 const invoicePayments = ref<Map<string, Payment[]>>(new Map())
 const loadingPayments = ref<Set<string>>(new Set())
+/** Per-invoice reason when its payments could not be read. */
+const paymentErrors = ref<Map<string, string>>(new Map())
 
 async function loadInvoices() {
   const params = new URLSearchParams({
@@ -57,6 +60,35 @@ async function loadData() {
 
 watch(currentPage, loadInvoices)
 
+/**
+ * Read the payments behind one expanded invoice row.
+ *
+ * Was `try/finally` with no catch: a failure cleared the spinner, left the
+ * map empty — which the template renders as "No payments", a financial claim
+ * nobody verified — and let the rejection escape the click handler.
+ */
+async function loadPayments(invoiceId: string) {
+  loadingPayments.value.add(invoiceId)
+  paymentErrors.value.delete(invoiceId)
+  try {
+    const links = await fetchPayments(invoiceId)
+    const payments = await Promise.all(links.map(async (link) => {
+      const response = await api.get<ApiResponse<Payment>>(
+        `/api/v1/payments/${link.payment_id}`,
+        { silent: true }
+      )
+      return response.data
+    }))
+    invoicePayments.value.set(invoiceId, payments)
+  } catch (e) {
+    console.error('Error loading invoice payments:', e)
+    invoicePayments.value.delete(invoiceId)
+    paymentErrors.value.set(invoiceId, errorMessage(e, t('errors.loadFailed')))
+  } finally {
+    loadingPayments.value.delete(invoiceId)
+  }
+}
+
 // Toggle invoice expansion and load payments
 async function toggleInvoice(invoiceId: string) {
   if (expandedInvoices.value.has(invoiceId)) {
@@ -64,19 +96,7 @@ async function toggleInvoice(invoiceId: string) {
   } else {
     expandedInvoices.value.add(invoiceId)
     // Load payments if not already loaded
-    if (!invoicePayments.value.has(invoiceId)) {
-      loadingPayments.value.add(invoiceId)
-      try {
-        const links = await fetchPayments(invoiceId)
-        const payments = await Promise.all(links.map(async (link) => {
-          const response = await api.get<ApiResponse<Payment>>(`/api/v1/payments/${link.payment_id}`)
-          return response.data
-        }))
-        invoicePayments.value.set(invoiceId, payments)
-      } finally {
-        loadingPayments.value.delete(invoiceId)
-      }
-    }
+    if (!invoicePayments.value.has(invoiceId)) await loadPayments(invoiceId)
   }
 }
 
@@ -352,6 +372,30 @@ watch(() => props.patientId, () => {
                         class="w-4 h-4 animate-spin"
                       />
                       {{ t('common.loading') }}
+                    </div>
+
+                    <!-- A failed read is not "this invoice has no payments" -->
+                    <div
+                      v-else-if="paymentErrors.get(invoice.id)"
+                      class="space-y-2 pl-6"
+                      data-testid="invoice-payments-error"
+                    >
+                      <UAlert
+                        color="error"
+                        variant="soft"
+                        icon="i-lucide-alert-triangle"
+                        :title="t('errors.loadFailed')"
+                        :description="paymentErrors.get(invoice.id)"
+                      />
+                      <UButton
+                        variant="ghost"
+                        size="sm"
+                        icon="i-lucide-refresh-cw"
+                        data-testid="invoice-payments-retry"
+                        @click="loadPayments(invoice.id)"
+                      >
+                        {{ t('common.retry') }}
+                      </UButton>
                     </div>
 
                     <!-- No payments -->

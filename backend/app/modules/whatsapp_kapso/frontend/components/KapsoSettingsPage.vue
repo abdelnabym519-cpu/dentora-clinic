@@ -5,7 +5,7 @@ import { errorDetail } from '~~/app/utils/error'
 const { t } = useI18n()
 const toast = useToast()
 const {
-  settings, templates, loading, saving, syncing,
+  settings, templates, loading, saving, syncing, error,
   fetchSettings, saveSettings, syncTemplates, mapTemplate, testConnection
 } = useKapso()
 
@@ -112,6 +112,32 @@ function copyWebhook() {
       v-if="loading"
       class="h-40 w-full"
     />
+
+    <!-- A failed load is not "this clinic has no WhatsApp settings": the form
+         below is built from blanks when settings is null, and its Save button
+         would overwrite the stored phone number and secrets with nothing. -->
+    <div
+      v-else-if="error"
+      class="space-y-3"
+      data-testid="kapso-settings-load-error"
+    >
+      <UAlert
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="error"
+      />
+      <UButton
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-refresh-cw"
+        data-testid="kapso-settings-retry"
+        @click="fetchSettings()"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
 
     <template v-else>
       <!-- Connection -->

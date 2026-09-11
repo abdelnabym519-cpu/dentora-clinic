@@ -10,6 +10,7 @@
 
 import type { ClinicalNote, RecentNoteEntry } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { errorMessage } from '~~/app/utils/error'
 
 const props = defineProps<{
   ctx: {
@@ -34,6 +35,8 @@ const { user } = useAuth()
 const open = ref(false)
 const notes = ref<ClinicalNote[]>([])
 const loading = ref(false)
+/** Set when the treatment's notes could not be read. */
+const loadError = ref<string | null>(null)
 const composerOpen = ref(false)
 const editingId = ref<string | null>(null)
 const composerBody = ref('')
@@ -45,7 +48,9 @@ const canWrite = computed(() => can(PERMISSIONS.clinicalNotes.write))
 async function loadCount() {
   if (!canRead.value) return
   try {
-    notes.value = await listForOwner('treatment', props.ctx.treatmentId)
+    // Ambient badge count on every treatment row: a failure here must not
+    // broadcast a global toast over the odontogram.
+    notes.value = await listForOwner('treatment', props.ctx.treatmentId, { silent: true })
   } catch {
     notes.value = []
   }
@@ -53,8 +58,17 @@ async function loadCount() {
 
 async function refreshFull() {
   loading.value = true
+  loadError.value = null
   try {
-    notes.value = await listForOwner('treatment', props.ctx.treatmentId)
+    notes.value = await listForOwner('treatment', props.ctx.treatmentId, { silent: true })
+  } catch (e) {
+    // Was try/finally with no catch: the popover rendered "no notes yet" and,
+    // worse, the failure escaped `handleSubmit`'s try/finally — so a note that
+    // saved fine but whose refresh failed looked like a failed save, leaving
+    // the composer open with the body still in it (a duplicate-note trap).
+    console.error('Error loading treatment notes:', e)
+    notes.value = []
+    loadError.value = errorMessage(e, t('errors.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -196,6 +210,28 @@ watch(() => props.ctx?.treatmentId, loadCount, { immediate: true })
             :key="i"
             class="h-16 w-full"
           />
+        </div>
+        <div
+          v-else-if="loadError"
+          class="space-y-2"
+          data-testid="treatment-notes-load-error"
+        >
+          <UAlert
+            color="error"
+            variant="soft"
+            icon="i-lucide-alert-triangle"
+            :title="t('errors.loadFailed')"
+            :description="loadError"
+          />
+          <UButton
+            variant="ghost"
+            size="sm"
+            icon="i-lucide-refresh-cw"
+            data-testid="treatment-notes-retry"
+            @click="refreshFull()"
+          >
+            {{ t('common.retry') }}
+          </UButton>
         </div>
         <div
           v-else-if="notes.length === 0"

@@ -32,15 +32,25 @@ export function useClinicalNotes() {
 
   const loading = ref(false)
 
+  /**
+   * Notes owned by one appointment / treatment.
+   *
+   * `options.silent` is for the consumers that render the failure themselves
+   * (both note panels do): the shared toast would only duplicate an inline
+   * message, and for the statuses the shared layer deliberately never toasts
+   * (404 / 409 / 422) the inline surface is the only report there is.
+   */
   async function listForOwner(
     ownerType: ClinicalNoteOwnerType,
-    ownerId: string
+    ownerId: string,
+    options: { silent?: boolean } = {}
   ): Promise<ClinicalNote[]> {
     loading.value = true
     try {
       const qs = new URLSearchParams({ owner_type: ownerType, owner_id: ownerId })
       const response = await api.get<ApiResponse<ClinicalNote[]>>(
-        `/api/v1/clinical_notes/notes?${qs}`
+        `/api/v1/clinical_notes/notes?${qs}`,
+        options
       )
       return response.data
     } finally {

@@ -351,16 +351,20 @@ export function useInvoices() {
   // Payment Operations
   // ============================================================================
 
+  /**
+   * Payment links for one invoice.
+   *
+   * A failure now rejects instead of resolving to `[]`: an empty array has to
+   * mean "this invoice genuinely has no payments". The old catch made a denied
+   * or unreachable endpoint indistinguishable from that, and every consumer
+   * rendered it as a financial claim. Silent here because the consumer owns
+   * the surface (the expanded invoice row reports it inline with a Retry).
+   */
   async function fetchPayments(invoiceId: string): Promise<InvoicePayment[]> {
-    try {
-      const response = await api.get<ApiResponse<InvoicePayment[]>>(
-        `/api/v1/billing/invoices/${invoiceId}/payments`
-      )
-      return response.data
-    } catch (e) {
-      console.error('Failed to fetch payments:', e)
-      return []
-    }
+    return (await api.get<ApiResponse<InvoicePayment[]>>(
+      `/api/v1/billing/invoices/${invoiceId}/payments`,
+      { silent: true }
+    )).data
   }
 
   // POST /api/v1/billing/invoices/{id}/payments — the "factura + cobro"

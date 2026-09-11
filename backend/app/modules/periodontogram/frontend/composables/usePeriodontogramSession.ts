@@ -7,6 +7,7 @@
  */
 
 import { ref } from 'vue'
+import { errorMessage } from '~~/app/utils/error'
 import type { PerioSite, PerioSnapshotDetail, PerioTooth, SiteCode } from '../types'
 
 interface ApiResponse<T> {
@@ -59,7 +60,10 @@ export function usePeriodontogramSession() {
         lastError.value = null
         dirty.value = false
       } catch (e) {
-        lastError.value = e instanceof Error ? e.message : 'save_failed'
+        // `e.message` on a FetchError is just "409 Conflict"; the shared
+        // helper returns the server's own reason (or the fallback sentinel,
+        // which the chart maps to the generic connectivity hint).
+        lastError.value = errorMessage(e, 'save_failed')
       } finally {
         saving.value = false
       }
@@ -83,7 +87,9 @@ export function usePeriodontogramSession() {
     _schedule(`tooth:${toothNumber}`, patch as Record<string, unknown>, async (payload) => {
       await api.patch<ApiResponse<PerioTooth>>(
         `/api/v1/periodontogram/snapshots/${snapshotId}/teeth/${toothNumber}`,
-        payload
+        payload,
+        // Silent: a failed autosave is reported exactly once, via `lastError`.
+        { silent: true }
       )
     })
   }
@@ -100,7 +106,9 @@ export function usePeriodontogramSession() {
       async (payload) => {
         await api.patch<ApiResponse<PerioSite>>(
           `/api/v1/periodontogram/snapshots/${snapshotId}/teeth/${toothNumber}/sites/${siteCode}`,
-          payload
+          payload,
+          // Silent: a failed autosave is reported exactly once, via `lastError`.
+          { silent: true }
         )
       }
     )
@@ -120,17 +128,22 @@ export function usePeriodontogramSession() {
           const toothNumber = Number(key.slice('tooth:'.length))
           await api.patch(
             `/api/v1/periodontogram/snapshots/${snapshotId}/teeth/${toothNumber}`,
-            payload
+            payload,
+            { silent: true }
           )
         } else if (key.startsWith('site:')) {
           const [, toothStr, siteCode] = key.split(':')
           await api.patch(
             `/api/v1/periodontogram/snapshots/${snapshotId}/teeth/${toothStr}/sites/${siteCode}`,
-            payload
+            payload,
+            { silent: true }
           )
         }
       } catch (e) {
-        lastError.value = e instanceof Error ? e.message : 'save_failed'
+        // `e.message` on a FetchError is just "409 Conflict"; the shared
+        // helper returns the server's own reason (or the fallback sentinel,
+        // which the chart maps to the generic connectivity hint).
+        lastError.value = errorMessage(e, 'save_failed')
       } finally {
         saving.value = false
       }
@@ -140,13 +153,23 @@ export function usePeriodontogramSession() {
 
   async function closeSession(snapshotId: string, notes?: string): Promise<PerioSnapshotDetail> {
     saving.value = true
+    lastError.value = null
     try {
       const response = await api.post<ApiResponse<PerioSnapshotDetail>>(
         `/api/v1/periodontogram/snapshots/${snapshotId}/close`,
-        { notes: notes ?? null }
+        { notes: notes ?? null },
+        { silent: true }
       )
       dirty.value = false
       return response.data
+    } catch (e) {
+      // Was try/finally with no catch: a 409 (snapshot already closed) or a
+      // 422 dismissed the dialog, left the session a draft and told the
+      // clinician nothing at all. `lastError` drives the one save-failed
+      // toast; the rejection is rethrown so the caller cannot mistake this
+      // for a successful close and emit `closed`.
+      lastError.value = errorMessage(e, 'save_failed')
+      throw e
     } finally {
       saving.value = false
     }
@@ -154,9 +177,15 @@ export function usePeriodontogramSession() {
 
   async function discardDraft(snapshotId: string): Promise<void> {
     saving.value = true
+    lastError.value = null
     try {
-      await api.del(`/api/v1/periodontogram/snapshots/${snapshotId}`)
+      await api.del(`/api/v1/periodontogram/snapshots/${snapshotId}`, { silent: true })
       dirty.value = false
+    } catch (e) {
+      // Same as closeSession: a conflict or a vanished draft must be visible,
+      // and the caller must not emit `discarded`.
+      lastError.value = errorMessage(e, 'save_failed')
+      throw e
     } finally {
       saving.value = false
     }

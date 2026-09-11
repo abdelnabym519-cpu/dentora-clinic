@@ -50,14 +50,15 @@ const {
 } = usePeriodontogramSession()
 
 watch(lastError, (err) => {
-  if (err) {
-    toast.add({
-      title: t('periodontogram.errors.saveFailed'),
-      description: t('periodontogram.errors.checkConnection'),
-      color: 'error',
-      icon: 'i-lucide-alert-triangle'
-    })
-  }
+  if (!err) return
+  toast.add({
+    title: t('periodontogram.errors.saveFailed'),
+    // The composable stores the server's own reason; only fall back to the
+    // generic connectivity hint when there is none to show.
+    description: err === 'save_failed' ? t('periodontogram.errors.checkConnection') : err,
+    color: 'error',
+    icon: 'i-lucide-alert-triangle'
+  })
 })
 
 function _beforeUnload(event: BeforeUnloadEvent) {
@@ -106,13 +107,17 @@ function handleEditTooth(toothNumber: number, patch: Record<string, unknown>) {
 
 async function handleClose(notes: string | null) {
   await flushPending(props.snapshot.id)
-  const closed = await closeSession(props.snapshot.id, notes ?? undefined)
-  emit('closed', closed)
+  // The failure itself is reported once, through `lastError`. Swallowing it
+  // here only keeps the rejection from escaping the click handler as an
+  // unhandled promise rejection: `closed` must not be emitted, so the session
+  // stays a draft and the clinician can try again.
+  const closed = await closeSession(props.snapshot.id, notes ?? undefined).catch(() => null)
+  if (closed) emit('closed', closed)
 }
 
 async function handleDiscard() {
-  await discardDraft(props.snapshot.id)
-  emit('discarded')
+  const discarded = await discardDraft(props.snapshot.id).then(() => true, () => false)
+  if (discarded) emit('discarded')
 }
 
 const summary = computed<PerioSnapshotSummary>(() => ({

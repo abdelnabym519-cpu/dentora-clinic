@@ -14,6 +14,7 @@
 
 import type { ClinicalNote, NoteType } from '~~/app/types'
 import { PERMISSIONS } from '~~/app/config/permissions'
+import { errorMessage } from '~~/app/utils/error'
 
 const props = defineProps<{
   ctx: { appointmentId: string, patientId?: string | null }
@@ -33,6 +34,8 @@ const APPOINTMENT_NOTE_TYPES: NoteType[] = [
 
 const entries = ref<ClinicalNote[]>([])
 const loading = ref(false)
+/** Set when the appointment's notes could not be read. */
+const loadError = ref<string | null>(null)
 const saving = ref(false)
 const composerOpen = ref(false)
 const composerType = ref<NoteType>('appointment_clinical')
@@ -48,8 +51,17 @@ const patientId = computed(() => props.ctx?.patientId ?? null)
 async function refresh() {
   if (!appointmentId.value || !canRead.value) return
   loading.value = true
+  loadError.value = null
   try {
-    entries.value = await listForOwner('appointment', appointmentId.value)
+    entries.value = await listForOwner('appointment', appointmentId.value, { silent: true })
+  } catch (e) {
+    // Was try/finally with no catch. `watch(appointmentId, refresh, {
+    // immediate: true })` turned a failure into an unhandled rejection, and
+    // the panel rendered "no notes for this appointment" — a clinical claim
+    // that was never actually established.
+    console.error('Error loading appointment notes:', e)
+    entries.value = []
+    loadError.value = errorMessage(e, t('errors.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -152,6 +164,29 @@ watch(appointmentId, refresh, { immediate: true })
         :key="i"
         class="h-20 w-full"
       />
+    </div>
+
+    <div
+      v-else-if="loadError"
+      class="space-y-2 py-2"
+      data-testid="appointment-notes-load-error"
+    >
+      <UAlert
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="loadError"
+      />
+      <UButton
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-refresh-cw"
+        data-testid="appointment-notes-retry"
+        @click="refresh()"
+      >
+        {{ t('common.retry') }}
+      </UButton>
     </div>
 
     <div

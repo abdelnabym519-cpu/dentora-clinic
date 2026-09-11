@@ -22,7 +22,7 @@ class AITreatmentPlanningModule(BaseModule):
         "category": "official",
         "depends": ["case_intelligence", "risk_engine", "patients"],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": False,
         "role_permissions": {
             "admin": ["read", "generate"],
@@ -30,6 +30,10 @@ class AITreatmentPlanningModule(BaseModule):
             "hygienist": ["read"],
             "assistant": ["read"],
             "receptionist": [],
+        },
+        "frontend": {
+            "layer_path": "frontend",
+            "navigation": [],
         },
     }
 

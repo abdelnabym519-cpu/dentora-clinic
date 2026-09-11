@@ -1,102 +1,147 @@
 {
   "layers": [
-    "/module_layers/patients/frontend",
-    "/module_layers/catalog/frontend",
-    "/module_layers/odontogram/frontend",
     "/module_layers/agenda/frontend",
-    "/module_layers/patients_clinical/frontend",
-    "/module_layers/patient_timeline/frontend",
-    "/module_layers/media/frontend",
-    "/module_layers/copilot/frontend",
-    "/module_layers/budget/frontend",
-    "/module_layers/payments/frontend",
+    "/module_layers/ai_case_summary/frontend",
+    "/module_layers/ai_clinical_report/frontend",
+    "/module_layers/ai_second_review/frontend",
+    "/module_layers/ai_treatment_planning/frontend",
     "/module_layers/billing/frontend",
-    "/module_layers/schedules/frontend",
     "/module_layers/booking/frontend",
-    "/module_layers/treatment_plan/frontend",
+    "/module_layers/budget/frontend",
+    "/module_layers/case_intelligence/frontend",
+    "/module_layers/catalog/frontend",
+    "/module_layers/clinical_copilot/frontend",
     "/module_layers/clinical_notes/frontend",
-    "/module_layers/recalls/frontend",
+    "/module_layers/copilot/frontend",
+    "/module_layers/dental_3d/frontend",
+    "/module_layers/media/frontend",
     "/module_layers/notifications/frontend",
+    "/module_layers/odontogram/frontend",
+    "/module_layers/patient_timeline/frontend",
+    "/module_layers/patients/frontend",
+    "/module_layers/patients_clinical/frontend",
+    "/module_layers/payments/frontend",
+    "/module_layers/periodontogram/frontend",
     "/module_layers/prescriptions/frontend",
+    "/module_layers/recalls/frontend",
     "/module_layers/reports/frontend",
+    "/module_layers/schedules/frontend",
+    "/module_layers/treatment_plan/frontend",
+    "/module_layers/treatment_simulation/frontend",
     "/module_layers/voice/frontend"
   ],
   "modules": [
-    {
-      "name": "patients",
-      "path": "/module_layers/patients/frontend"
-    },
-    {
-      "name": "catalog",
-      "path": "/module_layers/catalog/frontend"
-    },
-    {
-      "name": "odontogram",
-      "path": "/module_layers/odontogram/frontend"
-    },
     {
       "name": "agenda",
       "path": "/module_layers/agenda/frontend"
     },
     {
-      "name": "patients_clinical",
-      "path": "/module_layers/patients_clinical/frontend"
+      "name": "ai_case_summary",
+      "path": "/module_layers/ai_case_summary/frontend"
     },
     {
-      "name": "patient_timeline",
-      "path": "/module_layers/patient_timeline/frontend"
+      "name": "ai_clinical_report",
+      "path": "/module_layers/ai_clinical_report/frontend"
     },
     {
-      "name": "media",
-      "path": "/module_layers/media/frontend"
+      "name": "ai_second_review",
+      "path": "/module_layers/ai_second_review/frontend"
     },
     {
-      "name": "copilot",
-      "path": "/module_layers/copilot/frontend"
-    },
-    {
-      "name": "budget",
-      "path": "/module_layers/budget/frontend"
-    },
-    {
-      "name": "payments",
-      "path": "/module_layers/payments/frontend"
+      "name": "ai_treatment_planning",
+      "path": "/module_layers/ai_treatment_planning/frontend"
     },
     {
       "name": "billing",
       "path": "/module_layers/billing/frontend"
     },
     {
-      "name": "schedules",
-      "path": "/module_layers/schedules/frontend"
-    },
-    {
       "name": "booking",
       "path": "/module_layers/booking/frontend"
     },
     {
-      "name": "treatment_plan",
-      "path": "/module_layers/treatment_plan/frontend"
+      "name": "budget",
+      "path": "/module_layers/budget/frontend"
+    },
+    {
+      "name": "case_intelligence",
+      "path": "/module_layers/case_intelligence/frontend"
+    },
+    {
+      "name": "catalog",
+      "path": "/module_layers/catalog/frontend"
+    },
+    {
+      "name": "clinical_copilot",
+      "path": "/module_layers/clinical_copilot/frontend"
     },
     {
       "name": "clinical_notes",
       "path": "/module_layers/clinical_notes/frontend"
     },
     {
-      "name": "recalls",
-      "path": "/module_layers/recalls/frontend"
+      "name": "copilot",
+      "path": "/module_layers/copilot/frontend"
+    },
+    {
+      "name": "dental_3d",
+      "path": "/module_layers/dental_3d/frontend"
+    },
+    {
+      "name": "media",
+      "path": "/module_layers/media/frontend"
     },
     {
       "name": "notifications",
       "path": "/module_layers/notifications/frontend"
     },
     {
+      "name": "odontogram",
+      "path": "/module_layers/odontogram/frontend"
+    },
+    {
+      "name": "patient_timeline",
+      "path": "/module_layers/patient_timeline/frontend"
+    },
+    {
+      "name": "patients",
+      "path": "/module_layers/patients/frontend"
+    },
+    {
+      "name": "patients_clinical",
+      "path": "/module_layers/patients_clinical/frontend"
+    },
+    {
+      "name": "payments",
+      "path": "/module_layers/payments/frontend"
+    },
+    {
+      "name": "periodontogram",
+      "path": "/module_layers/periodontogram/frontend"
+    },
+    {
       "name": "prescriptions",
       "path": "/module_layers/prescriptions/frontend"
     },
     {
+      "name": "recalls",
+      "path": "/module_layers/recalls/frontend"
+    },
+    {
       "name": "reports",
       "path": "/module_layers/reports/frontend"
+    },
+    {
+      "name": "schedules",
+      "path": "/module_layers/schedules/frontend"
+    },
+    {
+      "name": "treatment_plan",
+      "path": "/module_layers/treatment_plan/frontend"
+    },
+    {
+      "name": "treatment_simulation",
+      "path": "/module_layers/treatment_simulation/frontend"
     },
     {
       "name": "voice",

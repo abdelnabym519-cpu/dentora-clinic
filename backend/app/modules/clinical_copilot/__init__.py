@@ -23,10 +23,11 @@ class ClinicalCopilotModule(BaseModule):
             "risk_engine",
             "ai_treatment_planning",
             "treatment_simulation",
+            "ai_second_review",
             "copilot",
         ],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": False,
         "role_permissions": {
             "admin": ["read"],
@@ -34,6 +35,10 @@ class ClinicalCopilotModule(BaseModule):
             "hygienist": ["read"],
             "assistant": [],
             "receptionist": [],
+        },
+        "frontend": {
+            "layer_path": "frontend",
+            "navigation": [],
         },
     }
 

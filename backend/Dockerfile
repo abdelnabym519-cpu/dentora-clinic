@@ -2,6 +2,17 @@ FROM python:3.11-slim@sha256:1042b61448fef4ba92d16a8c7eb4996d027568ce64792a7877f
 
 WORKDIR /app
 
+# The app package ships as plain source at /app/app (the build step below
+# runs before the source is copied, so nothing is installed into
+# site-packages). Servers and tools invoked from WORKDIR resolve it via
+# the cwd (uvicorn inserts ".", alembic.ini sets prepend_sys_path = "."),
+# but direct script execution — e.g. the documented
+#   docker compose exec backend python scripts/seed_demo.py
+# — only puts the script's own directory on sys.path. Export the module
+# path so every process in the container (exec included) imports the
+# same /app/app code.
+ENV PYTHONPATH=/app
+
 # Install system dependencies (including WeasyPrint requirements for PDF generation)
 RUN apt-get update && apt-get install -y \
     gcc \

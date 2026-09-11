@@ -292,7 +292,7 @@ Maintained by `backend/scripts/generate_catalogs.py`.
 
 - **Constant:** `EventType.CASE_INTELLIGENCE_SNAPSHOT_CREATED`
 - **Publishers:**
-  - `case_intelligence` — `backend/app/modules/case_intelligence/service.py:88`
+  - `case_intelligence` — `backend/app/modules/case_intelligence/service.py:96`
 - **Subscribers:** —
 
 ### `clinical_notes.administrative_created`

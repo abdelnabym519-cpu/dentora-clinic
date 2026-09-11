@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
+from app.core.llm.base import LLMConfigError
 from app.core.schemas import ApiResponse
 from app.database import get_db
 
@@ -39,6 +40,11 @@ async def create_ai_second_review(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reviewed planning/simulation chain or patient not found",
+        ) from exc
+    except LLMConfigError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "ai_second_review_provider_unavailable", "message": str(exc)},
         ) from exc
     except (SecondReviewSafetyError, SecondReviewGenerationError) as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc

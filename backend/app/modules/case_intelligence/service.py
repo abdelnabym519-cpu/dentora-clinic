@@ -67,6 +67,14 @@ class CaseIntelligenceService:
             .limit(1)
         )
         if latest is not None and latest.source_digest == aggregated.source_digest:
+            # Fast path: nothing was materialized, but the patient row lock
+            # above must be released before returning. Callers (the AI
+            # generators) run unbounded external LLM calls inside this same
+            # session afterwards; leaving the transaction open here held the
+            # patient lock across that call and stalled every concurrent
+            # GET /case_intelligence request behind it. The read-only
+            # transaction commits nothing, so this is safe.
+            await db.commit()
             return cls._to_contract(latest)
 
         version = 1 if latest is None else latest.snapshot_version + 1

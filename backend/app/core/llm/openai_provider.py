@@ -39,6 +39,7 @@ class OpenAIProvider:
         base_url: str | None = None,
         api_key_resolver: Callable[[], Awaitable[str]] | None = None,
         extra_body: dict[str, Any] | None = None,
+        timeout: float | None = None,
     ) -> None:
         if not api_key and api_key_resolver is None:
             raise LLMConfigError("OpenAI provider requires OPENAI_API_KEY")
@@ -47,6 +48,7 @@ class OpenAIProvider:
         self._base_url = base_url.rstrip("/") + "/" if base_url else None
         self._api_key_resolver = api_key_resolver
         self._extra_body = extra_body or {}
+        self._timeout = timeout
 
     async def _client_for_request(self):
         api_key = self._api_key
@@ -65,6 +67,8 @@ class OpenAIProvider:
 
         if self._base_url:
             kwargs["base_url"] = self._base_url
+        if self._timeout is not None:
+            kwargs["timeout"] = self._timeout
 
         return AsyncOpenAI(**kwargs)
 

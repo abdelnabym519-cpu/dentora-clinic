@@ -86,9 +86,13 @@ export function useCatalog() {
 
   async function createCategory(data: TreatmentCatalogCategoryCreate): Promise<TreatmentCatalogCategory | null> {
     try {
+      // This function's own catch reports the failure with the operation's
+      // context, so the shared toast is suppressed: one accurate message,
+      // never two overlapping ones.
       const response = await api.post<ApiResponse<TreatmentCatalogCategory>>(
         '/api/v1/catalog/categories',
-        data
+        data,
+        { silent: true }
       )
 
       toast.add({
@@ -127,7 +131,8 @@ export function useCatalog() {
     try {
       const response = await api.put<ApiResponse<TreatmentCatalogCategory>>(
         `/api/v1/catalog/categories/${categoryId}`,
-        data
+        data,
+        { silent: true }
       )
 
       toast.add({
@@ -161,7 +166,7 @@ export function useCatalog() {
 
   async function deleteCategory(categoryId: string): Promise<boolean> {
     try {
-      await api.del(`/api/v1/catalog/categories/${categoryId}`)
+      await api.del(`/api/v1/catalog/categories/${categoryId}`, { silent: true })
 
       toast.add({
         title: t('common.success'),
@@ -255,7 +260,8 @@ export function useCatalog() {
     try {
       const response = await api.post<ApiResponse<TreatmentCatalogItem>>(
         '/api/v1/catalog/items',
-        data
+        data,
+        { silent: true }
       )
 
       toast.add({
@@ -300,7 +306,8 @@ export function useCatalog() {
     try {
       const response = await api.put<ApiResponse<TreatmentCatalogItem>>(
         `/api/v1/catalog/items/${itemId}`,
-        data
+        data,
+        { silent: true }
       )
 
       toast.add({
@@ -334,7 +341,7 @@ export function useCatalog() {
 
   async function deleteItem(itemId: string): Promise<boolean> {
     try {
-      await api.del(`/api/v1/catalog/items/${itemId}`)
+      await api.del(`/api/v1/catalog/items/${itemId}`, { silent: true })
 
       toast.add({
         title: t('common.success'),

@@ -38,7 +38,14 @@ export function useClinic() {
 
   async function updateClinic(data: ClinicUpdate): Promise<Clinic | null> {
     try {
-      const response = await api.put<ApiResponse<Clinic>>('/api/v1/auth/clinics', data)
+      // This function's own catch reports the failure with the operation's
+      // context, so the shared toast is suppressed: one accurate message,
+      // never two overlapping ones.
+      const response = await api.put<ApiResponse<Clinic>>(
+        '/api/v1/auth/clinics',
+        data,
+        { silent: true }
+      )
       currentClinic.value = response.data
       toast.add({
         title: t('common.success'),
@@ -69,7 +76,11 @@ export function useClinic() {
 
   async function createCabinet(data: CabinetCreate): Promise<Cabinet | null> {
     try {
-      const response = await api.post<ApiResponse<Cabinet>>('/api/v1/agenda/cabinets', data)
+      const response = await api.post<ApiResponse<Cabinet>>(
+        '/api/v1/agenda/cabinets',
+        data,
+        { silent: true }
+      )
       patchCabinets(list => [...list, response.data])
       toast.add({
         title: t('common.success'),
@@ -93,7 +104,11 @@ export function useClinic() {
       list.map(c => c.id === cabinetId ? { ...c, ...data } as Cabinet : c)
     )
     try {
-      const response = await api.put<ApiResponse<Cabinet>>(`/api/v1/agenda/cabinets/${cabinetId}`, data)
+      const response = await api.put<ApiResponse<Cabinet>>(
+        `/api/v1/agenda/cabinets/${cabinetId}`,
+        data,
+        { silent: true }
+      )
       patchCabinets(list => list.map(c => c.id === cabinetId ? response.data : c))
       toast.add({
         title: t('common.success'),
@@ -118,7 +133,7 @@ export function useClinic() {
   async function deleteCabinet(cabinetId: string): Promise<boolean> {
     const rollback = patchCabinets(list => list.filter(c => c.id !== cabinetId))
     try {
-      await api.del(`/api/v1/agenda/cabinets/${cabinetId}`)
+      await api.del(`/api/v1/agenda/cabinets/${cabinetId}`, { silent: true })
       toast.add({
         title: t('common.success'),
         description: t('cabinet.toast.deleted'),

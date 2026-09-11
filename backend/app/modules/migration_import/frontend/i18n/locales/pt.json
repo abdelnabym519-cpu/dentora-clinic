@@ -75,7 +75,10 @@
       "operatorCreated": "Criar novo",
       "operatorIgnored": "Ignorado",
       "acceptRow": "Aceitar",
-      "ignoreRow": "Ignorar"
+      "ignoreRow": "Ignorar",
+      "loadFailed": "Não foi possível carregar as propostas de vinculação",
+      "bulkAcceptFailed": "A aceitação em massa falhou",
+      "patchFailed": "Não foi possível atualizar a proposta"
     },
     "status": {
       "uploaded": "Carregado",
@@ -85,6 +88,12 @@
       "executing": "A importar",
       "completed": "Concluído",
       "failed": "Falhou"
+    },
+    "actions": {
+      "validateFailed": "A validação falhou",
+      "previewFailed": "Não foi possível gerar a pré-visualização",
+      "executeFailed": "Não foi possível iniciar a importação",
+      "pollFailed": "Perdeu-se o contacto com a tarefa de importação"
     }
   }
 }

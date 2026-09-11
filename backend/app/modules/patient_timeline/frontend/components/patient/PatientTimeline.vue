@@ -35,7 +35,9 @@ const {
 // unlike useUsers() which is admin-only.
 const { professionals, fetchProfessionals, getProfessionalById, getProfessionalFullName } = useProfessionals()
 onMounted(() => {
-  if (professionals.value.length === 0) fetchProfessionals()
+  // Cosmetic: author names fall back to the entry's own text. Silent so a
+  // failure here is never announced over the patient record.
+  if (professionals.value.length === 0) void fetchProfessionals({ silent: true })
 })
 
 // Module extension point — other modules (e.g. treatment_plan) register

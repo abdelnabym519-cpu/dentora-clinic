@@ -884,7 +884,8 @@
       "clinicClosed": "Clinique fermée",
       "professionalOff": "Absent",
       "onBreak": "En pause"
-    }
+    },
+    "loadFailed": "Impossible de charger les rendez-vous"
   },
   "dashboard": {
     "greetings": {
@@ -944,7 +945,8 @@
       "completed": "Terminés",
       "invoiced": "Facturés",
       "empty": "Aucune donnée cette semaine"
-    }
+    },
+    "loadError": "Ce widget n'a pas pu être chargé."
   },
   "settings": {
     "title": "Paramètres",

@@ -884,7 +884,8 @@
       "clinicClosed": "Clinic closed",
       "professionalOff": "Off-duty",
       "onBreak": "On break"
-    }
+    },
+    "loadFailed": "Could not load appointments"
   },
   "dashboard": {
     "greetings": {
@@ -944,7 +945,8 @@
       "completed": "Completed",
       "invoiced": "Invoiced",
       "empty": "No data this week"
-    }
+    },
+    "loadError": "This widget could not be loaded."
   },
   "settings": {
     "title": "Settings",

@@ -41,8 +41,9 @@ const api = useApi()
 
 const pills = ref<StripPill[]>([])
 const isLoading = ref(false)
+const hasError = ref(false)
 
-async function load() {
+async function load(options: { silent?: boolean } = {}) {
   const year = props.currentDate.getFullYear()
   const month = String(props.currentDate.getMonth() + 1).padStart(2, '0')
   const day = String(props.currentDate.getDate()).padStart(2, '0')
@@ -50,11 +51,19 @@ async function load() {
   isLoading.value = true
   try {
     const response = await api.get<ApiResponse<StripResponse>>(
-      `/api/v1/agenda/kanban/day?date=${dateParam}`
+      `/api/v1/agenda/kanban/day?date=${dateParam}`,
+      // The strip polls every 30 s; a repeated global toast for a
+      // decorative lane would be noise attributed to the board itself.
+      { silent: options.silent === true, operation: t('appointments.professionals.strip') }
     )
     pills.value = response.data.professionals
+    hasError.value = false
   } catch {
+    // Not an empty strip: "nobody is working today" and "we could not
+    // read the day" must look different, so the row stays visible with an
+    // explicit reason and a retry.
     pills.value = []
+    hasError.value = true
   } finally {
     isLoading.value = false
   }
@@ -64,12 +73,16 @@ watch(() => props.currentDate, () => {
   void load()
 }, { immediate: true })
 
+function retry() {
+  void load()
+}
+
 // Re-fetch every 30s to keep the strip reactive without adding a
 // websocket.
 let pollHandle: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   pollHandle = setInterval(() => {
-    if (document.visibilityState === 'visible') void load()
+    if (document.visibilityState === 'visible') void load({ silent: true })
   }, 30_000)
 })
 onBeforeUnmount(() => {
@@ -113,12 +126,26 @@ function onPillClick(pill: StripPill) {
 
 <template>
   <div
-    v-if="pills.length > 0 || isLoading"
+    v-if="pills.length > 0 || isLoading || hasError"
     class="flex flex-wrap items-center gap-2 px-1 py-2 mb-3 border-b border-subtle"
+    :data-testid="hasError && pills.length === 0 ? 'professionals-strip-error' : undefined"
   >
     <span class="text-caption text-subtle mr-2 shrink-0">
       {{ t('appointments.professionals.strip') }}
     </span>
+    <template v-if="hasError && pills.length === 0 && !isLoading">
+      <span class="text-caption text-[var(--color-danger-accent)]">
+        {{ t('appointments.loadFailed') }}
+      </span>
+      <UButton
+        variant="ghost"
+        size="xs"
+        icon="i-lucide-refresh-cw"
+        @click.stop="retry"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </template>
     <button
       v-for="pill in pills"
       :key="pill.id"

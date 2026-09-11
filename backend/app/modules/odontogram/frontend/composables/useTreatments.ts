@@ -109,9 +109,13 @@ export function useTreatments() {
         ...payload,
         status: toBackendStatus(payload.status)
       }
+      // This function's own catch reports the failure with the operation's
+      // context, so the shared toast is suppressed: one accurate message,
+      // never two overlapping ones.
       const response = await api.post<ApiResponse<Treatment>>(
         `/api/v1/odontogram/patients/${patientId}/treatments`,
-        body
+        body,
+        { silent: true }
       )
       const normalized = normalizeTreatment(response.data)
       treatments.value.push(normalized)
@@ -135,7 +139,8 @@ export function useTreatments() {
       const body = { ...data, status: toBackendStatus(data.status) }
       const response = await api.put<ApiResponse<Treatment>>(
         `/api/v1/odontogram/treatments/${treatmentId}`,
-        body as Record<string, unknown>
+        body as Record<string, unknown>,
+        { silent: true }
       )
       const normalized = normalizeTreatment(response.data)
       updateLocalTreatment(normalized)
@@ -154,7 +159,7 @@ export function useTreatments() {
 
   async function deleteTreatment(treatmentId: string): Promise<boolean> {
     try {
-      await api.del(`/api/v1/odontogram/treatments/${treatmentId}`)
+      await api.del(`/api/v1/odontogram/treatments/${treatmentId}`, { silent: true })
       removeLocalTreatment(treatmentId)
       toast.add({ title: t('odontogram.treatments.treatmentDeleted'), color: 'success' })
       return true
@@ -176,7 +181,8 @@ export function useTreatments() {
     try {
       const response = await api.patch<ApiResponse<Treatment>>(
         `/api/v1/odontogram/treatments/${treatmentId}/perform`,
-        { notes } as Record<string, unknown>
+        { notes } as Record<string, unknown>,
+        { silent: true }
       )
       const normalized = normalizeTreatment(response.data)
       updateLocalTreatment(normalized)

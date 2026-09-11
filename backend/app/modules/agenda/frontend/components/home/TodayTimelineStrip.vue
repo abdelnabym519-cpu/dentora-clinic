@@ -4,15 +4,22 @@ import type { Appointment } from '~~/app/types'
 defineProps<{ ctx?: unknown }>()
 
 const { t, locale } = useI18n()
-const { todayAppointments, todayLoaded, fetchToday } = useHomeAgenda()
+const { todayAppointments, todayLoaded, todayError, fetchToday } = useHomeAgenda()
 const { professionals, fetchProfessionals, getProfessionalColor, getProfessionalFullName } = useProfessionals()
 
 const now = ref(new Date())
 let intervalId: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
-  if (professionals.value.length === 0) await fetchProfessionals()
-  if (!todayLoaded.value) await fetchToday()
+  // Both loads are ambient decorations on the home dashboard: run them
+  // concurrently (the strip renders as soon as the appointments arrive) and
+  // keep the professional list silent — lanes fall back to a neutral colour
+  // and the appointment's own professional text, so a failure there must not
+  // be announced as if the dashboard itself had broken.
+  const tasks: Array<Promise<unknown>> = []
+  if (professionals.value.length === 0) tasks.push(fetchProfessionals({ silent: true }))
+  if (!todayLoaded.value) tasks.push(fetchToday())
+  await Promise.all(tasks)
   intervalId = setInterval(() => {
     now.value = new Date()
   }, 60_000)
@@ -126,7 +133,14 @@ function openAppointment(a: Appointment) {
 }
 
 const pending = computed(() => !todayLoaded.value)
-const isEmpty = computed(() => !pending.value && todayAppointments.value.length === 0)
+const failed = computed(() => !pending.value && todayError.value)
+const isEmpty = computed(() =>
+  !pending.value && !failed.value && todayAppointments.value.length === 0
+)
+
+function retry(): void {
+  void fetchToday()
+}
 </script>
 
 <template>
@@ -155,6 +169,24 @@ const isEmpty = computed(() => !pending.value && todayAppointments.value.length 
       <USkeleton class="h-8 w-full" />
       <USkeleton class="h-8 w-full" />
     </div>
+
+    <EmptyState
+      v-else-if="failed"
+      icon="i-lucide-alert-triangle"
+      :title="t('dashboard.loadError')"
+      data-testid="timeline-error"
+    >
+      <template #actions>
+        <UButton
+          variant="soft"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          @click="retry"
+        >
+          {{ t('common.retry') }}
+        </UButton>
+      </template>
+    </EmptyState>
 
     <EmptyState
       v-else-if="isEmpty"

@@ -31,7 +31,7 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const toast = useToast()
-const { fetchAppointments, transition, assignCabinet } = useAppointments()
+const { fetchAppointments, transition, assignCabinet, error: loadError } = useAppointments()
 const completionFollowup = useCompletionFollowup()
 const { canTransition, statusColour, statusLabel } = useAppointmentStatus()
 // Manual 30-second tick — @vueuse/core is not a dependency in this repo.
@@ -323,8 +323,11 @@ let tickTimer: ReturnType<typeof setInterval> | null = null
 function startPolling() {
   stopPolling()
   pollTimer = setInterval(() => {
+    // Background refresh: silent, so a backend blip cannot stack one toast
+    // per tick on top of whatever the user is doing on the board. The
+    // failure is reported inline (loadError banner) instead.
     if (document.visibilityState === 'visible') {
-      void refreshDay()
+      void refreshDay({ silent: true })
     }
   }, POLL_INTERVAL_MS)
   // Re-evaluate column subtitles ("waiting 12 min") without refetching.
@@ -342,16 +345,22 @@ function stopPolling() {
     tickTimer = null
   }
 }
-async function refreshDay() {
+async function refreshDay(options: { silent?: boolean } = {}) {
   const start = new Date(props.currentDate)
   start.setHours(0, 0, 0, 0)
   const end = new Date(props.currentDate)
   end.setHours(23, 59, 59, 999)
-  await fetchAppointments(start, end)
+  await fetchAppointments(start, end, options)
 }
 
 function onVisibilityChange() {
-  if (document.visibilityState === 'visible') void refreshDay()
+  // Returning to the tab is a background refresh, not a user action.
+  if (document.visibilityState === 'visible') void refreshDay({ silent: true })
+}
+
+/** Explicit user retry — announced if it fails again. */
+function retryLoad() {
+  void refreshDay()
 }
 
 onMounted(() => {
@@ -481,6 +490,31 @@ function isInvalidHint(col: ColumnDef): boolean {
       :filtered-id="pillFilteredId"
       @pill-click="onPillClick"
     />
+
+    <!-- Load failure: the board's own data could not be read. Rendered
+         inline (never as a global toast attributed to another screen) and
+         distinguishable from a genuinely empty day. -->
+    <div
+      v-if="loadError"
+      class="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-[var(--color-danger-soft)] bg-[var(--color-danger-soft)] px-3 py-2"
+      data-testid="kanban-load-error"
+    >
+      <UIcon
+        name="i-lucide-alert-triangle"
+        class="w-4 h-4 text-[var(--color-danger-accent)] shrink-0"
+      />
+      <p class="text-caption text-default flex-1 min-w-0">
+        {{ loadError }}
+      </p>
+      <UButton
+        variant="ghost"
+        size="xs"
+        icon="i-lucide-refresh-cw"
+        @click="retryLoad"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
 
     <!-- Loading -->
     <div

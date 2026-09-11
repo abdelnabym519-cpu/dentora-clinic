@@ -884,7 +884,8 @@
       "clinicClosed": "العيادة مغلقة",
       "professionalOff": "خارج الخدمة",
       "onBreak": "في استراحة"
-    }
+    },
+    "loadFailed": "تعذّر تحميل المواعيد"
   },
   "dashboard": {
     "greetings": {
@@ -944,7 +945,8 @@
       "completed": "مكتملة",
       "invoiced": "تمت فوترته",
       "empty": "لا توجد بيانات هذا الأسبوع"
-    }
+    },
+    "loadError": "تعذّر تحميل هذه الأداة."
   },
   "settings": {
     "title": "الإعدادات",

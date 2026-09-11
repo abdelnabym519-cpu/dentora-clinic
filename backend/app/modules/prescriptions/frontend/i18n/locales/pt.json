@@ -51,7 +51,9 @@
       "issue": "Could not issue prescription.",
       "whatsapp": "Could not queue WhatsApp delivery.",
       "cancel": "Could not cancel prescription.",
-      "void": "Could not void prescription."
+      "void": "Could not void prescription.",
+      "load": "Não foi possível carregar as receitas.",
+      "search": "Não foi possível pesquisar pacientes."
     }
   }
 }

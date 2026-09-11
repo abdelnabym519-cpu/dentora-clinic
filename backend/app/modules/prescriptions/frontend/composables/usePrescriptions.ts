@@ -49,12 +49,26 @@ export interface PrescriptionDelivery {
 
 interface ApiOk<T> { data: T }
 
+/**
+ * Per-request options for the read helpers. Callers that render their own
+ * inline, operation-specific error (the prescriptions page) pass
+ * ``{ silent: true }`` so a failure is reported once, in context.
+ */
+export interface PrescriptionRequestOptions {
+  silent?: boolean
+}
+
 export function usePrescriptions() {
   const api = useApi()
 
-  const list = async (patientId?: string): Promise<ApiOk<Prescription[]>> => {
+  const list = async (
+    patientId?: string,
+    options: PrescriptionRequestOptions = {}
+  ): Promise<ApiOk<Prescription[]>> => {
     const suffix = patientId ? `?patient_id=${encodeURIComponent(patientId)}` : ''
-    return await api.get<ApiOk<Prescription[]>>(`/api/v1/prescriptions${suffix}`)
+    return await api.get<ApiOk<Prescription[]>>(`/api/v1/prescriptions${suffix}`, {
+      silent: options.silent === true
+    })
   }
 
   const create = async (patientId: string, items: PrescriptionItem[]): Promise<ApiOk<Prescription>> =>
@@ -69,8 +83,13 @@ export function usePrescriptions() {
   const retryWhatsApp = async (id: string): Promise<ApiOk<PrescriptionDelivery>> =>
     await api.post<ApiOk<PrescriptionDelivery>>(`/api/v1/prescriptions/${id}/whatsapp-delivery`, {})
 
-  const deliveries = async (id: string): Promise<ApiOk<PrescriptionDelivery[]>> =>
-    await api.get<ApiOk<PrescriptionDelivery[]>>(`/api/v1/prescriptions/${id}/deliveries`)
+  const deliveries = async (
+    id: string,
+    options: PrescriptionRequestOptions = {}
+  ): Promise<ApiOk<PrescriptionDelivery[]>> =>
+    await api.get<ApiOk<PrescriptionDelivery[]>>(`/api/v1/prescriptions/${id}/deliveries`, {
+      silent: options.silent === true
+    })
 
   const cancel = async (id: string, reason: string): Promise<ApiOk<Prescription>> =>
     await api.post<ApiOk<Prescription>>(`/api/v1/prescriptions/${id}/cancel`, { reason })

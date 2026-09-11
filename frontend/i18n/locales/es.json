@@ -905,7 +905,8 @@
       "clinicClosed": "Clínica cerrada",
       "professionalOff": "No disponible",
       "onBreak": "Pausa"
-    }
+    },
+    "loadFailed": "No se pudieron cargar las citas"
   },
   "dashboard": {
     "greetings": {
@@ -965,7 +966,8 @@
       "completed": "Completadas",
       "invoiced": "Facturado",
       "empty": "Sin datos esta semana"
-    }
+    },
+    "loadError": "No se pudo cargar este widget."
   },
   "settings": {
     "title": "Configuración",

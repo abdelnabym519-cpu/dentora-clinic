@@ -1,7 +1,19 @@
 import type { Appointment, AppointmentCreate, AppointmentStatus, AppointmentUpdate, PaginatedResponse, ApiResponse } from '~~/app/types'
+import { errorMessage, errorStatus } from '~~/app/utils/error'
+
+export interface FetchAppointmentsOptions {
+  /**
+   * Suppress the shared error toast. Background refreshes (the kanban
+   * polls every 30 s and on tab focus) must not stack one toast per tick
+   * for a failure the user did not trigger; the board renders
+   * ``error`` inline instead. Explicit loads keep the default.
+   */
+  silent?: boolean
+}
 
 export function useAppointments() {
   const api = useApi()
+  const { t } = useI18n()
 
   // State
   const appointments = useState<Appointment[]>('appointments:list', () => [])
@@ -29,7 +41,11 @@ export function useAppointments() {
   }
 
   // Actions
-  async function fetchAppointments(startDate: Date, endDate: Date): Promise<Appointment[]> {
+  async function fetchAppointments(
+    startDate: Date,
+    endDate: Date,
+    options: FetchAppointmentsOptions = {}
+  ): Promise<Appointment[]> {
     isLoading.value = true
     error.value = null
 
@@ -41,13 +57,20 @@ export function useAppointments() {
       })
 
       const response = await api.get<PaginatedResponse<Appointment>>(
-        `/api/v1/agenda/appointments?${params.toString()}`
+        `/api/v1/agenda/appointments?${params.toString()}`,
+        { silent: options.silent === true, operation: t('appointments.title') }
       )
 
       appointments.value = response.data
       return response.data
     } catch (e) {
-      error.value = 'Failed to fetch appointments'
+      // Was a hardcoded English string that also dropped the backend's
+      // reason. `error` is rendered inline by the board, so it has to be
+      // localized and specific: the server's own detail for an HTTP
+      // failure, the localized network message when no response arrived.
+      error.value = errorStatus(e) === undefined
+        ? t('common.networkError')
+        : errorMessage(e, t('appointments.loadFailed'))
       console.error('Failed to fetch appointments:', e)
       return []
     } finally {

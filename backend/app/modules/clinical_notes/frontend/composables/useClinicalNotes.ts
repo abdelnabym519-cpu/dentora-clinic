@@ -87,9 +87,13 @@ export function useClinicalNotes() {
 
   async function createNote(input: ClinicalNoteCreate): Promise<ClinicalNote | null> {
     try {
+      // This function's own catch reports the failure with the operation's
+      // context, so the shared toast is suppressed: one accurate message,
+      // never two overlapping ones.
       const response = await api.post<ApiResponse<ClinicalNote>>(
         '/api/v1/clinical_notes/notes',
-        input
+        input,
+        { silent: true }
       )
       toast.add({ title: t('clinicalNotes.toasts.saved'), color: 'success' })
       return response.data
@@ -105,7 +109,8 @@ export function useClinicalNotes() {
       const payload: ClinicalNoteUpdate = { body }
       const response = await api.patch<ApiResponse<ClinicalNote>>(
         `/api/v1/clinical_notes/notes/${noteId}`,
-        payload
+        payload,
+        { silent: true }
       )
       toast.add({ title: t('clinicalNotes.toasts.saved'), color: 'success' })
       return response.data

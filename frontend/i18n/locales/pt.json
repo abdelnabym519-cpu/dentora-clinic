@@ -884,7 +884,8 @@
       "clinicClosed": "Clínica encerrada",
       "professionalOff": "Fora de serviço",
       "onBreak": "Em pausa"
-    }
+    },
+    "loadFailed": "Não foi possível carregar as consultas"
   },
   "dashboard": {
     "greetings": {
@@ -944,7 +945,8 @@
       "completed": "Concluídas",
       "invoiced": "Faturado",
       "empty": "Sem dados esta semana"
-    }
+    },
+    "loadError": "Não foi possível carregar este widget."
   },
   "settings": {
     "title": "Definições",

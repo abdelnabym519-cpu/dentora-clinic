@@ -66,8 +66,12 @@ export function usePhotos() {
       params.append('page', String(filters.page ?? 1))
       params.append('page_size', String(filters.page_size ?? 40))
 
+      // This function's own catch reports the failure with the operation's
+      // context, so the shared toast is suppressed: one accurate message,
+      // never two overlapping ones.
       const response = await api.get<PaginatedResponse<Document>>(
-        `/api/v1/media/patients/${patientId}/photos?${params}`
+        `/api/v1/media/patients/${patientId}/photos?${params}`,
+        { silent: true }
       )
       photos.value = response.data
       total.value = response.total
@@ -103,7 +107,8 @@ export function usePhotos() {
 
       const response = await api.post<ApiResponse<Document>>(
         `/api/v1/media/patients/${patientId}/photos`,
-        formData
+        formData,
+        { silent: true }
       )
       toast.add({
         title: t('common.success'),
@@ -131,7 +136,8 @@ export function usePhotos() {
     try {
       const response = await api.patch<ApiResponse<Document>>(
         `/api/v1/media/documents/${documentId}/photo-metadata`,
-        patch
+        patch,
+        { silent: true }
       )
       const idx = photos.value.findIndex(p => p.id === documentId)
       if (idx !== -1) photos.value[idx] = response.data
@@ -147,7 +153,8 @@ export function usePhotos() {
     try {
       const response = await api.post<ApiResponse<Document>>(
         `/api/v1/media/documents/${a}/pair/${b}`,
-        {}
+        {},
+        { silent: true }
       )
       toast.add({
         title: t('photoGallery.paired', 'Before/after paired'),
@@ -163,7 +170,7 @@ export function usePhotos() {
 
   async function unpair(documentId: string): Promise<boolean> {
     try {
-      await api.del(`/api/v1/media/documents/${documentId}/pair`)
+      await api.del(`/api/v1/media/documents/${documentId}/pair`, { silent: true })
       return true
     } catch (error) {
       console.error('Error unpairing:', error)

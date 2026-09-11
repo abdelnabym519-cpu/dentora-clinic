@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Prescription, PrescriptionDelivery, PrescriptionItem } from '../../composables/usePrescriptions'
+import { errorMessage } from '~~/app/utils/error'
 
 interface PatientBrief { id: string, first_name: string, last_name: string, record_number?: string | null }
 interface PatientPage { data: PatientBrief[] }
@@ -15,6 +16,13 @@ const patients = ref<PatientBrief[]>([])
 const selectedPatient = ref<PatientBrief | null>(null)
 const busy = ref(false)
 const error = ref('')
+// Loading the history and searching patients are reads with their own
+// surface: a failure must be visible *as* a failed load, not as an empty
+// list ("no prescriptions" / "no patient found") and not as an unhandled
+// rejection escaping a click handler.
+const listError = ref('')
+const searchError = ref('')
+const searching = ref(false)
 const transitionReason = ref('')
 const hydrated = ref(false)
 
@@ -46,25 +54,55 @@ function deliveryStatusLabel(status?: string): string {
 
 async function loadDeliveryHistory(rx: Prescription) {
   if (rx.status !== 'issued' && rx.status !== 'voided') return
-  const response = await prescriptionsApi.deliveries(rx.id)
-  deliveriesByPrescription.value[rx.id] = response.data
+  try {
+    const response = await prescriptionsApi.deliveries(rx.id, { silent: true })
+    deliveriesByPrescription.value[rx.id] = response.data
+  } catch {
+    // Audit-only enrichment fetched for every issued prescription in
+    // parallel: one failed history must not reject the whole refresh
+    // (Promise.all) nor be announced as a prescriptions error.
+    deliveriesByPrescription.value[rx.id] = []
+  }
 }
 
 async function loadPrescriptions() {
-  const response = await prescriptionsApi.list(selectedPatient.value?.id)
-  prescriptions.value = response.data
+  listError.value = ''
+  try {
+    const response = await prescriptionsApi.list(selectedPatient.value?.id, { silent: true })
+    prescriptions.value = response.data
+  } catch (e: unknown) {
+    prescriptions.value = []
+    listError.value = errorMessage(e, t('prescriptions.errors.load'))
+    return
+  }
   if (can('prescriptions.audit')) {
     await Promise.all(prescriptions.value.map(loadDeliveryHistory))
   }
 }
 
 async function searchPatients() {
-  if (patientSearch.value.trim().length < 2) {
+  const term = patientSearch.value.trim()
+  if (term.length < 2) {
     patients.value = []
+    searchError.value = ''
     return
   }
-  const response = await api.get<PatientPage>(`/api/v1/patients?search=${encodeURIComponent(patientSearch.value.trim())}&page_size=10`)
-  patients.value = response.data
+  searching.value = true
+  searchError.value = ''
+  try {
+    const response = await api.get<PatientPage>(
+      `/api/v1/patients?search=${encodeURIComponent(term)}&page_size=10`,
+      { silent: true }
+    )
+    patients.value = response.data
+  } catch (e: unknown) {
+    // Was an unguarded await inside an @input handler: the rejection
+    // escaped and the dropdown silently kept the previous results.
+    patients.value = []
+    searchError.value = errorMessage(e, t('prescriptions.errors.search'))
+  } finally {
+    searching.value = false
+  }
 }
 
 async function selectPatient(patient: PatientBrief) {
@@ -89,12 +127,15 @@ async function createDraft() {
   try {
     await prescriptionsApi.create(selectedPatient.value.id, items.value)
     items.value = [emptyItem()]
-    await loadPrescriptions()
   } catch {
     error.value = t('prescriptions.errors.create')
+    return
   } finally {
     busy.value = false
   }
+  // Separate step: a failed *refresh* must not be reported as "could not
+  // create" when the draft was in fact created.
+  await loadPrescriptions()
 }
 
 async function issue(rx: Prescription) {
@@ -102,12 +143,13 @@ async function issue(rx: Prescription) {
   error.value = ''
   try {
     await prescriptionsApi.issue(rx.id)
-    await loadPrescriptions()
   } catch {
     error.value = t('prescriptions.errors.issue')
+    return
   } finally {
     busy.value = false
   }
+  await loadPrescriptions()
 }
 
 async function retryWhatsApp(rx: Prescription) {
@@ -130,12 +172,13 @@ async function cancel(rx: Prescription) {
   try {
     await prescriptionsApi.cancel(rx.id, transitionReason.value)
     transitionReason.value = ''
-    await loadPrescriptions()
   } catch {
     error.value = t('prescriptions.errors.cancel')
+    return
   } finally {
     busy.value = false
   }
+  await loadPrescriptions()
 }
 
 async function voidRx(rx: Prescription) {
@@ -145,12 +188,13 @@ async function voidRx(rx: Prescription) {
   try {
     await prescriptionsApi.voidPrescription(rx.id, transitionReason.value)
     transitionReason.value = ''
-    await loadPrescriptions()
   } catch {
     error.value = t('prescriptions.errors.void')
+    return
   } finally {
     busy.value = false
   }
+  await loadPrescriptions()
 }
 
 onMounted(() => {
@@ -195,6 +239,14 @@ onMounted(() => {
           :placeholder="t('prescriptions.searchPatient')"
           @input="searchPatients"
         >
+        <p
+          v-if="searchError"
+          class="mt-1 text-sm text-red-600"
+          role="alert"
+          data-testid="prescription-patient-search-error"
+        >
+          {{ searchError }}
+        </p>
         <div
           v-if="patients.length"
           class="absolute z-10 mt-1 w-full rounded border bg-white shadow"
@@ -272,8 +324,24 @@ onMounted(() => {
         class="w-full rounded border px-3 py-2"
         :placeholder="t('prescriptions.transitionReason')"
       >
+      <div
+        v-if="listError"
+        class="flex flex-wrap items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        role="alert"
+        data-testid="prescriptions-list-error"
+      >
+        <span class="flex-1 min-w-0">{{ listError }}</span>
+        <button
+          type="button"
+          class="rounded border px-3 py-1"
+          data-testid="prescriptions-list-retry"
+          @click="loadPrescriptions"
+        >
+          {{ t('common.retry') }}
+        </button>
+      </div>
       <p
-        v-if="!prescriptions.length"
+        v-else-if="!prescriptions.length"
         class="rounded-xl border border-dashed p-4 text-sm text-gray-500"
       >
         {{ t('prescriptions.empty') }}

@@ -2,9 +2,16 @@
 defineProps<{ ctx?: unknown }>()
 
 const { t } = useI18n()
-const { todayAppointments, todayLoaded, fetchToday } = useHomeAgenda()
+const { todayAppointments, todayLoaded, todayError, fetchToday } = useHomeAgenda()
 
 const pending = computed(() => !todayLoaded.value)
+// The load failed: distinct from "no appointments today", which is a real
+// answer rather than a missing one.
+const failed = computed(() => !pending.value && todayError.value)
+
+function retry(): void {
+  void fetchToday()
+}
 
 onMounted(() => {
   if (!todayLoaded.value) fetchToday()
@@ -44,6 +51,23 @@ const counts = computed(() => {
       v-if="pending"
       class="h-8 w-16 mb-2"
     />
+    <div
+      v-else-if="failed"
+      class="flex flex-wrap items-center gap-2"
+      data-testid="today-kpi-error"
+    >
+      <p class="text-caption text-[var(--color-danger-accent)]">
+        {{ t('dashboard.loadError') }}
+      </p>
+      <UButton
+        variant="ghost"
+        size="xs"
+        icon="i-lucide-refresh-cw"
+        @click="retry"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
     <p
       v-else
       class="text-display text-default tnum"
@@ -52,7 +76,7 @@ const counts = computed(() => {
     </p>
 
     <div
-      v-if="!pending && counts.total > 0"
+      v-if="!pending && !failed && counts.total > 0"
       class="flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted mt-1"
     >
       <span
@@ -97,7 +121,7 @@ const counts = computed(() => {
       </span>
     </div>
     <p
-      v-else-if="!pending"
+      v-else-if="!pending && !failed"
       class="text-caption text-subtle mt-1"
     >
       {{ t('dashboard.todayKpi.empty') }}

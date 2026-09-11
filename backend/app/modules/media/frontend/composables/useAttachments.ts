@@ -32,9 +32,13 @@ export function useAttachments() {
 
   async function link(payload: AttachmentCreate): Promise<MediaAttachment | null> {
     try {
+      // This function's own catch reports the failure with the operation's
+      // context, so the shared toast is suppressed: one accurate message,
+      // never two overlapping ones.
       const response = await api.post<ApiResponse<MediaAttachment>>(
         '/api/v1/media/attachments',
-        payload
+        payload,
+        { silent: true }
       )
       return response.data
     } catch (error) {
@@ -50,7 +54,7 @@ export function useAttachments() {
 
   async function unlink(attachmentId: string): Promise<boolean> {
     try {
-      await api.del(`/api/v1/media/attachments/${attachmentId}`)
+      await api.del(`/api/v1/media/attachments/${attachmentId}`, { silent: true })
       return true
     } catch (error) {
       console.error('Error unlinking attachment:', error)

@@ -75,7 +75,10 @@
       "operatorCreated": "Create new",
       "operatorIgnored": "Ignored",
       "acceptRow": "Accept",
-      "ignoreRow": "Ignore"
+      "ignoreRow": "Ignore",
+      "loadFailed": "Could not load the mapping proposals",
+      "bulkAcceptFailed": "Bulk accept failed",
+      "patchFailed": "Could not update the proposal"
     },
     "status": {
       "uploaded": "Uploaded",
@@ -85,6 +88,12 @@
       "executing": "Importing",
       "completed": "Completed",
       "failed": "Failed"
+    },
+    "actions": {
+      "validateFailed": "Validation failed",
+      "previewFailed": "Could not build the preview",
+      "executeFailed": "The import could not be started",
+      "pollFailed": "Lost contact with the import job"
     }
   }
 }

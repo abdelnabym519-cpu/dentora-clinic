@@ -49,7 +49,7 @@ onMounted(() => {
   updateViewport()
   window.addEventListener('resize', updateViewport)
   // Lazy-load the list — most clinics have <10 professionals.
-  if (professionals.value.length === 0) fetchProfessionals()
+  if (professionals.value.length === 0) void fetchProfessionals({ silent: true })
 })
 
 onBeforeUnmount(() => {

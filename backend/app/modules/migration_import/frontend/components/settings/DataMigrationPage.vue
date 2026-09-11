@@ -109,6 +109,18 @@ const proposalsBuilding = ref(false)
 const proposalsError = ref('')
 const bulkAcceptedNotice = ref<number | null>(null)
 
+// Per-step busy flags + inline errors. Every action on this page used to be
+// a bare `await api.…` inside a click handler: a rejection escaped as an
+// unhandled promise, the button simply stopped doing anything, and the only
+// feedback was a global toast that never said *which* step had failed.
+const validating = ref(false)
+const executing = ref(false)
+const bulkAccepting = ref(false)
+const patchingKey = ref<string | null>(null)
+const stepError = ref('')
+const executeError = ref('')
+const pollError = ref('')
+
 const canExecute = computed(() => can(PERMISSIONS.migrationImport.jobExecute))
 const verifactuOptInVisible = computed(
   () => !!preview.value?.verifactu_data_detected && !!preview.value?.verifactu_module_installed
@@ -126,46 +138,89 @@ async function startUpload() {
   try {
     const formData = new FormData()
     formData.append('file', file.value)
-    const res = await api.post<{ data: ImportJob }>('/api/v1/migration_import/jobs', formData)
+    const res = await api.post<{ data: ImportJob }>(
+      '/api/v1/migration_import/jobs',
+      formData,
+      // Reported inline below — a toast on top of the alert double-reports.
+      { silent: true }
+    )
     job.value = res.data
-    await runValidate()
   } catch (err: unknown) {
     uploadError.value = errorMessage(err, t('migrationImport.upload.error'))
+    return
   } finally {
     uploading.value = false
   }
+
+  // Validation is its own step: a rejection there must not read as
+  // "upload failed".
+  await runValidate()
 }
 
 async function runValidate() {
   if (!job.value) return
-  const res = await api.post<{ data: ImportJob }>(
-    `/api/v1/migration_import/jobs/${job.value.id}/validate`,
-    { passphrase: passphrase.value || null }
-  )
-  job.value = res.data
+  validating.value = true
+  stepError.value = ''
+  try {
+    const res = await api.post<{ data: ImportJob }>(
+      `/api/v1/migration_import/jobs/${job.value.id}/validate`,
+      { passphrase: passphrase.value || null },
+      { silent: true }
+    )
+    job.value = res.data
+  } catch (err: unknown) {
+    stepError.value = errorMessage(err, t('migrationImport.actions.validateFailed'))
+    return
+  } finally {
+    validating.value = false
+  }
   if (job.value.status === 'validated') await loadPreview()
 }
 
 async function loadPreview() {
   if (!job.value) return
-  const res = await api.post<{ data: PreviewResponse }>(
-    `/api/v1/migration_import/jobs/${job.value.id}/preview`,
-    { passphrase: passphrase.value || null }
-  )
-  preview.value = res.data
-  job.value = res.data.job
+  validating.value = true
+  stepError.value = ''
+  try {
+    const res = await api.post<{ data: PreviewResponse }>(
+      `/api/v1/migration_import/jobs/${job.value.id}/preview`,
+      { passphrase: passphrase.value || null },
+      { silent: true }
+    )
+    preview.value = res.data
+    job.value = res.data.job
+  } catch (err: unknown) {
+    stepError.value = errorMessage(err, t('migrationImport.actions.previewFailed'))
+  } finally {
+    validating.value = false
+  }
 }
 
 async function execute() {
   if (!job.value || !canExecute.value) return
-  await api.post(`/api/v1/migration_import/jobs/${job.value.id}/execute`, {
-    import_fiscal_compliance: importFiscal.value,
-    passphrase: passphrase.value || null,
-    professional_min_activity_months: minActivityMonths.value,
-    professional_exclude_agenda_orphans: excludeAgendaOrphans.value,
-    professional_exclude_inactive_in_source: excludeInactiveInSource.value,
-    professional_exclude_non_clinical_roles: excludeNonClinicalRoles.value
-  })
+  executing.value = true
+  executeError.value = ''
+  try {
+    await api.post(
+      `/api/v1/migration_import/jobs/${job.value.id}/execute`,
+      {
+        import_fiscal_compliance: importFiscal.value,
+        passphrase: passphrase.value || null,
+        professional_min_activity_months: minActivityMonths.value,
+        professional_exclude_agenda_orphans: excludeAgendaOrphans.value,
+        professional_exclude_inactive_in_source: excludeInactiveInSource.value,
+        professional_exclude_non_clinical_roles: excludeNonClinicalRoles.value
+      },
+      { silent: true }
+    )
+  } catch (err: unknown) {
+    // Nothing was started: say so, with the reason, and leave the button
+    // usable instead of polling a job that never began.
+    executeError.value = errorMessage(err, t('migrationImport.actions.executeFailed'))
+    return
+  } finally {
+    executing.value = false
+  }
   startPolling()
 }
 
@@ -192,9 +247,15 @@ async function loadProposals() {
   proposalsLoading.value = true
   try {
     const res = await api.get<{ data: MappingProposal[] }>(
-      `/api/v1/migration_import/jobs/${job.value.id}/proposals?page_size=200`
+      `/api/v1/migration_import/jobs/${job.value.id}/proposals?page_size=200`,
+      { silent: true }
     )
     proposals.value = res.data
+    proposalsError.value = ''
+  } catch (err: unknown) {
+    // Was try/finally with no catch: the spinner stopped and the table
+    // stayed empty, indistinguishable from "no proposals".
+    proposalsError.value = errorMessage(err, t('migrationImport.proposals.loadFailed'))
   } finally {
     proposalsLoading.value = false
   }
@@ -202,20 +263,43 @@ async function loadProposals() {
 
 async function bulkAccept() {
   if (!job.value) return
-  const res = await api.post<{ data: { accepted: number } }>(
-    `/api/v1/migration_import/jobs/${job.value.id}/proposals/bulk_accept`,
-    { min_score: 0.9, include_exact: true }
-  )
-  bulkAcceptedNotice.value = res.data.accepted
+  bulkAccepting.value = true
+  proposalsError.value = ''
+  try {
+    const res = await api.post<{ data: { accepted: number } }>(
+      `/api/v1/migration_import/jobs/${job.value.id}/proposals/bulk_accept`,
+      { min_score: 0.9, include_exact: true },
+      { silent: true }
+    )
+    bulkAcceptedNotice.value = res.data.accepted
+  } catch (err: unknown) {
+    proposalsError.value = errorMessage(err, t('migrationImport.proposals.bulkAcceptFailed'))
+    return
+  } finally {
+    bulkAccepting.value = false
+  }
   await loadProposals()
 }
 
 async function patchProposal(proposal: MappingProposal, operatorAction: string) {
   if (!job.value) return
-  await api.patch<{ data: MappingProposal }>(
-    `/api/v1/migration_import/jobs/${job.value.id}/proposals/${proposal.canonical_uuid}`,
-    { operator_action: operatorAction }
-  )
+  const key = `${proposal.canonical_uuid}:${operatorAction}`
+  patchingKey.value = key
+  proposalsError.value = ''
+  try {
+    await api.patch<{ data: MappingProposal }>(
+      `/api/v1/migration_import/jobs/${job.value.id}/proposals/${proposal.canonical_uuid}`,
+      { operator_action: operatorAction },
+      { silent: true }
+    )
+  } catch (err: unknown) {
+    // The row's badge is the user's confirmation: without this the click
+    // looked accepted while nothing had been persisted.
+    proposalsError.value = errorMessage(err, t('migrationImport.proposals.patchFailed'))
+    return
+  } finally {
+    patchingKey.value = null
+  }
   await loadProposals()
 }
 
@@ -241,23 +325,42 @@ function operatorStatusKey(action: string): string {
   }
 }
 
+function stopPolling() {
+  if (pollHandle) {
+    clearInterval(pollHandle)
+    pollHandle = null
+  }
+}
+
 function startPolling() {
-  if (pollHandle) clearInterval(pollHandle)
+  stopPolling()
+  pollError.value = ''
   pollHandle = setInterval(async () => {
     if (!job.value) return
-    const res = await api.get<{ data: ImportJob }>(`/api/v1/migration_import/jobs/${job.value.id}`)
-    job.value = res.data
+    try {
+      const res = await api.get<{ data: ImportJob }>(
+        `/api/v1/migration_import/jobs/${job.value.id}`,
+        // A 2 s status poll is a background refresh: an unguarded rejection
+        // here escaped as an unhandled promise *and* announced itself
+        // globally every couple of seconds, forever, because the throw
+        // skipped the stop condition below.
+        { silent: true }
+      )
+      job.value = res.data
+      pollError.value = ''
+    } catch (err: unknown) {
+      pollError.value = errorMessage(err, t('migrationImport.actions.pollFailed'))
+      stopPolling()
+      return
+    }
     if (job.value.status === 'completed' || job.value.status === 'failed') {
-      if (pollHandle) {
-        clearInterval(pollHandle)
-        pollHandle = null
-      }
+      stopPolling()
     }
   }, 2000)
 }
 
 onUnmounted(() => {
-  if (pollHandle) clearInterval(pollHandle)
+  stopPolling()
 })
 </script>
 
@@ -329,6 +432,29 @@ onUnmounted(() => {
           color="error"
           :description="job.error"
         />
+        <UAlert
+          v-if="stepError"
+          color="error"
+          :description="stepError"
+          data-testid="migration-step-error"
+        />
+        <div
+          v-if="pollError"
+          class="flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 dark:border-red-900 dark:bg-red-950/40"
+          data-testid="migration-poll-error"
+        >
+          <p class="text-xs text-red-800 dark:text-red-200 flex-1 min-w-0">
+            {{ pollError }}
+          </p>
+          <UButton
+            size="xs"
+            variant="ghost"
+            icon="i-lucide-refresh-cw"
+            @click="startPolling"
+          >
+            {{ t('common.retry') }}
+          </UButton>
+        </div>
       </div>
 
       <!-- Preview -->
@@ -398,6 +524,7 @@ onUnmounted(() => {
             <UButton
               v-if="proposalSummary"
               variant="ghost"
+              :loading="bulkAccepting"
               :disabled="!canExecute"
               @click="bulkAccept"
             >
@@ -504,6 +631,7 @@ onUnmounted(() => {
                       <UButton
                         size="xs"
                         variant="ghost"
+                        :loading="patchingKey === `${p.canonical_uuid}:accepted`"
                         :disabled="!canExecute || p.operator_action === 'accepted'"
                         @click="patchProposal(p, 'accepted')"
                       >
@@ -513,6 +641,7 @@ onUnmounted(() => {
                         size="xs"
                         color="error"
                         variant="ghost"
+                        :loading="patchingKey === `${p.canonical_uuid}:ignored`"
                         :disabled="!canExecute || p.operator_action === 'ignored'"
                         @click="patchProposal(p, 'ignored')"
                       >
@@ -606,8 +735,16 @@ onUnmounted(() => {
           :description="t('migrationImport.preview.warning')"
         />
 
+        <UAlert
+          v-if="executeError"
+          color="error"
+          :description="executeError"
+          data-testid="migration-execute-error"
+        />
+
         <UButton
           color="primary"
+          :loading="executing || validating"
           :disabled="!canExecute || job.status === 'executing'"
           @click="execute"
         >

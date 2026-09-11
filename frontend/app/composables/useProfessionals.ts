@@ -21,12 +21,23 @@ export function useProfessionals() {
 
   const professionalColors = ref<Map<string, string>>(new Map())
 
-  async function fetchProfessionals(): Promise<void> {
+  /**
+   * @param options.silent Suppress the shared error toast. The professional
+   * list is a cosmetic enrichment in several places (timeline author names,
+   * doctor chips, agenda colour lanes) where the caller has no error surface
+   * and falls back to the record's own text — a global toast there would be
+   * attributed to whatever screen the user is actually on. Callers that own
+   * an error UI (settings, reports, appointment modal) keep the default.
+   */
+  async function fetchProfessionals(options: { silent?: boolean } = {}): Promise<void> {
     isLoading.value = true
     error.value = null
 
     try {
-      const response = await api.get<PaginatedResponse<Professional>>('/api/v1/auth/professionals')
+      const response = await api.get<PaginatedResponse<Professional>>(
+        '/api/v1/auth/professionals',
+        { silent: options.silent === true }
+      )
       professionals.value = response.data
 
       professionalColors.value = new Map()

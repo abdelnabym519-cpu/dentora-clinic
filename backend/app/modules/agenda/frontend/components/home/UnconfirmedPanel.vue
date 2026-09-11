@@ -11,12 +11,18 @@ const {
   tomorrowUnconfirmed,
   tomorrowLoaded,
   fetchTomorrowUnconfirmed,
-  removeTomorrowUnconfirmed
+  removeTomorrowUnconfirmed,
+  tomorrowError
 } = useHomeAgenda()
 const { transition } = useAppointments()
 const toast = useToast()
 
 const pending = computed(() => !tomorrowLoaded.value)
+const failed = computed(() => !pending.value && tomorrowError.value)
+
+function retry(): void {
+  void fetchTomorrowUnconfirmed()
+}
 const canWrite = computed(() => can(PERMISSIONS.appointments.write))
 const busyIds = ref<Set<string>>(new Set())
 
@@ -78,6 +84,24 @@ function appointmentHref(a: Appointment): string {
       <USkeleton class="h-10 w-full" />
       <USkeleton class="h-10 w-full" />
     </div>
+
+    <EmptyState
+      v-else-if="failed"
+      icon="i-lucide-alert-triangle"
+      :title="t('dashboard.loadError')"
+      data-testid="unconfirmed-error"
+    >
+      <template #actions>
+        <UButton
+          variant="soft"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          @click="retry"
+        >
+          {{ t('common.retry') }}
+        </UButton>
+      </template>
+    </EmptyState>
 
     <EmptyState
       v-else-if="tomorrowUnconfirmed.length === 0"

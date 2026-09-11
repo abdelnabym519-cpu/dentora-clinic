@@ -6,8 +6,8 @@ const grants = { value: [] as string[] }
 
 vi.mock('~/composables/useAuth', () => ({
   useAuth: () => ({
-    permissions: grants,
-  }),
+    permissions: grants
+  })
 }))
 
 describe('usePermissions wildcard handling (mirrors backend permission_matches)', () => {
@@ -39,7 +39,7 @@ describe('usePermissions wildcard handling (mirrors backend permission_matches)'
     grants.value = [
       'ai_case_summary.read',
       'ai_case_summary.generate',
-      'risk_engine.review',
+      'risk_engine.review'
     ]
     const { usePermissions } = await import('~/composables/usePermissions')
     const { can } = usePermissions()

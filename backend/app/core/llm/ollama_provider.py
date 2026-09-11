@@ -15,6 +15,21 @@ class OllamaProvider(OpenAIProvider):
     ) -> None:
         super().__init__(
             api_key="ollama-local",
-            base_url=base_url,
+            base_url=self._normalize_base_url(base_url),
             extra_body={"reasoning_effort": "none"},
         )
+
+    @staticmethod
+    def _normalize_base_url(url: str) -> str:
+        """Anchor the OpenAI-compatible base at Ollama's ``/v1`` path.
+
+        The OpenAI client appends ``chat/completions`` to this base, so a
+        host-level value such as ``http://host.docker.internal:11434``
+        would otherwise target ``/chat/completions`` — a path Ollama does
+        not serve, answered with a plain-text ``404 page not found``.
+        Accept host-level and ``/v1``-suffixed values alike.
+        """
+        normalized = url.strip().rstrip("/")
+        if not normalized.endswith("/v1"):
+            normalized = f"{normalized}/v1"
+        return f"{normalized}/"

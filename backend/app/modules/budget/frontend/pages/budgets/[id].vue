@@ -56,8 +56,13 @@ function canInvoice(): boolean {
 
 async function checkActiveInvoice(budgetId: string) {
   try {
+    // Cross-module probe (billing) used only to decide whether the
+    // "create invoice" shortcut is offered. A role without billing.read
+    // must not get an "Access denied" toast on the budget page — the
+    // invoice screen enforces its own permission.
     const response = await api.get<PaginatedResponse<InvoiceListItem>>(
-      `/api/v1/billing/invoices?budget_id=${budgetId}&page_size=100`
+      `/api/v1/billing/invoices?budget_id=${budgetId}&page_size=100`,
+      { silent: true }
     )
     hasActiveInvoice.value = response.data.some(inv => inv.status !== 'cancelled')
   } catch {

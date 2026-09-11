@@ -17,6 +17,27 @@ export function useAuth() {
     import.meta.server ? config.apiBaseUrlServer : config.public.apiBaseUrl
   )
 
+  /**
+   * Headers for ``/auth/me``.
+   *
+   * Permissions are clinic-scoped: the backend resolves the role (and
+   * therefore the grant list) from ``X-Clinic-Id``, falling back to the
+   * token's clinic. Every data request pins that same header, so the
+   * grants the UI gates on must be computed for the *same* clinic —
+   * otherwise a multi-clinic user reloads, gets clinic A's grant list
+   * while their requests target clinic B, and legitimately authorized
+   * actions come back 403.
+   */
+  function meHeaders(token: string, clinicId?: string | null): Record<string, string> {
+    const headers: Record<string, string> = { Authorization: `Bearer ${token}` }
+    // ``clinicId`` is passed explicitly by callers that just corrected the
+    // selection: ``useCookie`` writes flush on the next tick, so a second
+    // ``useSelectedClinicId()`` instance would still read the old value.
+    const selected = clinicId ?? useSelectedClinicId().value
+    if (selected) headers['X-Clinic-Id'] = selected
+    return headers
+  }
+
   // State
   const user = useState<User | null>('auth:user', () => null)
   const permissions = useState<string[]>('auth:permissions', () => [])
@@ -147,7 +168,7 @@ export function useAuth() {
         // and the sidebar/home strip every permission-gated entry.
         const me = await $fetch<ApiResponse<MeResponse>>('/api/v1/auth/me', {
           baseURL: apiBaseUrl.value,
-          headers: { Authorization: `Bearer ${response.access_token}` }
+          headers: meHeaders(response.access_token)
         })
         user.value = me.data.user
         permissions.value = me.data.permissions
@@ -180,22 +201,36 @@ export function useAuth() {
       return
     }
 
+    // One instance for the whole flow so the correction below is visible
+    // synchronously (cookie writes only reach document.cookie on a tick).
+    const selected = useSelectedClinicId()
+    const requestedClinicId = selected.value
+
     try {
       const response = await $fetch<ApiResponse<MeResponse>>('/api/v1/auth/me', {
         baseURL: apiBaseUrl.value,
-        headers: {
-          Authorization: `Bearer ${accessToken.value}`
-        }
+        headers: meHeaders(accessToken.value, requestedClinicId)
       })
       user.value = response.data.user
       permissions.value = response.data.permissions
       clinics.value = response.data.clinics
       // Default the selected clinic to the user's first membership
       // unless they already chose one.
-      const selected = useSelectedClinicId()
       const stillMember = response.data.clinics.some(c => c.id === selected.value)
       if (!selected.value || !stillMember) {
-        selected.value = response.data.clinics[0]?.id ?? null
+        const fallback = response.data.clinics[0]?.id ?? null
+        selected.value = fallback
+        // The grant list above was resolved for a stale (or absent)
+        // clinic selection. Re-read /me for the clinic the data requests
+        // are about to target, so the UI never gates on another clinic's
+        // role — that mismatch is what turns authorized clicks into 403s.
+        if (fallback && fallback !== requestedClinicId && accessToken.value) {
+          const corrected = await $fetch<ApiResponse<MeResponse>>('/api/v1/auth/me', {
+            baseURL: apiBaseUrl.value,
+            headers: meHeaders(accessToken.value, fallback)
+          })
+          permissions.value = corrected.data.permissions
+        }
       }
     } catch (error: unknown) {
       const fetchError = error as { statusCode?: number }

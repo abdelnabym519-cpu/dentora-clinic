@@ -71,16 +71,30 @@ async function load() {
   try {
     const [res] = await Promise.all([
       api.get<ApiResponse<CopilotSettings>>('/api/v1/copilot/settings'),
-      fetchUsers()
+      // Digest recipients are optional enrichment for this form: a role
+      // without admin.users.read must still be able to load (and save)
+      // its own copilot settings.
+      fetchUsers({ silent: true })
     ])
     settings.value = res.data
-    // Observability is admin-only; ignore if forbidden.
+    // Observability is admin-only; ignore if forbidden. Silent, because
+    // the denial is expected for non-admins and must not surface as a
+    // global "Access denied" on the settings screen.
     try {
-      const m = await api.get<ApiResponse<CopilotMetrics>>('/api/v1/copilot/metrics?days=30')
+      const m = await api.get<ApiResponse<CopilotMetrics>>(
+        '/api/v1/copilot/metrics?days=30',
+        { silent: true }
+      )
       metrics.value = m.data
     } catch {
       metrics.value = null
     }
+  } catch {
+    // Was a bare try/finally: a failed load rejected out of onMounted
+    // with nothing rendered. The shared API layer reports this operation
+    // by name; the panel keeps its empty state.
+    settings.value = null
+    metrics.value = null
   } finally {
     isLoading.value = false
   }

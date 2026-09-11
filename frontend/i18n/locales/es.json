@@ -1194,7 +1194,8 @@
       "toasts": {
         "scheduled": "Operación programada. Aplica los cambios para completarla.",
         "applied": "Cambios aplicados correctamente."
-      }
+      },
+      "forbidden": "La gestión de módulos requiere acceso de administración de la clínica (admin.clinic.read). Pídeselo a un administrador si necesitas instalar o configurar módulos."
     },
     "navLabel": "Categorías de ajustes",
     "attentionRequired": "Atención requerida"
@@ -1249,6 +1250,7 @@
     "refresh": "Actualizar",
     "hide": "Ocultar",
     "forbidden": "Acceso denegado",
+    "forbiddenPermission": "Requiere el permiso {permission}",
     "confirm": "Confirmar",
     "yes": "Sí",
     "no": "No",

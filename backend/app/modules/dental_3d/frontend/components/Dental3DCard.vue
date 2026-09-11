@@ -34,6 +34,7 @@ const {
   analysis: rawAnalysis,
   running: segmentationRunning,
   runFailed: segmentationRunFailed,
+  error: segmentationError,
   reviewing,
   load: loadSegmentation,
   run: runSegmentation,
@@ -63,6 +64,7 @@ const {
   analysis: rawNerveAnalysis,
   running: nerveRunning,
   runFailed: nerveRunFailed,
+  error: nerveError,
   reviewing: nerveReviewing,
   load: loadNerve,
   run: runNerve,
@@ -314,11 +316,11 @@ async function onUploadChange(event: Event): Promise<void> {
           </p>
         </template>
         <p
-          v-if="segmentationRunFailed"
+          v-if="segmentationRunFailed || segmentationError"
           data-testid="dental3d-segmentation-error"
           class="text-caption text-warning"
         >
-          {{ t('dental_3d.segmentation.runError') }}
+          {{ segmentationError || t('dental_3d.segmentation.runError') }}
         </p>
       </div>
 
@@ -457,11 +459,11 @@ async function onUploadChange(event: Event): Promise<void> {
           </p>
         </template>
         <p
-          v-if="nerveRunFailed"
+          v-if="nerveRunFailed || nerveError"
           data-testid="dental3d-nerve-error"
           class="text-caption text-warning"
         >
-          {{ t('dental_3d.nerve.runError') }}
+          {{ nerveError || t('dental_3d.nerve.runError') }}
         </p>
       </div>
 

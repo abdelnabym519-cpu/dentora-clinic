@@ -53,8 +53,13 @@ export function useModules() {
     loading.value = true
     error.value = null
     try {
+      // Ambient request: the layout re-reads the registry on every route
+      // change. A failure degrades the sidebar to the host entries, which
+      // this composable already surfaces — it must not also raise a global
+      // toast that reads as "this page is forbidden".
       const response = await api.get<ApiResponse<ActiveModule[]>>(
-        '/api/v1/modules/-/active'
+        '/api/v1/modules/-/active',
+        { silent: true }
       )
       active.value = response.data
       lastLoadedAt.value = Date.now()

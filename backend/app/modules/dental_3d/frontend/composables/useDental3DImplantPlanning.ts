@@ -1,5 +1,21 @@
 import type { ApiResponse } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
 import type { PatientPointMm } from '../lib/clinicalScene'
+
+/**
+ * Fallbacks for when the backend supplied no explanation. Implant
+ * planning rejects unmet prerequisites with a 409 whose detail names
+ * them ("Prosthetic target is stale", "Nerve analysis is required");
+ * `errorMessage` surfaces that text so the dentist sees the actual
+ * prerequisite instead of a generic failure.
+ */
+const PLANNING_UNAVAILABLE = 'Implant planning is unavailable.'
+const TARGET_SAVE_FAILED = 'The prosthetic target could not be saved.'
+const TARGET_REVIEW_FAILED = 'The prosthetic target review could not be recorded.'
+const PLAN_SAVE_FAILED = 'The implant draft could not be saved.'
+const PLAN_EDIT_FAILED = 'The implant revision could not be saved.'
+const PLAN_ACCEPT_BLOCKED = 'The plan cannot be accepted until its prosthetic target is current and accepted.'
+const PLAN_REVIEW_FAILED = 'The implant plan review could not be recorded.'
 
 export type ImplantPlanStatus = 'draft' | 'proposed' | 'accepted' | 'rejected'
 export type ProstheticReviewStatus = 'pending_review' | 'accepted' | 'rejected'
@@ -125,13 +141,16 @@ export function useDental3DImplantPlanning(patientId: () => string) {
     loading.value = true
     error.value = null
     try {
+      // Ambient load (mounted with the patient summary card) — the card
+      // renders the failure inline, so no global toast.
       const response = await api.get<ApiResponse<ImplantPlanningPayload>>(
-        `${baseUrl()}/implant-planning`
+        `${baseUrl()}/implant-planning`,
+        { silent: true }
       )
       snapshot.value = response.data
-    } catch {
+    } catch (e: unknown) {
       snapshot.value = null
-      error.value = 'Implant planning is unavailable.'
+      error.value = errorMessage(e, PLANNING_UNAVAILABLE)
     } finally {
       loading.value = false
     }
@@ -154,12 +173,13 @@ export function useDental3DImplantPlanning(patientId: () => string) {
           source_method: 'explicit_dentist_entry',
           source_identifier: input.source_identifier,
           source_document_ids: []
-        }
+        },
+        { silent: true }
       )
       await load()
       return true
-    } catch {
-      error.value = 'The prosthetic target could not be saved.'
+    } catch (e: unknown) {
+      error.value = errorMessage(e, TARGET_SAVE_FAILED)
       return false
     } finally {
       mutating.value = false
@@ -174,12 +194,13 @@ export function useDental3DImplantPlanning(patientId: () => string) {
     try {
       await api.post<ApiResponse<ProstheticTargetPayload>>(
         `${baseUrl()}/prosthetic-targets/${targetId}/review`,
-        { decision, note: note ?? null }
+        { decision, note: note ?? null },
+        { silent: true }
       )
       await load()
       return true
-    } catch {
-      error.value = 'The prosthetic target review could not be recorded.'
+    } catch (e: unknown) {
+      error.value = errorMessage(e, TARGET_REVIEW_FAILED)
       return false
     } finally {
       mutating.value = false
@@ -192,12 +213,13 @@ export function useDental3DImplantPlanning(patientId: () => string) {
     try {
       await api.post<ApiResponse<ImplantPlanPayload>>(
         `${baseUrl()}/implant-plans`,
-        { candidate }
+        { candidate },
+        { silent: true }
       )
       await load()
       return true
-    } catch {
-      error.value = 'The implant draft could not be saved.'
+    } catch (e: unknown) {
+      error.value = errorMessage(e, PLAN_SAVE_FAILED)
       return false
     } finally {
       mutating.value = false
@@ -210,12 +232,13 @@ export function useDental3DImplantPlanning(patientId: () => string) {
     try {
       await api.put<ApiResponse<ImplantPlanPayload>>(
         `${baseUrl()}/implant-plans/${planId}`,
-        { candidate }
+        { candidate },
+        { silent: true }
       )
       await load()
       return true
-    } catch {
-      error.value = 'The implant revision could not be saved.'
+    } catch (e: unknown) {
+      error.value = errorMessage(e, PLAN_EDIT_FAILED)
       return false
     } finally {
       mutating.value = false
@@ -232,14 +255,16 @@ export function useDental3DImplantPlanning(patientId: () => string) {
     try {
       await api.post<ApiResponse<ImplantPlanPayload>>(
         `${baseUrl()}/implant-plans/${planId}/review`,
-        { decision, note: note ?? null }
+        { decision, note: note ?? null },
+        { silent: true }
       )
       await load()
       return true
-    } catch {
-      error.value = decision === 'accepted'
-        ? 'The plan cannot be accepted until its prosthetic target is current and accepted.'
-        : 'The implant plan review could not be recorded.'
+    } catch (e: unknown) {
+      error.value = errorMessage(
+        e,
+        decision === 'accepted' ? PLAN_ACCEPT_BLOCKED : PLAN_REVIEW_FAILED
+      )
       return false
     } finally {
       mutating.value = false

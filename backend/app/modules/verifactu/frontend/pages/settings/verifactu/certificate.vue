@@ -30,8 +30,17 @@ const error = ref<string | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 async function refresh() {
-  active.value = await getActiveCertificate()
-  history.value = await getCertificateHistory()
+  error.value = null
+  try {
+    ;[active.value, history.value] = await Promise.all([
+      getActiveCertificate({ silent: true }),
+      getCertificateHistory({ silent: true })
+    ])
+  } catch (e: unknown) {
+    // Inline (the upload card renders `error`): a denied certificate read
+    // is a Verifactu fact, not a reason to flag the whole session.
+    error.value = errorMessage(e, t('verifactu.errors.loadFailed'))
+  }
 }
 
 function triggerFileInput() {

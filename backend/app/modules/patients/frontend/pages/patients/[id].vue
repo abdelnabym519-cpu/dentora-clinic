@@ -48,14 +48,22 @@ const { data: patient, status, refresh } = await useAsyncData(
         api.get<ApiResponse<PatientExtended>>(
           `/api/v1/patients/${patientId}/extended`
         ),
+        // Optional patients_clinical enrichment. Each call degrades on its
+        // own (``.catch``) and is ``silent`` at the transport layer: a role
+        // without the clinical grants still opens the patient, and the
+        // denial must not be reported as a patients-module failure — nor
+        // as a global "Access denied" over an otherwise working page.
         api.get<ApiResponse<PatientExtended['emergency_contact']>>(
-          `/api/v1/patients_clinical/patients/${patientId}/emergency-contact`
+          `/api/v1/patients_clinical/patients/${patientId}/emergency-contact`,
+          { silent: true }
         ).catch(() => ({ data: null })),
         api.get<ApiResponse<PatientExtended['legal_guardian']>>(
-          `/api/v1/patients_clinical/patients/${patientId}/legal-guardian`
+          `/api/v1/patients_clinical/patients/${patientId}/legal-guardian`,
+          { silent: true }
         ).catch(() => ({ data: null })),
         api.get<ApiResponse<{ alerts: PatientExtended['active_alerts'] }>>(
-          `/api/v1/patients_clinical/patients/${patientId}/alerts`
+          `/api/v1/patients_clinical/patients/${patientId}/alerts`,
+          { silent: true }
         ).catch(() => ({ data: { alerts: [] } }))
       ])
 

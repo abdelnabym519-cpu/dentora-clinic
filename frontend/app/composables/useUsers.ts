@@ -30,13 +30,25 @@ export function useUsers() {
     { value: 'receptionist', label: 'receptionist' }
   ]
 
-  async function fetchUsers(): Promise<void> {
+  /**
+   * Load the clinic's users.
+   *
+   * ``silent`` is for consumers that embed the picker as *optional*
+   * enrichment (e.g. the copilot digest recipients): a role without
+   * ``admin.users.read`` then degrades to an empty list instead of
+   * raising a global "Access denied" over an unrelated screen. The
+   * people-management screen keeps the shared reporting.
+   */
+  async function fetchUsers(options: { silent?: boolean } = {}): Promise<void> {
     isLoading.value = true
     error.value = null
 
     try {
       // The backend returns users with their clinic membership info in paginated format
-      const response = await api.get<PaginatedResponse<ClinicUser>>('/api/v1/auth/users')
+      const response = await api.get<PaginatedResponse<ClinicUser>>(
+        '/api/v1/auth/users',
+        { silent: options.silent }
+      )
       users.value = response.data
     } catch (e) {
       error.value = t('settings.errors.loadUsers')

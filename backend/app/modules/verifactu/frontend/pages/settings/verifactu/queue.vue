@@ -29,6 +29,12 @@ async function refresh() {
   loading.value = true
   try {
     items.value = await listQueue(tab.value)
+  } catch (e: unknown) {
+    items.value = []
+    toast?.add({
+      title: errorMessage(e, t('verifactu.errors.loadFailed')),
+      color: 'error'
+    })
   } finally {
     loading.value = false
   }
@@ -37,7 +43,9 @@ async function refresh() {
 async function retry(item: VerifactuQueueItem) {
   retryingId.value = item.id
   try {
-    await retryRecord(item.id)
+    // Silent at the transport layer: this handler reports the action's
+    // own outcome (success or the real reason) exactly once.
+    await retryRecord(item.id, { silent: true })
     toast?.add({
       title: t('verifactu.queue.regeneratedToast'),
       color: 'success'
@@ -45,7 +53,7 @@ async function retry(item: VerifactuQueueItem) {
     await refresh()
   } catch (e: unknown) {
     toast?.add({
-      title: errorMessage(e, 'Error'),
+      title: errorMessage(e, t('verifactu.errors.actionFailed')),
       color: 'error'
     })
   } finally {
@@ -57,7 +65,7 @@ async function retryAll() {
   if (!confirm(t('verifactu.queue.retryAllConfirm'))) return
   retryingAll.value = true
   try {
-    const r = await retryAllRejected()
+    const r = await retryAllRejected({ silent: true })
     toast?.add({
       title: t('verifactu.queue.retryAllResult', {
         n: r.regenerated,
@@ -66,6 +74,13 @@ async function retryAll() {
       color: r.failed.length === 0 ? 'success' : 'warning'
     })
     await refresh()
+  } catch (e: unknown) {
+    // Was a bare try/finally: a rejected "retry all" left the button
+    // spinning down with no result and no reason.
+    toast?.add({
+      title: errorMessage(e, t('verifactu.errors.actionFailed')),
+      color: 'error'
+    })
   } finally {
     retryingAll.value = false
   }
@@ -73,16 +88,30 @@ async function retryAll() {
 
 async function openHistory(item: VerifactuQueueItem) {
   historyTitle.value = item.serie_numero
-  historyAttempts.value = await listRecordAttempts(item.id)
+  try {
+    historyAttempts.value = await listRecordAttempts(item.id)
+  } catch (e: unknown) {
+    historyAttempts.value = []
+    toast?.add({
+      title: errorMessage(e, t('verifactu.errors.loadFailed')),
+      color: 'error'
+    })
+    return
+  }
   historyOpen.value = true
 }
 
 async function process() {
   processing.value = true
   try {
-    const r = await processNow()
+    const r = await processNow({ silent: true })
     toast?.add({ title: t('verifactu.queue.processed', { n: r.processed }), color: 'success' })
     await refresh()
+  } catch (e: unknown) {
+    toast?.add({
+      title: errorMessage(e, t('verifactu.errors.actionFailed')),
+      color: 'error'
+    })
   } finally {
     processing.value = false
   }

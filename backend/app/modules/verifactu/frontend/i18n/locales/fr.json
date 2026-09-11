@@ -86,7 +86,9 @@
       "label": "Environnement"
     },
     "errors": {
-      "cannotPromoteToProd": "Votre rôle ne permet pas de passer Verifactu en production. Demandez à un administrateur d'effectuer ce changement."
+      "cannotPromoteToProd": "Votre rôle ne permet pas de passer Verifactu en production. Demandez à un administrateur d'effectuer ce changement.",
+      "loadFailed": "Les données Verifactu n'ont pas pu être chargées.",
+      "actionFailed": "L'action Verifactu n'a pas pu être effectuée."
     },
     "status": {
       "enabled": "Activé",

@@ -150,114 +150,155 @@ export interface VerifactuHealth {
   rejected_count: number
 }
 
+/**
+ * Per-call transport options forwarded to the shared `useApi` wrapper.
+ *
+ * `silent` keeps a failure inside the calling component — which renders
+ * its own operation-specific error — instead of raising a global toast.
+ * `operation` names the action in that toast when it is not suppressed.
+ *
+ * Ambient Verifactu probes (the global compliance banner, the invoice
+ * panel's background record lookup, the advisory NIF check) MUST be
+ * silent: they run on screens owned by other modules, so their failure
+ * has to stay a Verifactu fact and never read as "this page is
+ * forbidden". Explicit Verifactu actions keep the shared reporting.
+ */
+export interface VerifactuRequestOptions {
+  silent?: boolean
+  operation?: string
+}
+
 export const useVerifactu = () => {
   const api = useApi()
 
+  /** Normalize the caller's transport options for `useApi`. */
+  const req = (o: VerifactuRequestOptions = {}) => ({
+    silent: o.silent,
+    operation: o.operation
+  })
+
   return {
-    async getSettings() {
-      const r = await api.get<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/settings')
+    async getSettings(o: VerifactuRequestOptions = {}) {
+      const r = await api.get<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/settings', req(o))
       return r.data
     },
-    async updateSettings(body: Partial<Pick<VerifactuSettings, 'enabled' | 'environment'>>) {
-      const r = await api.put<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/settings', body)
+    async updateSettings(body: Partial<Pick<VerifactuSettings, 'enabled' | 'environment'>>, o: VerifactuRequestOptions = {}) {
+      const r = await api.put<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/settings', body, req(o))
       return r.data
     },
-    async getProducerDefaults() {
-      const r = await api.get<ApiResponse<ProducerDefaults>>('/api/v1/verifactu/producer/defaults')
+    async getProducerDefaults(o: VerifactuRequestOptions = {}) {
+      const r = await api.get<ApiResponse<ProducerDefaults>>('/api/v1/verifactu/producer/defaults', req(o))
       return r.data
     },
-    async updateProducer(body: ProducerInfoUpdate) {
-      const r = await api.put<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/producer', body)
+    async updateProducer(body: ProducerInfoUpdate, o: VerifactuRequestOptions = {}) {
+      const r = await api.put<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/producer', body, req(o))
       return r.data
     },
-    async revokeDeclaration() {
-      const r = await api.del<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/producer/declaracion')
+    async revokeDeclaration(o: VerifactuRequestOptions = {}) {
+      const r = await api.del<ApiResponse<VerifactuSettings>>('/api/v1/verifactu/producer/declaracion', req(o))
       return r.data
     },
-    async getActiveCertificate() {
-      const r = await api.get<ApiResponse<VerifactuCertificate | null>>('/api/v1/verifactu/certificate')
+    async getActiveCertificate(o: VerifactuRequestOptions = {}) {
+      const r = await api.get<ApiResponse<VerifactuCertificate | null>>('/api/v1/verifactu/certificate', req(o))
       return r.data
     },
-    async getCertificateHistory() {
-      const r = await api.get<ApiResponse<VerifactuCertificate[]>>('/api/v1/verifactu/certificate/history')
+    async getCertificateHistory(o: VerifactuRequestOptions = {}) {
+      const r = await api.get<ApiResponse<VerifactuCertificate[]>>('/api/v1/verifactu/certificate/history', req(o))
       return r.data
     },
-    async uploadCertificate(file: File, password: string) {
+    async uploadCertificate(file: File, password: string, o: VerifactuRequestOptions = {}) {
       const fd = new FormData()
       fd.append('file', file)
       fd.append('password', password)
-      const r = await api.post<ApiResponse<VerifactuCertificate>>('/api/v1/verifactu/certificate', fd)
+      const r = await api.post<ApiResponse<VerifactuCertificate>>('/api/v1/verifactu/certificate', fd, req(o))
       return r.data
     },
-    async listRecords(params: { page?: number, page_size?: number, state?: string, tipo_factura?: string, invoice_id?: string } = {}) {
+    async listRecords(params: { page?: number, page_size?: number, state?: string, tipo_factura?: string, invoice_id?: string } = {}, o: VerifactuRequestOptions = {}) {
       const qs = new URLSearchParams()
       for (const [k, v] of Object.entries(params)) {
         if (v !== undefined && v !== null) qs.set(k, String(v))
       }
       const url = `/api/v1/verifactu/records${qs.toString() ? `?${qs.toString()}` : ''}`
-      const r = await api.get<PaginatedResponse<VerifactuRecord>>(url)
+      const r = await api.get<PaginatedResponse<VerifactuRecord>>(url, req(o))
       return r
     },
-    async getLatestRecordForInvoice(invoiceId: string) {
+    async getLatestRecordForInvoice(invoiceId: string, o: VerifactuRequestOptions = {}) {
       const r = await api.get<PaginatedResponse<VerifactuRecord>>(
-        `/api/v1/verifactu/records?invoice_id=${invoiceId}&page_size=1`
+        `/api/v1/verifactu/records?invoice_id=${invoiceId}&page_size=1`,
+        req(o)
       )
       return r.data?.[0] ?? null
     },
-    async getRecord(id: string) {
-      const r = await api.get<ApiResponse<VerifactuRecordDetail>>(`/api/v1/verifactu/records/${id}`)
+    async getRecord(id: string, o: VerifactuRequestOptions = {}) {
+      const r = await api.get<ApiResponse<VerifactuRecordDetail>>(`/api/v1/verifactu/records/${id}`, req(o))
       return r.data
     },
-    async listQueue(state?: string) {
-      const r = await api.get<ApiResponse<VerifactuQueueItem[]>>('/api/v1/verifactu/queue', { query: state ? { state } : undefined })
+    async listQueue(state?: string, o: VerifactuRequestOptions = {}) {
+      const r = await api.get<ApiResponse<VerifactuQueueItem[]>>(
+        '/api/v1/verifactu/queue',
+        { ...req(o), query: state ? { state } : undefined }
+      )
       return r.data
     },
-    async retryRecord(id: string, opts: { regenerate?: boolean } = {}) {
+    async retryRecord(id: string, opts: { regenerate?: boolean } & VerifactuRequestOptions = {}) {
       const qs = opts.regenerate === false ? '?regenerate=false' : ''
       const r = await api.post<ApiResponse<VerifactuRecord>>(
-        `/api/v1/verifactu/queue/${id}/retry${qs}`
+        `/api/v1/verifactu/queue/${id}/retry${qs}`,
+        null,
+        req(opts)
       )
       return r.data
     },
-    async retryAllRejected() {
+    async retryAllRejected(o: VerifactuRequestOptions = {}) {
       const r = await api.post<ApiResponse<RetryAllResult>>(
-        '/api/v1/verifactu/queue/retry-all'
+        '/api/v1/verifactu/queue/retry-all',
+        null,
+        req(o)
       )
       return r.data
     },
-    async listRecordAttempts(id: string) {
+    async listRecordAttempts(id: string, o: VerifactuRequestOptions = {}) {
       const r = await api.get<ApiResponse<VerifactuRecordAttempt[]>>(
-        `/api/v1/verifactu/records/${id}/attempts`
+        `/api/v1/verifactu/records/${id}/attempts`,
+        req(o)
       )
       return r.data
     },
-    async checkNif(value: string) {
+    async checkNif(value: string, o: VerifactuRequestOptions = {}) {
       const r = await api.get<ApiResponse<NifCheckResult>>(
-        `/api/v1/verifactu/nif-check?value=${encodeURIComponent(value)}`
+        `/api/v1/verifactu/nif-check?value=${encodeURIComponent(value)}`,
+        req(o)
       )
       return r.data
     },
-    async processNow() {
-      const r = await api.post<ApiResponse<{ processed: number }>>('/api/v1/verifactu/queue/process-now')
+    async processNow(o: VerifactuRequestOptions = {}) {
+      const r = await api.post<ApiResponse<{ processed: number }>>(
+        '/api/v1/verifactu/queue/process-now',
+        null,
+        req(o)
+      )
       return r.data
     },
-    async health() {
-      const r = await api.get<ApiResponse<VerifactuHealth>>('/api/v1/verifactu/health')
+    async health(o: VerifactuRequestOptions = {}) {
+      const r = await api.get<ApiResponse<VerifactuHealth>>('/api/v1/verifactu/health', req(o))
       return r.data
     },
-    async listVatMapping() {
+    async listVatMapping(o: VerifactuRequestOptions = {}) {
       const r = await api.get<ApiResponse<{ items: VatClassificationItem[] }>>(
-        '/api/v1/verifactu/vat-mapping'
+        '/api/v1/verifactu/vat-mapping',
+        req(o)
       )
       return r.data.items
     },
     async upsertVatMapping(
       vat_type_id: string,
-      body: { classification: string | null, exemption_cause?: string | null, notes?: string | null }
+      body: { classification: string | null, exemption_cause?: string | null, notes?: string | null },
+      o: VerifactuRequestOptions = {}
     ) {
       const r = await api.put<ApiResponse<VatClassificationItem>>(
         `/api/v1/verifactu/vat-mapping/${vat_type_id}`,
-        body
+        body,
+        req(o)
       )
       return r.data
     }

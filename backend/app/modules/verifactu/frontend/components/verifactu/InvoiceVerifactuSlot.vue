@@ -51,7 +51,10 @@ const liveRecord = ref<{
 async function fetchLiveRecord() {
   if (!invoice.value?.id) return
   try {
-    const r = await getLatestRecordForInvoice(invoice.value.id)
+    // Ambient probe on a *billing* screen: the panel degrades to the
+    // compliance_data already embedded in the invoice, so a Verifactu
+    // denial/unavailability must never be reported as an invoice error.
+    const r = await getLatestRecordForInvoice(invoice.value.id, { silent: true })
     if (r) {
       liveRecord.value = {
         state: r.state,
@@ -109,7 +112,9 @@ async function onNifBlur() {
     return
   }
   try {
-    const r = await checkNif(editTaxId.value)
+    // Advisory validation only (and a settings-scope endpoint): losing it
+    // must not block saving the billing party, nor raise a global toast.
+    const r = await checkNif(editTaxId.value, { silent: true })
     nifWarning.value = r.warning
   } catch {
     nifWarning.value = null
@@ -146,7 +151,8 @@ async function regenerate() {
   if (!recordId) return
   regenerating.value = true
   try {
-    await retryRecord(recordId)
+    // The catch below reports this action's own failure with its reason.
+    await retryRecord(recordId, { silent: true })
     toast?.add({ title: t('verifactu.queue.regeneratedToast'), color: 'success' })
     if (invoice.value?.id) await fetchInvoice(invoice.value.id)
     await fetchLiveRecord()

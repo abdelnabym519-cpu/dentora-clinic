@@ -86,7 +86,9 @@
       "label": "البيئة"
     },
     "errors": {
-      "cannotPromoteToProd": "صلاحيات دورك لا تسمح بنقل Verifactu إلى الإنتاج. اطلب من مسؤول إجراء هذا التغيير."
+      "cannotPromoteToProd": "صلاحيات دورك لا تسمح بنقل Verifactu إلى الإنتاج. اطلب من مسؤول إجراء هذا التغيير.",
+      "loadFailed": "تعذّر تحميل بيانات Verifactu.",
+      "actionFailed": "تعذّر إكمال إجراء Verifactu."
     },
     "status": {
       "enabled": "مفعّل",

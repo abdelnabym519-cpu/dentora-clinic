@@ -232,7 +232,7 @@ function computeInstallPreview(name: string): string[] {
       v-if="!canRead"
       class="rounded-md border border-default p-6 text-sm text-muted"
     >
-      {{ t('common.forbidden', 'Acceso denegado') }}
+      {{ t('settings.modules.forbidden') }}
     </div>
 
     <template v-else>

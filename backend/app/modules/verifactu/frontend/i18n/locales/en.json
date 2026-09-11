@@ -86,7 +86,9 @@
       "label": "Environment"
     },
     "errors": {
-      "cannotPromoteToProd": "Your role cannot promote Verifactu to production. Ask an administrator to perform this change."
+      "cannotPromoteToProd": "Your role cannot promote Verifactu to production. Ask an administrator to perform this change.",
+      "loadFailed": "Verifactu data could not be loaded.",
+      "actionFailed": "The Verifactu action could not be completed."
     },
     "status": {
       "enabled": "Enabled",

@@ -36,8 +36,12 @@ const form = ref<ProducerInfoUpdate>({
 
 async function refresh() {
   loading.value = true
+  error.value = null
   try {
-    const [s, d] = await Promise.all([getSettings(), getProducerDefaults()])
+    const [s, d] = await Promise.all([
+      getSettings({ silent: true }),
+      getProducerDefaults({ silent: true })
+    ])
     settings.value = s
     defaults.value = d
     form.value = {
@@ -47,6 +51,10 @@ async function refresh() {
       producer_version: s.producer_version ?? d.version,
       sign_declaracion: false
     }
+  } catch (e: unknown) {
+    // Reported inline (the page renders `error`) — never as a global
+    // toast that would look like the whole app rejected the user.
+    error.value = errorMessage(e, t('verifactu.errors.loadFailed'))
   } finally {
     loading.value = false
   }

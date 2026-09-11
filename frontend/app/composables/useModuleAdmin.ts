@@ -31,14 +31,20 @@ export function useModuleAdmin() {
     loading.value = true
     error.value = null
     try {
+      // The module list is the page; status and doctor are diagnostics
+      // rendered alongside it. A failure in one extra read must not blank
+      // the whole screen (and must not be reported as if the list itself
+      // had failed), so the two auxiliary reads degrade on their own.
       const [listResp, statusResp, doctorResp] = await Promise.all([
         api.get<ApiResponse<ModuleInfo[]>>(MODULES_BASE),
-        api.get<ApiResponse<ModuleStatus>>(`${MODULES_BASE}/-/status`),
-        api.get<ApiResponse<ModuleDoctorReport>>(`${MODULES_BASE}/-/doctor`)
+        api.get<ApiResponse<ModuleStatus>>(`${MODULES_BASE}/-/status`, { silent: true })
+          .catch(() => null),
+        api.get<ApiResponse<ModuleDoctorReport>>(`${MODULES_BASE}/-/doctor`, { silent: true })
+          .catch(() => null)
       ])
       modules.value = listResp.data
-      status.value = statusResp.data
-      doctor.value = doctorResp.data
+      status.value = statusResp?.data ?? null
+      doctor.value = doctorResp?.data ?? null
     } catch (err: unknown) {
       error.value = extractMessage(err)
       throw err

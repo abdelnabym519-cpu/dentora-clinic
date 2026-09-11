@@ -19,10 +19,24 @@
  * pattern as the Phase 3 segmentation composable.
  */
 import type { ApiResponse } from '~~/app/types'
+import { errorMessage, errorStatus } from '~~/app/utils/error'
 import type { DentalToothView } from '../lib/dentalArch'
 import type { DentalMeshPayload, SceneMeshRef } from '../lib/sceneMeshes'
 import type { NerveAnalysisPayload } from '../lib/nerveView'
 import type { AlignmentPayload } from '../lib/clinicalScene'
+
+/**
+ * Fallbacks used only when the backend gave no explanation at all. When
+ * it did (409 readiness gate, 503 provider unavailable, 403 permission),
+ * `errorMessage` surfaces that text instead — a blocked clinical action
+ * must state its actual prerequisite.
+ */
+const SEGMENTATION_UNAVAILABLE = 'Segmentation is unavailable for this patient.'
+const SEGMENTATION_RUN_FAILED = 'Segmentation could not be run.'
+const SEGMENTATION_REVIEW_FAILED = 'The segmentation review could not be recorded.'
+const NERVE_UNAVAILABLE = 'Nerve detection is unavailable for this patient.'
+const NERVE_RUN_FAILED = 'Nerve detection could not be run.'
+const NERVE_REVIEW_FAILED = 'The nerve-detection review could not be recorded.'
 
 export interface DentalSceneSegmentation {
   status: 'not_available' | 'synthetic' | 'completed'
@@ -76,8 +90,12 @@ export function useDental3DScene(patientId: () => string) {
     () => `dental3d:scene:${patientId()}`,
     async (): Promise<DentalScenePayload | null> => {
       try {
+        // Ambient card load on the patient summary: the card owns the
+        // degraded state, so the failure must not also raise a global
+        // toast that reads as "this patient page is forbidden".
         const response = await api.get<ApiResponse<DentalScenePayload>>(
-          `/api/v1/dental_3d/patients/${patientId()}/scene`
+          `/api/v1/dental_3d/patients/${patientId()}/scene`,
+          { silent: true }
         )
         return response.data
       } catch {
@@ -182,7 +200,8 @@ export function useDental3DAlignment(patientId: () => string) {
 
   async function load(): Promise<void> {
     try {
-      const response = await api.get<ApiResponse<AlignmentPayload>>(alignmentUrl())
+      // Ambient load (mounted with the summary card) — see useDental3DScene.
+      const response = await api.get<ApiResponse<AlignmentPayload>>(alignmentUrl(), { silent: true })
       alignment.value = response.data
     } catch {
       alignment.value = null
@@ -256,6 +275,13 @@ export function useDental3DSegmentation(patientId: () => string) {
   const running = ref(false)
   const runFailed = ref(false)
   const reviewing = ref(false)
+  /**
+   * The real reason the last action/load failed — the backend's own
+   * explanation when it gave one (missing CBCT, provider unavailable,
+   * review state conflict, permission). Rendered by the card instead of
+   * a generic "run failed", so a blocked action says what is missing.
+   */
+  const error = ref<string | null>(null)
 
   function segmentUrl(): string {
     return `/api/v1/dental_3d/patients/${patientId()}/segmentation`
@@ -264,10 +290,17 @@ export function useDental3DSegmentation(patientId: () => string) {
   /** Load the latest analysis (404 = never run → no analysis). */
   async function load(): Promise<void> {
     try {
-      const response = await api.get<ApiResponse<SegmentationAnalysisPayload>>(segmentUrl())
+      // Ambient load (mounted with the summary card) — never a global toast.
+      const response = await api.get<ApiResponse<SegmentationAnalysisPayload>>(
+        segmentUrl(),
+        { silent: true }
+      )
       analysis.value = response.data
-    } catch {
+      error.value = null
+    } catch (e: unknown) {
       analysis.value = null
+      // 404 = "never run": a normal empty state, not a failure.
+      error.value = errorStatus(e) === 404 ? null : errorMessage(e, SEGMENTATION_UNAVAILABLE)
     }
   }
 
@@ -275,13 +308,19 @@ export function useDental3DSegmentation(patientId: () => string) {
   async function run(): Promise<boolean> {
     running.value = true
     runFailed.value = false
+    error.value = null
     try {
-      const response = await api.post<ApiResponse<SegmentationAnalysisPayload>>(segmentUrl())
+      const response = await api.post<ApiResponse<SegmentationAnalysisPayload>>(
+        segmentUrl(),
+        null,
+        { silent: true }
+      )
       analysis.value = response.data
       return true
-    } catch (error) {
-      console.error('Error running segmentation:', error)
+    } catch (e: unknown) {
+      console.error('Error running segmentation:', e)
       runFailed.value = true
+      error.value = errorMessage(e, SEGMENTATION_RUN_FAILED)
       return false
     } finally {
       running.value = false
@@ -292,22 +331,25 @@ export function useDental3DSegmentation(patientId: () => string) {
   async function review(decision: 'accepted' | 'rejected', note?: string): Promise<boolean> {
     if (!analysis.value) return false
     reviewing.value = true
+    error.value = null
     try {
       const response = await api.post<ApiResponse<SegmentationAnalysisPayload>>(
         `${segmentUrl()}/${analysis.value.id}/review`,
-        { decision, note: note ?? null }
+        { decision, note: note ?? null },
+        { silent: true }
       )
       analysis.value = response.data
       return true
-    } catch (error) {
-      console.error('Error reviewing segmentation:', error)
+    } catch (e: unknown) {
+      console.error('Error reviewing segmentation:', e)
+      error.value = errorMessage(e, SEGMENTATION_REVIEW_FAILED)
       return false
     } finally {
       reviewing.value = false
     }
   }
 
-  return { analysis, running, runFailed, reviewing, load, run, review }
+  return { analysis, running, runFailed, reviewing, error, load, run, review }
 }
 
 /**
@@ -323,6 +365,8 @@ export function useDental3DNerveDetection(patientId: () => string) {
   const running = ref(false)
   const runFailed = ref(false)
   const reviewing = ref(false)
+  /** Real reason for the last failure — see useDental3DSegmentation. */
+  const error = ref<string | null>(null)
 
   function nerveUrl(): string {
     return `/api/v1/dental_3d/patients/${patientId()}/nerve-detection`
@@ -331,10 +375,16 @@ export function useDental3DNerveDetection(patientId: () => string) {
   /** Load the latest analysis (404 = never run → no analysis). */
   async function load(): Promise<void> {
     try {
-      const response = await api.get<ApiResponse<NerveAnalysisPayload>>(nerveUrl())
+      // Ambient load (mounted with the summary card) — never a global toast.
+      const response = await api.get<ApiResponse<NerveAnalysisPayload>>(
+        nerveUrl(),
+        { silent: true }
+      )
       analysis.value = response.data
-    } catch {
+      error.value = null
+    } catch (e: unknown) {
       analysis.value = null
+      error.value = errorStatus(e) === 404 ? null : errorMessage(e, NERVE_UNAVAILABLE)
     }
   }
 
@@ -342,13 +392,19 @@ export function useDental3DNerveDetection(patientId: () => string) {
   async function run(): Promise<boolean> {
     running.value = true
     runFailed.value = false
+    error.value = null
     try {
-      const response = await api.post<ApiResponse<NerveAnalysisPayload>>(nerveUrl())
+      const response = await api.post<ApiResponse<NerveAnalysisPayload>>(
+        nerveUrl(),
+        null,
+        { silent: true }
+      )
       analysis.value = response.data
       return true
-    } catch (error) {
-      console.error('Error running nerve detection:', error)
+    } catch (e: unknown) {
+      console.error('Error running nerve detection:', e)
       runFailed.value = true
+      error.value = errorMessage(e, NERVE_RUN_FAILED)
       return false
     } finally {
       running.value = false
@@ -359,20 +415,23 @@ export function useDental3DNerveDetection(patientId: () => string) {
   async function review(decision: 'accepted' | 'rejected', note?: string): Promise<boolean> {
     if (!analysis.value) return false
     reviewing.value = true
+    error.value = null
     try {
       const response = await api.post<ApiResponse<NerveAnalysisPayload>>(
         `${nerveUrl()}/${analysis.value.id}/review`,
-        { decision, note: note ?? null }
+        { decision, note: note ?? null },
+        { silent: true }
       )
       analysis.value = response.data
       return true
-    } catch (error) {
-      console.error('Error reviewing nerve detection:', error)
+    } catch (e: unknown) {
+      console.error('Error reviewing nerve detection:', e)
+      error.value = errorMessage(e, NERVE_REVIEW_FAILED)
       return false
     } finally {
       reviewing.value = false
     }
   }
 
-  return { analysis, running, runFailed, reviewing, load, run, review }
+  return { analysis, running, runFailed, reviewing, error, load, run, review }
 }

@@ -25,9 +25,17 @@ const canPromoteToProd = computed(() => can(PERMISSIONS.verifactu.environmentPro
 
 async function refresh() {
   loading.value = true
+  errorMessage.value = null
   try {
-    summary.value = await health()
-    settings.value = await getSettings()
+    // Page-scoped load: this page owns the Verifactu context, so the
+    // failure is reported inline (below) instead of through the shared
+    // global toast — one accurate message, in the place the user acted.
+    summary.value = await health({ silent: true })
+    settings.value = await getSettings({ silent: true })
+  } catch (e: unknown) {
+    summary.value = null
+    settings.value = null
+    errorMessage.value = resolveErrorMessage(e, t('verifactu.errors.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -122,10 +130,13 @@ async function toggleEnabled() {
   saving.value = true
   errorMessage.value = null
   try {
-    settings.value = await updateSettings({ enabled: !settings.value.enabled })
-    summary.value = await health()
+    settings.value = await updateSettings(
+      { enabled: !settings.value.enabled },
+      { silent: true }
+    )
+    summary.value = await health({ silent: true })
   } catch (e: unknown) {
-    errorMessage.value = resolveErrorMessage(e, 'Error')
+    errorMessage.value = resolveErrorMessage(e, t('verifactu.errors.actionFailed'))
   } finally {
     saving.value = false
   }
@@ -142,8 +153,13 @@ async function switchEnvironment(target: 'test' | 'prod') {
     return
   }
   switchingEnv.value = true
+  errorMessage.value = null
   try {
-    settings.value = await updateSettings({ environment: target })
+    settings.value = await updateSettings({ environment: target }, { silent: true })
+  } catch (e: unknown) {
+    // Was a bare try/finally: a denied or rejected switch left the hero
+    // showing the old environment with no explanation at all.
+    errorMessage.value = resolveErrorMessage(e, t('verifactu.errors.actionFailed'))
   } finally {
     switchingEnv.value = false
   }
@@ -151,9 +167,14 @@ async function switchEnvironment(target: 'test' | 'prod') {
 
 async function confirmProd() {
   switchingEnv.value = true
+  errorMessage.value = null
   try {
-    settings.value = await updateSettings({ environment: 'prod' })
+    settings.value = await updateSettings({ environment: 'prod' }, { silent: true })
     showProdConfirm.value = false
+  } catch (e: unknown) {
+    // Keep the confirmation modal open so the user can retry: the
+    // promotion did not happen and the reason is shown behind it.
+    errorMessage.value = resolveErrorMessage(e, t('verifactu.errors.actionFailed'))
   } finally {
     switchingEnv.value = false
   }

@@ -1175,7 +1175,8 @@
       "toasts": {
         "scheduled": "Opération programmée. Appliquez les modifications pour finaliser.",
         "applied": "Modifications appliquées avec succès."
-      }
+      },
+      "forbidden": "La gestion des modules requiert l'accès administration de la clinique (admin.clinic.read). Demandez à un administrateur si vous devez installer ou configurer des modules."
     }
   },
   "selector": {
@@ -1227,6 +1228,7 @@
     "refresh": "Actualiser",
     "hide": "Masquer",
     "forbidden": "Accès refusé",
+    "forbiddenPermission": "Nécessite l'autorisation {permission}",
     "confirm": "Confirmer",
     "yes": "Oui",
     "no": "Non",

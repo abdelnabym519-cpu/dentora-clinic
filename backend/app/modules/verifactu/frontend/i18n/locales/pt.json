@@ -86,7 +86,9 @@
       "label": "Ambiente"
     },
     "errors": {
-      "cannotPromoteToProd": "O seu perfil não pode promover o Verifactu a produção. Peça a um administrador que faça esta alteração."
+      "cannotPromoteToProd": "O seu perfil não pode promover o Verifactu a produção. Peça a um administrador que faça esta alteração.",
+      "loadFailed": "Não foi possível carregar os dados do Verifactu.",
+      "actionFailed": "A ação do Verifactu não pôde ser concluída."
     },
     "status": {
       "enabled": "Ativado",

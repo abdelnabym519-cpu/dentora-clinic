@@ -19,6 +19,7 @@ const canManage = computed(() => can(PERMISSIONS.verifactu.settingsConfigure))
 const items = ref<VatClassificationItem[]>([])
 const loading = ref(true)
 const saving = ref<string | null>(null)
+const loadError = ref<string | null>(null)
 
 const CLASSIFICATIONS = [
   { value: 'S1', label: 'S1 — Sujeto, no exento (régimen general)' },
@@ -57,9 +58,16 @@ function rowFromItem(it: VatClassificationItem): Row {
 
 async function refresh() {
   loading.value = true
+  loadError.value = null
   try {
-    items.value = await listVatMapping()
+    items.value = await listVatMapping({ silent: true })
     rows.value = items.value.map(rowFromItem)
+  } catch (e: unknown) {
+    // Distinguish "the mapping could not be read" from "there is nothing
+    // to map" — the empty state below must never stand in for an error.
+    items.value = []
+    rows.value = []
+    loadError.value = errorMessage(e, t('verifactu.errors.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -139,19 +147,27 @@ onMounted(refresh)
       :description="t('verifactu.vatMapping.legalIntro')"
     />
 
+    <UAlert
+      v-if="loadError"
+      color="error"
+      variant="soft"
+      icon="i-lucide-alert-triangle"
+      :title="loadError"
+    />
+
     <USkeleton
       v-if="loading"
       class="h-64 w-full"
     />
 
     <div
-      v-else-if="rows.length === 0"
+      v-else-if="rows.length === 0 && !loadError"
       class="text-center text-sm text-gray-500 py-12"
     >
       {{ t('verifactu.vatMapping.empty') }}
     </div>
 
-    <UCard v-else>
+    <UCard v-else-if="!loadError">
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
         <div
           v-for="row in rows"

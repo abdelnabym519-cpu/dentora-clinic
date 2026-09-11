@@ -1,5 +1,16 @@
 import type { ApiResponse } from '~~/app/types'
+import { errorMessage, errorStatus } from '~~/app/utils/error'
 import type { PatientPointMm } from '../lib/clinicalScene'
+
+/**
+ * Fallbacks for when the backend supplied no explanation. When it did —
+ * a 409 readiness gate ("…reference frame is required"), a 503 provider
+ * outage, a 403 dentist-control denial — `errorMessage` surfaces that
+ * text instead, so a blocked action states its actual prerequisite.
+ */
+const RISK_UNAVAILABLE = 'Risk evaluation is unavailable for this patient.'
+const RISK_GENERATE_FAILED = 'Risk evaluation could not be generated.'
+const RISK_REVIEW_FAILED = 'Risk review could not be recorded.'
 
 export type RiskFactorState = 'present' | 'absent' | 'not_available' | 'invalid_or_stale'
 export type RiskDisplayBand = 'evidence_present' | 'evidence_absent' | 'data_gap' | 'invalid_source'
@@ -94,10 +105,19 @@ export function useRiskEngine(patientId: () => string) {
     loading.value = true
     error.value = null
     try {
-      const response = await api.get<ApiResponse<RiskResultPayload>>(`${baseUrl()}/latest`)
+      // Ambient load: the card mounts with the patient summary and owns
+      // its degraded state, so this must never raise a global toast that
+      // reads as "this patient page is forbidden".
+      const response = await api.get<ApiResponse<RiskResultPayload>>(
+        `${baseUrl()}/latest`,
+        { silent: true }
+      )
       result.value = response.data
-    } catch {
+    } catch (e: unknown) {
       result.value = null
+      // 404 = "never generated" — the card's normal empty state, not a
+      // failure. Anything else keeps the backend's own explanation.
+      error.value = errorStatus(e) === 404 ? null : errorMessage(e, RISK_UNAVAILABLE)
     } finally {
       loading.value = false
     }
@@ -107,11 +127,16 @@ export function useRiskEngine(patientId: () => string) {
     mutating.value = true
     error.value = null
     try {
-      const response = await api.post<ApiResponse<RiskResultPayload>>(baseUrl(), {})
+      const response = await api.post<ApiResponse<RiskResultPayload>>(
+        baseUrl(),
+        {},
+        { silent: true }
+      )
       result.value = response.data
       return true
-    } catch {
-      error.value = 'Risk evaluation could not be generated.'
+    } catch (e: unknown) {
+      // Rendered inline by the card (data-testid="risk-engine-error").
+      error.value = errorMessage(e, RISK_GENERATE_FAILED)
       return false
     } finally {
       mutating.value = false
@@ -125,12 +150,13 @@ export function useRiskEngine(patientId: () => string) {
     try {
       const response = await api.post<ApiResponse<RiskResultPayload>>(
         `/api/v1/risk_engine/results/${result.value.id}/review`,
-        { decision }
+        { decision },
+        { silent: true }
       )
       result.value = response.data
       return true
-    } catch {
-      error.value = 'Risk review could not be recorded.'
+    } catch (e: unknown) {
+      error.value = errorMessage(e, RISK_REVIEW_FAILED)
       return false
     } finally {
       mutating.value = false

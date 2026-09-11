@@ -1175,7 +1175,8 @@
       "toasts": {
         "scheduled": "Operation scheduled. Apply changes to complete.",
         "applied": "Changes applied successfully."
-      }
+      },
+      "forbidden": "Module management requires clinic administration access (admin.clinic.read). Ask an administrator if you need to install or configure modules."
     }
   },
   "selector": {
@@ -1227,6 +1228,7 @@
     "refresh": "Refresh",
     "hide": "Hide",
     "forbidden": "Access denied",
+    "forbiddenPermission": "Requires the permission {permission}",
     "confirm": "Confirm",
     "yes": "Yes",
     "no": "No",

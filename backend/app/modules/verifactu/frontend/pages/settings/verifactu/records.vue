@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { errorMessage } from '~~/app/utils/error'
+
 const { t } = useI18n()
 const { listRecords } = useVerifactu()
 
@@ -8,16 +10,23 @@ const stateFilter = ref<string | undefined>(undefined)
 const tipoFilter = ref<string | undefined>(undefined)
 const data = ref<Awaited<ReturnType<typeof listRecords>> | null>(null)
 const loading = ref(false)
+const loadError = ref<string | null>(null)
 
 async function refresh() {
   loading.value = true
+  loadError.value = null
   try {
     data.value = await listRecords({
       page: page.value,
       page_size: pageSize.value,
       state: stateFilter.value,
       tipo_factura: tipoFilter.value
-    })
+    }, { silent: true })
+  } catch (e: unknown) {
+    // A failed load must not render as "no fiscal records": say what
+    // happened, inline, on the page that owns the operation.
+    data.value = null
+    loadError.value = errorMessage(e, t('verifactu.errors.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -67,6 +76,14 @@ onMounted(refresh)
         class="min-w-[120px]"
       />
     </div>
+
+    <UAlert
+      v-if="loadError"
+      color="error"
+      variant="soft"
+      icon="i-lucide-alert-triangle"
+      :title="loadError"
+    />
 
     <div
       v-if="loading"
@@ -140,7 +157,7 @@ onMounted(refresh)
       </table>
     </div>
     <p
-      v-else
+      v-else-if="!loadError"
       class="text-sm text-gray-500"
     >
       —

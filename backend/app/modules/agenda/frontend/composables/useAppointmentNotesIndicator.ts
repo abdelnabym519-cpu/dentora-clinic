@@ -52,8 +52,12 @@ export function useAppointmentNotesIndicator() {
       const params = new URLSearchParams()
       params.set('owner_type', 'appointment')
       for (const id of unique) params.append('owner_ids', id)
+      // Decorative cross-module badge (clinical_notes) rendered on agenda
+      // cards: a role without notes.read simply sees no badge, and the
+      // denial must not be reported as an agenda failure.
       const response = await api.get<ApiResponse<Record<string, number>>>(
-        `/api/v1/clinical_notes/notes/counts?${params.toString()}`
+        `/api/v1/clinical_notes/notes/counts?${params.toString()}`,
+        { silent: true }
       )
       const next: Record<string, true> = {}
       for (const [id, count] of Object.entries(response.data || {})) {

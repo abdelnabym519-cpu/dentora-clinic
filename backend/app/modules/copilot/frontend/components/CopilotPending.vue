@@ -29,7 +29,9 @@ const loaded = ref(false)
 async function load() {
   isLoading.value = true
   try {
-    const res = await api.get<ApiResponse<PendingItem[]>>('/api/v1/copilot/pending')
+    // Supervision queue is optional inside the drawer — degrade to an
+    // empty list without a global toast.
+    const res = await api.get<ApiResponse<PendingItem[]>>('/api/v1/copilot/pending', { silent: true })
     items.value = res.data
   } catch {
     items.value = []

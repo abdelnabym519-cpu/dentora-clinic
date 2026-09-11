@@ -88,7 +88,9 @@
       "label": "Entorno"
     },
     "errors": {
-      "cannotPromoteToProd": "Tu rol no tiene permiso para pasar Verifactu a producción. Pide a un administrador que realice el cambio."
+      "cannotPromoteToProd": "Tu rol no tiene permiso para pasar Verifactu a producción. Pide a un administrador que realice el cambio.",
+      "loadFailed": "No se pudieron cargar los datos de Verifactu.",
+      "actionFailed": "La acción de Verifactu no se pudo completar."
     },
     "status": {
       "enabled": "Activo",

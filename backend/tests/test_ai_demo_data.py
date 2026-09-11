@@ -255,3 +255,66 @@ async def test_seeder_user_reconciliation_is_idempotent_and_preserves_valid_hash
         await db_session.execute(select(User).where(User.id == USER_DENTIST_ID))
     ).scalar_one()
     assert refreshed.password_hash == stable_hash, "valid hash must not be rewritten"
+
+
+# --- Case Intelligence lock-release regression -------------------------------
+
+@pytest.mark.asyncio
+async def test_case_intelligence_fast_path_releases_patient_lock(db_session) -> None:
+    """The unchanged-snapshot fast path must commit (release the patient
+    FOR UPDATE lock) before returning: AI generators continue using the
+    same session for unbounded LLM calls, and every concurrent Case
+    Intelligence GET takes the same patient lock. Regression for the
+    browser TimeoutError on GET /case_intelligence/patients/{id}."""
+    import importlib
+    import pathlib
+
+    from sqlalchemy import text
+
+    from app.core.plugins.service import ModuleService
+    from app.database import async_session_maker
+    from app.modules.case_intelligence.service import CaseIntelligenceService
+    from app.seeds.demo_data import CLINIC_ID
+    from scripts.seed_demo import _ensure_module_registry
+
+    for path in sorted(pathlib.Path("app/modules").glob("*/models.py")):
+        importlib.import_module(".".join(path.with_suffix("").parts))
+    _ensure_module_registry()
+    await ModuleService(db_session).reconcile_with_db()
+    await _seed_pre_ai_demo_base(db_session)
+
+    patient_id = "f4eebc99-9c0b-4ef8-bb6d-6bb9bd380a64"
+    from uuid import UUID
+
+    from app.modules.patients.models import Patient
+    db_session.add(
+        Patient(
+            id=UUID(patient_id),
+            clinic_id=CLINIC_ID,
+            first_name="Amina",
+            last_name="Hassan (SYNTHETIC)",
+            status="active",
+        )
+    )
+    await db_session.commit()
+
+    # 1st call materializes (slow path commits by design); 2nd call is the
+    # unchanged-snapshot fast path — the defect left its lock open here.
+    first = await CaseIntelligenceService.get_current(
+        db_session, clinic_id=CLINIC_ID, patient_id=UUID(patient_id), user_id=None
+    )
+    second = await CaseIntelligenceService.get_current(
+        db_session, clinic_id=CLINIC_ID, patient_id=UUID(patient_id), user_id=None
+    )
+    assert second.case_snapshot_version == first.case_snapshot_version
+
+    # A second session must be able to take the same patient row lock
+    # immediately (NOWAIT fails loudly while the first session holds it).
+    async with async_session_maker() as other:
+        row = await other.execute(
+            text(
+                "SELECT id FROM patients WHERE id = :pid FOR UPDATE NOWAIT"
+            ),
+            {"pid": patient_id},
+        )
+        assert row.scalar_one() is not None

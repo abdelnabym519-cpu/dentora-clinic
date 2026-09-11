@@ -12,11 +12,13 @@ class OllamaProvider(OpenAIProvider):
         self,
         *,
         base_url: str = "http://host.docker.internal:11434/v1/",
+        timeout: float | None = None,
     ) -> None:
         super().__init__(
             api_key="ollama-local",
             base_url=self._normalize_base_url(base_url),
             extra_body={"reasoning_effort": "none"},
+            timeout=timeout,
         )
 
     @staticmethod

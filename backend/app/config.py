@@ -170,6 +170,10 @@ class Settings(BaseSettings):
     CLOUDFLARE_API_TOKEN: str = ""
     CLOUDFLARE_AI_MODEL: str = "@cf/meta/llama-3.1-8b-instruct"
     COPILOT_MAX_TOKENS: int = 4096
+    # Hard bound for one provider inference call (seconds). Without it a
+    # stalled local Ollama keeps the HTTP request (and any downstream
+    # work) hanging on the SDK's very long default timeout.
+    COPILOT_TIMEOUT_SECONDS: float = 120.0
     COPILOT_REDACTION_DEFAULT: bool = True
 
     @property

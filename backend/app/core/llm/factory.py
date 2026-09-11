@@ -26,7 +26,10 @@ def get_provider(name: str, *, api_key: str | None = None) -> Provider:
     if name == "ollama":
         from app.core.llm.ollama_provider import OllamaProvider
 
-        return OllamaProvider(base_url=settings.OLLAMA_BASE_URL)
+        return OllamaProvider(
+            base_url=settings.OLLAMA_BASE_URL,
+            timeout=settings.COPILOT_TIMEOUT_SECONDS,
+        )
 
     if name == "openai":
         from app.core.llm.openai_provider import OpenAIProvider

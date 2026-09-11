@@ -33,3 +33,17 @@ def test_base_url_always_targets_ollama_openai_compat_path(raw: str, expected: s
 def test_default_base_url_targets_openai_compat_path() -> None:
     provider = OllamaProvider()
     assert provider._base_url == "http://host.docker.internal:11434/v1/"
+
+
+def test_provider_forwards_bounded_timeout() -> None:
+    """A stalled Ollama must not hang on the SDK's very long default:
+    the configured bound is forwarded to the OpenAI client."""
+    from app.config import settings
+    from app.core.llm.factory import get_provider
+
+    provider = get_provider("ollama")
+    assert provider._timeout == settings.COPILOT_TIMEOUT_SECONDS
+    assert settings.COPILOT_TIMEOUT_SECONDS > 0
+
+    bounded = OllamaProvider(base_url="http://127.0.0.1:11434", timeout=15)
+    assert bounded._timeout == 15

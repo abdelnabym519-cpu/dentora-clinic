@@ -61,7 +61,7 @@ export function useAppointments() {
         { silent: options.silent === true, operation: t('appointments.title') }
       )
 
-      appointments.value = response.data
+      appointments.value = response.data ?? []
       return response.data
     } catch (e) {
       // Was a hardcoded English string that also dropped the backend's

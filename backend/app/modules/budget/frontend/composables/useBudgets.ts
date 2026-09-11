@@ -94,7 +94,7 @@ export function useBudgets() {
         `/api/v1/budget/budgets?${searchParams.toString()}`
       )
 
-      budgets.value = response.data
+      budgets.value = response.data ?? []
       total.value = response.total
       return response.data
     } catch (e) {

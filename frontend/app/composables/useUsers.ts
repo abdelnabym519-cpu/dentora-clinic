@@ -50,7 +50,7 @@ export function useUsers() {
         '/api/v1/auth/users',
         { silent: options.silent }
       )
-      users.value = response.data
+      users.value = response.data ?? []
     } catch (e) {
       error.value = t('settings.errors.loadUsers')
       console.error('Failed to fetch users:', e)

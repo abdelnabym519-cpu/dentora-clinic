@@ -31,7 +31,7 @@ async function loadAppointments() {
     const response = await api.get<PaginatedResponse<Appointment>>(
       `/api/v1/agenda/appointments?${params.toString()}`
     )
-    appointments.value = response.data
+    appointments.value = response.data ?? []
     total.value = response.total
   } catch {
     appointments.value = []

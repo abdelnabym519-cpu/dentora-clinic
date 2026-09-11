@@ -40,7 +40,7 @@ export function useConversation(patientId: string) {
         `${BASE}/${patientId}?channel=${channel}`,
         { silent: true }
       )
-      messages.value = res.data
+      messages.value = res.data ?? []
     } catch (e) {
       // Was try/finally with no catch: the rejection escaped the component's
       // bare `onMounted(() => conv.fetchThread())` as an unhandled rejection.

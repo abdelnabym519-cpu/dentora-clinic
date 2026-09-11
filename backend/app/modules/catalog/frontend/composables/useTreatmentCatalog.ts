@@ -38,7 +38,7 @@ export function useTreatmentCatalog() {
       const response = await api.get<ApiResponse<OdontogramTreatment[]>>(
         '/api/v1/catalog/odontogram-treatments'
       )
-      treatments.value = response.data
+      treatments.value = response.data ?? []
       initialized.value = true
     } catch (e) {
       error.value = 'Failed to fetch treatments from catalog'

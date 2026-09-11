@@ -34,7 +34,7 @@ export function useTreatmentCatalogSearch() {
         '/api/v1/catalog/items/popular?limit=8',
         { silent: true }
       )
-      popularItems.value = response.data
+      popularItems.value = response.data ?? []
       loadError.value = ''
     } catch (e: unknown) {
       popularItems.value = []

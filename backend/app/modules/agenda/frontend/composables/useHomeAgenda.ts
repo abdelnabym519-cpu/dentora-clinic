@@ -40,7 +40,7 @@ export function useHomeAgenda() {
         `/api/v1/agenda/appointments?start_date=${start}&end_date=${end}&page_size=500`,
         { silent: true }
       )
-      todayAppointments.value = res.data
+      todayAppointments.value = res.data ?? []
       todayError.value = false
     } catch {
       todayAppointments.value = []
@@ -58,7 +58,7 @@ export function useHomeAgenda() {
         `/api/v1/agenda/appointments?start_date=${start}&end_date=${end}&status=scheduled&page_size=500`,
         { silent: true }
       )
-      tomorrowUnconfirmed.value = res.data
+      tomorrowUnconfirmed.value = res.data ?? []
       tomorrowError.value = false
     } catch {
       tomorrowUnconfirmed.value = []

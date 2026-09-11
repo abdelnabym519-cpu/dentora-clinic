@@ -70,7 +70,7 @@ async function loadBudgets() {
     const response = await api.get<PaginatedResponse<BudgetListItem>>(
       `/api/v1/budget/budgets?${params.toString()}`
     )
-    budgets.value = response.data
+    budgets.value = response.data ?? []
     budgetsTotal.value = response.total
   } catch {
     budgets.value = []

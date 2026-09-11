@@ -36,7 +36,7 @@ async function loadInvoices() {
     const response = await api.get<PaginatedResponse<InvoiceListItem>>(
       `/api/v1/billing/invoices?${params.toString()}`
     )
-    invoices.value = response.data
+    invoices.value = response.data ?? []
     invoicesTotal.value = response.total
   } catch {
     invoices.value = []

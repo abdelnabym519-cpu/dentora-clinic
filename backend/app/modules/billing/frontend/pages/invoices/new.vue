@@ -58,7 +58,7 @@ function handleItemAdded(item: InvoiceItemCreate) {
 onMounted(async () => {
   try {
     const response = await api.get<{ data: VatType[] }>('/api/v1/catalog/vat-types')
-    vatTypes.value = response.data
+    vatTypes.value = response.data ?? []
   } catch (e) {
     console.error('Failed to load VAT types:', e)
   }

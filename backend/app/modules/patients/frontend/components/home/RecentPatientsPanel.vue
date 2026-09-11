@@ -12,7 +12,7 @@ const pending = ref(true)
 async function load() {
   try {
     const res = await api.get<ApiResponse<Patient[]>>('/api/v1/patients/recent?limit=6')
-    patients.value = res.data
+    patients.value = res.data ?? []
   } catch {
     patients.value = []
   } finally {

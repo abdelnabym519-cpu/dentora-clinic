@@ -59,7 +59,7 @@ export function useTreatmentPlans() {
         `/api/v1/treatment_plan/treatment-plans?${params}`,
         { silent: true }
       )
-      plans.value = response.data
+      plans.value = response.data ?? []
       total.value = response.total
       page.value = response.page
       pageSize.value = response.page_size

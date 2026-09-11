@@ -73,7 +73,7 @@ export function usePhotos() {
         `/api/v1/media/patients/${patientId}/photos?${params}`,
         { silent: true }
       )
-      photos.value = response.data
+      photos.value = response.data ?? []
       total.value = response.total
     } catch (error) {
       console.error('Error fetching photos:', error)

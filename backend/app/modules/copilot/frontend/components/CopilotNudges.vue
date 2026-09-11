@@ -25,7 +25,7 @@ async function load() {
     // state, and the failure belongs to the copilot, not to whatever
     // page the drawer happens to float over.
     const res = await api.get<ApiResponse<Nudge[]>>('/api/v1/copilot/nudges', { silent: true })
-    nudges.value = res.data
+    nudges.value = res.data ?? []
   } catch {
     nudges.value = []
   }

@@ -95,7 +95,7 @@ export function usePipeline() {
         `/api/v1/treatment_plan/treatment-plans/pipeline?${params}`
       )
       tab.value = targetTab
-      rows.value = response.data
+      rows.value = response.data ?? []
       total.value = response.total
       page.value = response.page
       pageSize.value = response.page_size

@@ -44,7 +44,7 @@ export function useDocuments() {
         headers: apiHeaders()
       })
 
-      documents.value = response.data
+      documents.value = response.data ?? []
       total.value = response.total
     } catch (error) {
       console.error('Error fetching documents:', error)

@@ -140,7 +140,7 @@ export function usePublicBooking(slug: string) {
         `${baseUrl.value}/professionals`
       )
 
-      professionals.value = response.data
+      professionals.value = response.data ?? []
       return true
     } catch (err) {
       captureError(err)
@@ -170,7 +170,7 @@ export function usePublicBooking(slug: string) {
         }
       )
 
-      slots.value = response.data
+      slots.value = response.data ?? []
       return true
     } catch (err) {
       captureError(err)

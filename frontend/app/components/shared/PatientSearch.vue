@@ -47,7 +47,7 @@ async function searchPatients(query: string) {
     const response = await api.get<PaginatedResponse<Patient>>(
       `/api/v1/patients?${params.toString()}`
     )
-    patients.value = response.data
+    patients.value = response.data ?? []
   } catch {
     patients.value = []
   } finally {

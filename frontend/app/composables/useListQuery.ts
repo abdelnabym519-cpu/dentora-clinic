@@ -184,7 +184,7 @@ export function useListQuery<F extends FiltersBag, R>(
       })
       // Discard stale responses
       if (token !== fetchToken) return
-      rows.value = result.data
+      rows.value = result.data ?? []
       total.value = result.total
     } catch (e: unknown) {
       if (token !== fetchToken) return

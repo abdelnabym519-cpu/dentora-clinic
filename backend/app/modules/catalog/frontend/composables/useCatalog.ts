@@ -68,7 +68,7 @@ export function useCatalog() {
         `/api/v1/catalog/categories?${params.toString()}`,
         { silent: options.silent === true }
       )
-      categories.value = response.data
+      categories.value = response.data ?? []
       error.value = null
     } catch (e) {
       // Was a hardcoded English string in a state nothing rendered.
@@ -242,7 +242,7 @@ export function useCatalog() {
         { silent: options.silent === true }
       )
 
-      items.value = response.data
+      items.value = response.data ?? []
       totalItems.value = response.total
       currentPage.value = response.page
       pageSize.value = response.page_size

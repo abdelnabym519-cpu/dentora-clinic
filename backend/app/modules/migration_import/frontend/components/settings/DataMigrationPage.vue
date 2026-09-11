@@ -250,7 +250,7 @@ async function loadProposals() {
       `/api/v1/migration_import/jobs/${job.value.id}/proposals?page_size=200`,
       { silent: true }
     )
-    proposals.value = res.data
+    proposals.value = res.data ?? []
     proposalsError.value = ''
   } catch (err: unknown) {
     // Was try/finally with no catch: the spinner stopped and the table

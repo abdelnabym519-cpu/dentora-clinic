@@ -55,7 +55,7 @@ export function useVatTypes() {
         `/api/v1/catalog/vat-types${params}`,
         { silent: true }
       )
-      vatTypes.value = response.data
+      vatTypes.value = response.data ?? []
     } catch (e) {
       toast.add({
         title: t('common.error'),

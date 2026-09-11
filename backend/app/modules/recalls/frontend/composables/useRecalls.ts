@@ -301,7 +301,7 @@ export function usePatientRecalls(patientId: string) {
     isLoading.value = true
     try {
       const res = await api.listForPatient(patientId)
-      recalls.value = res.data
+      recalls.value = res.data ?? []
       loaded.value = true
     } catch {
       recalls.value = []

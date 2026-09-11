@@ -69,7 +69,7 @@ async function loadPrescriptions() {
   listError.value = ''
   try {
     const response = await prescriptionsApi.list(selectedPatient.value?.id, { silent: true })
-    prescriptions.value = response.data
+    prescriptions.value = response.data ?? []
   } catch (e: unknown) {
     prescriptions.value = []
     listError.value = errorMessage(e, t('prescriptions.errors.load'))
@@ -94,7 +94,7 @@ async function searchPatients() {
       `/api/v1/patients?search=${encodeURIComponent(term)}&page_size=10`,
       { silent: true }
     )
-    patients.value = response.data
+    patients.value = response.data ?? []
   } catch (e: unknown) {
     // Was an unguarded await inside an @input handler: the rejection
     // escaped and the dropdown silently kept the previous results.

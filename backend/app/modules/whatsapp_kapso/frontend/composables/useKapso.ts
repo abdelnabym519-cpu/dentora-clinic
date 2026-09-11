@@ -73,7 +73,7 @@ export function useKapso() {
     try {
       // Silent: onSync() reports this failure itself, with the server's reason.
       const res = await api.post<ApiResponse<KapsoTemplate[]>>(`${BASE}/templates/sync`, {}, { silent: true })
-      templates.value = res.data
+      templates.value = res.data ?? []
       return res.data
     } finally {
       syncing.value = false

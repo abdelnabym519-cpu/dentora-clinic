@@ -136,7 +136,7 @@ export function useInvoices() {
         `/api/v1/billing/invoices?${searchParams.toString()}`
       )
 
-      invoices.value = response.data
+      invoices.value = response.data ?? []
       total.value = response.total
       return response.data
     } catch (e) {

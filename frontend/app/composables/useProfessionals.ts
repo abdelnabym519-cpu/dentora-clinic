@@ -38,7 +38,7 @@ export function useProfessionals() {
         '/api/v1/auth/professionals',
         { silent: options.silent === true }
       )
-      professionals.value = response.data
+      professionals.value = response.data ?? []
 
       professionalColors.value = new Map()
       response.data.forEach((prof, index) => {

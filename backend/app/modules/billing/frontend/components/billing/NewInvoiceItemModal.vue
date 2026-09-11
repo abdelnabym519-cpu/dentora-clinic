@@ -42,7 +42,7 @@ async function loadVatTypes() {
   isLoadingVat.value = true
   try {
     const response = await api.get<{ data: VatType[] }>('/api/v1/catalog/vat-types')
-    vatTypes.value = response.data
+    vatTypes.value = response.data ?? []
   } catch {
     console.error('Failed to load VAT types')
   } finally {

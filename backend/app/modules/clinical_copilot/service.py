@@ -464,7 +464,12 @@ class ClinicalCopilotService:
                 or second_review.simulation_output_digest != simulation.output_digest
             )
             review_missing = (
-                second_review.review_status != "accepted"
+                # ai_second_review's dentist action (mark_reviewed) emits its
+                # own terminal state "reviewed" (SecondReviewStatus); accept
+                # that vocabulary in addition to "accepted" so a properly
+                # dentist-reviewed second review can satisfy downstream
+                # readiness. Provenance is still mandatory either way.
+                second_review.review_status not in ("accepted", "reviewed")
                 or second_review.reviewed_at is None
                 or not second_review.reviewed_by
             )

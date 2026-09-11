@@ -78,20 +78,22 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
+# Development browser origins: legacy npm dev ports and the Docker Compose
+# published frontend port (3100:3000). Never part of the production
+# allowlist — enabled only by non-production environments so the local dev
+# stack and the CI test run behave like the documented compose flow.
+LEGACY_DEV_CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
+    "http://localhost:3100",
+    "http://127.0.0.1:3100",
+]
+
 allowed_origins = settings.allowed_origins_list.copy()
-if settings.ENVIRONMENT == "development":
-    allowed_origins.extend(
-        [
-            # Legacy dev ports (npm run dev without Docker) …
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3001",
-            # … and the Docker Compose published frontend port (3100:3000).
-            "http://localhost:3100",
-            "http://127.0.0.1:3100",
-        ]
-    )
+if settings.ENVIRONMENT in ("development", "test"):
+    allowed_origins.extend(LEGACY_DEV_CORS_ORIGINS)
 
 app.add_middleware(
     CORSMiddleware,

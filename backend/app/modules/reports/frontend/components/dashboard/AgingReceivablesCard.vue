@@ -54,6 +54,8 @@ const isEmpty = computed(() =>
     to="/reports/billing"
     :loading="state.loading"
     :empty="isEmpty"
+    :error="state.error"
+    :error-label="t('errors.loadFailed')"
   >
     <template #header-trailing>
       <span class="ml-auto inline-flex items-center gap-1 text-caption text-subtle">

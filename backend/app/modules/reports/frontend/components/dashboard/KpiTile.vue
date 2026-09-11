@@ -13,6 +13,9 @@ interface Props {
   to?: string
   loading?: boolean
   empty?: boolean
+  /** Failure state — see SummaryCard. Takes precedence over `empty`. */
+  error?: boolean
+  errorLabel?: string
   /** Main formatted value (already locale + currency formatted). */
   value?: string
   /** Optional secondary line below the big number. */
@@ -36,6 +39,8 @@ withDefaults(defineProps<Props>(), {
   to: undefined,
   loading: false,
   empty: false,
+  error: false,
+  errorLabel: undefined,
   value: '—',
   hint: undefined,
   sparklinePoints: () => [],
@@ -56,6 +61,8 @@ withDefaults(defineProps<Props>(), {
     :to="to"
     :loading="loading"
     :empty="empty"
+    :error="error"
+    :error-label="errorLabel"
   >
     <template
       v-if="snapshot"

@@ -34,6 +34,8 @@ const isEmpty = computed(() => !props.state.loading && !props.state.data)
     severity="info"
     :loading="state.loading"
     :empty="isEmpty"
+    :error="state.error"
+    :error-label="t('errors.loadFailed')"
     :value="value"
     :hint="t('reports.dashboard.kpi.patientAdvanceHint')"
     snapshot

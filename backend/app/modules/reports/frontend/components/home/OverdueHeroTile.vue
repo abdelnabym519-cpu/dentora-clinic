@@ -2,8 +2,10 @@
 defineProps<{ ctx?: unknown }>()
 
 const { t } = useI18n()
-const { overdue, overdueLoaded, loadOverdue } = useHomeReports()
+const { overdue, overdueLoaded, overdueError, loadOverdue } = useHomeReports()
 const pending = computed(() => !overdueLoaded.value)
+/** The count is unknown — which is not the same as zero. */
+const failed = computed(() => !pending.value && !!overdueError.value)
 
 onMounted(() => {
   if (!overdueLoaded.value) loadOverdue()
@@ -49,6 +51,13 @@ const { format: formatMoney } = useCurrency()
       class="h-8 w-16 mb-2"
     />
     <p
+      v-else-if="failed"
+      class="text-display tnum text-subtle"
+      data-testid="overdue-hero-error"
+    >
+      —
+    </p>
+    <p
       v-else
       class="text-display tnum"
       :class="total === 0 ? 'text-default' : ''"
@@ -66,7 +75,7 @@ const { format: formatMoney } = useCurrency()
       v-else-if="!pending"
       class="text-caption text-subtle mt-1"
     >
-      {{ t('dashboard.overdue.empty') }}
+      {{ failed ? t('errors.loadFailed') : t('dashboard.overdue.empty') }}
     </p>
   </NuxtLink>
 </template>

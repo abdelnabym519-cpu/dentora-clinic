@@ -8,6 +8,7 @@ import type {
   NumberingGap
 } from '~~/app/types'
 import { paymentMethodLabel } from '~~/app/utils/paymentMethod'
+import { errorMessage } from '~~/app/utils/error'
 
 // Budget report types
 export interface BudgetSummary {
@@ -203,6 +204,47 @@ export function useReports() {
   const api = useApi()
   const { t } = useI18n()
 
+  /**
+   * Per-section failure state, keyed by report section (`billingSummary`,
+   * `overdueInvoices`, ...).
+   *
+   * Every fetcher below resolves to `null`/`[]` when the request fails, which
+   * made a denied or unreachable endpoint indistinguishable from a clinic that
+   * genuinely had no activity: the pages rendered zeros, "No data" and — for
+   * overdue invoices — a green all-clear. The failure is recorded here instead,
+   * the API call is silent so one page load cannot fire six toasts, and the
+   * consumers render this inline with a Retry.
+   */
+  const errors = ref<Record<string, string>>({})
+
+  /** True when at least one section failed on the last load. */
+  const hasErrors = computed(() => Object.keys(errors.value).length > 0)
+
+  /** Keys of the sections that failed — for per-card states. */
+  const failedSections = computed(() => Object.keys(errors.value))
+
+  /**
+   * One line for a page-level alert. Sections usually fail together for a
+   * single reason (a missing grant, an outage), so show that reason and how
+   * many sections it took down rather than inventing a label per section.
+   */
+  const errorSummary = computed<string | undefined>(() => {
+    const reasons = Object.values(errors.value)
+    const [first, ...rest] = reasons
+    if (!first) return undefined
+    return rest.length ? `${first} (+${rest.length})` : first
+  })
+
+  /** Call before a load: a retry that succeeds must clear the alert. */
+  function clearErrors(): void {
+    errors.value = {}
+  }
+
+  function _fail(section: string, e: unknown): void {
+    console.error('Report section failed:', section, e)
+    errors.value = { ...errors.value, [section]: errorMessage(e, t('errors.loadFailed')) }
+  }
+
   // ============================================================================
   // Billing Reports
   // ============================================================================
@@ -213,11 +255,12 @@ export function useReports() {
   ): Promise<BillingSummary | null> {
     try {
       const response = await api.get<ApiResponse<BillingSummary>>(
-        `/api/v1/reports/billing/summary?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/billing/summary?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch billing summary:', e)
+      _fail('billingSummary', e)
       return null
     }
   }
@@ -225,11 +268,12 @@ export function useReports() {
   async function fetchOverdueInvoices(): Promise<OverdueInvoice[]> {
     try {
       const response = await api.get<ApiResponse<OverdueInvoice[]>>(
-        '/api/v1/reports/billing/overdue'
+        '/api/v1/reports/billing/overdue',
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch overdue invoices:', e)
+      _fail('overdueInvoices', e)
       return []
     }
   }
@@ -240,11 +284,12 @@ export function useReports() {
   ): Promise<PaymentMethodSummary[]> {
     try {
       const response = await api.get<ApiResponse<PaymentMethodSummary[]>>(
-        `/api/v1/reports/billing/by-payment-method?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/billing/by-payment-method?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch payments by method:', e)
+      _fail('byPaymentMethod', e)
       return []
     }
   }
@@ -255,11 +300,12 @@ export function useReports() {
   ): Promise<ProfessionalBillingSummary[]> {
     try {
       const response = await api.get<ApiResponse<ProfessionalBillingSummary[]>>(
-        `/api/v1/reports/billing/by-professional?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/billing/by-professional?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch billing by professional:', e)
+      _fail('billingByProfessional', e)
       return []
     }
   }
@@ -270,11 +316,12 @@ export function useReports() {
   ): Promise<VatSummaryItem[]> {
     try {
       const response = await api.get<ApiResponse<VatSummaryItem[]>>(
-        `/api/v1/reports/billing/vat-summary?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/billing/vat-summary?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch VAT summary:', e)
+      _fail('vatSummary', e)
       return []
     }
   }
@@ -282,11 +329,12 @@ export function useReports() {
   async function fetchNumberingGaps(): Promise<NumberingGap[]> {
     try {
       const response = await api.get<ApiResponse<NumberingGap[]>>(
-        '/api/v1/reports/billing/gaps'
+        '/api/v1/reports/billing/gaps',
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch numbering gaps:', e)
+      _fail('numberingGaps', e)
       return []
     }
   }
@@ -301,11 +349,12 @@ export function useReports() {
   ): Promise<BudgetSummary | null> {
     try {
       const response = await api.get<ApiResponse<BudgetSummary>>(
-        `/api/v1/reports/budgets/summary?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/budgets/summary?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch budget summary:', e)
+      _fail('budgetSummary', e)
       return null
     }
   }
@@ -316,11 +365,12 @@ export function useReports() {
   ): Promise<BudgetByProfessional[]> {
     try {
       const response = await api.get<ApiResponse<BudgetByProfessional[]>>(
-        `/api/v1/reports/budgets/by-professional?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/budgets/by-professional?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch budgets by professional:', e)
+      _fail('budgetsByProfessional', e)
       return []
     }
   }
@@ -332,11 +382,12 @@ export function useReports() {
   ): Promise<BudgetByTreatment[]> {
     try {
       const response = await api.get<ApiResponse<BudgetByTreatment[]>>(
-        `/api/v1/reports/budgets/by-treatment?date_from=${dateFrom}&date_to=${dateTo}&limit=${limit}`
+        `/api/v1/reports/budgets/by-treatment?date_from=${dateFrom}&date_to=${dateTo}&limit=${limit}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch budgets by treatment:', e)
+      _fail('budgetsByTreatment', e)
       return []
     }
   }
@@ -347,11 +398,12 @@ export function useReports() {
   ): Promise<BudgetByStatus[]> {
     try {
       const response = await api.get<ApiResponse<BudgetByStatus[]>>(
-        `/api/v1/reports/budgets/by-status?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/budgets/by-status?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch budgets by status:', e)
+      _fail('budgetsByStatus', e)
       return []
     }
   }
@@ -366,11 +418,12 @@ export function useReports() {
   ): Promise<SchedulingSummary | null> {
     try {
       const response = await api.get<ApiResponse<SchedulingSummary>>(
-        `/api/v1/reports/scheduling/summary?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/scheduling/summary?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch scheduling summary:', e)
+      _fail('schedulingSummary', e)
       return null
     }
   }
@@ -381,11 +434,12 @@ export function useReports() {
   ): Promise<FirstVisitsSummary | null> {
     try {
       const response = await api.get<ApiResponse<FirstVisitsSummary>>(
-        `/api/v1/reports/scheduling/first-visits?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/scheduling/first-visits?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch first visits:', e)
+      _fail('firstVisits', e)
       return null
     }
   }
@@ -396,11 +450,12 @@ export function useReports() {
   ): Promise<HoursByProfessional[]> {
     try {
       const response = await api.get<ApiResponse<HoursByProfessional[]>>(
-        `/api/v1/reports/scheduling/by-professional?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/scheduling/by-professional?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch hours by professional:', e)
+      _fail('hoursByProfessional', e)
       return []
     }
   }
@@ -411,11 +466,12 @@ export function useReports() {
   ): Promise<CabinetUtilization[]> {
     try {
       const response = await api.get<ApiResponse<CabinetUtilization[]>>(
-        `/api/v1/reports/scheduling/by-cabinet?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/scheduling/by-cabinet?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch cabinet utilization:', e)
+      _fail('cabinetUtilization', e)
       return []
     }
   }
@@ -426,11 +482,12 @@ export function useReports() {
   ): Promise<DayOfWeekStats[]> {
     try {
       const response = await api.get<ApiResponse<DayOfWeekStats[]>>(
-        `/api/v1/reports/scheduling/by-day-of-week?date_from=${dateFrom}&date_to=${dateTo}`
+        `/api/v1/reports/scheduling/by-day-of-week?date_from=${dateFrom}&date_to=${dateTo}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch by day of week:', e)
+      _fail('byDayOfWeek', e)
       return []
     }
   }
@@ -453,11 +510,12 @@ export function useReports() {
   ): Promise<WaitingTimeStats | null> {
     try {
       const response = await api.get<ApiResponse<WaitingTimeStats>>(
-        `/api/v1/reports/scheduling/waiting-times?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`
+        `/api/v1/reports/scheduling/waiting-times?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch waiting times:', e)
+      _fail('waitingTimes', e)
       return null
     }
   }
@@ -469,11 +527,12 @@ export function useReports() {
   ): Promise<PunctualityStats | null> {
     try {
       const response = await api.get<ApiResponse<PunctualityStats>>(
-        `/api/v1/reports/scheduling/punctuality?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`
+        `/api/v1/reports/scheduling/punctuality?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch punctuality:', e)
+      _fail('punctuality', e)
       return null
     }
   }
@@ -485,11 +544,12 @@ export function useReports() {
   ): Promise<DurationVarianceStats | null> {
     try {
       const response = await api.get<ApiResponse<DurationVarianceStats>>(
-        `/api/v1/reports/scheduling/duration-variance?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`
+        `/api/v1/reports/scheduling/duration-variance?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch duration variance:', e)
+      _fail('durationVariance', e)
       return null
     }
   }
@@ -501,11 +561,12 @@ export function useReports() {
   ): Promise<AppointmentFunnel | null> {
     try {
       const response = await api.get<ApiResponse<AppointmentFunnel>>(
-        `/api/v1/reports/scheduling/funnel?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`
+        `/api/v1/reports/scheduling/funnel?${_buildAnalyticsQuery(dateFrom, dateTo, filters)}`,
+        { silent: true }
       )
       return response.data
     } catch (e) {
-      console.error('Failed to fetch funnel:', e)
+      _fail('funnel', e)
       return null
     }
   }
@@ -524,12 +585,12 @@ export function useReports() {
     try {
       const response = await api.get<ApiResponse<PaymentsSummaryReport>>(
         `/api/v1/payments/reports/summary?date_from=${dateFrom}&date_to=${dateTo}`,
-        { signal: options?.signal }
+        { signal: options?.signal, silent: true }
       )
       return response.data
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return null
-      console.error('Failed to fetch payments summary:', e)
+      _fail('paymentsSummary', e)
       return null
     }
   }
@@ -543,12 +604,12 @@ export function useReports() {
     try {
       const response = await api.get<ApiResponse<PaymentsTrends>>(
         `/api/v1/payments/reports/trends?date_from=${dateFrom}&date_to=${dateTo}&granularity=${granularity}`,
-        { signal: options?.signal }
+        { signal: options?.signal, silent: true }
       )
       return response.data
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return null
-      console.error('Failed to fetch payments trends:', e)
+      _fail('paymentsTrends', e)
       return null
     }
   }
@@ -561,12 +622,12 @@ export function useReports() {
     try {
       const response = await api.get<ApiResponse<PaymentsMethodBreakdown[]>>(
         `/api/v1/payments/reports/by-method?date_from=${dateFrom}&date_to=${dateTo}`,
-        { signal: options?.signal }
+        { signal: options?.signal, silent: true }
       )
       return response.data
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return []
-      console.error('Failed to fetch payments by method:', e)
+      _fail('paymentsByMethod', e)
       return []
     }
   }
@@ -579,12 +640,12 @@ export function useReports() {
     try {
       const response = await api.get<ApiResponse<PaymentsProfessionalBreakdown[]>>(
         `/api/v1/payments/reports/by-professional?date_from=${dateFrom}&date_to=${dateTo}`,
-        { signal: options?.signal }
+        { signal: options?.signal, silent: true }
       )
       return response.data
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return []
-      console.error('Failed to fetch payments by professional:', e)
+      _fail('paymentsByProfessional', e)
       return []
     }
   }
@@ -595,12 +656,12 @@ export function useReports() {
     try {
       const response = await api.get<ApiResponse<PaymentsAgingBuckets>>(
         '/api/v1/payments/reports/aging-receivables',
-        { signal: options?.signal }
+        { signal: options?.signal, silent: true }
       )
       return response.data
     } catch (e) {
       if ((e as Error)?.name === 'AbortError') return null
-      console.error('Failed to fetch aging receivables:', e)
+      _fail('agingReceivables', e)
       return null
     }
   }
@@ -666,6 +727,12 @@ export function useReports() {
   }
 
   return {
+    // Failure state (see `errors` above)
+    errors,
+    hasErrors,
+    failedSections,
+    errorSummary,
+    clearErrors,
     // Billing
     fetchBillingSummary,
     fetchOverdueInvoices,

@@ -57,6 +57,8 @@ function onPoint(x: string) {
     severity="success"
     :loading="state.loading"
     :empty="isEmpty"
+    :error="state.error"
+    :error-label="t('errors.loadFailed')"
   >
     <template #empty>
       {{ t('reports.dashboard.empty.noData') }}

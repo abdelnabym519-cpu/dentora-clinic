@@ -38,6 +38,8 @@ const isEmpty = computed(() => !props.state.loading && !props.state.data)
     to="/reports/scheduling"
     :loading="state.loading"
     :empty="isEmpty"
+    :error="state.error"
+    :error-label="t('errors.loadFailed')"
     :value="value"
     :hint="hint"
     :delta="state.delta"

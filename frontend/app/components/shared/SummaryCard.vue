@@ -24,12 +24,23 @@ interface Props {
   loading?: boolean
   /** Show empty state slot instead of default body. */
   empty?: boolean
+  /**
+   * Render the failure state instead of the body / empty slot.
+   *
+   * A card whose request failed must not look like a card with nothing to
+   * show: "no data" is a fact about the clinic, "could not load" is not.
+   */
+  error?: boolean
+  /** Localized label for the failure state. */
+  errorLabel?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   severity: 'neutral',
   loading: false,
-  empty: false
+  empty: false,
+  error: false,
+  errorLabel: undefined
 })
 
 const severityStripe = computed(() => {
@@ -95,6 +106,15 @@ const interactive = computed(() => !!props.to)
         <USkeleton class="h-3 w-1/2" />
       </div>
       <div
+        v-else-if="error"
+        class="text-body text-danger-accent"
+        data-testid="summary-card-error"
+      >
+        <slot name="error">
+          {{ errorLabel }}
+        </slot>
+      </div>
+      <div
         v-else-if="empty"
         class="text-body text-muted"
       >
@@ -141,6 +161,15 @@ const interactive = computed(() => !!props.to)
         <USkeleton class="h-5 w-3/4" />
         <USkeleton class="h-3 w-full" />
         <USkeleton class="h-3 w-1/2" />
+      </div>
+      <div
+        v-else-if="error"
+        class="text-body text-danger-accent"
+        data-testid="summary-card-error"
+      >
+        <slot name="error">
+          {{ errorLabel }}
+        </slot>
       </div>
       <div
         v-else-if="empty"

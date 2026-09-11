@@ -2,7 +2,7 @@
 defineProps<{ ctx?: unknown }>()
 
 const { t } = useI18n()
-const { overdue, overdueLoaded, loadOverdue } = useHomeReports()
+const { overdue, overdueLoaded, overdueError, loadOverdue } = useHomeReports()
 
 const pending = computed(() => !overdueLoaded.value)
 
@@ -49,6 +49,28 @@ const { format: formatMoney } = useCurrency()
         class="h-10 w-full"
       />
     </div>
+
+    <!-- A failed read is not "nothing is overdue": the green all-clear below
+         would send a clinic after money it is not actually owed. -->
+    <EmptyState
+      v-else-if="overdueError"
+      icon="i-lucide-alert-triangle"
+      :title="t('errors.loadFailed')"
+      :description="overdueError"
+      data-testid="overdue-panel-error"
+    >
+      <template #actions>
+        <UButton
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          data-testid="overdue-panel-retry"
+          @click="loadOverdue()"
+        >
+          {{ t('common.retry') }}
+        </UButton>
+      </template>
+    </EmptyState>
 
     <EmptyState
       v-else-if="overdue.length === 0"

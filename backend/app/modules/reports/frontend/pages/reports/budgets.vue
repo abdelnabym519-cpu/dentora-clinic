@@ -9,6 +9,10 @@ import type {
 const { t } = useI18n()
 const router = useRouter()
 const {
+  errors,
+  hasErrors,
+  errorSummary,
+  clearErrors,
   fetchBudgetSummary,
   fetchBudgetsByProfessional,
   fetchBudgetsByTreatment,
@@ -88,6 +92,7 @@ watch(selectedRange, (range) => {
 // Load all report data
 async function loadReports() {
   isLoading.value = true
+  clearErrors()
 
   try {
     const [summaryData, professionalsData, treatmentsData, statusData] = await Promise.all([
@@ -209,6 +214,32 @@ function goBack() {
     </div>
 
     <template v-else>
+      <!-- A section that failed is not "no activity": useReports records
+           every failure, so the page says so instead of rendering zeros
+           and empty charts as if they were facts. -->
+      <div
+        v-if="hasErrors"
+        class="mb-4 space-y-2"
+        data-testid="reports-load-error"
+      >
+        <UAlert
+          color="error"
+          variant="soft"
+          icon="i-lucide-alert-triangle"
+          :title="t('errors.loadFailed')"
+          :description="errorSummary"
+        />
+        <UButton
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          data-testid="reports-retry"
+          @click="loadReports()"
+        >
+          {{ t('common.retry') }}
+        </UButton>
+      </div>
+
       <!-- Summary Cards -->
       <div
         v-if="summary"
@@ -327,6 +358,27 @@ function goBack() {
               </div>
             </div>
           </div>
+          <p
+            v-else-if="errors.budgetsByStatus"
+            class="text-danger-accent text-center py-4"
+            data-testid="report-section-error"
+          >
+            {{ t('errors.loadFailed') }}
+          </p>
+          <p
+            v-else-if="errors.budgetsByProfessional"
+            class="text-danger-accent text-center py-4"
+            data-testid="report-section-error"
+          >
+            {{ t('errors.loadFailed') }}
+          </p>
+          <p
+            v-else-if="errors.budgetsByTreatment"
+            class="text-danger-accent text-center py-4"
+            data-testid="report-section-error"
+          >
+            {{ t('errors.loadFailed') }}
+          </p>
           <p
             v-else
             class="text-subtle text-center py-4"

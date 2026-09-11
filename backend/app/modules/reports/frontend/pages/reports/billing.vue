@@ -11,6 +11,10 @@ import type {
 const { t, locale } = useI18n()
 const router = useRouter()
 const {
+  errors,
+  hasErrors,
+  errorSummary,
+  clearErrors,
   fetchBillingSummary,
   fetchOverdueInvoices,
   fetchByPaymentMethod,
@@ -94,6 +98,7 @@ watch(selectedRange, (range) => {
 // Load all report data
 async function loadReports() {
   isLoading.value = true
+  clearErrors()
 
   try {
     const [
@@ -237,6 +242,32 @@ function goBack() {
     </div>
 
     <template v-else>
+      <!-- A section that failed is not "no activity": useReports records
+           every failure, so the page says so instead of rendering zeros
+           and empty charts as if they were facts. -->
+      <div
+        v-if="hasErrors"
+        class="mb-4 space-y-2"
+        data-testid="reports-load-error"
+      >
+        <UAlert
+          color="error"
+          variant="soft"
+          icon="i-lucide-alert-triangle"
+          :title="t('errors.loadFailed')"
+          :description="errorSummary"
+        />
+        <UButton
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          data-testid="reports-retry"
+          @click="loadReports()"
+        >
+          {{ t('common.retry') }}
+        </UButton>
+      </div>
+
       <!-- Summary Cards -->
       <div
         v-if="summary"
@@ -321,6 +352,18 @@ function goBack() {
         </template>
       </UAlert>
 
+      <!-- A gap check that never ran is not "no gaps": invoice numbering is a
+           compliance matter, so say the check failed. -->
+      <UAlert
+        v-else-if="errors.numberingGaps"
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="errors.numberingGaps"
+        data-testid="report-gaps-error"
+      />
+
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Payment Methods -->
         <UCard>
@@ -358,6 +401,27 @@ function goBack() {
               </div>
             </div>
           </div>
+          <p
+            v-else-if="errors.byPaymentMethod"
+            class="text-danger-accent text-center py-4"
+            data-testid="report-section-error"
+          >
+            {{ t('errors.loadFailed') }}
+          </p>
+          <p
+            v-else-if="errors.vatSummary"
+            class="text-danger-accent text-center py-4"
+            data-testid="report-section-error"
+          >
+            {{ t('errors.loadFailed') }}
+          </p>
+          <p
+            v-else-if="errors.billingByProfessional"
+            class="text-danger-accent text-center py-4"
+            data-testid="report-section-error"
+          >
+            {{ t('errors.loadFailed') }}
+          </p>
           <p
             v-else
             class="text-subtle text-center py-4"
@@ -516,6 +580,21 @@ function goBack() {
                 {{ t('invoice.dueDate') }}: {{ formatDate(inv.due_date) }}
               </p>
             </div>
+          </div>
+          <!-- A failed read must not render the green all-clear: "no overdue
+               invoices" is a claim about money the clinic is owed. -->
+          <div
+            v-else-if="errors.overdueInvoices"
+            class="text-center py-8"
+            data-testid="report-overdue-error"
+          >
+            <UIcon
+              name="i-lucide-alert-triangle"
+              class="h-12 w-12 text-danger-accent mx-auto mb-2"
+            />
+            <p class="text-subtle">
+              {{ t('errors.loadFailed') }}
+            </p>
           </div>
           <div
             v-else

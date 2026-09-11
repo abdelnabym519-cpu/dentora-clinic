@@ -39,6 +39,8 @@ const isEmpty = computed(() => !props.state.loading && !props.state.data)
     to="/reports/billing"
     :loading="state.loading"
     :empty="isEmpty"
+    :error="state.error"
+    :error-label="t('errors.loadFailed')"
     :value="value"
     :hint="hint"
     :sparkline-points="state.spark"

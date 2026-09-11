@@ -14,6 +14,10 @@ import type {
 const { t } = useI18n()
 const router = useRouter()
 const {
+  errors,
+  hasErrors,
+  errorSummary,
+  clearErrors,
   fetchSchedulingSummary,
   fetchFirstVisits,
   fetchHoursByProfessional,
@@ -131,6 +135,7 @@ const tabOptions = computed(() => [
 // ─── Data load ───────────────────────────────────────────────────────
 async function loadReports() {
   isLoading.value = true
+  clearErrors()
 
   try {
     const [
@@ -425,6 +430,32 @@ function goBack() {
     </div>
 
     <template v-else>
+      <!-- A section that failed is not "no activity": useReports records
+           every failure, so the page says so instead of rendering zeros
+           and empty charts as if they were facts. -->
+      <div
+        v-if="hasErrors"
+        class="mb-4 space-y-2"
+        data-testid="reports-load-error"
+      >
+        <UAlert
+          color="error"
+          variant="soft"
+          icon="i-lucide-alert-triangle"
+          :title="t('errors.loadFailed')"
+          :description="errorSummary"
+        />
+        <UButton
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-refresh-cw"
+          data-testid="reports-retry"
+          @click="loadReports()"
+        >
+          {{ t('common.retry') }}
+        </UButton>
+      </div>
+
       <!-- Hero strip -->
       <div
         v-if="summary"
@@ -544,6 +575,12 @@ function goBack() {
               </ListRow>
             </div>
             <EmptyState
+              v-else-if="errors.hoursByProfessional"
+              icon="i-lucide-alert-triangle"
+              :title="t('errors.loadFailed')"
+              :description="errors.hoursByProfessional"
+            />
+            <EmptyState
               v-else
               icon="i-lucide-users"
               :title="t('reports.scheduling.empty.title')"
@@ -596,6 +633,12 @@ function goBack() {
                 </template>
               </ListRow>
             </div>
+            <EmptyState
+              v-else-if="errors.cabinetUtilization"
+              icon="i-lucide-alert-triangle"
+              :title="t('errors.loadFailed')"
+              :description="errors.cabinetUtilization"
+            />
             <EmptyState
               v-else
               icon="i-lucide-armchair"
@@ -676,6 +719,12 @@ function goBack() {
               </span>
             </div>
           </div>
+          <EmptyState
+            v-else-if="errors.byDayOfWeek"
+            icon="i-lucide-alert-triangle"
+            :title="t('errors.loadFailed')"
+            :description="errors.byDayOfWeek"
+          />
           <EmptyState
             v-else
             icon="i-lucide-calendar-days"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ClinicHours, ClinicOverride, ClinicOverridePayload, WeekdayShifts } from '../../composables/useClinicHours'
 import { PERMISSIONS } from '~~/app/config/permissions'
-import { errorDetail } from '~~/app/utils/error'
+import { errorDetail, errorMessage } from '~~/app/utils/error'
 
 const { t } = useI18n()
 const { confirmDialog } = useConfirmDialog()
@@ -22,6 +22,8 @@ const hours = ref<ClinicHours | null>(null)
 const overrides = ref<ClinicOverride[]>([])
 const days = ref<WeekdayShifts[]>([])
 const isLoading = ref(true)
+/** Set when the hours could not be read: the grid must not render without them. */
+const loadError = ref<string | null>(null)
 const isSaving = ref(false)
 
 const showOverrideModal = ref(false)
@@ -42,11 +44,18 @@ const kindLabels = computed(() => ({
 
 async function load() {
   isLoading.value = true
+  loadError.value = null
   try {
     const data = await fetchHours()
     hours.value = data
     days.value = data.days
     overrides.value = await fetchOverrides()
+  } catch (e) {
+    // Was try/finally with no catch: the rejection escaped onMounted and the
+    // page rendered the weekly grid from empty `days` with a live Save — one
+    // click from overwriting the clinic's real opening hours with nothing.
+    console.error('Error loading clinic hours:', e)
+    loadError.value = errorMessage(e, t('errors.loadFailed'))
   } finally {
     isLoading.value = false
   }
@@ -131,8 +140,19 @@ async function saveOverride() {
 
 async function confirmDelete(o: ClinicOverride) {
   if (!await confirmDialog({ title: t('schedules.overrides.confirmDelete'), danger: true })) return
-  await deleteOverride(o.id)
-  overrides.value = await fetchOverrides()
+  try {
+    await deleteOverride(o.id)
+  } catch (e) {
+    // The composable is silent, so this is the only report: a 404 or a 409
+    // used to leave the override on screen with no message at all.
+    toast.add({ title: t('errors.deleteFailed'), description: errorDetail(e), color: 'error' })
+    return
+  }
+  try {
+    overrides.value = await fetchOverrides()
+  } catch (e) {
+    toast.add({ title: t('errors.loadFailed'), description: errorDetail(e), color: 'error' })
+  }
 }
 
 function timeForInput(value: string): string {
@@ -152,6 +172,31 @@ onMounted(load)
       v-if="isLoading"
       class="h-40 w-full"
     />
+
+    <!-- A failed load must not render the weekly grid from empty defaults:
+         its Save button would overwrite the clinic's real opening hours. -->
+    <div
+      v-else-if="loadError"
+      class="space-y-3"
+      data-testid="clinic-hours-load-error"
+    >
+      <UAlert
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="loadError"
+      />
+      <UButton
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-refresh-cw"
+        data-testid="clinic-hours-retry"
+        @click="load()"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
 
     <div
       v-else

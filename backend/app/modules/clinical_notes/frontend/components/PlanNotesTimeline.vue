@@ -40,6 +40,7 @@ const { user } = useAuth()
 const { can } = usePermissions()
 const { metaFor } = useNoteTypeMeta()
 const {
+  error: notesError,
   listMergedForPlan,
   createNote,
   updateNote,
@@ -106,7 +107,7 @@ const itemByPlanItemId = computed(() => {
 async function refresh() {
   loading.value = true
   try {
-    entries.value = await listMergedForPlan(props.planId)
+    entries.value = await listMergedForPlan(props.planId, { silent: true })
   } finally {
     loading.value = false
   }
@@ -350,6 +351,30 @@ watch(() => props.planId, refresh, { immediate: true })
         name="i-lucide-loader-2"
         class="w-5 h-5 animate-spin mx-auto"
       />
+    </div>
+
+    <!-- A failed read is not "this plan has no notes". -->
+    <div
+      v-else-if="notesError"
+      class="space-y-2 py-2"
+      data-testid="plan-notes-load-error"
+    >
+      <UAlert
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="notesError"
+      />
+      <UButton
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-refresh-cw"
+        data-testid="plan-notes-retry"
+        @click="refresh()"
+      >
+        {{ t('common.retry') }}
+      </UButton>
     </div>
 
     <div

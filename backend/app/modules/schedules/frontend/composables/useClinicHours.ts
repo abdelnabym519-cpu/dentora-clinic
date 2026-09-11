@@ -41,12 +41,12 @@ export function useClinicHours() {
   const api = useApi()
 
   async function fetchHours(): Promise<ClinicHours> {
-    const res = await api.get<ApiResponse<ClinicHours>>('/api/v1/schedules/clinic-hours')
+    const res = await api.get<ApiResponse<ClinicHours>>('/api/v1/schedules/clinic-hours', { silent: true })
     return res.data
   }
 
   async function updateHours(payload: { timezone?: string, days: WeekdayShifts[] }): Promise<ClinicHours> {
-    const res = await api.put<ApiResponse<ClinicHours>>('/api/v1/schedules/clinic-hours', payload)
+    const res = await api.put<ApiResponse<ClinicHours>>('/api/v1/schedules/clinic-hours', payload, { silent: true })
     return res.data
   }
 
@@ -57,22 +57,22 @@ export function useClinicHours() {
     const url = query.toString()
       ? `/api/v1/schedules/clinic-overrides?${query.toString()}`
       : '/api/v1/schedules/clinic-overrides'
-    const res = await api.get<ApiResponse<ClinicOverride[]>>(url)
+    const res = await api.get<ApiResponse<ClinicOverride[]>>(url, { silent: true })
     return res.data
   }
 
   async function createOverride(payload: ClinicOverridePayload): Promise<ClinicOverride> {
-    const res = await api.post<ApiResponse<ClinicOverride>>('/api/v1/schedules/clinic-overrides', payload)
+    const res = await api.post<ApiResponse<ClinicOverride>>('/api/v1/schedules/clinic-overrides', payload, { silent: true })
     return res.data
   }
 
   async function updateOverride(id: string, payload: ClinicOverridePayload): Promise<ClinicOverride> {
-    const res = await api.put<ApiResponse<ClinicOverride>>(`/api/v1/schedules/clinic-overrides/${id}`, payload)
+    const res = await api.put<ApiResponse<ClinicOverride>>(`/api/v1/schedules/clinic-overrides/${id}`, payload, { silent: true })
     return res.data
   }
 
   async function deleteOverride(id: string): Promise<void> {
-    await api.del(`/api/v1/schedules/clinic-overrides/${id}`)
+    await api.del(`/api/v1/schedules/clinic-overrides/${id}`, { silent: true })
   }
 
   return {

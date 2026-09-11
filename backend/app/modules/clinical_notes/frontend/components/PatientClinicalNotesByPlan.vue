@@ -16,7 +16,7 @@ const props = defineProps<{
 }>()
 
 const { t, locale } = useI18n()
-const { listGroupedForPatient } = useClinicalNotes()
+const { listGroupedForPatient, error: notesError } = useClinicalNotes()
 
 const groups = ref<PlanNotesGroup[]>([])
 const loading = ref(false)
@@ -25,7 +25,7 @@ async function refresh() {
   if (!props.ctx?.patientId) return
   loading.value = true
   try {
-    groups.value = await listGroupedForPatient(props.ctx.patientId)
+    groups.value = await listGroupedForPatient(props.ctx.patientId, { silent: true })
   } finally {
     loading.value = false
   }
@@ -65,6 +65,30 @@ const hasAny = computed(() =>
         :key="i"
         class="h-20 w-full"
       />
+    </div>
+
+    <!-- A failed read is not "this patient has no clinical notes". -->
+    <div
+      v-else-if="notesError"
+      class="space-y-2 py-4"
+      data-testid="patient-notes-load-error"
+    >
+      <UAlert
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="notesError"
+      />
+      <UButton
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-refresh-cw"
+        data-testid="patient-notes-retry"
+        @click="refresh()"
+      >
+        {{ t('common.retry') }}
+      </UButton>
     </div>
 
     <div

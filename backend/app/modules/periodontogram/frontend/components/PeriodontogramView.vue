@@ -59,8 +59,11 @@ watch(() => props.patientId, refreshAll)
 async function handleStart() {
   starting.value = true
   try {
-    await startDraft()
-    if (timeline.value?.draft) {
+    // startDraft reports through `error`, which the alert above renders;
+    // swallowing here only keeps the rejection from escaping the click
+    // handler, and stops us fetching a draft that was never created.
+    const started = await startDraft().catch(() => null)
+    if (started && timeline.value?.draft) {
       await fetchSnapshot(timeline.value.draft.id)
     }
   } finally {
@@ -107,6 +110,7 @@ async function handleDiscarded() {
       variant="soft"
       icon="i-lucide-alert-triangle"
       :title="t('periodontogram.errors.loadFailed')"
+      :description="error"
     />
 
     <PerioEmptyState

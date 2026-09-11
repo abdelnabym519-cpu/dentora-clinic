@@ -32,12 +32,12 @@ export function useProfessionalHours() {
   const api = useApi()
 
   async function fetchHours(userId: string): Promise<ProfessionalHours> {
-    const res = await api.get<ApiResponse<ProfessionalHours>>(`/api/v1/schedules/professionals/${userId}/hours`)
+    const res = await api.get<ApiResponse<ProfessionalHours>>(`/api/v1/schedules/professionals/${userId}/hours`, { silent: true })
     return res.data
   }
 
   async function updateHours(userId: string, days: WeekdayShifts[]): Promise<ProfessionalHours> {
-    const res = await api.put<ApiResponse<ProfessionalHours>>(`/api/v1/schedules/professionals/${userId}/hours`, { days })
+    const res = await api.put<ApiResponse<ProfessionalHours>>(`/api/v1/schedules/professionals/${userId}/hours`, { days }, { silent: true })
     return res.data
   }
 
@@ -48,22 +48,22 @@ export function useProfessionalHours() {
     const url = query.toString()
       ? `/api/v1/schedules/professionals/${userId}/overrides?${query.toString()}`
       : `/api/v1/schedules/professionals/${userId}/overrides`
-    const res = await api.get<ApiResponse<ProfessionalOverride[]>>(url)
+    const res = await api.get<ApiResponse<ProfessionalOverride[]>>(url, { silent: true })
     return res.data
   }
 
   async function createOverride(userId: string, payload: ProfessionalOverridePayload): Promise<ProfessionalOverride> {
-    const res = await api.post<ApiResponse<ProfessionalOverride>>(`/api/v1/schedules/professionals/${userId}/overrides`, payload)
+    const res = await api.post<ApiResponse<ProfessionalOverride>>(`/api/v1/schedules/professionals/${userId}/overrides`, payload, { silent: true })
     return res.data
   }
 
   async function updateOverride(userId: string, id: string, payload: ProfessionalOverridePayload): Promise<ProfessionalOverride> {
-    const res = await api.put<ApiResponse<ProfessionalOverride>>(`/api/v1/schedules/professionals/${userId}/overrides/${id}`, payload)
+    const res = await api.put<ApiResponse<ProfessionalOverride>>(`/api/v1/schedules/professionals/${userId}/overrides/${id}`, payload, { silent: true })
     return res.data
   }
 
   async function deleteOverride(userId: string, id: string): Promise<void> {
-    await api.del(`/api/v1/schedules/professionals/${userId}/overrides/${id}`)
+    await api.del(`/api/v1/schedules/professionals/${userId}/overrides/${id}`, { silent: true })
   }
 
   return {

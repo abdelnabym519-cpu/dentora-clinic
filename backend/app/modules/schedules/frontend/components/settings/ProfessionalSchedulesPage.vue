@@ -2,7 +2,7 @@
 import type { ProfessionalHours, ProfessionalOverride, ProfessionalOverridePayload } from '../../composables/useProfessionalHours'
 import type { WeekdayShifts } from '../../composables/useClinicHours'
 import { PERMISSIONS } from '~~/app/config/permissions'
-import { errorDetail } from '~~/app/utils/error'
+import { errorDetail, errorMessage } from '~~/app/utils/error'
 
 const { t } = useI18n()
 const { confirmDialog } = useConfirmDialog()
@@ -33,6 +33,8 @@ const hours = ref<ProfessionalHours | null>(null)
 const days = ref<WeekdayShifts[]>([])
 const overrides = ref<ProfessionalOverride[]>([])
 const isLoading = ref(false)
+/** Set when the hours could not be read: the grid must not render without them. */
+const loadError = ref<string | null>(null)
 const isSaving = ref(false)
 
 const professionalOptions = computed(() =>
@@ -57,11 +59,17 @@ const kindLabels = computed(() => ({
 
 async function loadProfessional(id: string) {
   isLoading.value = true
+  loadError.value = null
   try {
     const data = await fetchHours(id)
     hours.value = data
     days.value = data.days
     overrides.value = await fetchOverrides(id)
+  } catch (e) {
+    // Was try/finally with no catch: the rejection escaped the professional
+    // watcher and the grid rendered from empty `days` with a live Save.
+    console.error('Error loading professional hours:', e)
+    loadError.value = errorMessage(e, t('errors.loadFailed'))
   } finally {
     isLoading.value = false
   }
@@ -153,8 +161,20 @@ async function saveOverride() {
 async function confirmDelete(o: ProfessionalOverride) {
   if (!selectedProfessional.value) return
   if (!await confirmDialog({ title: t('schedules.overrides.confirmDelete'), danger: true })) return
-  await deleteOverride(selectedProfessional.value, o.id)
-  overrides.value = await fetchOverrides(selectedProfessional.value)
+  const id = selectedProfessional.value
+  try {
+    await deleteOverride(id, o.id)
+  } catch (e) {
+    // The composable is silent, so this is the only report: a 404 or a 409
+    // used to leave the override on screen with no message at all.
+    toast.add({ title: t('errors.deleteFailed'), description: errorDetail(e), color: 'error' })
+    return
+  }
+  try {
+    overrides.value = await fetchOverrides(id)
+  } catch (e) {
+    toast.add({ title: t('errors.loadFailed'), description: errorDetail(e), color: 'error' })
+  }
 }
 
 function timeForInput(value: string): string {
@@ -192,6 +212,31 @@ onMounted(async () => {
       v-if="isLoading"
       class="h-40 w-full"
     />
+
+    <!-- A failed load must not render the weekly grid from empty defaults:
+         its Save button would overwrite this professional's real hours. -->
+    <div
+      v-else-if="loadError"
+      class="space-y-3"
+      data-testid="professional-hours-load-error"
+    >
+      <UAlert
+        color="error"
+        variant="soft"
+        icon="i-lucide-alert-triangle"
+        :title="t('errors.loadFailed')"
+        :description="loadError"
+      />
+      <UButton
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-refresh-cw"
+        data-testid="professional-hours-retry"
+        @click="selectedProfessional && loadProfessional(selectedProfessional)"
+      >
+        {{ t('common.retry') }}
+      </UButton>
+    </div>
 
     <div
       v-else-if="selectedProfessional"

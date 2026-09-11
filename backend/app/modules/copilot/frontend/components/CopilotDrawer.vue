@@ -17,15 +17,22 @@ const listEl = ref<HTMLElement | null>(null)
 async function submit() {
   const text = input.value.trim()
   if (!text || busy.value) return
-  input.value = ''
-  await send(text)
+  // Clear only once the message is actually on its way. `send` starts by
+  // creating a session, and clearing first meant a failure there destroyed
+  // what the clinician had typed and left nothing to show for it — the
+  // rejection also escaped this click handler.
+  const sent = await send(text).then(() => true, () => false)
+  if (sent) input.value = ''
 }
 
 async function onPick(prompt: string) {
   if (busy.value) return
   view.value = 'chat'
+  const draft = input.value
   input.value = ''
-  await send(prompt)
+  const sent = await send(prompt).then(() => true, () => false)
+  // A failed send must not eat the suggested prompt or the clinician's draft.
+  if (!sent) input.value = draft || prompt
 }
 
 const phaseLabel = computed(() => {

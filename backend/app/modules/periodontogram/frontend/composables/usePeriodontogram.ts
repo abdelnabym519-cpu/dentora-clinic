@@ -7,6 +7,7 @@
  */
 
 import { computed, ref } from 'vue'
+import { errorMessage } from '~~/app/utils/error'
 import type {
   PerioSite,
   PerioSnapshotDetail,
@@ -37,29 +38,49 @@ export function usePeriodontogram(patientId: () => string) {
     error.value = null
     try {
       const response = await api.get<ApiResponse<PerioTimelineResponse>>(
-        `/api/v1/periodontogram/patients/${patientId()}/timeline`
+        `/api/v1/periodontogram/patients/${patientId()}/timeline`,
+        { silent: true }
       )
       timeline.value = response.data
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'load_failed'
+      // `e.message` on a FetchError is just "403 Forbidden"; the view renders
+      // this string as the alert's description, so it has to carry the reason.
+      error.value = errorMessage(e, 'load_failed')
     } finally {
       isLoading.value = false
     }
   }
 
   async function fetchDraft(): Promise<void> {
-    const response = await api.get<ApiResponse<PerioSnapshotDetail | null>>(
-      `/api/v1/periodontogram/patients/${patientId()}/draft`
-    )
-    currentSnapshot.value = response.data
-    viewingDate.value = null
+    try {
+      const response = await api.get<ApiResponse<PerioSnapshotDetail | null>>(
+        `/api/v1/periodontogram/patients/${patientId()}/draft`,
+        { silent: true }
+      )
+      currentSnapshot.value = response.data
+      viewingDate.value = null
+    } catch (e) {
+      // No catch here meant the rejection escaped `refreshAll` — which runs
+      // from onMounted and from the patientId watcher — and the view fell
+      // through to "start a session" as though nothing had ever been recorded.
+      console.error('Error loading periodontogram draft:', e)
+      error.value = errorMessage(e, 'load_failed')
+    }
   }
 
   async function fetchSnapshot(snapshotId: string): Promise<void> {
-    const response = await api.get<ApiResponse<PerioSnapshotDetail>>(
-      `/api/v1/periodontogram/snapshots/${snapshotId}`
-    )
-    currentSnapshot.value = response.data
+    try {
+      const response = await api.get<ApiResponse<PerioSnapshotDetail>>(
+        `/api/v1/periodontogram/snapshots/${snapshotId}`,
+        { silent: true }
+      )
+      currentSnapshot.value = response.data
+    } catch (e) {
+      // Picking a past date used to leave the previous snapshot on screen with
+      // no message when this failed: a chart labelled with the wrong date.
+      console.error('Error loading periodontogram snapshot:', e)
+      error.value = errorMessage(e, 'load_failed')
+    }
   }
 
   // Optimistic mutators — apply a per-tooth or per-site patch directly
@@ -110,13 +131,24 @@ export function usePeriodontogram(patientId: () => string) {
   }
 
   async function startDraft(): Promise<PerioSnapshotDetail> {
-    const response = await api.post<ApiResponse<PerioSnapshotDetail>>(
-      `/api/v1/periodontogram/patients/${patientId()}/draft`,
-      {}
-    )
-    currentSnapshot.value = response.data
-    await fetchTimeline()
-    return response.data
+    error.value = null
+    try {
+      const response = await api.post<ApiResponse<PerioSnapshotDetail>>(
+        `/api/v1/periodontogram/patients/${patientId()}/draft`,
+        {},
+        { silent: true }
+      )
+      currentSnapshot.value = response.data
+      await fetchTimeline()
+      return response.data
+    } catch (e) {
+      // A 409 ("a draft already exists") used to stop the button's spinner and
+      // say nothing at all. Rethrown so the caller does not go on to load a
+      // draft that was never created.
+      console.error('Error starting periodontogram draft:', e)
+      error.value = errorMessage(e, 'start_failed')
+      throw e
+    }
   }
 
   return {

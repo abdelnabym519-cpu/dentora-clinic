@@ -13,6 +13,7 @@ import type {
   PlanNotesGroup,
   RecentNoteEntry
 } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
 
 /**
  * Clinical notes — owned by the `clinical_notes` module since issue #60.
@@ -31,6 +32,15 @@ export function useClinicalNotes() {
   const { t } = useI18n()
 
   const loading = ref(false)
+  /**
+   * Why the last read failed, or null when it did not.
+   *
+   * `listMergedForPlan`, `listGroupedForPatient` and `listTemplates` had no
+   * catch at all: the rejection escaped the consumer's `try/finally` — and an
+   * immediate watcher — as an unhandled promise rejection, and the timeline
+   * rendered "no notes", a clinical claim that was never established.
+   */
+  const error = ref<string | null>(null)
 
   /**
    * Notes owned by one appointment / treatment.
@@ -73,26 +83,57 @@ export function useClinicalNotes() {
     return response.data
   }
 
-  async function listMergedForPlan(planId: string): Promise<ClinicalNoteEntry[]> {
-    const response = await api.get<ApiResponse<ClinicalNoteEntry[]>>(
-      `/api/v1/clinical_notes/treatment-plans/${planId}/merged`
-    )
-    return response.data
+  async function listMergedForPlan(
+    planId: string,
+    options: { silent?: boolean } = {}
+  ): Promise<ClinicalNoteEntry[]> {
+    error.value = null
+    try {
+      const response = await api.get<ApiResponse<ClinicalNoteEntry[]>>(
+        `/api/v1/clinical_notes/treatment-plans/${planId}/merged`,
+        options
+      )
+      return response.data
+    } catch (e) {
+      console.error('Error loading plan notes:', e)
+      error.value = errorMessage(e, t('errors.loadFailed'))
+      return []
+    }
   }
 
-  async function listGroupedForPatient(patientId: string): Promise<PlanNotesGroup[]> {
-    const response = await api.get<ApiResponse<PlanNotesGroup[]>>(
-      `/api/v1/clinical_notes/patients/${patientId}/by-plan`
-    )
-    return response.data
+  async function listGroupedForPatient(
+    patientId: string,
+    options: { silent?: boolean } = {}
+  ): Promise<PlanNotesGroup[]> {
+    error.value = null
+    try {
+      const response = await api.get<ApiResponse<PlanNotesGroup[]>>(
+        `/api/v1/clinical_notes/patients/${patientId}/by-plan`,
+        options
+      )
+      return response.data
+    } catch (e) {
+      console.error('Error loading patient notes by plan:', e)
+      error.value = errorMessage(e, t('errors.loadFailed'))
+      return []
+    }
   }
 
   async function listTemplates(category?: string): Promise<NoteTemplate[]> {
     const qs = new URLSearchParams()
     if (category) qs.set('category', category)
     const url = `/api/v1/clinical_notes/note-templates${qs.toString() ? `?${qs}` : ''}`
-    const response = await api.get<ApiResponse<NoteTemplate[]>>(url)
-    return response.data
+    error.value = null
+    try {
+      // Not silent: the template pickers have no inline surface of their own,
+      // so the shared labelled toast is the only report they get.
+      const response = await api.get<ApiResponse<NoteTemplate[]>>(url)
+      return response.data
+    } catch (e) {
+      console.error('Error loading note templates:', e)
+      error.value = errorMessage(e, t('errors.loadFailed'))
+      return []
+    }
   }
 
   async function createNote(input: ClinicalNoteCreate): Promise<ClinicalNote | null> {
@@ -178,6 +219,7 @@ export function useClinicalNotes() {
 
   return {
     loading,
+    error,
     listForOwner,
     listRecentForPatient,
     listMergedForPlan,

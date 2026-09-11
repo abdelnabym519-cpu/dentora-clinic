@@ -12,19 +12,19 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 |--------|---------|----------|---------|---------|-----------|-------------|-------|----------|----------|
 | `accounting_export` | 0.1.0 | official | billing, payments | manual | yes | 2 | 0 | 0 | yes |
 | `agenda` | 0.4.0 | official | patients, catalog, odontogram | auto | no | 4 | 11 | 0 | yes |
-| `ai_case_summary` | 1.0.0 | official | case_intelligence, patients, risk_engine | manual | no | 3 | 0 | 0 | no |
-| `ai_clinical_report` | 1.0.0 | official | clinical_copilot, ai_second_review, copilot | manual | no | 2 | 0 | 0 | no |
-| `ai_second_review` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, patients | manual | no | 3 | 0 | 0 | no |
-| `ai_treatment_planning` | 1.0.0 | official | case_intelligence, risk_engine, patients | manual | no | 3 | 0 | 0 | no |
+| `ai_case_summary` | 1.0.0 | official | case_intelligence, patients, risk_engine | auto | no | 3 | 0 | 0 | yes |
+| `ai_clinical_report` | 1.0.0 | official | clinical_copilot, ai_second_review, copilot | auto | no | 2 | 0 | 0 | yes |
+| `ai_second_review` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, patients | auto | no | 3 | 0 | 0 | yes |
+| `ai_treatment_planning` | 1.0.0 | official | case_intelligence, risk_engine, patients | auto | no | 3 | 0 | 0 | yes |
 | `billing` | 0.1.0 | official | patients, catalog, budget, payments | auto | no | 3 | 3 | 1 | yes |
 | `booking` | 0.1.0 | community | patients, agenda, schedules | auto | yes | 2 | 0 | 0 | yes |
 | `budget` | 0.1.0 | official | patients, catalog, odontogram | auto | no | 5 | 9 | 4 | yes |
-| `case_intelligence` | 1.0.0 | official | patients, patients_clinical, odontogram, periodontogram, patient_timeline, media, dental_3d | manual | no | 1 | 1 | 0 | no |
+| `case_intelligence` | 1.0.0 | official | patients, patients_clinical, odontogram, periodontogram, patient_timeline, media, dental_3d | auto | no | 1 | 1 | 0 | yes |
 | `catalog` | 0.1.0 | official | — | auto | no | 3 | 0 | 0 | yes |
-| `clinical_copilot` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, copilot | manual | no | 2 | 0 | 0 | no |
+| `clinical_copilot` | 1.0.0 | official | case_intelligence, risk_engine, ai_treatment_planning, treatment_simulation, ai_second_review, copilot | auto | no | 2 | 0 | 0 | yes |
 | `clinical_notes` | 0.2.0 | official | patients, odontogram, treatment_plan, media, agenda | auto | no | 2 | 6 | 0 | yes |
 | `copilot` | 0.1.0 | official | — | auto | yes | 5 | 3 | 1 | yes |
-| `dental_3d` | 0.9.0 | official | patients, odontogram, media | manual | yes | 2 | 0 | 0 | yes |
+| `dental_3d` | 0.9.0 | official | patients, odontogram, media | auto | yes | 2 | 0 | 0 | yes |
 | `media` | 0.2.0 | official | patients | auto | no | 4 | 7 | 1 | yes |
 | `migration_import` | 0.1.0 | official | patients, patients_clinical, clinical_notes, agenda, schedules, recalls, catalog, budget, odontogram, treatment_plan, billing, payments, media | manual | yes | 4 | 5 | 0 | yes |
 | `notifications` | 0.1.0 | official | patients, agenda, budget, billing, catalog | auto | no | 8 | 7 | 6 | yes |
@@ -35,14 +35,14 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
 | `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
 | `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 2 | yes |
-| `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
+| `periodontogram` | 0.1.0 | official | patients, odontogram | auto | yes | 2 | 1 | 2 | yes |
 | `prescriptions` | 1.0.0 | official | patients, notifications | auto | no | 6 | 0 | 0 | yes |
 | `recalls` | 0.1.0 | official | patients, agenda | auto | yes | 3 | 4 | 5 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments | auto | no | 3 | 0 | 0 | yes |
-| `risk_engine` | 1.0.0 | official | case_intelligence, patients, dental_3d | manual | no | 3 | 0 | 0 | no |
+| `risk_engine` | 1.0.0 | official | case_intelligence, patients, dental_3d | auto | no | 3 | 0 | 0 | no |
 | `schedules` | 0.1.0 | official | agenda | auto | yes | 8 | 0 | 3 | yes |
 | `treatment_plan` | 0.1.0 | official | patients, agenda, odontogram, catalog, budget, media | auto | no | 5 | 13 | 7 | yes |
-| `treatment_simulation` | 1.0.0 | official | dental_3d, case_intelligence, risk_engine, ai_treatment_planning, patients | manual | no | 2 | 0 | 0 | no |
+| `treatment_simulation` | 1.0.0 | official | dental_3d, case_intelligence, risk_engine, ai_treatment_planning, patients | auto | no | 2 | 0 | 0 | yes |
 | `verifactu` | 0.1.0 | official | billing, catalog | manual | yes | 5 | 1 | 1 | yes |
 | `voice` | 0.1.0 | official | — | auto | yes | 1 | 0 | 0 | yes |
 | `whatsapp_evolution` | 0.1.0 | community | notifications, patients | manual | yes | 2 | 0 | 0 | no |
@@ -104,9 +104,9 @@ Advisory, evidence-traceable AI summaries derived from redacted CaseSnapshot inp
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
+- **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `case_intelligence`, `patients`, `risk_engine`
-- **Frontend layer:** —
+- **Frontend layer:** `frontend`
 - **Permissions:**
   - `ai_case_summary.generate`
   - `ai_case_summary.read`
@@ -122,9 +122,9 @@ Draft-only AI clinical reports assembled from the reviewed cross-stage clinical 
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
+- **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `clinical_copilot`, `ai_second_review`, `copilot`
-- **Frontend layer:** —
+- **Frontend layer:** `frontend`
 - **Permissions:**
   - `ai_clinical_report.generate`
   - `ai_clinical_report.read`
@@ -139,9 +139,9 @@ Evidence-traceable advisory second review of a dentist-accepted AI Treatment Pla
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
+- **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `treatment_simulation`, `patients`
-- **Frontend layer:** —
+- **Frontend layer:** `frontend`
 - **Permissions:**
   - `ai_second_review.generate`
   - `ai_second_review.read`
@@ -157,9 +157,9 @@ Advisory AI-generated treatment options grounded in redacted CaseSnapshot eviden
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
+- **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `case_intelligence`, `risk_engine`, `patients`
-- **Frontend layer:** —
+- **Frontend layer:** `frontend`
 - **Permissions:**
   - `ai_treatment_planning.generate`
   - `ai_treatment_planning.read`
@@ -247,9 +247,9 @@ Deterministic, versioned unified clinical case snapshots with explicit availabil
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
+- **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `patients`, `patients_clinical`, `odontogram`, `periodontogram`, `patient_timeline`, `media`, `dental_3d`
-- **Frontend layer:** —
+- **Frontend layer:** `frontend`
 - **Permissions:**
   - `case_intelligence.read`
 - **Events emitted:**
@@ -282,9 +282,9 @@ Read-only clinical advisory over Case Intelligence, Risk Engine, AI Treatment Pl
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
-- **Depends:** `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `treatment_simulation`, `copilot`
-- **Frontend layer:** —
+- **Install policy:** installable=True · auto_install=True · removable=False
+- **Depends:** `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `treatment_simulation`, `ai_second_review`, `copilot`
+- **Frontend layer:** `frontend`
 - **Permissions:**
   - `clinical_copilot.read`
   - `clinical_copilot.use`
@@ -346,7 +346,7 @@ Dental 3D — 3D dentition preview on the patient summary with real mesh ingesti
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=True
+- **Install policy:** installable=True · auto_install=True · removable=True
 - **Depends:** `patients`, `odontogram`, `media`
 - **Frontend layer:** `frontend`
 - **Permissions:**
@@ -624,7 +624,7 @@ SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices.
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=True
+- **Install policy:** installable=True · auto_install=True · removable=True
 - **Depends:** `patients`, `odontogram`
 - **Frontend layer:** `frontend`
 - **Permissions:**
@@ -710,7 +710,7 @@ Deterministic observed-fact risk decision support and fail-closed patient-space 
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
+- **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `case_intelligence`, `patients`, `dental_3d`
 - **Frontend layer:** —
 - **Permissions:**
@@ -793,9 +793,9 @@ Deterministic, non-predictive visualization of a dentist-accepted AI Treatment P
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=False
+- **Install policy:** installable=True · auto_install=True · removable=False
 - **Depends:** `dental_3d`, `case_intelligence`, `risk_engine`, `ai_treatment_planning`, `patients`
-- **Frontend layer:** —
+- **Frontend layer:** `frontend`
 - **Permissions:**
   - `treatment_simulation.generate`
   - `treatment_simulation.read`

@@ -173,9 +173,7 @@ def main() -> int:
         "study_instance_uid": FIXTURE_STUDY_UID,
         "series_instance_uid": FIXTURE_SERIES_UID,
         "frame_of_reference_uid": FIXTURE_FRAME_OF_REFERENCE_UID,
-        "instances": [
-            {"file": filename, **header} for filename, _payload, header in files
-        ],
+        "instances": [{"file": filename, **header} for filename, _payload, header in files],
     }
     (args.out_dir / "fixture_manifest.json").write_text(json.dumps(manifest, indent=1))
     print(f"WROTE {len(files)} synthetic instances + manifest to {args.out_dir}")

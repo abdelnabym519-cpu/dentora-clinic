@@ -152,9 +152,7 @@ def test_pending_second_review_stays_stale() -> None:
             reason=None,
         )
     )
-    artifact = _reviewed_artifact(
-        status="pending_review", reviewed_at=None, reviewed_by=None
-    )
+    artifact = _reviewed_artifact(status="pending_review", reviewed_at=None, reviewed_by=None)
     assert artifact.review_status == "pending_review"
     enforced = _enforce_cross_stage_readiness(context)
     # The governor's cross-stage rule cannot manufacture review provenance:

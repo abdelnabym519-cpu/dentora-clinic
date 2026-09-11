@@ -59,7 +59,12 @@ def test_perio_payloads_are_closed_snapshot_shaped() -> None:
         for tooth in teeth:
             assert len(tooth["sites"]) == 6
             assert {site["site_code"] for site in tooth["sites"]} == {
-                "MV", "V", "DV", "ML", "L", "DL"
+                "MV",
+                "V",
+                "DV",
+                "ML",
+                "L",
+                "DL",
             }
             for site in tooth["sites"]:
                 assert isinstance(site["bleeding_on_probing"], bool)
@@ -97,6 +102,7 @@ def test_implant_case_stays_external_service_gated() -> None:
 
 
 # --- Reconciling-seed regression (existing demo database) -------------------
+
 
 async def _seed_pre_ai_demo_base(db) -> None:
     """Mimic a database created by a pre-AI revision: the demo clinic and
@@ -160,25 +166,26 @@ async def test_seeder_reconciles_ai_cases_into_existing_demo_database(
     await db_session.commit()
 
     first = (
-        await db_session.execute(
-            select(Patient).where(Patient.id.in_(AI_DEMO_PATIENT_IDS))
-        )
-    ).scalars().all()
+        (await db_session.execute(select(Patient).where(Patient.id.in_(AI_DEMO_PATIENT_IDS))))
+        .scalars()
+        .all()
+    )
     assert len(first) == 5
 
     # Second run: sentinel short-circuits, zero duplicates.
     await seed_ai_demo_cases(db_session, dentist_id=USER_DENTIST_ID)
     await db_session.commit()
     second = (
-        await db_session.execute(
-            select(Patient).where(Patient.id.in_(AI_DEMO_PATIENT_IDS))
-        )
-    ).scalars().all()
+        (await db_session.execute(select(Patient).where(Patient.id.in_(AI_DEMO_PATIENT_IDS))))
+        .scalars()
+        .all()
+    )
     assert len(second) == 5
     assert {p.id for p in second} == {p.id for p in first}
 
 
 # --- Demo-user authentication reconciliation --------------------------------
+
 
 @pytest.mark.asyncio
 async def test_seeder_reconciles_stale_demo_credentials(db_session) -> None:
@@ -207,9 +214,7 @@ async def test_seeder_reconciles_stale_demo_credentials(db_session) -> None:
 
     assert created >= 1  # the other four demo users were missing
     assert any("credentials" in r for r in repaired)
-    refreshed = (
-        await db_session.execute(select(User).where(User.id == original_id))
-    ).scalar_one()
+    refreshed = (await db_session.execute(select(User).where(User.id == original_id))).scalar_one()
     assert verify_password(DEMO_PASSWORD, refreshed.password_hash)
     assert not verify_password("StaleLegacyPass1!", refreshed.password_hash)
     membership = (
@@ -259,6 +264,7 @@ async def test_seeder_user_reconciliation_is_idempotent_and_preserves_valid_hash
 
 # --- Case Intelligence lock-release regression -------------------------------
 
+
 @pytest.mark.asyncio
 async def test_case_intelligence_fast_path_releases_patient_lock(db_session) -> None:
     """The unchanged-snapshot fast path must commit (release the patient
@@ -287,6 +293,7 @@ async def test_case_intelligence_fast_path_releases_patient_lock(db_session) -> 
     from uuid import UUID
 
     from app.modules.patients.models import Patient
+
     db_session.add(
         Patient(
             id=UUID(patient_id),
@@ -312,9 +319,7 @@ async def test_case_intelligence_fast_path_releases_patient_lock(db_session) -> 
     # immediately (NOWAIT fails loudly while the first session holds it).
     async with async_session_maker() as other:
         row = await other.execute(
-            text(
-                "SELECT id FROM patients WHERE id = :pid FOR UPDATE NOWAIT"
-            ),
+            text("SELECT id FROM patients WHERE id = :pid FOR UPDATE NOWAIT"),
             {"pid": patient_id},
         )
         assert row.scalar_one() is not None

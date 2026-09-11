@@ -13,9 +13,7 @@ import pytest
 
 from app.core.llm.base import LLMConfigError
 
-CONFIG_ERROR_MESSAGE = (
-    "OpenAI provider selected but OPENAI_API_KEY is not configured"
-)
+CONFIG_ERROR_MESSAGE = "OpenAI provider selected but OPENAI_API_KEY is not configured"
 
 
 def _raising_factory(_name: str):
@@ -28,9 +26,7 @@ async def test_case_summary_provider_unavailable(
 ) -> None:
     from app.modules.ai_case_summary.service import AICaseSummaryService
 
-    monkeypatch.setattr(
-        AICaseSummaryService, "provider_factory", staticmethod(_raising_factory)
-    )
+    monkeypatch.setattr(AICaseSummaryService, "provider_factory", staticmethod(_raising_factory))
     response = await client.post(
         f"/api/v1/ai_case_summary/patients/{test_patient.id}", headers=auth_headers
     )
@@ -89,8 +85,9 @@ async def test_second_review_provider_unavailable(
 ) -> None:
     """The second-review router maps provider misconfiguration to 503 even
     though the service resolves the simulation chain first."""
-    from app.modules.ai_second_review.service import AISecondReviewService
     from uuid import uuid4
+
+    from app.modules.ai_second_review.service import AISecondReviewService
 
     async def _raise(*args, **kwargs):
         raise LLMConfigError(CONFIG_ERROR_MESSAGE)

@@ -290,9 +290,7 @@ async def reconcile_demo_users(db: AsyncSession) -> tuple[int, list[str]]:
     for user_data in get_users_data():
         user = await db.get(User, user_data["id"])
         if user is None:
-            found = await db.execute(
-                select(User).where(User.email == user_data["email"])
-            )
+            found = await db.execute(select(User).where(User.email == user_data["email"]))
             user = found.scalar_one_or_none()
         if user is None:
             user = User(

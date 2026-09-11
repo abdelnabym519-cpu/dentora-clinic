@@ -87,9 +87,7 @@ class ScriptedProvider:
             await asyncio.sleep(self.delay_s)
         system = kwargs["system"]
         user_text = "".join(
-            block.text
-            for block in kwargs["messages"][0].content
-            if isinstance(block, TextBlock)
+            block.text for block in kwargs["messages"][0].content if isinstance(block, TextBlock)
         )
         user = json.loads(user_text)
 
@@ -302,9 +300,7 @@ class FixtureNerveProvider:
             input_kind="cbct_series",
             requires_review=True,
             pathways=pathways,
-            confidence_summary=NerveConfidenceSummary(
-                count=2, minimum=0.9, maximum=0.9, mean=0.9
-            ),
+            confidence_summary=NerveConfidenceSummary(count=2, minimum=0.9, maximum=0.9, mean=0.9),
             provenance=NerveModelProvenance(
                 model_id="dev-fixture-canal",
                 model_version="0.1.0",
@@ -417,9 +413,7 @@ async def test_golden_path_full_ai_activation_chain(db_session) -> None:
 
     # ---- Stage B: real ingestion + real alignment ports ---------------------
     for filename, payload, _header in instances:
-        receipt = await PydicomMediaCbctAdapter(
-            db_session, settings.STORAGE_MAX_FILE_SIZE
-        ).ingest(
+        receipt = await PydicomMediaCbctAdapter(db_session, settings.STORAGE_MAX_FILE_SIZE).ingest(
             clinic_id=clinic_id,
             patient_id=patient_id,
             user_id=USER_DENTIST_ID,
@@ -550,10 +544,16 @@ async def test_golden_path_full_ai_activation_chain(db_session) -> None:
     )
     assert accepted_plan_3d.status == "accepted"
     target_row = (
-        await db_session.execute(
-            select(DentalProstheticTarget).where(DentalProstheticTarget.patient_id == patient_id)
+        (
+            await db_session.execute(
+                select(DentalProstheticTarget).where(
+                    DentalProstheticTarget.patient_id == patient_id
+                )
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     assert target_row is not None and target_row.review_status == "accepted"
 
     # ---- Stage F/G: risk on the complete upstream state + acceptance --------
@@ -565,17 +565,19 @@ async def test_golden_path_full_ai_activation_chain(db_session) -> None:
         db_session, clinic_id=clinic_id, patient_id=patient_id, user_id=USER_DENTIST_ID
     )
     not_available = {
-        key: str(status) for key, status in snapshot.availability.items() if status != AvailabilityStatus.AVAILABLE
+        key: str(status)
+        for key, status in snapshot.availability.items()
+        if status != AvailabilityStatus.AVAILABLE
     }
     assert risk.provenance.availability_state == "available", {
         "sections": not_available,
         "factors": [
-            (f.factor_id, str(f.state)) for f in risk.factors if str(f.state) != "present" and str(f.state) != "absent"
+            (f.factor_id, str(f.state))
+            for f in risk.factors
+            if str(f.state) != "present" and str(f.state) != "absent"
         ],
     }
-    nerve_factor = next(
-        f for f in risk.factors if f.factor_id == "accepted_nerve_pathway_present"
-    )
+    nerve_factor = next(f for f in risk.factors if f.factor_id == "accepted_nerve_pathway_present")
     assert nerve_factor.state == "present"
     plan_factor = next(
         f for f in risk.factors if f.factor_id == "current_accepted_implant_plan_present"
@@ -728,10 +730,7 @@ async def test_golden_path_full_ai_activation_chain(db_session) -> None:
             user_role="dentist",
         )
     except ClinicalContextInsufficientError as exc:
-        stages = {
-            stage.stage: (str(stage.state), stage.reason)
-            for stage in exc.context.stages
-        }
+        stages = {stage.stage: (str(stage.state), stage.reason) for stage in exc.context.stages}
         raise AssertionError(
             {
                 "missing_or_stale": exc.context.missing_or_stale,

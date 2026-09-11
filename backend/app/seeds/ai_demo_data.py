@@ -140,8 +140,13 @@ AI_DEMO_CASES: list[dict] = [
         "notes": SYNTHETIC_MARKER,
         "medical_history": {
             "allergies": [
-                {"name": "Latex", "type": "contact", "severity": "low",
-                 "reaction": "Skin irritation", "notes": "Synthetic demo entry"}
+                {
+                    "name": "Latex",
+                    "type": "contact",
+                    "severity": "low",
+                    "reaction": "Skin irritation",
+                    "notes": "Synthetic demo entry",
+                }
             ],
         },
         "tooth_specs": {},
@@ -161,8 +166,13 @@ AI_DEMO_CASES: list[dict] = [
         "medical_history": {
             "allergies": [],
             "medications": [
-                {"name": "Multivitamin", "dosage": "1 tablet", "frequency": "daily",
-                 "start_date": date(2025, 1, 15), "notes": "Synthetic demo entry"},
+                {
+                    "name": "Multivitamin",
+                    "dosage": "1 tablet",
+                    "frequency": "daily",
+                    "start_date": date(2025, 1, 15),
+                    "notes": "Synthetic demo entry",
+                },
             ],
         },
         "tooth_specs": {
@@ -219,8 +229,12 @@ AI_DEMO_CASES: list[dict] = [
         "notes": SYNTHETIC_MARKER,
         "medical_history": {
             "surgical_history": [
-                {"procedure": "Appendectomy", "surgery_date": date(2010, 6, 1),
-                 "complications": None, "notes": "Synthetic demo entry"},
+                {
+                    "procedure": "Appendectomy",
+                    "surgery_date": date(2010, 6, 1),
+                    "complications": None,
+                    "notes": "Synthetic demo entry",
+                },
             ],
         },
         "tooth_specs": {36: {"condition": "missing"}, 46: {"condition": "missing"}},
@@ -249,30 +263,58 @@ AI_DEMO_CASES: list[dict] = [
             "adverse_reactions_to_anesthesia": True,
             "anesthesia_reaction_details": "Prolonged dizziness after lidocaine (synthetic demo entry)",
             "allergies": [
-                {"name": "Penicillin", "type": "drug", "severity": "high",
-                 "reaction": "Urticaria", "notes": "Synthetic demo entry"},
+                {
+                    "name": "Penicillin",
+                    "type": "drug",
+                    "severity": "high",
+                    "reaction": "Urticaria",
+                    "notes": "Synthetic demo entry",
+                },
             ],
             "medications": [
-                {"name": "Warfarin", "dosage": "5 mg", "frequency": "daily",
-                 "start_date": date(2024, 3, 10), "notes": "Synthetic demo entry"},
-                {"name": "Amlodipine", "dosage": "5 mg", "frequency": "daily",
-                 "start_date": date(2023, 11, 1), "notes": "Synthetic demo entry"},
+                {
+                    "name": "Warfarin",
+                    "dosage": "5 mg",
+                    "frequency": "daily",
+                    "start_date": date(2024, 3, 10),
+                    "notes": "Synthetic demo entry",
+                },
+                {
+                    "name": "Amlodipine",
+                    "dosage": "5 mg",
+                    "frequency": "daily",
+                    "start_date": date(2023, 11, 1),
+                    "notes": "Synthetic demo entry",
+                },
             ],
             "systemic_diseases": [
-                {"name": "Hypertension", "type": "cardiovascular",
-                 "diagnosis_date": date(2019, 2, 1), "is_controlled": True,
-                 "is_critical": False, "notes": "Synthetic demo entry"},
+                {
+                    "name": "Hypertension",
+                    "type": "cardiovascular",
+                    "diagnosis_date": date(2019, 2, 1),
+                    "is_controlled": True,
+                    "is_critical": False,
+                    "notes": "Synthetic demo entry",
+                },
             ],
             "surgical_history": [
-                {"procedure": "Appendectomy", "surgery_date": date(2005, 4, 15),
-                 "complications": None, "notes": "Synthetic demo entry"},
+                {
+                    "procedure": "Appendectomy",
+                    "surgery_date": date(2005, 4, 15),
+                    "complications": None,
+                    "notes": "Synthetic demo entry",
+                },
             ],
         },
         "tooth_specs": {
             16: {"condition": "carious", "surfaces": {"O": "caries", "D": "caries"}},
             26: {"condition": "carious", "surfaces": {"O": "caries"}},
             36: {"condition": "missing"},
-            46: {"condition": "restored", "surfaces": {"O": "amalgam"}, "notes": "Failing amalgam (synthetic)"},
+            46: {
+                "condition": "restored",
+                "surfaces": {"O": "amalgam"},
+                "notes": "Failing amalgam (synthetic)",
+            },
         },
         "treatments": [
             _treatment("scaling", "performed", [13, 14, 23, 24]),
@@ -310,22 +352,33 @@ def build_demo_arch_stl() -> bytes:
         a0 = math.pi * i / segments
         a1 = math.pi * (i + 1) / segments
         # outer arc bottom/top, inner arc bottom/top
-        o0b, o1b = (outer_r * math.cos(a0), outer_r * math.sin(a0), 0.0), (
-            outer_r * math.cos(a1), outer_r * math.sin(a1), 0.0)
+        o0b, o1b = (
+            (outer_r * math.cos(a0), outer_r * math.sin(a0), 0.0),
+            (outer_r * math.cos(a1), outer_r * math.sin(a1), 0.0),
+        )
         o0t, o1t = (o0b[0], o0b[1], height), (o1b[0], o1b[1], height)
-        i0b, i1b = (inner_r * math.cos(a0), inner_r * math.sin(a0), 0.0), (
-            inner_r * math.cos(a1), inner_r * math.sin(a1), 0.0)
+        i0b, i1b = (
+            (inner_r * math.cos(a0), inner_r * math.sin(a0), 0.0),
+            (inner_r * math.cos(a1), inner_r * math.sin(a1), 0.0),
+        )
         i0t, i1t = (i0b[0], i0b[1], height), (i1b[0], i1b[1], height)
         # band top, band bottom, outer wall, inner wall
-        triangles.extend([
-            (o0t, o1t, i1t), (o0t, i1t, i0t),
-            (o1b, o0b, i0b), (o0b, i1b, i0b),
-            (o0b, o1b, o1t), (o0b, o1t, o0t),
-            (i1b, i0b, i0t), (i1b, i0t, i1t),
-        ])
+        triangles.extend(
+            [
+                (o0t, o1t, i1t),
+                (o0t, i1t, i0t),
+                (o1b, o0b, i0b),
+                (o0b, i1b, i0b),
+                (o0b, o1b, o1t),
+                (o0b, o1t, o0t),
+                (i1b, i0b, i0t),
+                (i1b, i0t, i1t),
+            ]
+        )
 
-    def normal(a: tuple[float, float, float], b: tuple[float, float, float],
-               c: tuple[float, float, float]) -> tuple[float, float, float]:
+    def normal(
+        a: tuple[float, float, float], b: tuple[float, float, float], c: tuple[float, float, float]
+    ) -> tuple[float, float, float]:
         ux, uy, uz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
         vx, vy, vz = c[0] - a[0], c[1] - a[1], c[2] - a[2]
         nx, ny, nz = uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx

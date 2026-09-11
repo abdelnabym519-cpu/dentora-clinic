@@ -2,6 +2,9 @@ import { defineVitestConfig } from '@nuxt/test-utils/config'
 
 export default defineVitestConfig({
   test: {
+    // Stubbed once for the whole suite: the real nprogress removes its bar from
+    // a timer that outlives the test environment and fails the run. See the file.
+    setupFiles: ['./tests/setup/nprogress.ts'],
     environment: 'nuxt',
     globals: true,
     // The integrated app loads every built-in Nuxt layer before tests start.

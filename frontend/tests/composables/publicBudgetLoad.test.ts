@@ -19,27 +19,6 @@ const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }))
 
 mockNuxtImport('$fetch', () => fetchMock)
 
-/**
- * The client NProgress plugin removes its bar from nested ~200ms timers. This
- * file used to finish before they fired, so the callback ran after the test
- * environment was torn down and vitest reported `ReferenceError: document is
- * not defined` as an unhandled error — which fails the whole run even though
- * every test passed. Stubbing the module removes the timers rather than
- * racing them.
- */
-vi.mock('nprogress', () => ({
-  default: {
-    configure: () => {},
-    start: () => {},
-    done: () => {},
-    remove: () => {},
-    isStarted: () => false,
-    set: () => {},
-    inc: () => {},
-    trickle: () => {}
-  }
-}))
-
 const TOKEN = 'b7d41f0a-9c2e-4a55-8f31-6d0e2c4b8a17'
 
 function httpError(status: number) {

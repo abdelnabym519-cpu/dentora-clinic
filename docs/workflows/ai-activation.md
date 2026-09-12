@@ -75,25 +75,34 @@ database host port `55434`; host Ollama is reached by the backend at
 
 ## Activating on an existing environment
 
-Fresh databases install the modules above automatically. For a database that
-already exists (created before activation), use the official module tooling:
+Fresh databases install the modules above automatically. A database created
+*before* activation now catches up on its own: at boot
+`ModuleService.reconcile_with_db()` sees an `uninstalled` row whose manifest
+declares `auto_install: true`, schedules it (`to_install`), and the pending
+processor runs the normal migrate → seed → lifecycle → finalize pipeline in
+dependency order, after which the layer sync rewrites
+`frontend/modules.json`. So activation on an existing environment is:
 
 ```bash
-python -m app.cli modules install case_intelligence
-python -m app.cli modules install dental_3d
-python -m app.cli modules install risk_engine
-python -m app.cli modules install ai_case_summary
-python -m app.cli modules install ai_treatment_planning
-python -m app.cli modules install ai_second_review
-python -m app.cli modules install ai_clinical_report
+docker compose restart backend            # reconcile promotes + installs + syncs
+docker compose logs --since 3m backend | grep "scheduled for install"
+python -m app.cli modules doctor          # no orphans, no missing layer dirs
+```
+
+One exception, by design: a module an administrator **uninstalled on purpose**
+is never resurrected — the operation log outranks the manifest default. To
+re-activate such a module (or to install one whose manifest is still
+`auto_install: false`), use the official tooling:
+
+```bash
 python -m app.cli modules install clinical_copilot
-python -m app.cli modules install treatment_simulation
 python -m app.cli modules sync-frontend   # regenerate frontend/modules.json
 ```
 
 (or install them one by one from **Settings → Modules** in the admin UI).
 `modules.json` lists the Nuxt layers to compile; the backend writes it on
-install and the CLI can rewrite it at any time.
+install and on every non-production boot, the CLI can rewrite it at any time,
+and production images generate it from the layers baked into the image.
 
 ## Local LLM provider (Copilot + clinical AI generation)
 
@@ -149,15 +158,15 @@ failing silently.
 
 ```bash
 # backend: boot, then
-curl -s localhost:8000/api/v1/modules/-/active -H "Authorization: Bearer $TOKEN"
+curl -s localhost:8100/api/v1/modules/-/active -H "Authorization: Bearer $TOKEN"
 # → all modules above listed as active
 
 # deterministic engines (no provider needed)
-curl -X POST localhost:8000/api/v1/risk_engine/patients/$PID -H "Authorization: Bearer $TOKEN" -d '{}'
-curl -X POST localhost:8000/api/v1/dental_3d/patients/$PID/segmentation -H "Authorization: Bearer $TOKEN" -d '{}'
+curl -X POST localhost:8100/api/v1/risk_engine/patients/$PID -H "Authorization: Bearer $TOKEN" -d '{}'
+curl -X POST localhost:8100/api/v1/dental_3d/patients/$PID/segmentation -H "Authorization: Bearer $TOKEN" -d '{}'
 
 # provider-gated generation (needs the provider configured)
-curl -X POST localhost:8000/api/v1/ai_case_summary/patients/$PID -H "Authorization: Bearer $TOKEN" -d '{}'
+curl -X POST localhost:8100/api/v1/ai_case_summary/patients/$PID -H "Authorization: Bearer $TOKEN" -d '{}'
 
 # frontend: layers must be present in frontend/modules.json before `nuxt build`
 grep -c module_layers frontend/modules.json

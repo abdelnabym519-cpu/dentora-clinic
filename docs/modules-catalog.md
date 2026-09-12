@@ -35,7 +35,7 @@ Maintained by `backend/scripts/generate_catalogs.py`. CI fails if a manifest cha
 | `patients` | 0.1.0 | official | — | auto | no | 2 | 3 | 0 | yes |
 | `patients_clinical` | 0.1.0 | official | patients | auto | no | 4 | 1 | 0 | yes |
 | `payments` | 0.1.0 | official | patients, budget | auto | no | 4 | 3 | 2 | yes |
-| `periodontogram` | 0.1.0 | official | patients, odontogram | manual | yes | 2 | 1 | 2 | yes |
+| `periodontogram` | 0.1.0 | official | patients, odontogram | auto | yes | 2 | 1 | 2 | yes |
 | `prescriptions` | 1.0.0 | official | patients, notifications | auto | no | 6 | 0 | 0 | yes |
 | `recalls` | 0.1.0 | official | patients, agenda | auto | yes | 3 | 4 | 5 | yes |
 | `reports` | 0.1.0 | official | patients, agenda, catalog, budget, billing, payments | auto | no | 3 | 0 | 0 | yes |
@@ -624,7 +624,7 @@ SEPA periodontal charting — snapshots, probing sites, BoP/PI/CAL indices.
 - **Author:** Dentora Core Team
 - **License:** BSL-1.1
 - **Category:** official
-- **Install policy:** installable=True · auto_install=False · removable=True
+- **Install policy:** installable=True · auto_install=True · removable=True
 - **Depends:** `patients`, `odontogram`
 - **Frontend layer:** `frontend`
 - **Permissions:**

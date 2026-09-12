@@ -42,7 +42,12 @@ async def get_context(
     _: Annotated[None, Depends(require_permission("clinical_copilot.read"))],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ApiResponse[ClinicalCopilotContext]:
-    context = await ClinicalCopilotGuardedService(db).build_context(
+    # Composition root — infrastructure edge, imported lazily (see /advise).
+    from app.modules.clinical_copilot.infrastructure import DatabaseSecondReviewReader
+
+    context = await ClinicalCopilotGuardedService(
+        db, second_review_reader=DatabaseSecondReviewReader(db)
+    ).build_context(
         clinic_id=ctx.clinic_id,
         patient_id=patient_id,
     )
@@ -62,7 +67,15 @@ async def advise(
     model = configured.model if configured else get_default_model(provider_name)
     try:
         provider = get_provider(provider_name)
-        result = await ClinicalCopilotGuardedService(db).advise(
+        # Composition root — infrastructure edge, imported lazily: the
+        # second-review DB adapter makes the dentist-reviewed AI Second
+        # Review contract visible to the governor instead of leaving the
+        # stage permanently "unavailable".
+        from app.modules.clinical_copilot.infrastructure import DatabaseSecondReviewReader
+
+        result = await ClinicalCopilotGuardedService(
+            db, second_review_reader=DatabaseSecondReviewReader(db)
+        ).advise(
             clinic_id=ctx.clinic_id,
             patient_id=body.patient_id,
             focus=body.focus,

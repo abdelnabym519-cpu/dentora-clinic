@@ -38,10 +38,11 @@ export function useProfessionals() {
         '/api/v1/auth/professionals',
         { silent: options.silent === true }
       )
-      professionals.value = response.data ?? []
+      const list = response.data ?? []
+      professionals.value = list
 
       professionalColors.value = new Map()
-      response.data.forEach((prof, index) => {
+      list.forEach((prof, index) => {
         const color = PROFESSIONAL_COLORS[index % PROFESSIONAL_COLORS.length]
         if (color) {
           professionalColors.value.set(prof.id, color)

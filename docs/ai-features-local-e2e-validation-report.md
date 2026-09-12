@@ -27,7 +27,7 @@ Verification tags used throughout:
 | 7 | AI Second Review | dependency | ⛔ **GATED** | Requires `{simulation_id}` from #6. **LOCAL RUNTIME REQUIRED** |
 | 8 | AI Clinical Report | dependency | ⛔ **GATED** | `GET /ai_clinical_report/patients/{id}/readiness` → `ready_for_report=false`, stages: `case_intelligence:stale:case_snapshot_contains_stale_sources`, `risk_engine:stale:risk_context_invalid_or_stale`, `ai_treatment_planning:stale:treatment_planning_risk_not_ready`, `treatment_simulation:missing`, `ai_second_review:missing`. All five trace to one root cause (§5). **LOCAL RUNTIME REQUIRED** |
 | 9 | Clinical Copilot (guarded advisory) | dependency | ⛔ **GATED** | Same readiness contract (`ready_for_advice=false`, identical `missing_or_stale` list). Context endpoint works: `GET /clinical_copilot/patients/{id}/context` → 200 with `advisory_only`, `dentist_control_required`, `canonical_record_mutation=false`, `evidence_catalog`. **LOCAL RUNTIME REQUIRED** |
-| 10 | Orthodontic Simulator | P2 | ⚠️ **PARTIAL — contract limitation** | Capability endpoint works and now reports `accepted_alignment=true` (the accepted registration really does feed it), `whole_arch_mesh_count=2`. Per-tooth movement is **disabled by the module's own contract**, not by data: `whole-arch-only` + `tooth-local-frame-unavailable` (§6). **ARENA-SANDBOX VERIFIED** (capability) / **NOT ACHIEVABLE** without a Dental3D contract change |
+| 10 | Orthodontic Simulator | P2 | ⚠️ **CAPABILITY WORKS, MOVEMENT NOT ACHIEVABLE** | Capability endpoint returns real state: `accepted_alignment=true` (the accepted registration genuinely feeds it), `whole_arch_mesh_count=3`, patient-derived STL documents. But `translation_eligible=false` **and** `rotation_eligible=false`, so no movement — per-tooth *or* whole-arch — can be simulated. Translation requires ≥1 document-backed per-tooth mesh; all 32 scene teeth are `synthetic/procedural/document_id=None`, the accepted segmentation carries `teeth: 0`, the scene PUT rejects client tooth meshes, and no server code path creates one. Rotation is hardcoded off pending a trusted tooth-local frame. **ARENA-SANDBOX VERIFIED** (capability + gate) / needs a Dental3D feature, proven four ways in §6 |
 
 **Final driver tally (one patient, full chain):** `22 passed, 0 failed, 6 skipped/gated`.
 
@@ -35,11 +35,34 @@ Verification tags used throughout:
 
 ## 2. Problem 1 — the exact misconfiguration
 
-**Root cause (fixed, committed `38d0e16`, 17 files):** `openai.APIConnectionError` / `APITimeoutError` escaped the provider abstraction. The AI routers only caught `LLMConfigError` / `LLMError`, so an unreachable Ollama surfaced as an unhandled **HTTP 500** instead of a clean, actionable **503**. Connection handling was *scattered* across call sites rather than centralised in the provider layer.
+The brief asked for the specific cause among *env misconfiguration vs. Docker networking vs. Ollama not running vs. missing model*. It was **the first two at once, plus a third defect that hid both**. Ollama itself was never the problem. Fixed in `38d0e16` (17 files, +1310/−34):
 
-This was **not** "Ollama isn't running" and **not** a Docker networking mistake in the code — those are operator-side conditions the code must report cleanly, and now does.
+**Defect 1 — wrong provider (env misconfiguration).** `COPILOT_PROVIDER_DEFAULT` defaulted to `"openai"`. With `OPENAI_API_KEY` empty on a local install, every clinical-AI request was sent to OpenAI with no credential — hence an opaque "Connection error" on all six features. Now the default is *derived*: `production → cloudflare`, every other environment → `ollama`; an explicit setting still wins. All **eight** resolution sites read one property (`Settings.resolved_copilot_provider`) instead of each re-deriving it.
 
-**Provider selection is env-driven and single-sourced:** `local`/`dev` → Ollama (`OLLAMA_BASE_URL`), `production` → Cloudflare. No Workers AI implementation was added, per instructions.
+**Defect 2 — no route to the host (Docker networking).** `docker-compose.yml`'s backend service had no `extra_hosts` entry, so `host.docker.internal` **does not resolve on Docker Engine** (it is automatic only on Docker Desktop). `OLLAMA_BASE_URL` defaults to `http://host.docker.internal:11434/v1/`, so even with Ollama running and the model pulled, the container could not reach it. The compose service now maps the host gateway explicitly.
+
+**Defect 3 — no error translation (why it looked like one vague bug).** `openai.APIConnectionError` / `APITimeoutError` / 404 escaped `OpenAIProvider` uncaught. Routers catch only `LLMConfigError` / `LLMError`, so FastAPI answered **500** and the actual cause — which host, refused vs. unresolvable vs. model never pulled — was discarded. Transport failures now become `LLMUnavailableError` (an `LLMConfigError`) → clean **503** carrying the real reason.
+
+**Also fixed:** the per-request `AsyncOpenAI` client was never closed, leaking an httpx connection pool on every AI call; the completion now owns its lifecycle.
+
+### Step 1 — are the Ollama calls scattered?
+
+**No. The abstraction already existed and is not bypassed.** `app/core/llm/` holds `base.py` (`Provider` Protocol, `ProviderMessage`, `LLMError`/`LLMConfigError`/`LLMProviderError`), `factory.py` (`get_provider()`), `ollama_provider.py` and `openai_provider.py`. Every AI feature calls the single seam — `ai_case_summary/service`, `ai_case_summary/treatment_service`, `ai_treatment_planning/service`, `ai_second_review/service`, `ai_clinical_report/router`, `clinical_copilot/router`, `copilot/bridge`. No module opens its own Ollama client. What *was* scattered was provider **selection** (defect 1), and that is now one property.
+
+### Step 4 — single provider abstraction, env-selected
+
+**Already satisfied, and it goes further than the brief asked.** `SUPPORTED_PROVIDERS = ("openai", "ollama", "cloudflare")`, resolved by `Settings.resolved_copilot_provider`:
+
+```python
+explicit = self.COPILOT_PROVIDER_DEFAULT.strip()
+if explicit:
+    return explicit
+return "cloudflare" if self.ENVIRONMENT.strip().lower() == "production" else "ollama"
+```
+
+So `local`/`dev` → Ollama and `production` → Cloudflare Workers AI, exactly as specified. The Workers AI implementation **already exists** — it reuses the OpenAI-compatible client against `https://api.cloudflare.com/<CLOUDFLARE_ACCOUNT_ID>/ai/v1` with `CLOUDFLARE_API_TOKEN` as the Bearer credential and `CLOUDFLARE_AI_MODEL` defaulting to `@cf/meta/llama-3.1-8b-instruct`. Empty account id or token makes that provider *unavailable* (fail-closed) without affecting the Ollama/OpenAI paths. `get_provider()` raises `LLMConfigError` for any provider the deployment cannot serve, "so a clinic can never select a provider that cannot answer."
+
+Nothing needed building here; migration is a config change, not a rewiring of six features. Diagnosis is covered by `backend/scripts/diagnose_ai_provider.py`, which reports the resolved provider *and why*, DNS, TCP, the served model list, an optional real completion (`--probe`) and the per-clinic override (`--db`) — the last matters because `copilot_settings` rows are lazy-created once and never re-derived, so a row written under the old `"openai"` default survives a config fix. (The demo clinic's row is correctly `provider=ollama`, `model=qwen3:8b`.)
 
 **ARENA-SANDBOX VERIFIED here:**
 - `response_format={"type":"json_schema"}` is genuinely Ollama-compatible — the stub received `schema=dentora_structured_response`, `stream=true`, `model=qwen3:8b` (resolved from `copilot_settings`, which for the demo clinic is correctly `provider=ollama`, `model=qwen3:8b`).
@@ -105,6 +128,17 @@ reference_frame.status: available   (from the accepted DentalAlignmentResult)
 
 Thirteen of fourteen source sections are available, and the reference frame is valid — the registration is what made that true.
 
+**Measured effect on the AI planning gate.** The same endpoint against a patient with *no* geometry at all returns `options: 0` with ten data gaps:
+
+```
+missing_data_report (no geometry):  ['anatomy','nerve','alignment','cbct','ios',
+                                     'prosthetic','periodontogram','medical_context',
+                                     'media','implant_planning']
+missing_data_report (after this work): ['nerve']
+```
+
+Both cases produce zero options — the module is correctly conservative and will not author treatment strategies from an incomplete record either way — but the ingestion/registration work collapsed the gap list from ten entries to one. That single remaining entry is the nerve pathway, and it is the only thing standing between the current state and modules #6–#9.
+
 ---
 
 ## 5. The single root cause behind modules 6–9
@@ -141,7 +175,23 @@ DENTAL_3D_NERVE_INFERENCE_TOKEN=…
 docker compose -f docker-compose.nerve-ai.yml up   # requires DENTORA_NERVE_MODEL_HOST_DIR
 ```
 
-**And one data caveat that matters:** every fixture here is a **maxillary** arch. There is no inferior alveolar canal in a maxilla, so even a perfect model would return no detected pathway and `detection_status` would not be `"detected"`. To exercise #6–#9 locally you need a **mandibular CBCT with a visible canal**.
+### Why this is genuinely unreachable from the sandbox
+
+`nerve-inference-service/` implements the `nerve-detection-v1` boundary with **DentalSegmentator / nnU-Net v2.2.1**, where the mandibular canal is label 5. Its weights are external artifacts by design — *"Model weights are mounted read-only at runtime and are never committed"* — so there is nothing to run here even in principle:
+
+| Item | Value |
+| --- | --- |
+| Model | Dataset112_DentalSegmentator_v100 (470 CT/CBCT scans, 5 classes) |
+| Source | Zenodo record **10829675**, DOI `10.5281/zenodo.10829674` |
+| File / checksum | `Dataset112_DentalSegmentator_v100.zip`, md5 `b71cd5230168d28a4f71b078265b76be` |
+| Licence | CC BY 4.0, commercial use permitted **with attribution** |
+| Provisioning | `python nerve-inference-service/scripts/provision_model.py --target <dir>` (download → md5 verify → extract → identity validate → sha256 manifest) |
+| Runtime | CPU torch is the designed default; upstream recommends 32 GB RAM |
+| Production guard | blocked unless `DENTORA_NERVE_COMMERCIAL_USE_APPROVED=true` |
+
+This sandbox has **no network egress**, so `provision_model.py` cannot fetch the weights, and the compose file hard-requires `DENTORA_NERVE_MODEL_HOST_DIR`. Two traps worth repeating: do **not** substitute `Dataset111_453CT_v100.zip` (teeth-only — the runtime contract rejects it because `dataset.json` has no `Mandibular canal == 5`), and the returned `confidence` is a mean class-5 softmax, explicitly *not* a calibrated probability or a clinical-safety score.
+
+**And one data caveat that matters:** every fixture here is a **maxillary** arch. There is no inferior alveolar canal in a maxilla, so even a perfect model would return no detected pathway and `detection_status` would not be `"detected"`. To exercise #6–#9 locally you need a **mandibular CBCT with a visible canal** — a real scan or a public CBCT dataset, not a synthetic one, since nnU-Net was trained on real CT/CBCT intensity statistics.
 
 ---
 
@@ -163,7 +213,35 @@ reasons:
                               rendered."
 ```
 
-Whole-arch geometry is patient-derived and present. Per-tooth movement needs a reviewed per-tooth mesh mapping and trusted tooth-local frames that **the Dental3D contract does not currently expose** — no amount of test data supplies them. Enabling it is a feature (extend the Dental3D contract to publish per-tooth meshes + local frames), not a fix, so it was left alone.
+Whole-arch geometry is patient-derived and present — but note that `translation_eligible` is gated on per-tooth meshes as well, so whole-arch *movement* is blocked by the same missing input, not only per-tooth movement. I verified this from four independent directions rather than accepting the endpoint's self-description:
+
+**1. The eligibility formula** (`orthodontic_simulator/service.py`) requires tooth meshes backed by real stored documents:
+
+```python
+def _per_tooth_meshes(scene):
+    return [t for t in scene.teeth
+            if t.present and t.mesh.source != "synthetic"
+            and t.mesh.document_id is not None and t.mesh.format != "procedural"]
+
+translation_eligible = bool(per_tooth) and reviewed_count == len(per_tooth) and accepted_alignment
+rotation_eligible = False   # hardcoded: "Never infer one from crown shape, PCA or a whole-arch registration."
+```
+
+**2. The live scene for the fully-processed patient** — all 32 teeth fail that filter:
+
+```
+teeth: 32 → source=synthetic  format=procedural  document_id=None   (all 32)
+scene-level meshes: 3 × (intraoral_scan, stl, document_id=True)      ← whole-arch is real
+segmentation: completed, review_status=accepted, teeth: 0            ← accepted, but carries no tooth meshes
+```
+
+The accepted segmentation satisfies `reviewed_count`, but there is nothing to count.
+
+**3. The client cannot supply them either.** `DentalSceneUpdate` rejects it outright: *"tooth mesh descriptors are server-derived — PUT accepts only the default synthetic mesh"*, and `segmentation`/`nerve_detection`/`cbct_series` are likewise refused from clients. So uploading per-tooth STLs through the scene endpoint is impossible by design — correctly, since that would let a client assert clinical geometry.
+
+**4. No server path produces them.** The only `Tooth3D(...)` constructions are `infrastructure.py:330,344` and `service.py:111`, all with the default synthetic mesh; nothing anywhere assigns a tooth-level `document_id`. `schemas.py` states the roadmap explicitly: *"Phase 1 teeth always use `source="synthetic"`, `format="procedural"` and no `document_id`… Phase 2 adds real surface meshes **at scene level**."* Scene level is exactly what my IOS upload populated; tooth level was never in scope.
+
+**Conclusion:** this needs a feature, not data or configuration — Dental3D must publish per-tooth meshes as media documents (most plausibly derived from the accepted segmentation), and the contract needs a *trusted* tooth-local frame field before rotation can ever be enabled. Both were left alone: inventing either would have meant weakening a gate or fabricating clinical geometry.
 
 ---
 
@@ -228,7 +306,8 @@ Step 5 is the same driver used for every result above; it prints a PASS/FAIL/SKI
 
 ## 10. Bottom line
 
-- **Problem 1 is fixed and committed.** The misconfiguration was unhandled `APIConnectionError`/`APITimeoutError` escaping the provider abstraction into HTTP 500s. Provider selection is env-driven; Ollama's `json_schema` support is confirmed compatible. Real prompt assembly is proven with 53k–94k-character, case-derived prompts. Only the model's *words* still need your local Ollama.
-- **Problem 2 is solved for everything the sandbox can legitimately reach.** Real IOS + real 40-slice CBCT ingested through real endpoints, real Open3D RANSAC+ICP registration that recovered the offset it was given, real dentist acceptances at every gate — and that flipped case intelligence from `alignment/anatomy invalid_or_stale` to `available`, which is what unlocked implant planning end to end.
-- **Six steps remain gated on one honest precondition:** a dentist-accepted, model-detected nerve pathway in the accepted alignment's frame. That needs the operator-deployed nerve inference service *and a mandibular CBCT*. It was not faked.
-- **One limitation is architectural, not environmental:** the Orthodontic Simulator's per-tooth movement is disabled by the current Dental3D contract (`whole-arch-only`, `tooth-local-frame-unavailable`). Whole-arch patient geometry works; per-tooth requires a contract extension.
+- **Problem 1 is fixed and committed (`38d0e16`).** It was not one bug but three stacked ones: `COPILOT_PROVIDER_DEFAULT` defaulted to `"openai"` so every request left the backend with no credential (env misconfiguration); the compose backend had no `extra_hosts`, so `host.docker.internal` was unresolvable on Docker Engine and Ollama unreachable even when running (Docker networking); and `APIConnectionError`/`APITimeoutError` escaped the provider so FastAPI answered 500 and threw the real cause away (missing error translation, plus a leaked httpx pool per call). Ollama's `json_schema` support is confirmed compatible, and real prompt assembly is proven with 53k–94k-character case-derived prompts. Only the model's *words* still need your local Ollama.
+- **The provider abstraction the brief asked for already exists** — one `get_provider()` seam in `app/core/llm/`, seven feature callers, no module talking to Ollama directly, `production → cloudflare` / everything else `→ ollama`, and the Workers AI implementation already present and fail-closed when unconfigured. Nothing to build; cloud migration is a config change.
+- **Problem 2 is solved for everything the sandbox can legitimately reach.** Real IOS + real 40-slice CBCT ingested through real endpoints, real Open3D RANSAC+ICP that recovered the 14.3 mm offset it was given, real dentist acceptances at every gate — and that flipped case intelligence's `alignment`/`anatomy` from `invalid_or_stale` to `available`, which is what unlocked implant planning end to end.
+- **Six steps remain gated on one honest precondition:** a dentist-accepted, model-detected nerve pathway in the accepted alignment's frame. The weights are external Zenodo artifacts that are never bundled and cannot be downloaded here. It was not faked.
+- **One limitation is architectural, not environmental:** no orthodontic movement — per-tooth *or* whole-arch — can be simulated, because eligibility requires document-backed per-tooth meshes that no code path produces and the scene PUT forbids clients from supplying. That is a Dental3D feature (publish per-tooth meshes; add a trusted tooth-local frame), not a data or configuration gap.

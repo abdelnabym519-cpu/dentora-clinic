@@ -23,6 +23,13 @@ class ClinicalCopilotModule(BaseModule):
             "risk_engine",
             "ai_treatment_planning",
             "treatment_simulation",
+            # infrastructure.py reads the dentist-reviewed AI Second Review
+            # records (read-only) so the Clinical Safety Governor sees that
+            # stage instead of reporting it permanently "unavailable". The
+            # edge is deliberate; declaring it keeps the module-isolation
+            # guard honest. Placed in pipeline order: second review follows
+            # the simulation it reviews.
+            "ai_second_review",
             "copilot",
         ],
         "installable": True,

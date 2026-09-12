@@ -63,7 +63,7 @@ async def advise(
 ) -> ApiResponse[ClinicalCopilotAdvisory]:
     _enforce_dentist_control(ctx.role)
     configured = await db.get(CopilotSettings, ctx.clinic_id)
-    provider_name = configured.provider if configured else app_settings.COPILOT_PROVIDER_DEFAULT
+    provider_name = configured.provider if configured else app_settings.resolved_copilot_provider
     model = configured.model if configured else get_default_model(provider_name)
     try:
         provider = get_provider(provider_name)

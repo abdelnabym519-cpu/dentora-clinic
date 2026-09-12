@@ -48,10 +48,18 @@ services:
       # Copilot agentic layer (app/core/llm/). Set OPENAI_API_KEY in .env
       # (gitignored). Empty default keeps the stack bootable without it.
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      COPILOT_PROVIDER_DEFAULT: ${COPILOT_PROVIDER_DEFAULT:-openai}
+      # Empty default = derive from ENVIRONMENT (development -> ollama,
+      # production -> cloudflare). Pin it explicitly to override.
+      COPILOT_PROVIDER_DEFAULT: ${COPILOT_PROVIDER_DEFAULT:-}
       COPILOT_MODEL_CHAT_OLLAMA: ${COPILOT_MODEL_CHAT_OLLAMA:-qwen3:8b}
       COPILOT_MAX_TOKENS: ${COPILOT_MAX_TOKENS:-4096}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1/}
+    extra_hosts:
+      # `host.docker.internal` resolves automatically only on Docker Desktop.
+      # On Docker Engine the container needs the host-gateway mapping, without
+      # which the backend cannot reach Ollama (or the dental_3d inference
+      # services) on the host and every AI call fails as "unreachable".
+      - "host.docker.internal:host-gateway"
     ports:
       - "8100:8000"
     depends_on:

@@ -23,6 +23,30 @@ class LLMConfigError(LLMError):
     """Raised when a provider is misconfigured (unknown name, missing key)."""
 
 
+class LLMUnavailableError(LLMConfigError):
+    """The configured provider cannot be reached, or cannot serve the model.
+
+    Covers the transport-level failures a local deployment actually hits:
+    DNS resolution (``host.docker.internal`` does not resolve inside the
+    container without a ``host-gateway`` mapping on Docker Engine),
+    connection refused (Ollama not running, or bound to ``127.0.0.1`` only
+    so the container cannot reach it), timeouts, and a model that was never
+    pulled (Ollama answers ``404 model not found``).
+
+    Deliberately a subclass of :class:`LLMConfigError`: an unreachable
+    provider is an actionable *deployment* state, not a problem with
+    provider output, so the routers' existing 503 ``*_provider_unavailable``
+    handling carries the real cause to the clinician. Without this the
+    vendor client's ``APIConnectionError`` escaped uncaught, FastAPI
+    answered 500, and the UI could only render a bare "Connection error" —
+    which reads as a backend outage and hides the actual misconfiguration.
+    """
+
+
+class LLMProviderError(LLMError):
+    """The provider answered, with an error status (5xx, rate limit, …)."""
+
+
 class Role(StrEnum):
     SYSTEM = "system"
     USER = "user"

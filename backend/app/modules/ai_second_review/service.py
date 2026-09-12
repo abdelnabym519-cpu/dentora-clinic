@@ -113,7 +113,7 @@ class AISecondReviewService:
             planning,
             simulation,
         )
-        provider_name = provider_name or settings.COPILOT_PROVIDER_DEFAULT
+        provider_name = provider_name or settings.resolved_copilot_provider
         if model is None:
             model = get_default_model(provider_name)
         provider = provider or cls.provider_factory(provider_name)

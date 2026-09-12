@@ -128,12 +128,40 @@ Two knobs control which provider is used where:
 * **Copilot chat** — per-clinic selection via Settings → Copilot
   (`PATCH /api/v1/copilot/settings`; the demo seed pins it to
   `ollama`/`qwen3:8b`).
-* **Clinical-AI generation** (case summary, treatment planning, second
-  review, clinical report, clinical copilot) — the deployment-level default
-  `COPILOT_PROVIDER_DEFAULT` (see `backend/app/config.py`). For a fully
-  local demo set `COPILOT_PROVIDER_DEFAULT=ollama` in the backend
-  environment (`.env`) so these endpoints resolve the Ollama factory
-  without any cloud dependency.
+* **Clinical-AI generation** (case summary, case intelligence, treatment
+  planning, second review, clinical report, clinical copilot) — the
+  deployment-level default `COPILOT_PROVIDER_DEFAULT` (see
+  `backend/app/config.py`).
+
+  Leave it **empty** (the shipped default) and `ENVIRONMENT` decides:
+  `production` resolves `cloudflare`, every other environment resolves
+  `ollama`, so a local stack runs fully offline against the models already
+  pulled on the host. Set it explicitly to pin `openai`, `ollama` or
+  `cloudflare`. A clinic's own `copilot_settings` row still wins — and
+  because those rows are lazy-created once and never re-derived, a row
+  written under an older default keeps it until you change it in
+  Settings → Copilot.
+
+  It previously defaulted to `openai` with an empty `OPENAI_API_KEY`, so a
+  fresh local install sent every AI request to OpenAI with no credential and
+  the UI could only report a bare "Connection error".
+
+Reaching a host-local Ollama from the backend container needs all of:
+
+| Requirement | Check |
+| --- | --- |
+| Ollama running | `curl http://localhost:11434/api/tags` |
+| Listening beyond loopback | run it with `OLLAMA_HOST=0.0.0.0` (the default binds `127.0.0.1`, which a container cannot reach) |
+| `host.docker.internal` resolves in the container | `docker-compose.yml` declares `extra_hosts: ["host.docker.internal:host-gateway"]` — required on Docker Engine, automatic only on Docker Desktop |
+| Model pulled | `ollama pull qwen3:8b` (Ollama answers 404 for a model it does not have) |
+
+Transport failures are translated into the neutral error hierarchy
+(`LLMUnavailableError`, an `LLMConfigError`) carrying which host was tried
+and which of the four checks above to look at, so the endpoints answer
+`503 …_provider_unavailable` with that text instead of a `500` the UI can
+only render as "Connection error". Vendor credential rejections
+(`AuthenticationError`) keep their type — a wrong key is a different state
+from an unreachable provider.
 
 ## Voice STT runtime
 
@@ -157,6 +185,11 @@ failing silently.
 ## Local verification recipe
 
 ```bash
+# provider first: resolves config, DNS, TCP, model availability, and with
+# --probe runs one real completion through the production provider object.
+# Exit status 0 = usable; the failure lines name the exact thing to fix.
+docker compose exec backend python -m scripts.diagnose_ai_provider --probe --db
+
 # backend: boot, then
 curl -s localhost:8100/api/v1/modules/-/active -H "Authorization: Bearer $TOKEN"
 # → all modules above listed as active
@@ -170,4 +203,7 @@ curl -X POST localhost:8100/api/v1/ai_case_summary/patients/$PID -H "Authorizati
 
 # frontend: layers must be present in frontend/modules.json before `nuxt build`
 grep -c module_layers frontend/modules.json
+# if an AI feature has no navigation entry, the artifact is stale — it is
+# generated from *installed* modules, so regenerate and rebuild:
+docker compose exec backend python -m app.cli modules sync-frontend
 ```

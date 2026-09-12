@@ -90,7 +90,7 @@ class AITreatmentPlanningService:
         }
         input_digest = digest_value(llm_input)
 
-        provider_name = provider_name or settings.COPILOT_PROVIDER_DEFAULT
+        provider_name = provider_name or settings.resolved_copilot_provider
         if model is None:
             if provider_name != "openai":
                 raise TreatmentGenerationError("no_default_model_for_provider")

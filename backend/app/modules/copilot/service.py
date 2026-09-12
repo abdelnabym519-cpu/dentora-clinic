@@ -31,8 +31,8 @@ class CopilotSettingsService:
             return CopilotSettingsService._roll_period(row)
         row = CopilotSettings(
             clinic_id=clinic_id,
-            provider=app_settings.COPILOT_PROVIDER_DEFAULT,
-            model=get_default_model(app_settings.COPILOT_PROVIDER_DEFAULT),
+            provider=app_settings.resolved_copilot_provider,
+            model=get_default_model(app_settings.resolved_copilot_provider),
             redaction_enabled=app_settings.COPILOT_REDACTION_DEFAULT,
             period_start=datetime.now(UTC).date().replace(day=1),
         )

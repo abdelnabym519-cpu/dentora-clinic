@@ -45,7 +45,7 @@ from app.core.llm.base import (
     ToolUse,
     Usage,
 )
-from app.core.llm.factory import SUPPORTED_PROVIDERS, get_provider
+from app.core.llm.factory import SUPPORTED_PROVIDERS, get_default_model, get_provider
 from app.core.llm.openai_provider import OpenAIProvider, _uses_completion_tokens
 from app.database import engine
 
@@ -615,9 +615,11 @@ class TestCopilotSettingsCloudflare:
             )
         assert res.status_code == 400, res.text
         assert "CLOUDFLARE_ACCOUNT_ID" in res.json()["message"]
-        # Stored provider is untouched.
+        # Stored provider is untouched: it is still whatever this deployment
+        # resolves by default (derived from ENVIRONMENT since the provider
+        # default stopped being a hardcoded vendor).
         res = await client.get("/api/v1/copilot/settings", headers=auth_headers)
-        assert res.json()["data"]["provider"] == "openai"
+        assert res.json()["data"]["provider"] == settings.resolved_copilot_provider
 
     async def test_cloudflare_accepted_when_credentials_configured(
         self, db_session: AsyncSession, client: AsyncClient, auth_headers: dict, test_clinic
@@ -682,17 +684,33 @@ class TestCopilotSettingsCloudflare:
         assert data["provider"] == "cloudflare"
         assert data["model"] == settings.CLOUDFLARE_AI_MODEL
 
-    async def test_openai_default_unchanged_when_cloudflare_unconfigured(
+    async def test_deployment_default_applies_when_cloudflare_unconfigured(
         self, db_session: AsyncSession, client: AsyncClient, auth_headers: dict, test_clinic
     ) -> None:
-        # Backward compatibility: a deployment with no Cloudflare env
-        # vars behaves exactly as before this integration.
-        with SettingsPatch(CLOUDFLARE_ACCOUNT_ID="", CLOUDFLARE_API_TOKEN=""):
+        # A deployment with no Cloudflare env vars falls back to whatever the
+        # deployment default resolves to -- it must never resolve
+        # "cloudflare", which cannot answer without credentials.
+        #
+        # This used to assert a hardcoded "openai": that *was* the default,
+        # and it is exactly what made a fresh local stack fail (openai with an
+        # empty OPENAI_API_KEY, surfaced in the UI as a bare "Connection
+        # error"). The default is now derived from ENVIRONMENT, so the
+        # assertion follows `resolved_copilot_provider` instead of pinning a
+        # vendor.
+        with SettingsPatch(
+            CLOUDFLARE_ACCOUNT_ID="",
+            CLOUDFLARE_API_TOKEN="",
+            COPILOT_PROVIDER_DEFAULT="",
+            ENVIRONMENT="development",
+        ):
+            expected_provider = settings.resolved_copilot_provider
+            expected_model = get_default_model(expected_provider)
             res = await client.get("/api/v1/copilot/settings", headers=auth_headers)
         assert res.status_code == 200, res.text
         data = res.json()["data"]
-        assert data["provider"] == "openai"
-        assert data["model"] == settings.COPILOT_MODEL_CHAT_OPENAI
+        assert expected_provider == "ollama"  # development resolves local
+        assert data["provider"] == expected_provider
+        assert data["model"] == expected_model
 
     async def test_unconfigured_provider_surfaces_sse_error_event(
         self, db_session: AsyncSession, client: AsyncClient, auth_headers: dict, test_clinic

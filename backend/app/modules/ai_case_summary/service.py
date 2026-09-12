@@ -51,7 +51,7 @@ class AICaseSummaryService:
         )
         llm_input, input_digest = build_redacted_llm_input(snapshot)
         provider_llm_input = build_provider_llm_input(llm_input)
-        provider_name = provider_name or settings.COPILOT_PROVIDER_DEFAULT
+        provider_name = provider_name or settings.resolved_copilot_provider
         if model is None:
             model = get_default_model(provider_name)
         provider = provider or cls.provider_factory(provider_name)

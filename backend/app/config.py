@@ -156,7 +156,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     AI_GATEWAY_BASE_URL: str = ""
     OLLAMA_BASE_URL: str = "http://host.docker.internal:11434/v1/"
-    COPILOT_PROVIDER_DEFAULT: str = "openai"
+    # Empty (the default) means "derive from ENVIRONMENT" — see
+    # `resolved_copilot_provider`. Set it explicitly to pin a provider.
+    COPILOT_PROVIDER_DEFAULT: str = ""
     COPILOT_MODEL_CHAT_OPENAI: str = "gpt-5.4-mini"
     COPILOT_MODEL_CHAT_OLLAMA: str = "qwen3:8b"
     # Cloudflare Workers AI (external service). Reuses the
@@ -175,6 +177,24 @@ class Settings(BaseSettings):
     # work) hanging on the SDK's very long default timeout.
     COPILOT_TIMEOUT_SECONDS: float = 120.0
     COPILOT_REDACTION_DEFAULT: bool = True
+
+    @property
+    def resolved_copilot_provider(self) -> str:
+        """The LLM provider this deployment implies.
+
+        An explicit ``COPILOT_PROVIDER_DEFAULT`` always wins, so an existing
+        install keeps whatever it chose. Otherwise the environment decides:
+        ``production`` resolves Cloudflare Workers AI (the planned production
+        provider), and every other environment resolves Ollama — so a local
+        stack runs against the models already pulled on the host instead of
+        silently targeting OpenAI with an empty ``OPENAI_API_KEY``, which is
+        what made every clinical-AI endpoint fail with an opaque connection
+        error on a fresh local install.
+        """
+        explicit = self.COPILOT_PROVIDER_DEFAULT.strip()
+        if explicit:
+            return explicit
+        return "cloudflare" if self.ENVIRONMENT.strip().lower() == "production" else "ollama"
 
     @property
     def ai_gateway_base_url(self) -> str:

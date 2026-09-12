@@ -17,6 +17,9 @@ from typing import Any
 from app.core.llm.base import (
     Done,
     LLMConfigError,
+    LLMError,
+    LLMProviderError,
+    LLMUnavailableError,
     ProviderEvent,
     ProviderMessage,
     Role,
@@ -72,6 +75,110 @@ class OpenAIProvider:
 
         return AsyncOpenAI(**kwargs)
 
+    def _translate_transport(self, exc: Exception, *, model: str) -> LLMError:
+        """Turn a vendor transport failure into a neutral, actionable error.
+
+        The message names what the deployment has to change, because these
+        failures are configuration facts rather than model output problems:
+        an unresolvable host means the container has no route to the host,
+        a refused connection means the local server is down or bound to the
+        loopback interface only, and a 404 means the model was never pulled.
+        """
+        if isinstance(exc, LLMError):
+            return exc
+
+        target = self._base_url or "the provider's default endpoint"
+        try:
+            from openai import (
+                APIConnectionError,
+                APIStatusError,
+                APITimeoutError,
+                AuthenticationError,
+                PermissionDeniedError,
+            )
+        except ImportError:  # pragma: no cover - openai is a hard dependency in practice
+            return LLMProviderError(f"AI provider at {target} failed: {exc}")
+
+        # Credential rejections keep their vendor type on purpose: a 401/403
+        # says "the key or token you configured is wrong", which callers and
+        # tests distinguish from "the provider cannot be reached"
+        # (test_cloudflare_provider pins `AuthenticationError` escaping).
+        if isinstance(exc, (AuthenticationError, PermissionDeniedError)):
+            return exc
+
+        if isinstance(exc, APITimeoutError):
+            return LLMUnavailableError(
+                f"AI provider timed out after {self._timeout or 'the default'}s "
+                f"reaching {target} (model {model!r})."
+            )
+
+        if isinstance(exc, APIConnectionError):
+            cause = exc.__cause__ or exc
+            return LLMUnavailableError(
+                f"Cannot reach the AI provider at {target} (model {model!r}): {cause}. "
+                "For a local Ollama check, in order: it is running; it listens on an "
+                "interface the container can reach (OLLAMA_HOST=0.0.0.0, not the "
+                "127.0.0.1 default); host.docker.internal resolves inside the container "
+                "(Docker Engine needs `extra_hosts: [\"host.docker.internal:host-gateway\"]`); "
+                f"and the model is pulled (`ollama pull {model}`)."
+            )
+
+        if isinstance(exc, APIStatusError):
+            status_code = getattr(exc, "status_code", None)
+            detail = str(getattr(exc, "message", "") or exc)
+            if status_code == 404 and "not found" in detail.lower():
+                return LLMUnavailableError(
+                    f"Model {model!r} is not available at {target}: {detail}. "
+                    f"Pull it with `ollama pull {model}`, or point "
+                    "COPILOT_MODEL_CHAT_OLLAMA at a model that is."
+                )
+            return LLMProviderError(
+                f"AI provider at {target} returned {status_code} for model {model!r}: {detail}"
+            )
+
+        return LLMProviderError(f"AI provider at {target} failed for model {model!r}: {exc}")
+
+    async def _create_stream(self, client: Any, kwargs: dict[str, Any], *, model: str) -> Any:
+        """Open the completion stream, translating transport failures."""
+        try:
+            return await client.chat.completions.create(**kwargs)
+        except Exception as exc:  # noqa: BLE001 - re-raised as a neutral LLMError
+            # Nothing downstream will own this client now: the stream was
+            # never opened, so `_stream_chunks`' finally will not run.
+            await self._close_client(client)
+            raise self._translate_transport(exc, model=model) from exc
+
+    async def _stream_chunks(
+        self, stream: Any, *, model: str, client: Any
+    ) -> AsyncIterator[Any]:
+        """Yield stream chunks, translating failures that arrive mid-stream."""
+        try:
+            async for chunk in stream:
+                yield chunk
+        except Exception as exc:  # noqa: BLE001 - re-raised as a neutral LLMError
+            raise self._translate_transport(exc, model=model) from exc
+        finally:
+            await self._close_client(client)
+
+    @staticmethod
+    async def _close_client(client: Any) -> None:
+        """Release the per-request HTTP client and its connection pool.
+
+        ``_client_for_request`` builds a fresh ``AsyncOpenAI`` for every
+        completion, so nothing else owns its lifecycle. Without closing it
+        each call leaks an httpx pool: sockets accumulate over the life of
+        the server process, and a short-lived process (a CLI probe, a test)
+        prints async-generator teardown tracebacks at exit that read like a
+        failure. Teardown must never mask the completion's own outcome.
+        """
+        close = getattr(client, "close", None)
+        if close is None:
+            return
+        try:
+            await close()
+        except Exception:  # noqa: BLE001 - best-effort release
+            pass
+
     async def complete(
         self,
         *,
@@ -115,8 +222,8 @@ class OpenAIProvider:
         stop_reason = "stop"
 
         client = await self._client_for_request()
-        stream = await client.chat.completions.create(**kwargs)
-        async for chunk in stream:
+        stream = await self._create_stream(client, kwargs, model=model)
+        async for chunk in self._stream_chunks(stream, model=model, client=client):
             # The usage-only final chunk carries no choices.
             if chunk.usage is not None:
                 yield Usage(

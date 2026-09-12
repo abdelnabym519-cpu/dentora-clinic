@@ -76,7 +76,9 @@ def test_manifest_declares_read_and_dentist_generation() -> None:
     assert module.get_permissions() == ["read", "generate"]
     assert manifest.role_permissions["dentist"] == ("read", "generate")
     assert manifest.role_permissions["hygienist"] == ("read",)
-    assert manifest.auto_install is False
+    # Activated by the AI-activation change: the clinical-AI pipeline ships
+    # installed by default while keeping RBAC + dentist-review requirements.
+    assert manifest.auto_install is True
     assert manifest.removable is False
 
 

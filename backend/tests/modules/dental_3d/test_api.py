@@ -171,7 +171,9 @@ class TestModuleRegistration:
         assert list(manifest.depends) == ["patients", "odontogram", "media"]
         assert manifest.removable is True
         assert manifest.installable is True
-        assert manifest.auto_install is False
+        # Activated by the AI-activation change: dental_3d ships installed
+        # by default (with its frontend layer) while keeping RBAC + review gates.
+        assert manifest.auto_install is True
         assert sorted(module.get_permissions()) == ["read", "write"]
 
     def test_agent_tool_registered(self) -> None:

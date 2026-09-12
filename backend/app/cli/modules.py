@@ -208,6 +208,12 @@ async def _cmd_doctor(svc: ModuleService, args: argparse.Namespace) -> int:
         print("Modules with persisted errors:")
         for module, err in report.errored_modules:
             print(f"  - {module}: {err}")
+    if report.missing_layer_dirs:
+        print("Modules declaring a frontend layer that is not on disk:")
+        for module in report.missing_layer_dirs:
+            print(f"  - {module}")
+        print("  (their Nuxt layer cannot be written to frontend/modules.json;")
+        print("   the frontend will show NUXT_B6005 for a stale entry)")
     return 1
 
 

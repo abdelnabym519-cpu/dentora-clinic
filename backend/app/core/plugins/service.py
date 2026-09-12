@@ -10,7 +10,7 @@ Install, uninstall and upgrade flows arrive in Etapa 3.
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .alembic_paths import resolve_module_branch_head
 from .base import BaseModule
 from .db_models import ModuleOperationLog, ModuleRecord
+from .frontend_layers import missing_layer_dirs
 from .loader import discover_modules
 from .manifest import Manifest, ManifestError
 from .operation_log import LogEntry, log_entry_from_row
@@ -75,6 +76,42 @@ class ModuleInfo:
         }
 
 
+def should_auto_promote(
+    *,
+    state: str,
+    auto_install: bool,
+    explicitly_uninstalled: bool,
+) -> bool:
+    """Whether reconcile must schedule an install for an *existing* record.
+
+    A record is created ``uninstalled`` when its manifest says
+    ``auto_install=False``. If that manifest later flips to ``True`` —
+    activating a module family, as the AI Activation scope did — the
+    column is refreshed but the state is not, so a database that
+    predates the activation keeps the module ``uninstalled`` forever
+    unless an administrator happens to click Install. An uninstalled
+    module gets no router mount and no entry in ``modules.json``, so its
+    whole frontend layer silently never reaches Nuxt.
+
+    Promotion therefore belongs in reconcile, and it is deliberately
+    narrow:
+
+    * only ``uninstalled`` — ``disabled``, ``to_remove``, ``to_upgrade``
+      and ``installed`` records are somebody else's decision;
+    * only when the manifest actually declares ``auto_install``;
+    * never when an administrator uninstalled the module on purpose.
+      ``installed_at`` cannot tell that apart (the uninstall pipeline
+      clears it), so the operation log is the authority.
+
+    Promotion sets ``to_install``, not ``installed``: the pending
+    processor then runs the normal migrate → seed → lifecycle → finalize
+    pipeline in dependency order, so an activated module is provisioned
+    exactly as an explicit Install would provision it. No step is
+    skipped and no gate is bypassed.
+    """
+    return state == ModuleState.UNINSTALLED.value and auto_install and not explicitly_uninstalled
+
+
 @dataclass
 class DoctorReport:
     """Diagnostic output from :meth:`ModuleService.doctor`."""
@@ -83,6 +120,7 @@ class DoctorReport:
     missing_dependencies: list[tuple[str, str]]
     manifest_errors: list[tuple[str, str]]
     errored_modules: list[tuple[str, str]]
+    missing_layer_dirs: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -91,6 +129,7 @@ class DoctorReport:
             or self.missing_dependencies
             or self.manifest_errors
             or self.errored_modules
+            or self.missing_layer_dirs
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -102,6 +141,7 @@ class DoctorReport:
             ],
             "manifest_errors": [{"module": m, "error": err} for m, err in self.manifest_errors],
             "errored_modules": [{"module": m, "error": err} for m, err in self.errored_modules],
+            "missing_layer_dirs": self.missing_layer_dirs,
         }
 
 
@@ -134,6 +174,7 @@ class ModuleService:
         """
         discovered = self.discovered()
         existing = await self._load_existing_records()
+        uninstalled_by_admin = await self._explicitly_uninstalled_names()
         now = datetime.now(UTC)
 
         for module in discovered:
@@ -230,7 +271,43 @@ class ModuleService:
                 if record.applied_revision is None:
                     record.applied_revision = branch_head
 
+            # A manifest that became ``auto_install=True`` after this row
+            # was created must still reach the machine: schedule it
+            # through the normal pending pipeline (see
+            # :func:`should_auto_promote`). Without this, activating a
+            # module family only ever works on a fresh database.
+            if should_auto_promote(
+                state=record.state,
+                auto_install=manifest.auto_install,
+                explicitly_uninstalled=module.name in uninstalled_by_admin,
+            ):
+                record.state = ModuleState.TO_INSTALL.value
+                record.last_state_change = now
+                record.error_message = None
+                record.error_at = None
+                logger.info(
+                    "Reconciled: %s declares auto_install=True and was never "
+                    "explicitly uninstalled; scheduled for install on this boot",
+                    manifest.name,
+                )
+
         await self.db.commit()
+
+    async def _explicitly_uninstalled_names(self) -> set[str]:
+        """Every module an administrator has uninstalled at least once.
+
+        The uninstall pipeline clears ``installed_at``, so a record alone
+        cannot distinguish "shipped uninstalled, never promoted" from
+        "installed, then deliberately removed". The operation log can, and
+        an explicit removal outranks a manifest default. One query per
+        reconcile, not one per module.
+        """
+        result = await self.db.execute(
+            select(ModuleOperationLog.module_name).where(
+                ModuleOperationLog.operation == "uninstall"
+            )
+        )
+        return {row[0] for row in result.all()}
 
     async def _load_existing_records(self) -> dict[str, ModuleRecord]:
         result = await self.db.execute(select(ModuleRecord))
@@ -364,6 +441,7 @@ class ModuleService:
             missing_dependencies=missing_deps,
             manifest_errors=manifest_errors,
             errored_modules=errored,
+            missing_layer_dirs=missing_layer_dirs(list(discovered.values())),
         )
 
     async def operation_log(self, name: str, *, limit: int = 20) -> list[LogEntry]:

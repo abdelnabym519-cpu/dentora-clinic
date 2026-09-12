@@ -50,12 +50,13 @@ class LayerEntry:
     path: str
 
 
-def resolve_layer_path(module: BaseModule) -> Path | None:
-    """Return the absolute path of ``module``'s Nuxt layer, or ``None``.
+def declared_layer_dir(module: BaseModule) -> Path | None:
+    """Return the path ``module``'s manifest points its Nuxt layer at.
 
-    Missing ``manifest.frontend.layer_path`` → ``None``. Missing folder
-    on disk → ``None`` with a warning (the caller decides whether to
-    fail or continue).
+    Unlike :func:`resolve_layer_path` this does **not** require the
+    directory to exist — it answers "where does the manifest say the
+    layer lives", which is what drift diagnostics need. ``None`` means
+    the module declares no layer (or its package path is unresolvable).
     """
     manifest = module.get_manifest()
     rel = manifest.frontend.get("layer_path") if manifest.frontend else None
@@ -70,17 +71,48 @@ def resolve_layer_path(module: BaseModule) -> Path | None:
         )
         return None
 
-    base = Path(spec.origin).parent
-    candidate = (base / rel).resolve()
-    if not candidate.is_dir():
+    return (Path(spec.origin).parent / rel).resolve()
+
+
+def missing_layer_dirs(modules: list[BaseModule]) -> list[str]:
+    """Names of modules that declare a layer whose directory is absent.
+
+    This is the silent half of a provisioning failure: the manifest
+    promises a Nuxt layer, ``resolve_layer_path`` skips it with a log
+    line nobody reads, ``modules.json`` ships without it, and the
+    frontend ends up with a module that has no UI — or, when a stale
+    ``modules.json`` still lists the path, with ``NUXT_B6005 Could not
+    resolve`` for every composable in it.
+    """
+    missing: list[str] = []
+    for module in modules:
+        try:
+            declared = declared_layer_dir(module)
+        except Exception:  # noqa: BLE001 - a broken manifest is doctor's business
+            continue
+        if declared is not None and not declared.is_dir():
+            missing.append(module.name)
+    return sorted(missing)
+
+
+def resolve_layer_path(module: BaseModule) -> Path | None:
+    """Return the absolute path of ``module``'s Nuxt layer, or ``None``.
+
+    Missing ``manifest.frontend.layer_path`` → ``None``. Missing folder
+    on disk → ``None`` with a warning (the caller decides whether to
+    fail or continue).
+    """
+    declared = declared_layer_dir(module)
+    if declared is None:
+        return None
+    if not declared.is_dir():
         logger.warning(
-            "Module %s declared layer_path=%s but %s is not a directory",
-            manifest.name,
-            rel,
-            candidate,
+            "Module %s declared a frontend layer but %s is not a directory",
+            module.name,
+            declared,
         )
         return None
-    return candidate
+    return declared
 
 
 def _translate_for_frontend(path: Path) -> str:

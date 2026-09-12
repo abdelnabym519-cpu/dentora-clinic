@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import settings
 
+from .alembic_paths import resolve_module_branch_head
 from .context import ModuleContext
 from .db_models import ModuleRecord
 from .external_id import ExternalIdHelper
@@ -317,10 +318,34 @@ class PendingProcessor:
 
         Modules with no Alembic branch (legacy, main linear) don't need
         any migration step — the main chain has already been applied.
+
+        The target is the module's *own* branch head — the newest revision
+        inside its ``migrations/versions`` directory — not the branch-label
+        form ``<module>@head``.
+
+        Alembic propagates branch labels down the lineage, so a merge
+        revision such as ``atp_0001``
+        (``down_revision = ("risk_0001", "acs_0001")``) makes every one of
+        its descendants answer to ``risk_engine@head`` too. That leaves the
+        ``risk_engine`` label with two heads, and Alembic refuses the command
+        outright — ``MultipleHeads``, exit code 255 — before applying
+        anything, which is what stalled Risk Engine at ``to_install`` on an
+        already-migrated database (the boot-time ``alembic upgrade heads``
+        is unambiguous, so the schema itself was fine).
+
+        Targeting the owned revision is also the boundary-correct choice:
+        a label can resolve to a *different* module's revision —
+        ``ai_treatment_planning@head`` resolves to ``aisr_0001``, owned by
+        AI Second Review — which would create three unrelated modules'
+        schema during one module's install. Ownership here is the same rule
+        :func:`resolve_module_branch_head` already applies when reconcile
+        records ``base_revision``, so the upgrade target and the bookkeeping
+        finally agree.
         """
         if not _has_branch(module):
             return None
-        return _alembic_cmd(["upgrade", f"{module.name}@head"])
+        target = resolve_module_branch_head(module) or f"{module.name}@head"
+        return _alembic_cmd(["upgrade", target])
 
     async def _run_downgrade(self, revision: str) -> None:
         _alembic_cmd(["downgrade", revision])
@@ -465,11 +490,12 @@ def _alembic_cmd(args: list[str]) -> str | None:
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(f"alembic {' '.join(args)} timed out after {exc.timeout}s") from exc
 
-    # Resolve the caller's targeted head. Using ``get_current_head`` would
-    # raise ``MultipleHeads`` now that schedules has its own branch, so
-    # only return a head when the caller specified a branch-qualified
-    # target (``<label>@head``). Other callers ignore the return.
-    if len(args) >= 2 and args[-1].endswith("@head"):
+    # Resolve the revision the caller targeted. Using ``get_current_head``
+    # would raise ``MultipleHeads`` now that many modules have their own
+    # branch, so resolve exactly what was asked for: a concrete revision id
+    # or a branch-qualified target (``<label>@head``). ``downgrade`` callers
+    # ignore the return.
+    if len(args) >= 2 and args[0] == "upgrade":
         from alembic.config import Config
         from alembic.script import ScriptDirectory
 

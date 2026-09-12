@@ -24,6 +24,10 @@ const props = defineProps<{
   snapshot: PerioSnapshotSummary | null
   saving?: boolean
   dirty?: boolean
+  /** A close-session request is in flight. */
+  closing?: boolean
+  /** A discard-draft request is in flight. */
+  discarding?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -58,16 +62,35 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
+/**
+ * Both dialogs used to close themselves and clear their state the moment they
+ * emitted, i.e. *before* the request resolved. When the close failed — a 409
+ * because the session was already closed elsewhere, a 422, a network drop — the
+ * session correctly stayed a draft, but the observations the clinician had typed
+ * were gone and the dialog was shut, so they had to reopen it and retype. Now
+ * the dialog stays exactly as the clinician left it, and only the parent (which
+ * is the one that knows the outcome) closes it through `closeSucceeded()`.
+ */
 function confirmClose() {
+  if (props.closing) return
   emit('close', notes.value.trim() || null)
+}
+
+function confirmDiscard() {
+  if (props.discarding) return
+  emit('discard')
+}
+
+function closeSucceeded() {
   showClose.value = false
   notes.value = ''
 }
 
-function confirmDiscard() {
-  emit('discard')
+function discardSucceeded() {
   showDiscard.value = false
 }
+
+defineExpose({ closeSucceeded, discardSucceeded })
 </script>
 
 <template>
@@ -153,6 +176,7 @@ function confirmDiscard() {
           icon="i-lucide-check"
           size="sm"
           color="primary"
+          data-testid="perio-close-open"
           @click="showClose = true"
         >
           {{ t('periodontogram.session.closeSession') }}
@@ -214,6 +238,7 @@ function confirmDiscard() {
             <UTextarea
               v-model="notes"
               :rows="3"
+              data-testid="perio-close-notes"
               :placeholder="t('periodontogram.indicesBanner.observationsPlaceholder')"
             />
           </UFormField>
@@ -231,6 +256,8 @@ function confirmDiscard() {
           <UButton
             color="primary"
             icon="i-lucide-check"
+            data-testid="perio-close-confirm"
+            :loading="closing"
             @click="confirmClose"
           >
             {{ t('periodontogram.session.closeButton') }}
@@ -264,6 +291,8 @@ function confirmDiscard() {
           <UButton
             color="error"
             icon="i-lucide-trash-2"
+            data-testid="perio-discard-confirm"
+            :loading="discarding"
             @click="confirmDiscard"
           >
             {{ t('periodontogram.session.discardButton') }}

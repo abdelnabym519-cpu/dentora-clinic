@@ -105,19 +105,43 @@ function handleEditTooth(toothNumber: number, patch: Record<string, unknown>) {
   patchTooth(props.snapshot.id, toothNumber, patch)
 }
 
+const closing = ref(false)
+const discarding = ref(false)
+// Structural rather than `InstanceType<typeof PerioIndicesBanner>`: module
+// layers auto-import components for the *template*, not into TS type positions.
+const banner = ref<{ closeSucceeded: () => void, discardSucceeded: () => void } | null>(null)
+
 async function handleClose(notes: string | null) {
-  await flushPending(props.snapshot.id)
-  // The failure itself is reported once, through `lastError`. Swallowing it
-  // here only keeps the rejection from escaping the click handler as an
-  // unhandled promise rejection: `closed` must not be emitted, so the session
-  // stays a draft and the clinician can try again.
-  const closed = await closeSession(props.snapshot.id, notes ?? undefined).catch(() => null)
-  if (closed) emit('closed', closed)
+  closing.value = true
+  try {
+    await flushPending(props.snapshot.id)
+    // The failure itself is reported once, through `lastError`. Swallowing it
+    // here only keeps the rejection from escaping the click handler as an
+    // unhandled promise rejection: `closed` must not be emitted, so the session
+    // stays a draft and the clinician can try again — with the observations
+    // they typed still in the dialog, which is why the banner only closes when
+    // this call says the close actually happened.
+    const closed = await closeSession(props.snapshot.id, notes ?? undefined).catch(() => null)
+    if (closed) {
+      banner.value?.closeSucceeded()
+      emit('closed', closed)
+    }
+  } finally {
+    closing.value = false
+  }
 }
 
 async function handleDiscard() {
-  const discarded = await discardDraft(props.snapshot.id).then(() => true, () => false)
-  if (discarded) emit('discarded')
+  discarding.value = true
+  try {
+    const discarded = await discardDraft(props.snapshot.id).then(() => true, () => false)
+    if (discarded) {
+      banner.value?.discardSucceeded()
+      emit('discarded')
+    }
+  } finally {
+    discarding.value = false
+  }
 }
 
 const summary = computed<PerioSnapshotSummary>(() => ({
@@ -172,10 +196,13 @@ const liveIndices = computed<PerioIndices | null>(() => {
 <template>
   <div class="periodontogram-chart space-y-4">
     <PerioIndicesBanner
+      ref="banner"
       :indices="liveIndices"
       :snapshot="summary"
       :saving="saving"
       :dirty="dirty"
+      :closing="closing"
+      :discarding="discarding"
       @close="handleClose"
       @discard="handleDiscard"
     />

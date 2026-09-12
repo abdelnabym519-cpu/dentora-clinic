@@ -11,6 +11,15 @@ let clientRefreshInFlight: Promise<boolean> | null = null
 export function useAuth() {
   const config = useRuntimeConfig()
   const router = useRouter()
+  /**
+   * Captured once, during setup: `useSelectedClinicId()` wraps `useCookie()`,
+   * which needs the Nuxt instance on the server, and every use below happens
+   * inside a deferred function (`meHeaders`, `switchClinic`, `logout`,
+   * `refresh`, `fetchUser`) invoked from watchers, middleware and promise
+   * continuations. One instance also keeps a write made here visible to the
+   * reads in this composable without waiting for the cookie to flush.
+   */
+  const selectedClinicId = useSelectedClinicId()
 
   // Use different API URL for server (Docker internal) vs client (browser)
   const apiBaseUrl = computed(() =>
@@ -31,9 +40,10 @@ export function useAuth() {
   function meHeaders(token: string, clinicId?: string | null): Record<string, string> {
     const headers: Record<string, string> = { Authorization: `Bearer ${token}` }
     // ``clinicId`` is passed explicitly by callers that just corrected the
-    // selection: ``useCookie`` writes flush on the next tick, so a second
-    // ``useSelectedClinicId()`` instance would still read the old value.
-    const selected = clinicId ?? useSelectedClinicId().value
+    // selection: ``useCookie`` writes flush later (on the server at
+    // ``app:rendered``), so a caller that must pin the *new* clinic says so
+    // instead of relying on a re-read.
+    const selected = clinicId ?? selectedClinicId.value
     if (selected) headers['X-Clinic-Id'] = selected
     return headers
   }
@@ -109,8 +119,7 @@ export function useAuth() {
       user.value = response.data.user
       permissions.value = response.data.permissions
       clinics.value = response.data.clinics
-      const selected = useSelectedClinicId()
-      selected.value = clinicId
+      selectedClinicId.value = clinicId
       return true
     } catch (error) {
       console.error('Failed to switch clinic:', error)
@@ -124,8 +133,7 @@ export function useAuth() {
     user.value = null
     permissions.value = []
     clinics.value = []
-    const selected = useSelectedClinicId()
-    selected.value = null
+    selectedClinicId.value = null
     // SSR: skip router.push — calling it from middleware can crash the
     // response. The global auth middleware redirects to /login once it
     // sees isAuthenticated === false.
@@ -173,9 +181,8 @@ export function useAuth() {
         user.value = me.data.user
         permissions.value = me.data.permissions
         clinics.value = me.data.clinics
-        const selected = useSelectedClinicId()
-        if (!selected.value && me.data.clinics.length > 0) {
-          selected.value = me.data.clinics[0]?.id ?? null
+        if (!selectedClinicId.value && me.data.clinics.length > 0) {
+          selectedClinicId.value = me.data.clinics[0]?.id ?? null
         }
         return true
       } catch {
@@ -201,9 +208,9 @@ export function useAuth() {
       return
     }
 
-    // One instance for the whole flow so the correction below is visible
+    // The setup-captured instance, so the correction below is visible
     // synchronously (cookie writes only reach document.cookie on a tick).
-    const selected = useSelectedClinicId()
+    const selected = selectedClinicId
     const requestedClinicId = selected.value
 
     try {

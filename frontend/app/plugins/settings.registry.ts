@@ -9,6 +9,20 @@ import {
 } from '~/composables/useSettingsRegistry'
 
 export default defineNuxtPlugin(() => {
+  /**
+   * Captured once, during plugin setup.
+   *
+   * The onboarding predicates below run later — inside `gettingStarted`, a
+   * computed in `useSettingsRegistry` — so calling `useClinic()` from there
+   * needs the Nuxt instance from a deferred context, and it registers a fresh
+   * `watch(auth.isAuthenticated, …, { immediate: true })` on *every*
+   * evaluation, re-issuing `GET /api/v1/auth/clinics` each time the list
+   * recomputes. The returned refs are `useState`-backed, so reading them
+   * lazily inside the predicate keeps exactly the reactivity across login
+   * transitions that these rules were written for.
+   */
+  const clinic = useClinic()
+
   // ---- General -------------------------------------------------------
   registerSettingsPage({
     path: 'clinic',
@@ -143,7 +157,6 @@ export default defineNuxtPlugin(() => {
     to: '/settings/general/clinic',
     severity: 'warning',
     when: () => {
-      const clinic = useClinic()
       const c = clinic.currentClinic.value
       if (!c) return false
       return !c.name || !c.tax_id || !c.address?.street
@@ -158,7 +171,6 @@ export default defineNuxtPlugin(() => {
     to: '/settings/workspace/cabinets',
     severity: 'info',
     when: () => {
-      const clinic = useClinic()
       return clinic.cabinets.value.length === 0
     }
   })

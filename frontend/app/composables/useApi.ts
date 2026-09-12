@@ -87,6 +87,24 @@ export function useApi() {
   const auth = useAuth()
   const { t } = useI18n()
   const toast = useToast()
+  /**
+   * The clinic selection is captured here, during setup, on purpose.
+   *
+   * `useSelectedClinicId()` wraps `useCookie()`, which on the server resolves
+   * `useRequestEvent()` -> `useNuxtApp()` and therefore needs the Nuxt
+   * instance. `$api` runs long after setup — from watch callbacks, timers,
+   * event handlers and promise continuations — so calling it per request threw
+   * "A composable that requires access to the Nuxt instance was called outside
+   * of a plugin, Nuxt hook, Nuxt middleware, or Vue setup function". The
+   * callers' own catch blocks then reported it as a *backend* failure
+   * ("Failed to fetch clinic", "useModules: backend fetch failed",
+   * "Patients connection error") even though the request was never sent.
+   *
+   * Capturing one instance is also what `useApiHeaders()` already does, and it
+   * stops leaking a BroadcastChannel per request (an instance created outside
+   * an effect scope never reaches its `onScopeDispose` cleanup).
+   */
+  const selectedClinicId = useSelectedClinicId()
 
   // Use different API URL for server (Docker internal) vs client (browser)
   const apiBaseUrl = computed(() =>
@@ -122,11 +140,8 @@ export function useApi() {
     // the clinic context + role/permissions from this selection; if the
     // user is not a member it answers 403. A single-clinic self-hosted
     // install has exactly one option, so the header is harmless there.
-    if (!skipAuth) {
-      const selected = useSelectedClinicId()
-      if (selected.value) {
-        headers['X-Clinic-Id'] = selected.value
-      }
+    if (!skipAuth && selectedClinicId.value) {
+      headers['X-Clinic-Id'] = selectedClinicId.value
     }
 
     const url = _withQuery(path, query)

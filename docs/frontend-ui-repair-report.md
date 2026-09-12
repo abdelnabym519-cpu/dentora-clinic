@@ -1,9 +1,9 @@
 # Dentora — Frontend / UI Functionality & Interaction Repair
 
 **Branch:** `arena/01a091f7-dentora-clinic` (pushed) · **Base:** `f1c79ca` (`main`)
-**Code commits (20):** `45f7740` → `b0fb6d6` → `40c767c` → `6025974` → `64e6d40` → `7960143` → `ef76ede` → `085d0f4` → `20c3199` → `1601c7e` → `d51023e` → `eaa6330` → `8dbbda6` → `2aaff85` → `faca30e` → `0b2a663` → `e95ebd6` → `b47dc1c` → `4de533c` → `cd57e2c`
-**Cumulative diff (the 20 code commits):** **224 files changed, +9476 / −1040**, plus this document
-**Verification:** vue-tsc clean (app + all 27 module layers) · eslint clean · **52 test files / 325 tests pass, 0 unhandled errors** · production build succeeds · the built server bundle imports cleanly
+**Code commits (21):** `45f7740` → `b0fb6d6` → `40c767c` → `6025974` → `64e6d40` → `7960143` → `ef76ede` → `085d0f4` → `20c3199` → `1601c7e` → `d51023e` → `eaa6330` → `8dbbda6` → `2aaff85` → `faca30e` → `0b2a663` → `e95ebd6` → `b47dc1c` → `4de533c` → `cd57e2c` → `4eb5539`
+**Cumulative diff (the 21 code commits):** **226 files changed, +9667 / −1043**, plus this document
+**Verification:** vue-tsc clean (app + all 27 module layers) · eslint clean · **53 test files / 328 tests pass, 0 unhandled errors** · production build succeeds · the built server bundle imports cleanly
 **Status:** everything below is CODE-VERIFIED. Browser/E2E and live-backend runs are impossible in this sandbox — see §7.
 
 ---
@@ -24,6 +24,7 @@ Both halves were fixed at the source (§3.1). The audit then found the same two 
 * **A failure rendered as a clinical or financial claim** — "no notes for this appointment", "No payments", a WhatsApp settings form built from blanks with a live Save, a report showing a green *"No overdue invoices"* to a receptionist who simply lacked `reports.billing.read`, an odontogram rendering a **clean mouth** because the treatment read failed (§3.6, §3.7, §3.11, §3.20).
 * **A build-level crash on an AI page** — an undici override that broke `isomorphic-dompurify`, so server-rendering `/copilot` died during module load (§3.8).
 * **Stale responses** — every list and record is re-fetched by a watcher on whatever the user just changed, and *none* of those fetchers checked whether they were still the newest. Patient A's odontogram under patient B's name; the previous day's bookable slots; treatments that do not match the search box, one click from being added to a plan (§3.12–§3.14, §3.16, §3.18).
+* **User input destroyed by a failure the user did not cause** — the Copilot composer clearing the message before sending (§3.11), and the periodontogram close dialog wiping the clinician's observations before the request resolved (§3.21).
 * **Writes that could be submitted twice** — three clicks on the override Save produced **three** overrides for the same dates; a re-entered SMTP save could store a half-applied password (§3.15, §3.17, §3.19).
 * **Surfaces a keyboard cannot use, and menus that will not dismiss** — the clinic switcher had no keyboard path at all; the prescriptions patient picker had no Escape; a patient's invoice rows were click-only (§3.17, §3.18).
 
@@ -255,6 +256,16 @@ It now drops the list and sets an `error`, exposed as `treatmentsError` through 
 
 Tests: `tests/odontogram/treatmentsLoadFailure.test.ts` (4 — the reason is reported, the previous patient's treatments do not survive a failed switch, a retry clears the failure, `reset()` clears it) and `tests/ui/deadClicks.test.ts` (3 — a rejected clipboard reports an error, a successful copy reports success only, a failed recall lookup reports the reason and opens no modal). Both fail with the fixes reverted; the odontogram one fails with `expected [ { id: 'tr-pat-1-1', …(2) }, …(1) ] to deeply equal []`, i.e. patient one's treatments still on screen for patient two.
 
+### 3.21 `4eb5539` — a failed close must not throw away the clinician's notes (2 files + 1 test)
+
+Closing a periodontogram session asks for observations. The dialog closed itself and wiped the textarea **the instant it emitted** — before the request resolved — so when the close failed (a 409 because the session was closed in another tab, a 422, a network drop) the clinician got an accurate toast, the session correctly stayed a draft, and everything they had typed was gone: reopen the dialog, retype it, try again. Discard had the same shape, minus the notes.
+
+This was listed in §6 as a UX follow-up; on re-reading it is the same class as the Copilot composer that destroyed the typed message on a failed send (§3.11) — **user input lost to a failure the user did not cause** — so it is fixed rather than documented.
+
+`PerioIndicesBanner` now keeps the dialog exactly as the clinician left it, and only the parent (`PeriodontogramChart`) closes it, because the parent is what knows the outcome: `handleClose` tracks `closing`, calls the banner's exposed `closeSucceeded()` when `closeSession` actually resolved, and leaves the dialog and its notes untouched otherwise; `handleDiscard` does the same with `discarding` / `discardSucceeded()`. Both confirm buttons show their pending state and both handlers ignore a re-entry while one is in flight — a second click on Close used to emit a second `close` for the same session.
+
+`tests/periodontogram/closeSessionNotes.test.ts` (3 tests) types observations, confirms, and asserts the notes survive a close that did not take; that the dialog closes and clears only on the parent's success call; and that a second click in the same tick does not fire a second close. All three fail with the old emit-then-clear behaviour restored (`expected null to be truthy` — the dialog, and the notes with it, are already gone).
+
 ---
 
 ## 4. Security posture
@@ -267,7 +278,7 @@ Tests: `tests/odontogram/treatmentsLoadFailure.test.ts` (4 — the reason is rep
 | Do not hide genuine Veri*Factu errors on Veri*Factu pages | Veri*Factu's own screens keep inline errors and labelled toasts; only the **ambient** probe went silent, and it stops polling on 403/404 rather than retrying forever |
 | Preserve doctor approval / safety gates | Untouched. The AI readiness and prerequisite messages are now *more* visible (structured `{code, message, missing_or_stale}` details rendered inline), not less |
 | No fake providers, no mock data in production paths | None added. Every error state renders the server's own reason; empty states now only mean empty |
-| No test deleted to make a suite pass | 0 deleted; 24 → 52 files, 325 tests |
+| No test deleted to make a suite pass | 0 deleted; 24 → 53 files, 328 tests |
 | `main` and PR #65 untouched | `git ls-remote` confirms `main` = `f1c79ca`; no merge, no PR interaction |
 
 ---
@@ -278,13 +289,13 @@ Tests: `tests/odontogram/treatmentsLoadFailure.test.ts` (4 — the reason is rep
 |---|---|---|
 | Type check | `npx nuxt typecheck` (vue-tsc, app + all 27 module layers) | **EXIT 0** |
 | Lint | `eslint` on every changed file | **0 errors, 0 warnings** |
-| Unit / component tests | `npx vitest run` | **52 files, 325 tests — all pass, 0 unhandled errors** |
+| Unit / component tests | `npx vitest run` | **53 files, 328 tests — all pass, 0 unhandled errors** |
 | Production build | `npx nuxt build` (Nuxt client + Nitro server) | **EXIT 0**, `✨ Build complete!`, **0 i18n compile errors**; the only `ERROR` lines are the sandbox's font-CDN fetches (no external network) |
 | i18n coverage | `tests/i18n/keys.test.ts` | 0 missing / 2589 static keys × 5 locales |
 | Built server bundle | `await import('.output/server/node_modules/isomorphic-dompurify/dist/index.mjs')` | **loads** — before `085d0f4` it threw `MODULE_NOT_FOUND: undici/lib/handler/wrap-handler.js`, i.e. `/copilot` could not server-render |
 | Static sweeps | stuck-busy flags, dead links (60 targets), empty click handlers, hand-rolled auth headers, `try/finally` without `catch`, uncaught-rejection sites, null-payload assignments, stale-response sites, double-submit write buttons (50 candidates / 12 real writes), hand-rolled overlays and dismissal (11 found), clickable table rows (1), **catch blocks that surface nothing (23)** | see §6 |
 
-**Test growth: 24 → 52 files (+28 new, 0 deleted), 325 tests passing.** The 152 tests I added:
+**Test growth: 24 → 53 files (+29 new, 0 deleted), 328 tests passing.** The 155 tests I added:
 
 | File | Tests | Pins down |
 |---|---|---|
@@ -315,6 +326,7 @@ Tests: `tests/odontogram/treatmentsLoadFailure.test.ts` (4 — the reason is rep
 | `notifications/settingsSingleFlight.test.ts` | 5 | Each of the four settings writes re-entered while in flight produces **one** request, and the next call after it settles still goes through |
 | `odontogram/treatmentsLoadFailure.test.ts` | 4 | A failed treatment read is reported, does not leave the previous patient's treatments painted, clears on retry, and `reset()` clears it |
 | `ui/deadClicks.test.ts` | 3 | A rejected clipboard reports an error (a successful copy reports success only); a failed recall lookup reports the server's reason and opens no modal |
+| `periodontogram/closeSessionNotes.test.ts` | 3 | Typed close-session observations survive a close that did not take; the dialog closes and clears only on the parent's success call; a second click in the same tick does not fire a second close |
 
 ---
 
@@ -352,7 +364,6 @@ Also closed by scan rather than by fix: **the notifications centre has no surfac
 
 * `getPDFPreviewUrl` in `useInvoices`/`useBudgets` is exported but has **no consumer** (dead code). A URL cannot carry the clinic header, so if it is ever used it needs `clinic_id` as a query parameter.
 * `frontend/app/components/settings/pages/StubPage.vue` is likewise **dead code**: its own comment claims the settings registry uses it for catalog, vat-types, invoice-series and notifications, but all four pages now exist and nothing imports it (the registry resolves components through `() => import(...)` callables, and no entry references it). Nothing renders it, so no user can reach a "coming soon" panel.
-* `PerioIndicesBanner.confirmClose()` closes its dialog and clears the notes field **before** the close request resolves, so after a failed close the clinician must reopen the dialog and retype the notes. The failure is reported and the session correctly stays a draft; making the dialog wait for the result is a small UX follow-up, not a silent failure.
 * `PatientVisualSelector`'s duplicate-phone check swallows its failure, so a network blip means "no duplicate warning" rather than "the check could not run". It states nothing false (it never claims *no duplicates exist*), so it is documented rather than changed.
 * **`frontend/modules.json` is committed stale, and lists only 20 of the 27 modules that have a frontend layer.** Missing: `verifactu`, `dental_3d`, `periodontogram`, `whatsapp_kapso`, `accounting_export`, `migration_import`, `orthodontic_simulator` — and every path in it is a **CI-container path** (`/module_layers/...`), as is the committed `backend/app/modules/node_modules` symlink. CI regenerates the file (`.github/workflows/ci.yml` → *"Generate modules.json with host paths"*; `python -m app.cli.modules` does the same locally), so pipelines are fine — but a fresh checkout that builds or tests *without* regenerating it silently drops those 7 Nuxt layers: their routes do not exist and their composables are not auto-imported. That produced false reds three times in this session (3 Verifactu isolation tests failing with `ReferenceError: useVerifactu is not defined`; 3 bogus `Cannot find name 'useCatalog'` typecheck errors; and a full-run failure the moment the file was restored from git mid-session). **Recommendation: stop committing this file** (generate it in `postinstall`), or commit a complete, relative-path version. Regenerating it is part of the local ritual here: write all 27 layer paths before every test/typecheck/build, and `git checkout --` it (with `.nuxtrc` and the `node_modules` symlink) before every commit.
 * Low-priority surfaces reviewed and left as they are: `ModuleDetailModal` (read-only, Nuxt UI), `ClinicLanguagePage` (its save reports through the shared layer), the settings registry's watchers, `BudgetSignatureCard`, `NoteComposer.listTemplates`, `DocumentViewer.loadDocument`.
@@ -371,7 +382,7 @@ These need a browser and a database; neither exists in this sandbox (no Playwrig
 6. **Destructive actions inside an iframe** — with the app embedded in an iframe (preview panes, portals), delete a document, cancel an appointment, remove an invoice item, delete a treatment-plan item: a real in-app dialog must appear and the action must complete. Before `6025974` these were silent no-ops because `window.confirm` is blocked in iframes.
 7. **Public budget link** — visit `/p/budget/<token>` with a purged, expired (`410`) and locked (`423`) token, and with the network cut mid-load: each must render its own card with the reason and a working Retry, never an endless skeleton.
 8. **WhatsApp (Kapso) settings** — block `/api/v1/whatsapp_kapso/settings` (or use a role without the grant): the page must show the reason + Retry and **no form at all** (the API-key and webhook-secret inputs must be absent). Then Save with a bad phone number id: exactly **one** toast, carrying the server's validation reason. Same for Sync templates, Map and Send test.
-9. **Periodontogram session** — with a draft open, force a conflict on close (close it in another tab first, then close again here): a single save-failed toast **naming the conflict**, the dialog's action must not mark the session closed, and the draft must still be there to retry. Same for Discard. Then edit a cell with the network cut: the autosave toast must carry the reason, not just "check your connection".
+9. **Periodontogram session** — with a draft open, type observations and force a conflict on close (close it in another tab first, then close again here): a single save-failed toast **naming the conflict**, the dialog's action must not mark the session closed, and the draft must still be there to retry. **the dialog must stay open with the observations still typed** (before `4eb5539` they were wiped), and a second click on Close must not fire a second request. Same for Discard. Then edit a cell with the network cut: the autosave toast must carry the reason, not just "check your connection".
 10. **Copilot page, server-rendered** — this one needs a plain HTTP client, not a browser: `curl -i http://<host>/copilot` (or *view-source:* / JavaScript disabled) must return **200 with HTML**, not a 500. Before `085d0f4` Nitro threw `Cannot find module 'undici/lib/handler/wrap-handler.js'` while loading the route's bundle. Check the server log is clean.
 11. **Copilot composer** — type a message, then make session creation fail (a role without `copilot.use`, or block `POST /api/v1/copilot/sessions`): the text **must still be in the composer**. Click a nudge/pending suggestion with the same block: the prompt must come back.
 12. **Clinic hours / professional schedules** — deny the read and open *Settings → Clinic hours* and *Professional schedules*: each must show the reason + Retry and **no weekly grid, no Save button** (previously it rendered blank defaults with a live Save). Then delete an override / a schedule entry with the delete denied: exactly one toast, naming the failure.
@@ -392,7 +403,7 @@ These need a browser and a database; neither exists in this sandbox (no Playwrig
 27. **Invoice rows without a mouse** — in a patient's billing summary, Tab to an invoice row: it must take focus with a visible ring, Enter must expand it (and its payments must load), Space must collapse it, and a screen reader must announce the row as expanded/collapsed.
 28. **Dead clicks** — with the clipboard blocked (insecure context, or deny the permission), click a patient's copy button: an error toast must appear, and a successful copy must still toast success only. On a host without the odontogram treatment endpoint, click *set recall* on a completed treatment: a toast must name the failure and no modal may open.
 29. **i18n in the browser** — switch the UI language through all five locales (en/es/fr/pt/ar) and walk the surfaces above: no raw keys (`errors.loadFailed`-style identifiers) may appear, and in **ar** the layout must remain usable (RTL).
-30. **Full test suite on a real checkout** — `npm ci && npx vitest run` must report 52 files / 325 tests with **0 unhandled errors**, and `npx nuxt build` must succeed. Regenerate `frontend/modules.json` first (§6) or seven module layers will be missing and the run will be falsely red.
+30. **Full test suite on a real checkout** — `npm ci && npx vitest run` must report 53 files / 328 tests with **0 unhandled errors**, and `npx nuxt build` must succeed. Regenerate `frontend/modules.json` first (§6) or seven module layers will be missing and the run will be falsely red.
 
 ---
 
@@ -405,12 +416,12 @@ These need a browser and a database; neither exists in this sandbox (no Playwrig
 
 Two consequences worth stating plainly: (a) every claim in §5 was re-run after the second restore, on the recovered tree, at `cd57e2c`; (b) `frontend/modules.json` being committed stale produced three separate false-red runs (§6) — each time the fix was to regenerate all 27 layers, never to change a test.
 
-The branch holds all twenty code commits, pushed (`45f7740` … `cd57e2c`) plus the documentation commits carrying this file, verified against the remote with `git ls-remote`.
+The branch holds all twenty-one code commits, pushed (`45f7740` … `4eb5539`) plus the documentation commits carrying this file, verified against the remote with `git ls-remote`.
 
 ## 9. Not done
 
 * **Browser E2E (Playwright)** — no browser can be installed in this sandbox. §7 is the checklist that replaces it.
 * **Any live-backend / database verification** — no postgres, docker or podman. The `/copilot` SSR crash is the one runtime defect proven here without a browser, by importing the built server tree directly in Node.
 * **A browser click-through of every dialog, table and popover.** The pattern-level passes are done and itemised in §6 (overlays and dismissal, clickable rows and keyboard access, every button that reaches a write, every catch that surfaces nothing); what remains needs a real browser.
-* The four documented follow-ups in §6 (`getPDFPreviewUrl` and `StubPage` dead code, `PerioIndicesBanner.confirmClose()`'s early dialog close, `PatientVisualSelector`'s silent duplicate check) — none is a broken interaction today.
+* The three documented follow-ups in §6 (`getPDFPreviewUrl` and `StubPage` dead code, `PatientVisualSelector`'s silent duplicate check) — none is a broken interaction today.
 * **No pull request opened.** Work is committed and pushed to `arena/01a091f7-dentora-clinic`; `main` and PR #65 are untouched. Say the word and I'll open one.

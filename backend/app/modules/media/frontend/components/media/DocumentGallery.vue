@@ -125,11 +125,22 @@ function handleDeleteRequest(doc: Document) {
   showDeleteConfirm.value = true
 }
 
+// Two problems in one small function: the Confirm button stayed clickable, so
+// a second click sent a second DELETE whose 404 was toasted as a failure after
+// the success; and the dialog closed even when `deleteDocument` returned false,
+// which reads as a successful delete of a document that is still there.
+const isDeleting = ref(false)
+
 async function confirmDelete() {
-  if (selectedDocument.value) {
-    await deleteDocument(selectedDocument.value.id)
+  if (!selectedDocument.value || isDeleting.value) return
+  isDeleting.value = true
+  try {
+    const deleted = await deleteDocument(selectedDocument.value.id)
+    if (!deleted) return
     showDeleteConfirm.value = false
     selectedDocument.value = null
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -301,6 +312,7 @@ const totalPages = computed(() => Math.ceil(total.value / pageSize))
               </UButton>
               <UButton
                 color="error"
+                :loading="isDeleting"
                 @click="confirmDelete"
               >
                 {{ t('common.delete') }}

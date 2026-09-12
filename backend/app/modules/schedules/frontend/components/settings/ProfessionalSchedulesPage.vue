@@ -131,8 +131,14 @@ function removeShiftFromOverride(idx: number) {
   overrideForm.value.shifts.splice(idx, 1)
 }
 
+// Same duplicate-record trap as the clinic-hours override: a second click
+// before the first response lands creates a second override for those dates.
+const isSavingOverride = ref(false)
+
 async function saveOverride() {
   if (!selectedProfessional.value) return
+  if (isSavingOverride.value) return
+  isSavingOverride.value = true
   const payload: ProfessionalOverridePayload = {
     start_date: overrideForm.value.start_date,
     end_date: overrideForm.value.end_date,
@@ -149,12 +155,13 @@ async function saveOverride() {
     overrides.value = await fetchOverrides(selectedProfessional.value)
     showOverrideModal.value = false
   } catch (err: unknown) {
-    const fetchError = err as { data?: { message?: string } }
     toast.add({
       title: t('common.error'),
-      description: fetchError.data?.message ?? '',
+      description: errorDetail(err),
       color: 'error'
     })
+  } finally {
+    isSavingOverride.value = false
   }
 }
 
@@ -369,7 +376,11 @@ onMounted(async () => {
             >
               {{ t('schedules.overrides.cancel') }}
             </UButton>
-            <UButton @click="saveOverride">
+            <UButton
+              :loading="isSavingOverride"
+              data-testid="professional-hours-override-save"
+              @click="saveOverride"
+            >
               {{ t('schedules.overrides.save') }}
             </UButton>
           </div>

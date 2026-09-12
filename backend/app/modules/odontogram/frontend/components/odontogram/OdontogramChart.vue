@@ -598,29 +598,53 @@ function handleEditTreatment(treatment: ToothTreatmentView) {
   showTreatmentEditModal.value = true
 }
 
+// The edit modal's three actions stayed clickable while the request was in
+// flight. A second click on Delete sent a second DELETE whose 404 was reported
+// as a failure *after* the success toast; a second click on Perform repeated
+// the completion. One flag covers all three: the modal is closing anyway.
+const isTreatmentBusy = ref(false)
+
 async function handleTreatmentUpdate(
   treatmentId: string,
   data: { status?: TreatmentStatus, notes?: string }
 ) {
-  await updateTreatment(treatmentId, data)
-  emit('treatmentsChanged')
-  showTreatmentEditModal.value = false
-  editingTreatment.value = null
+  if (isTreatmentBusy.value) return
+  isTreatmentBusy.value = true
+  try {
+    await updateTreatment(treatmentId, data)
+    emit('treatmentsChanged')
+    showTreatmentEditModal.value = false
+    editingTreatment.value = null
+  } finally {
+    isTreatmentBusy.value = false
+  }
 }
 
 async function handleTreatmentDelete(treatmentId: string) {
-  await deleteTreatment(treatmentId)
-  emit('treatmentsChanged')
-  showTreatmentEditModal.value = false
-  editingTreatment.value = null
+  if (isTreatmentBusy.value) return
+  isTreatmentBusy.value = true
+  try {
+    await deleteTreatment(treatmentId)
+    emit('treatmentsChanged')
+    showTreatmentEditModal.value = false
+    editingTreatment.value = null
+  } finally {
+    isTreatmentBusy.value = false
+  }
 }
 
 async function handleTreatmentPerform(treatmentId: string) {
-  const updated = await performTreatment(treatmentId)
-  if (updated) emit('treatmentPerform', treatmentId)
-  emit('treatmentsChanged')
-  showTreatmentEditModal.value = false
-  editingTreatment.value = null
+  if (isTreatmentBusy.value) return
+  isTreatmentBusy.value = true
+  try {
+    const updated = await performTreatment(treatmentId)
+    if (updated) emit('treatmentPerform', treatmentId)
+    emit('treatmentsChanged')
+    showTreatmentEditModal.value = false
+    editingTreatment.value = null
+  } finally {
+    isTreatmentBusy.value = false
+  }
 }
 
 // ============================================================================

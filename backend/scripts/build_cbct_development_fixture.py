@@ -153,7 +153,21 @@ def main() -> int:
     parser.add_argument("--slice-spacing-mm", type=float, default=0.5)
     parser.add_argument("--pixel-size-mm", type=float, default=0.3)
     parser.add_argument("--grid", type=int, default=256)
+    parser.add_argument(
+        "--uid-namespace",
+        type=int,
+        default=9000,
+        help="UID suffix block. The fixture stays deterministic for a given "
+        "value; bump it to mint a fresh study/series/frame of reference so the "
+        "same patient (or another one) can be re-ingested without SOP clashes.",
+    )
     args = parser.parse_args()
+
+    global FIXTURE_STUDY_UID, FIXTURE_SERIES_UID, FIXTURE_FRAME_OF_REFERENCE_UID
+    base = int(args.uid_namespace)
+    FIXTURE_STUDY_UID = f"1.2.826.0.1.3680043.10.1337.{base + 1}"
+    FIXTURE_SERIES_UID = f"1.2.826.0.1.3680043.10.1337.{base + 2}"
+    FIXTURE_FRAME_OF_REFERENCE_UID = f"1.2.826.0.1.3680043.10.1337.{base + 3}"
 
     files = build_series_bytes(
         mesh_path=args.mesh,

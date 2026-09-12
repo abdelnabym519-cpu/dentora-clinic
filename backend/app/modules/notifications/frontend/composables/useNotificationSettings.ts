@@ -99,6 +99,12 @@ export function useNotificationSettings() {
    * Update clinic notification settings
    */
   async function updateSettings(data: ClinicNotificationSettingsUpdate): Promise<boolean> {
+    // Single-flight. The buttons carry `:loading`, which blocks a second
+    // *mouse* click, but these operations are also reachable through implicit
+    // form submission (Enter in a field) and through a second click in the same
+    // tick, before Vue has re-rendered the disabled state. A superseded call
+    // returns `false` without its own report: the in-flight one owns the toast.
+    if (isSaving.value) return false
     isSaving.value = true
     try {
       const response = await api.put<ApiResponse<ClinicNotificationSettings>>(
@@ -129,6 +135,8 @@ export function useNotificationSettings() {
    * Test email connection by sending a test email
    */
   async function testEmailConnection(toEmail: string): Promise<boolean> {
+    // Single-flight: a second submit here would send a second test email.
+    if (isTesting.value) return false
     isTesting.value = true
     try {
       const response = await api.post<ApiResponse<TestEmailResponse>>(
@@ -278,6 +286,9 @@ export function useNotificationSettings() {
    * Update SMTP settings for the clinic
    */
   async function updateSmtpSettings(data: SmtpSettingsUpdate): Promise<boolean> {
+    // Single-flight: overwriting SMTP credentials twice can store a half-applied
+    // password, and the modal closes on the first success anyway.
+    if (isSmtpSaving.value) return false
     isSmtpSaving.value = true
     try {
       const response = await api.put<ApiResponse<SmtpSettings>>(
@@ -308,6 +319,8 @@ export function useNotificationSettings() {
    * Test SMTP connection with specific settings
    */
   async function testSmtpConnection(request: SmtpTestRequest): Promise<boolean> {
+    // Single-flight: one test email per press, not one per re-entry.
+    if (isSmtpTesting.value) return false
     isSmtpTesting.value = true
     try {
       const response = await api.post<ApiResponse<TestEmailResponse>>(

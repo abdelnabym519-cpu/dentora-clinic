@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Prescription, PrescriptionDelivery, PrescriptionItem } from '../../composables/usePrescriptions'
 import { errorMessage } from '~~/app/utils/error'
+import { latestGuard } from '~~/app/utils/latestGuard'
 
 interface PatientBrief { id: string, first_name: string, last_name: string, record_number?: string | null }
 interface PatientPage { data: PatientBrief[] }
@@ -14,6 +15,17 @@ const deliveriesByPrescription = ref<Record<string, PrescriptionDelivery[]>>({})
 const patientSearch = ref('')
 const patients = ref<PatientBrief[]>([])
 const selectedPatient = ref<PatientBrief | null>(null)
+// The patient picker is hand-rolled (an input plus an absolutely positioned
+// result list), so the behaviour a combobox is expected to have lives here:
+// results belong to the text currently in the box, Escape and a click outside
+// dismiss the list, and the arrow keys plus Enter reach a result without a
+// mouse. Previously the list only ever disappeared by being emptied, so it
+// stayed floating over the form after the user clicked away.
+const pickerOpen = ref(false)
+const activeIndex = ref(-1)
+const pickerRootEl = ref<HTMLElement | null>(null)
+const pickerInputEl = ref<HTMLInputElement | null>(null)
+const searchGuard = latestGuard()
 const busy = ref(false)
 const error = ref('')
 // Loading the history and searching patients are reads with their own
@@ -85,30 +97,97 @@ async function searchPatients() {
   if (term.length < 2) {
     patients.value = []
     searchError.value = ''
+    closePicker()
     return
   }
   searching.value = true
   searchError.value = ''
+  // One request per keystroke: without this, a slow answer for a shorter
+  // prefix could land last and offer patients that do not match the box —
+  // one click away from putting the wrong name on a prescription.
+  const isLatest = searchGuard.begin()
   try {
     const response = await api.get<PatientPage>(
       `/api/v1/patients?search=${encodeURIComponent(term)}&page_size=10`,
       { silent: true }
     )
+    if (!isLatest()) return
     patients.value = response.data ?? []
+    activeIndex.value = -1
+    pickerOpen.value = patients.value.length > 0
   } catch (e: unknown) {
     // Was an unguarded await inside an @input handler: the rejection
     // escaped and the dropdown silently kept the previous results.
+    if (!isLatest()) return
     patients.value = []
     searchError.value = errorMessage(e, t('prescriptions.errors.search'))
+    closePicker()
   } finally {
-    searching.value = false
+    if (isLatest()) searching.value = false
   }
 }
+
+function closePicker() {
+  pickerOpen.value = false
+  activeIndex.value = -1
+}
+
+function onPickerKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    if (pickerOpen.value) {
+      event.preventDefault()
+      closePicker()
+    }
+    return
+  }
+  if (!pickerOpen.value || patients.value.length === 0) return
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    activeIndex.value = (activeIndex.value + 1) % patients.value.length
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    activeIndex.value = activeIndex.value <= 0 ? patients.value.length - 1 : activeIndex.value - 1
+  } else if (event.key === 'Home' || event.key === 'End') {
+    event.preventDefault()
+    activeIndex.value = event.key === 'Home' ? 0 : patients.value.length - 1
+  } else if (event.key === 'Enter') {
+    const patient = activeIndex.value >= 0 ? patients.value[activeIndex.value] : undefined
+    if (patient) {
+      event.preventDefault()
+      void selectPatient(patient)
+    }
+  }
+}
+
+function onDocumentPointerDown(event: MouseEvent) {
+  if (!pickerOpen.value) return
+  if (pickerRootEl.value && !pickerRootEl.value.contains(event.target as Node)) closePicker()
+}
+
+function bindPickerListeners() {
+  if (import.meta.server) return
+  document.addEventListener('pointerdown', onDocumentPointerDown)
+}
+
+function unbindPickerListeners() {
+  if (import.meta.server) return
+  document.removeEventListener('pointerdown', onDocumentPointerDown)
+}
+
+watch(pickerOpen, (open) => {
+  if (open) bindPickerListeners()
+  else unbindPickerListeners()
+})
+
+onBeforeUnmount(unbindPickerListeners)
 
 async function selectPatient(patient: PatientBrief) {
   selectedPatient.value = patient
   patientSearch.value = `${patient.first_name} ${patient.last_name}`
   patients.value = []
+  closePicker()
+  pickerInputEl.value?.blur()
   await loadPrescriptions()
 }
 
@@ -228,16 +307,30 @@ onMounted(() => {
       <h2 class="font-semibold">
         {{ t('prescriptions.new') }}
       </h2>
-      <div class="relative">
-        <label class="block text-sm font-medium">
+      <div
+        ref="pickerRootEl"
+        class="relative"
+      >
+        <label
+          class="block text-sm font-medium"
+          for="prescription-patient-search"
+        >
           {{ t('prescriptions.patient') }}
         </label>
         <input
+          id="prescription-patient-search"
+          ref="pickerInputEl"
           v-model="patientSearch"
           data-testid="prescription-patient-search"
           class="mt-1 w-full rounded border px-3 py-2"
           :placeholder="t('prescriptions.searchPatient')"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls="prescription-patient-listbox"
+          :aria-expanded="pickerOpen"
+          :aria-activedescendant="activeIndex >= 0 ? `prescription-patient-option-${activeIndex}` : undefined"
           @input="searchPatients"
+          @keydown="onPickerKeydown"
         >
         <p
           v-if="searchError"
@@ -248,15 +341,22 @@ onMounted(() => {
           {{ searchError }}
         </p>
         <div
-          v-if="patients.length"
+          v-if="pickerOpen && patients.length"
+          id="prescription-patient-listbox"
+          role="listbox"
           class="absolute z-10 mt-1 w-full rounded border bg-white shadow"
         >
           <button
-            v-for="patient in patients"
+            v-for="(patient, index) in patients"
+            :id="`prescription-patient-option-${index}`"
             :key="patient.id"
             type="button"
+            role="option"
+            :aria-selected="index === activeIndex"
             class="block w-full px-3 py-2 text-start hover:bg-gray-50"
+            :class="index === activeIndex ? 'bg-gray-100' : ''"
             :data-testid="`prescription-patient-${patient.id}`"
+            @mouseenter="activeIndex = index"
             @click="selectPatient(patient)"
           >
             {{ patient.first_name }} {{ patient.last_name }}
@@ -269,15 +369,59 @@ onMounted(() => {
         :key="index"
         class="grid gap-3 rounded border p-3 md:grid-cols-3"
       >
-        <input v-model="item.medication_name" :data-testid="`medication-name-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.medication')">
-        <input v-model="item.strength" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.strength')">
-        <input v-model="item.dose" :data-testid="`dose-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.dose')">
-        <input v-model="item.frequency" :data-testid="`frequency-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.frequency')">
-        <input v-model="item.duration" :data-testid="`duration-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.duration')">
-        <input v-model="item.route" :data-testid="`route-${index}`" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.route')">
-        <input v-model.number="item.quantity" :data-testid="`quantity-${index}`" type="number" min="1" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.quantity')">
-        <input v-model="item.quantity_unit" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.quantityUnit')">
-        <input v-model="item.instructions" class="rounded border px-3 py-2" :placeholder="t('prescriptions.fields.instructions')">
+        <input
+          v-model="item.medication_name"
+          :data-testid="`medication-name-${index}`"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.medication')"
+        >
+        <input
+          v-model="item.strength"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.strength')"
+        >
+        <input
+          v-model="item.dose"
+          :data-testid="`dose-${index}`"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.dose')"
+        >
+        <input
+          v-model="item.frequency"
+          :data-testid="`frequency-${index}`"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.frequency')"
+        >
+        <input
+          v-model="item.duration"
+          :data-testid="`duration-${index}`"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.duration')"
+        >
+        <input
+          v-model="item.route"
+          :data-testid="`route-${index}`"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.route')"
+        >
+        <input
+          v-model.number="item.quantity"
+          :data-testid="`quantity-${index}`"
+          type="number"
+          min="1"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.quantity')"
+        >
+        <input
+          v-model="item.quantity_unit"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.quantityUnit')"
+        >
+        <input
+          v-model="item.instructions"
+          class="rounded border px-3 py-2"
+          :placeholder="t('prescriptions.fields.instructions')"
+        >
         <button
           type="button"
           class="text-sm text-red-600"
@@ -354,34 +498,74 @@ onMounted(() => {
       >
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <strong dir="ltr" class="inline-block">
+            <strong
+              dir="ltr"
+              class="inline-block"
+            >
               {{ rx.identifier }}
             </strong>
-            <span class="ms-2 rounded bg-gray-100 px-2 py-1 text-xs" :data-testid="`prescription-status-${rx.id}`">
+            <span
+              class="ms-2 rounded bg-gray-100 px-2 py-1 text-xs"
+              :data-testid="`prescription-status-${rx.id}`"
+            >
               {{ statusLabel(rx.status) }}
             </span>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button v-if="rx.status === 'draft'" :data-testid="`issue-${rx.id}`" type="button" class="rounded bg-green-600 px-3 py-1 text-white" :disabled="busy" @click="issue(rx)">
+            <button
+              v-if="rx.status === 'draft'"
+              :data-testid="`issue-${rx.id}`"
+              type="button"
+              class="rounded bg-green-600 px-3 py-1 text-white"
+              :disabled="busy"
+              @click="issue(rx)"
+            >
               {{ t('prescriptions.issue') }}
             </button>
-            <button v-if="rx.status === 'draft'" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="cancel(rx)">
+            <button
+              v-if="rx.status === 'draft'"
+              type="button"
+              class="rounded border px-3 py-1"
+              :disabled="busy"
+              @click="cancel(rx)"
+            >
               {{ t('prescriptions.cancel') }}
             </button>
-            <button v-if="rx.status === 'issued' && can('prescriptions.issue')" :data-testid="`whatsapp-retry-${rx.id}`" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="retryWhatsApp(rx)">
+            <button
+              v-if="rx.status === 'issued' && can('prescriptions.issue')"
+              :data-testid="`whatsapp-retry-${rx.id}`"
+              type="button"
+              class="rounded border px-3 py-1"
+              :disabled="busy"
+              @click="retryWhatsApp(rx)"
+            >
               {{ t('prescriptions.sendWhatsApp') }}
             </button>
-            <button v-if="rx.status === 'issued'" type="button" class="rounded border px-3 py-1" :disabled="busy" @click="voidRx(rx)">
+            <button
+              v-if="rx.status === 'issued'"
+              type="button"
+              class="rounded border px-3 py-1"
+              :disabled="busy"
+              @click="voidRx(rx)"
+            >
               {{ t('prescriptions.void') }}
             </button>
           </div>
         </div>
         <ul class="mt-3 list-disc ps-5 text-sm">
-          <li v-for="item in rx.items" :key="item.id || `${item.medication_name}-${item.dose}`" dir="auto">
+          <li
+            v-for="item in rx.items"
+            :key="item.id || `${item.medication_name}-${item.dose}`"
+            dir="auto"
+          >
             {{ item.medication_name }} — {{ item.dose }}, {{ item.frequency }}, {{ item.duration }}, {{ item.route }} × {{ item.quantity }}
           </li>
         </ul>
-        <div v-if="can('prescriptions.audit') && (rx.status === 'issued' || rx.status === 'voided')" class="mt-3 rounded bg-gray-50 p-3 text-xs" :data-testid="`whatsapp-delivery-${rx.id}`">
+        <div
+          v-if="can('prescriptions.audit') && (rx.status === 'issued' || rx.status === 'voided')"
+          class="mt-3 rounded bg-gray-50 p-3 text-xs"
+          :data-testid="`whatsapp-delivery-${rx.id}`"
+        >
           <template v-if="latestDelivery(rx.id)">
             <strong>{{ t('prescriptions.whatsapp') }}:</strong>
             {{ deliveryStatusLabel(latestDelivery(rx.id)?.status) }}
@@ -394,13 +578,21 @@ onMounted(() => {
             <span v-if="latestDelivery(rx.id)?.read_at">
               · {{ t('prescriptions.read') }} <bdi dir="ltr">{{ latestDelivery(rx.id)?.read_at }}</bdi>
             </span>
-            <p v-if="latestDelivery(rx.id)?.error_message" class="mt-1 text-red-600" role="alert" dir="auto">
+            <p
+              v-if="latestDelivery(rx.id)?.error_message"
+              class="mt-1 text-red-600"
+              role="alert"
+              dir="auto"
+            >
               {{ latestDelivery(rx.id)?.error_message }}
             </p>
           </template>
           <span v-else>{{ t('prescriptions.noDeliveryAttempt') }}</span>
         </div>
-        <p v-if="rx.status !== 'draft'" class="mt-2 text-xs text-gray-500">
+        <p
+          v-if="rx.status !== 'draft'"
+          class="mt-2 text-xs text-gray-500"
+        >
           {{ t('prescriptions.immutable') }}
         </p>
       </div>

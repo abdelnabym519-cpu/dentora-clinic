@@ -355,8 +355,12 @@ watch(() => props.patientId, () => {
               >
                 <!-- Invoice row -->
                 <tr
-                  class="hover:bg-surface-muted/30 cursor-pointer transition-colors"
+                  class="hover:bg-surface-muted/30 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+                  tabindex="0"
+                  :aria-expanded="expandedInvoices.has(invoice.id)"
                   @click="toggleInvoice(invoice.id)"
+                  @keydown.enter.prevent="toggleInvoice(invoice.id)"
+                  @keydown.space.prevent="toggleInvoice(invoice.id)"
                 >
                   <td class="px-3 py-3">
                     <UIcon

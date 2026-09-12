@@ -100,6 +100,50 @@ function collectSourceFiles(): SourceFileEntry[] {
   return files
 }
 
+/** `<script>` / `<script setup>` blocks of every `.vue` file, with real line offsets. */
+interface VueScript {
+  rel: string
+  isSetup: boolean
+  lineOffset: number
+  source: ts.SourceFile
+}
+
+function collectVueScripts(): VueScript[] {
+  const roots = [join(FRONTEND_ROOT, 'app'), join(FRONTEND_ROOT, 'module_layers')]
+  const out: VueScript[] = []
+
+  const walkVue = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      if (name === 'node_modules') continue
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) {
+        walkVue(full)
+        continue
+      }
+      if (!name.endsWith('.vue')) continue
+      const text = readFileSync(full, 'utf8')
+      const pattern = /<script([^>]*)>([\s\S]*?)<\/script>/g
+      let match: RegExpExecArray | null
+      while ((match = pattern.exec(text)) !== null) {
+        const codeStart = match.index + match[0].indexOf('>') + 1
+        out.push({
+          rel: relative(FRONTEND_ROOT, full),
+          isSetup: /\bsetup\b/.test(match[1]),
+          lineOffset: text.slice(0, codeStart).split('\n').length - 1,
+          source: ts.createSourceFile(`${full}.ts`, match[2], ts.ScriptTarget.Latest, true)
+        })
+      }
+    }
+  }
+
+  for (const root of roots) {
+    try {
+      walkVue(root)
+    } catch { /* root absent */ }
+  }
+  return out
+}
+
 /** Names this file's code calls — auto-import means edges need no import statement. */
 function calledNames(node: ts.Node, out: Set<string> = new Set()): Set<string> {
   const visit = (child: ts.Node) => {
@@ -305,6 +349,62 @@ describe('Nuxt context safety (static gate)', () => {
         ts.forEachChild(node, visit)
       }
       visit(entry.source)
+    }
+
+    expect(violations).toEqual([])
+  })
+
+  it('keeps instance composables out of deferred callbacks and module scope in .vue files', () => {
+    // A timer, an event listener, a Nuxt hook or a `.then()` continuation is
+    // not a transformed body: unctx restores the Nuxt instance only for
+    // `defineNuxtPlugin`, `defineNuxtRouteMiddleware` and `setup`. Module scope
+    // of a plain (non-setup) `<script>` block is equally bare.
+    const DEFERRED_TRIGGERS = new Set([
+      'setTimeout', 'setInterval', 'requestAnimationFrame', 'queueMicrotask',
+      'addEventListener', 'hook', 'then', 'catch', 'finally', 'once', 'subscribe'
+    ])
+    const INSTANCE_APIS = new Set([...NUXT_INSTANCE_COMPOSABLES, ...COMPONENT_INSTANCE_APIS])
+
+    const scripts = collectVueScripts()
+    // Guard against the rule going vacuous because the walk broke.
+    expect(scripts.length).toBeGreaterThan(50)
+
+    const violations: string[] = []
+
+    for (const script of scripts) {
+      const report = (name: string, node: ts.Node, why: string) => {
+        const { line } = script.source.getLineAndCharacterOfPosition(node.getStart())
+        violations.push(`${script.rel}:${line + 1 + script.lineOffset} ${name}() ${why}`)
+      }
+
+      const visit = (node: ts.Node, deferred: boolean, fnDepth: number) => {
+        if (ts.isCallExpression(node)) {
+          const callee = node.expression
+          const name = ts.isIdentifier(callee)
+            ? callee.text
+            : ts.isPropertyAccessExpression(callee) ? callee.name.text : ''
+
+          if (INSTANCE_APIS.has(name)) {
+            if (deferred) report(name, node, 'inside a deferred callback — acquire it in setup and read the captured value')
+            else if (fnDepth === 0 && !script.isSetup) report(name, node, 'at module scope of a non-setup <script> block')
+          }
+
+          if (DEFERRED_TRIGGERS.has(name)) {
+            visit(node.expression, deferred, fnDepth)
+            for (const arg of node.arguments) {
+              if (ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) visit(arg.body, true, fnDepth + 1)
+              else visit(arg, deferred, fnDepth)
+            }
+            return
+          }
+        }
+
+        const entersFn = ts.isArrowFunction(node) || ts.isFunctionExpression(node)
+          || ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)
+        ts.forEachChild(node, child => visit(child, deferred, entersFn ? fnDepth + 1 : fnDepth))
+      }
+
+      ts.forEachChild(script.source, child => visit(child, false, 0))
     }
 
     expect(violations).toEqual([])

@@ -4,7 +4,9 @@ export function useClinic() {
   const api = useApi()
   const auth = useAuth()
   const toast = useToast()
-  const { t } = useI18n()
+  // Plugin-safe: this composable is acquired by `app/plugins/settings.registry.ts`,
+  // which runs during SSR boot with no component instance.
+  const t = useGlobalT()
 
   // State
   const currentClinic = useState<Clinic | null>('clinic:current', () => null)

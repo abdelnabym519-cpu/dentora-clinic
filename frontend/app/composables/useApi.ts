@@ -85,7 +85,9 @@ export function _resetApiErrorNotifications(): void {
 export function useApi() {
   const config = useRuntimeConfig()
   const auth = useAuth()
-  const { t } = useI18n()
+  // Plugin-safe: `useApi` is reachable from `app/plugins/settings.registry.ts`
+  // via `useClinic()`, where no component instance exists yet on SSR.
+  const t = useGlobalT()
   const toast = useToast()
   /**
    * The clinic selection is captured here, during setup, on purpose.

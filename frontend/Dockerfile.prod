@@ -11,6 +11,31 @@ RUN npm ci --no-audit --no-fund
 COPY backend/app/modules /module_layers
 COPY frontend/ ./
 
+# Generate the Nuxt layer list from the layers actually baked into this image.
+#
+# `frontend/modules.json` is a *development* artifact: the backend rewrites it
+# on every non-production boot (processor._sync_frontend_layers), so the copy
+# committed to the repository is only as fresh as the last developer machine
+# that ran it — it lists 20 of the 34 modules that ship a layer. In production
+# that sync deliberately no-ops ("module layers are baked into the frontend
+# image at build time"), so the committed file was the whole truth: every
+# module missing from it — the seven clinical-AI layers, dental_3d,
+# periodontogram, verifactu and the rest — shipped with no UI at all, and Nuxt
+# never extended them. Deriving the list here makes the image self-consistent
+# with its own contents.
+RUN node -e "\
+  const fs = require('node:fs');\
+  const root = '/module_layers';\
+  const entries = fs.readdirSync(root, { withFileTypes: true })\
+    .filter(d => d.isDirectory())\
+    .map(d => ({ name: d.name, path: root + '/' + d.name + '/frontend' }))\
+    .filter(e => fs.existsSync(e.path))\
+    .sort((a, b) => a.name.localeCompare(b.name));\
+  fs.writeFileSync('/app/modules.json',\
+    JSON.stringify({ version: 1, layers: entries.map(e => e.path), modules: entries }, null, 2) + '\n');\
+  console.log('modules.json generated from ' + root + ': ' + entries.length + ' layer(s)');\
+  "
+
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 

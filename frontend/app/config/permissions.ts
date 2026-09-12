@@ -42,6 +42,36 @@ export const PERMISSIONS = {
     generate: 'risk_engine.generate',
     review: 'risk_engine.review'
   },
+  caseIntelligence: {
+    read: 'case_intelligence.read'
+  },
+  aiCaseSummary: {
+    read: 'ai_case_summary.read',
+    generate: 'ai_case_summary.generate',
+    review: 'ai_case_summary.review'
+  },
+  aiClinicalReport: {
+    read: 'ai_clinical_report.read',
+    generate: 'ai_clinical_report.generate'
+  },
+  aiTreatmentPlanning: {
+    read: 'ai_treatment_planning.read',
+    generate: 'ai_treatment_planning.generate',
+    review: 'ai_treatment_planning.review'
+  },
+  aiSecondReview: {
+    read: 'ai_second_review.read',
+    generate: 'ai_second_review.generate',
+    review: 'ai_second_review.review'
+  },
+  clinicalCopilot: {
+    read: 'clinical_copilot.read',
+    use: 'clinical_copilot.use'
+  },
+  treatmentSimulation: {
+    read: 'treatment_simulation.read',
+    generate: 'treatment_simulation.generate'
+  },
   catalog: {
     read: 'catalog.read',
     write: 'catalog.write',

@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth.dependencies import ClinicContext, get_clinic_context, require_permission
-from app.core.llm.base import LLMError
+from app.core.llm.base import LLMConfigError, LLMError
 from app.core.schemas import ApiResponse
 from app.database import get_db
 
@@ -34,6 +34,14 @@ async def generate_case_summary(
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found"
+        ) from exc
+    except LLMConfigError as exc:
+        # Provider misconfiguration is an actionable deployment state, not a
+        # provider-output problem — surface it distinctly (503), mirroring
+        # clinical_copilot / ai_clinical_report.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "ai_case_summary_provider_unavailable", "message": str(exc)},
         ) from exc
     except (LLMError, SummaryGenerationError) as exc:
         raise HTTPException(

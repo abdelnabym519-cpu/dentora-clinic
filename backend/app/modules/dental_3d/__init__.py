@@ -50,7 +50,7 @@ class Dental3DModule(BaseModule):
         "category": "official",
         "depends": ["patients", "odontogram", "media"],
         "installable": True,
-        "auto_install": False,
+        "auto_install": True,
         "removable": True,
         "role_permissions": {
             "admin": ["*"],

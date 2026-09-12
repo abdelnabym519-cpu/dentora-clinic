@@ -59,43 +59,36 @@ interface SourceFileEntry {
   source: ts.SourceFile
 }
 
-function walk(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    const full = join(dir, name)
-    const stat = statSync(full)
-    if (stat.isDirectory()) walk(full, out)
-    else if (name.endsWith('.ts') && !name.endsWith('.d.ts')) out.push(full)
-  }
-  return out
-}
-
 function collectSourceFiles(): SourceFileEntry[] {
-  const dirs = [
-    join(FRONTEND_ROOT, 'app/composables'),
-    join(FRONTEND_ROOT, 'app/utils'),
-    join(FRONTEND_ROOT, 'app/plugins'),
-    join(FRONTEND_ROOT, 'app/middleware')
-  ]
-  const layersRoot = join(FRONTEND_ROOT, 'module_layers')
-  for (const layer of readdirSync(layersRoot)) {
-    for (const sub of ['composables', 'utils', 'plugins', 'middleware']) {
-      const dir = join(layersRoot, layer, 'frontend', sub)
-      try {
-        if (statSync(dir).isDirectory()) dirs.push(dir)
-      } catch { /* layer without that directory */ }
-    }
-  }
-
+  // Every `.ts` under the app and the module layers — not a whitelist of
+  // subdirectories. A violation in `lib/`, `components/`, `config/` or a page
+  // helper is just as fatal as one in `composables/`, and a whitelist silently
+  // stops covering whatever a module author adds next.
+  const roots = [join(FRONTEND_ROOT, 'app'), join(FRONTEND_ROOT, 'module_layers')]
+  const skip = new Set(['node_modules', '.nuxt', '.output', 'dist', 'tests', '__tests__'])
   const files: SourceFileEntry[] = []
-  for (const dir of dirs) {
-    for (const path of walk(dir)) {
-      const text = readFileSync(path, 'utf8')
+
+  const walkTs = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      if (skip.has(name) || name.startsWith('.')) continue
+      const full = join(dir, name)
+      if (statSync(full).isDirectory()) {
+        walkTs(full)
+        continue
+      }
+      if (!name.endsWith('.ts') || name.endsWith('.d.ts')) continue
       files.push({
-        path,
-        rel: relative(FRONTEND_ROOT, path),
-        source: ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true)
+        path: full,
+        rel: relative(FRONTEND_ROOT, full),
+        source: ts.createSourceFile(full, readFileSync(full, 'utf8'), ts.ScriptTarget.Latest, true)
       })
     }
+  }
+
+  for (const root of roots) {
+    try {
+      walkTs(root)
+    } catch { /* root absent */ }
   }
   return files
 }
@@ -162,10 +155,12 @@ describe('Nuxt context safety (static gate)', () => {
 
   it('found the source tree it is supposed to police', () => {
     // Guards against the test silently passing because paths moved.
-    expect(entries.length).toBeGreaterThan(50)
+    expect(entries.length).toBeGreaterThan(120)
     expect(roots.length).toBeGreaterThan(0)
     expect(entries.some(e => e.rel.endsWith('app/composables/useApi.ts'))).toBe(true)
     expect(entries.some(e => e.rel.endsWith('app/middleware/auth.global.ts'))).toBe(true)
+    // Module layers are reached through the `frontend/module_layers` symlink.
+    expect(entries.some(e => e.rel.includes('module_layers/') && e.rel.endsWith('.ts'))).toBe(true)
   })
 
   it('keeps component-instance APIs out of plugin/middleware-reachable code', () => {

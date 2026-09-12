@@ -71,6 +71,7 @@ const {
   getToothRecord,
   treatments,
   treatmentsLoading,
+  treatmentsError,
   fetchTreatments,
   createTreatment,
   performTreatment,
@@ -737,13 +738,17 @@ defineExpose({
       />
     </div>
 
-    <!-- Load error — never fall through to a fabricated healthy mouth. -->
+    <!-- Load error — never fall through to a fabricated healthy mouth.
+         Either read failing counts: the tooth grid without its treatments is
+         exactly the fabricated healthy mouth this alert exists to prevent. -->
     <UAlert
-      v-else-if="error"
+      v-else-if="error || treatmentsError"
       icon="i-lucide-triangle-alert"
       color="error"
       variant="subtle"
+      data-testid="odontogram-load-error"
       :title="t('odontogram.messages.loadError')"
+      :description="error || treatmentsError || undefined"
       :actions="[{
         label: t('common.retry'),
         color: 'error',

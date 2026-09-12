@@ -16,6 +16,7 @@ import type {
   TreatmentStatus,
   TreatmentUpdate
 } from '~~/app/types'
+import { errorMessage } from '~~/app/utils/error'
 import { latestGuard } from '~~/app/utils/latestGuard'
 
 // ---------------------------------------------------------------------------
@@ -47,6 +48,12 @@ export function useTreatments() {
 
   const treatments = ref<Treatment[]>([])
   const loading = ref(false)
+  /**
+   * Why the treatment list could not be read. Without it a failed load was
+   * indistinguishable from a patient who has had nothing done — the chart
+   * rendered a clean mouth, which is a clinical claim nobody established.
+   */
+  const error = ref<string | null>(null)
 
   // ============================================================================
   // Helpers
@@ -89,6 +96,7 @@ export function useTreatments() {
   ): Promise<void> {
     const isLatest = treatmentsGuard.begin()
     loading.value = true
+    error.value = null
     try {
       let url = `/api/v1/odontogram/patients/${patientId}/treatments`
       const params = new URLSearchParams()
@@ -101,6 +109,11 @@ export function useTreatments() {
       if (!isLatest()) return
       treatments.value = (response.data ?? []).map(normalizeTreatment)
     } catch (err) {
+      if (!isLatest()) return
+      // Drop the list as well as reporting: on a patient switch a failed read
+      // used to leave the *previous* patient's treatments painted on the chart.
+      treatments.value = []
+      error.value = errorMessage(err, t('odontogram.messages.loadError'))
       console.error('Error fetching treatments:', err)
     } finally {
       if (isLatest()) loading.value = false
@@ -251,12 +264,14 @@ export function useTreatments() {
 
   function reset(): void {
     treatments.value = []
+    error.value = null
   }
 
   return {
     // State
     treatments,
     loading,
+    error,
     // Helpers
     getToothTreatments,
     getTreatmentsByStatus,

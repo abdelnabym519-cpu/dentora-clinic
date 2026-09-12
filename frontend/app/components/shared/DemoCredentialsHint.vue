@@ -16,7 +16,12 @@ async function copy(value: string) {
       color: 'success'
     })
   } catch {
-    // Clipboard may be unavailable (insecure context). Silent.
+    // Clipboard may be unavailable (insecure context). Say so rather than
+    // leaving a copy button that appears to work and does not.
+    toast.add({
+      title: t('common.copyFailed'),
+      color: 'error'
+    })
   }
 }
 </script>

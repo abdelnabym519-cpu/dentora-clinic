@@ -29,7 +29,15 @@ async function copyValue() {
       icon: 'i-lucide-check'
     })
   } catch {
-    /* clipboard not available; silently ignore */
+    // The clipboard can be unavailable (insecure context, denied permission).
+    // Swallowing it made this a button that looks like it copied and did not —
+    // the one thing worse than a failed copy is a silent one, because the user
+    // pastes something stale elsewhere and blames the wrong thing.
+    toast.add({
+      title: t('common.copyFailed'),
+      color: 'error',
+      icon: 'i-lucide-x'
+    })
   }
 }
 </script>

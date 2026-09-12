@@ -1,8 +1,8 @@
 # Dentora — Frontend / UI Functionality & Interaction Repair
 
 **Branch:** `arena/01a091f7-dentora-clinic` (pushed) · **Base:** `f1c79ca` (`main`)
-**Commits (20):** `45f7740` → `b0fb6d6` → `40c767c` → `6025974` → `64e6d40` → `7960143` → `ef76ede` → `085d0f4` → `20c3199` → `1601c7e` → `d51023e` → `eaa6330` → `8dbbda6` → `2aaff85` → `faca30e` → `0b2a663` → `e95ebd6` → `b47dc1c` → `4de533c` → `cd57e2c`
-**Cumulative diff:** **224 files changed, +9476 / −1040**
+**Code commits (20):** `45f7740` → `b0fb6d6` → `40c767c` → `6025974` → `64e6d40` → `7960143` → `ef76ede` → `085d0f4` → `20c3199` → `1601c7e` → `d51023e` → `eaa6330` → `8dbbda6` → `2aaff85` → `faca30e` → `0b2a663` → `e95ebd6` → `b47dc1c` → `4de533c` → `cd57e2c`
+**Cumulative diff (the 20 code commits):** **224 files changed, +9476 / −1040**, plus this document
 **Verification:** vue-tsc clean (app + all 27 module layers) · eslint clean · **52 test files / 325 tests pass, 0 unhandled errors** · production build succeeds · the built server bundle imports cleanly
 **Status:** everything below is CODE-VERIFIED. Browser/E2E and live-backend runs are impossible in this sandbox — see §7.
 
@@ -405,7 +405,7 @@ These need a browser and a database; neither exists in this sandbox (no Playwrig
 
 Two consequences worth stating plainly: (a) every claim in §5 was re-run after the second restore, on the recovered tree, at `cd57e2c`; (b) `frontend/modules.json` being committed stale produced three separate false-red runs (§6) — each time the fix was to regenerate all 27 layers, never to change a test.
 
-The branch holds all twenty commits, pushed (`45f7740` … `cd57e2c`), verified against the remote with `git ls-remote`.
+The branch holds all twenty code commits, pushed (`45f7740` … `cd57e2c`) plus the documentation commits carrying this file, verified against the remote with `git ls-remote`.
 
 ## 9. Not done
 

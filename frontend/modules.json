@@ -5,9 +5,18 @@
     "/module_layers/odontogram/frontend",
     "/module_layers/agenda/frontend",
     "/module_layers/patients_clinical/frontend",
+    "/module_layers/periodontogram/frontend",
     "/module_layers/patient_timeline/frontend",
     "/module_layers/media/frontend",
+    "/module_layers/dental_3d/frontend",
+    "/module_layers/case_intelligence/frontend",
+    "/module_layers/ai_case_summary/frontend",
+    "/module_layers/ai_treatment_planning/frontend",
+    "/module_layers/treatment_simulation/frontend",
+    "/module_layers/ai_second_review/frontend",
     "/module_layers/copilot/frontend",
+    "/module_layers/clinical_copilot/frontend",
+    "/module_layers/ai_clinical_report/frontend",
     "/module_layers/budget/frontend",
     "/module_layers/payments/frontend",
     "/module_layers/billing/frontend",
@@ -43,6 +52,10 @@
       "path": "/module_layers/patients_clinical/frontend"
     },
     {
+      "name": "periodontogram",
+      "path": "/module_layers/periodontogram/frontend"
+    },
+    {
       "name": "patient_timeline",
       "path": "/module_layers/patient_timeline/frontend"
     },
@@ -51,8 +64,40 @@
       "path": "/module_layers/media/frontend"
     },
     {
+      "name": "dental_3d",
+      "path": "/module_layers/dental_3d/frontend"
+    },
+    {
+      "name": "case_intelligence",
+      "path": "/module_layers/case_intelligence/frontend"
+    },
+    {
+      "name": "ai_case_summary",
+      "path": "/module_layers/ai_case_summary/frontend"
+    },
+    {
+      "name": "ai_treatment_planning",
+      "path": "/module_layers/ai_treatment_planning/frontend"
+    },
+    {
+      "name": "treatment_simulation",
+      "path": "/module_layers/treatment_simulation/frontend"
+    },
+    {
+      "name": "ai_second_review",
+      "path": "/module_layers/ai_second_review/frontend"
+    },
+    {
       "name": "copilot",
       "path": "/module_layers/copilot/frontend"
+    },
+    {
+      "name": "clinical_copilot",
+      "path": "/module_layers/clinical_copilot/frontend"
+    },
+    {
+      "name": "ai_clinical_report",
+      "path": "/module_layers/ai_clinical_report/frontend"
     },
     {
       "name": "budget",

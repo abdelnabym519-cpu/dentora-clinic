@@ -1,6 +1,24 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
+/**
+ * Resolve a declared layer path to something this checkout can load.
+ *
+ * Module manifests declare container-absolute layer paths such as
+ * `/module_layers/<module>/frontend`, which is correct inside the frontend
+ * image. In a source checkout the same layers live under the frontend root,
+ * so an absolute path that does not exist on disk is re-resolved relative to
+ * this directory. Paths that do exist are returned untouched, which keeps the
+ * container behaviour byte-for-byte identical.
+ */
+function resolveLayerPath(layerPath: string): string {
+  if (existsSync(layerPath)) {
+    return layerPath
+  }
+  const rooted = resolve(__dirname, layerPath.replace(/^\/+/, ''))
+  return existsSync(rooted) ? rooted : layerPath
+}
 
 /**
  * Load Nuxt Layer paths from `modules.json`.
@@ -14,7 +32,9 @@ function loadModuleLayers(): string[] {
   try {
     const raw = readFileSync(path, 'utf-8')
     const payload = JSON.parse(raw) as { layers?: string[] }
-    return Array.isArray(payload.layers) ? payload.layers : []
+    return Array.isArray(payload.layers)
+      ? payload.layers.map(resolveLayerPath)
+      : []
   } catch (err: unknown) {
     const code = (err as { code?: string }).code
     if (code !== 'ENOENT') {

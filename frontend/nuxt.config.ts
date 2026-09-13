@@ -100,6 +100,17 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-01-15',
 
   vite: {
+    server: {
+      // Vite answers unknown Host headers with a 403 ("Blocked request. This
+      // host is not allowed"), which breaks any reverse-proxied dev preview.
+      // Opt in per environment with a comma-separated list; a leading dot
+      // allows a whole domain (".example.app"). Leaving it unset preserves
+      // Vite's default localhost-only allowlist.
+      allowedHosts: (process.env.NUXT_DEV_ALLOWED_HOSTS ?? '')
+        .split(',')
+        .map((host) => host.trim())
+        .filter(Boolean)
+    },
     worker: {
       format: 'es'
     },

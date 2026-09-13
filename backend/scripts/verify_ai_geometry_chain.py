@@ -738,6 +738,163 @@ def step_implant_planning(chain: Chain, api: Api, pid: str) -> bool:
     return True
 
 
+def step_clinical_record(chain: Chain, api: Api, pid: str) -> bool:
+    """Enter the clinical-record sections the readiness gate requires.
+
+    ``case_intelligence`` marks ``medical_context``, ``odontogram``,
+    ``periodontogram`` and ``treatment_history`` as ``not_available`` for a
+    patient that has no clinical record, and the report/copilot readiness gate
+    then reports ``clinical_context_insufficient``. These are ordinary
+    dentist-entered records created through their own module endpoints, so the
+    gate's precondition is satisfied with real data instead of being weakened.
+
+    Values are ordinary-charting fixture data for a clearly synthetic patient.
+    """
+    print("\n[.] Clinical record (dentist-entered sections)")
+    medical = {
+        "is_pregnant": False,
+        "is_lactating": False,
+        "is_on_anticoagulants": False,
+        "is_smoker": False,
+        "smoking_frequency": "never",
+        "alcohol_consumption": "occasional",
+        "bruxism": False,
+        "adverse_reactions_to_anesthesia": False,
+    }
+    status, body = api.request(
+        "PUT", f"/api/v1/patients_clinical/patients/{pid}/medical-context", json=medical
+    )
+    if status != 200:
+        chain.record("clinical record: medical context", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    chain.record("clinical record: medical context", PASS, "medical_context section available")
+
+    updates = [
+        {"tooth_number": 36, "general_condition": "caries", "notes": "Fixture: MOD caries"},
+        {"tooth_number": 46, "general_condition": "restored", "notes": "Fixture: composite"},
+        {"tooth_number": 35, "general_condition": "healthy"},
+        {"tooth_number": 37, "general_condition": "healthy"},
+        {"tooth_number": 45, "general_condition": "healthy"},
+    ]
+    status, body = api.request(
+        "PATCH", f"/api/v1/odontogram/patients/{pid}/teeth/bulk", json={"updates": updates}
+    )
+    if status != 200:
+        chain.record("clinical record: odontogram", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    chain.record("clinical record: odontogram", PASS, f"{len(updates)} tooth records written")
+
+    status, body = api.post(f"/api/v1/periodontogram/patients/{pid}/draft")
+    if status not in (200, 201):
+        chain.record("clinical record: periodontogram", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    snapshot = _data(body) or {}
+    snapshot_id = snapshot.get("id")
+    charting = {
+        36: {"MV": 4, "V": 3, "DV": 4, "ML": 3, "L": 4, "DL": 3},
+        46: {"MV": 3, "V": 2, "DV": 3, "ML": 2, "L": 3, "DL": 2},
+    }
+    sites = 0
+    for tooth, depths in charting.items():
+        api.request(
+            "PATCH",
+            f"/api/v1/periodontogram/snapshots/{snapshot_id}/teeth/{tooth}",
+            json={"is_present": True, "mobility": 1, "keratinized_gingiva_mm": 3},
+        )
+        for site_code, depth in depths.items():
+            status, _body = api.request(
+                "PATCH",
+                f"/api/v1/periodontogram/snapshots/{snapshot_id}/teeth/{tooth}/sites/{site_code}",
+                json={
+                    "probing_depth_mm": depth,
+                    "gingival_margin_mm": 0,
+                    "bleeding_on_probing": tooth == 36 and site_code == "DV",
+                    "plaque": False,
+                },
+            )
+            sites += 1 if status == 200 else 0
+    status, body = api.post(
+        f"/api/v1/periodontogram/snapshots/{snapshot_id}/close",
+        {"notes": "Fixture periodontal charting"},
+    )
+    if status != 200:
+        chain.record("clinical record: periodontogram", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    chain.record(
+        "clinical record: periodontogram",
+        PASS,
+        f"snapshot {str(snapshot_id)[:8]} closed, {sites} sites",
+    )
+
+    status, body = api.post(
+        f"/api/v1/odontogram/patients/{pid}/treatments",
+        {
+            "clinical_type": "filling_composite",
+            "scope": "tooth",
+            "tooth_numbers": [36],
+            "status": "planned",
+            "source_module": "odontogram",
+            "notes": "Fixture: composite restoration of 36",
+        },
+    )
+    if status not in (200, 201):
+        chain.record("clinical record: treatment history", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    treatment = _data(body) or {}
+    status, body = api.request(
+        "PATCH",
+        f"/api/v1/odontogram/treatments/{treatment.get('id')}/perform",
+        json={"notes": "Performed on the fixture patient"},
+    )
+    if status != 200:
+        chain.record("clinical record: treatment history", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    chain.record("clinical record: treatment history", PASS, "one performed treatment recorded")
+    return True
+
+
+def step_implant_approval(chain: Chain, api: Api, pid: str) -> bool:
+    """Dentist accepts the deterministic implant plan through its own review route.
+
+    ``risk_engine`` keeps ``accepted_implant_intersects_accepted_nerve_centerline``
+    at ``not_available`` until an implant plan is accepted, which leaves the risk
+    context ``partial`` and blocks the report/copilot readiness gate. Accepting
+    the plan is the dentist decision the product already requires, so this
+    satisfies the gate's real precondition rather than relaxing it.
+    """
+    print("\n[.] Dentist acceptance of the deterministic implant plan")
+    status, body = api.get(f"/api/v1/dental_3d/patients/{pid}/implant-planning")
+    if status != 200:
+        chain.record("implant acceptance", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    plans = (_data(body) or {}).get("plans") or []
+    if not plans:
+        chain.record("implant acceptance", SKIP, "no implant plan to accept")
+        return True
+    plan_id = plans[0].get("id")
+    status, body = api.post(
+        f"/api/v1/dental_3d/patients/{pid}/implant-plans/{plan_id}/review",
+        {
+            "decision": "accepted",
+            "note": "Development verification — dentist accepts the deterministic plan.",
+        },
+    )
+    if status != 200:
+        chain.record("implant acceptance", FAIL, f"HTTP {status}: {_detail(body)}")
+        return False
+    accepted = _data(body) or {}
+    chain.note("implant plan status", accepted.get("status"))
+    if accepted.get("status") != "accepted":
+        chain.record("implant acceptance", FAIL, f"status={accepted.get('status')!r}")
+        return False
+    chain.record(
+        "implant acceptance",
+        PASS,
+        f"accepted by dentist {str(accepted.get('reviewed_by'))[:8]} via the module's review route",
+    )
+    return True
+
+
 def step_orthodontics(chain: Chain, api: Api, pid: str) -> bool:
     print("\n[12] Orthodontic simulator capability + simulation")
     status, body = api.get(f"/api/v1/orthodontic_simulator/patients/{pid}/capability")
@@ -915,17 +1072,20 @@ def _ai_step(
     return None
 
 
-def _dentist_review(chain: Chain, api: Api, label: str, path: str) -> Any:
+def _dentist_review(
+    chain: Chain, api: Api, label: str, path: str, payload: dict[str, Any] | None = None
+) -> Any:
     """Have the dentist accept an AI artifact through the module's own endpoint.
 
     This is the human-in-the-loop step the product is built around: the AI
     leaves the artifact `pending_review` and only a clinician token can move
     it. Nothing here writes an accepted flag directly.
     """
-    payload: dict[str, Any] = {
-        "decision": "accepted",
-        "note": "Development verification — dentist acceptance.",
-    }
+    if payload is None:
+        payload = {
+            "decision": "accepted",
+            "note": "Development verification — dentist acceptance.",
+        }
     status, body = api.post(path, payload)
     detail = _detail(body)
     if status == 422 and "note" in detail and "extra_forbidden" in detail:
@@ -939,11 +1099,14 @@ def _dentist_review(chain: Chain, api: Api, label: str, path: str) -> Any:
     chain.note(f"{label} review_status after dentist decision", data.get("review_status"))
     chain.note(f"{label} reviewed_by", data.get("reviewed_by"))
     chain.note(f"{label} reviewed_at", data.get("reviewed_at"))
-    if data.get("review_status") != "accepted":
+    # ai_second_review records the dentist decision as "reviewed"; the summary
+    # and planning contracts use "accepted". Both are the module's own terminal
+    # human-in-the-loop state, so neither is a failure.
+    if data.get("review_status") not in {"accepted", "reviewed"}:
         chain.record(
             f"{label} dentist acceptance",
             FAIL,
-            f"expected accepted, got {data.get('review_status')!r}",
+            f"expected accepted/reviewed, got {data.get('review_status')!r}",
         )
         return None
     chain.record(
@@ -955,16 +1118,28 @@ def _dentist_review(chain: Chain, api: Api, label: str, path: str) -> Any:
 
 
 def _first_option_id(plan: dict[str, Any]) -> str | None:
-    for key in ("options", "treatment_options", "plan_options"):
-        options = plan.get(key)
-        if isinstance(options, list) and options:
-            first = options[0]
-            if isinstance(first, dict):
-                for field in ("id", "option_id"):
-                    if first.get(field):
-                        return str(first[field])
-            elif isinstance(first, str):
-                return first
+    """First option id, wherever the planning response nests its content.
+
+    The public response carries the contract under ``content`` (and a rendered
+    view under ``clinical_output``), so looking only at the top level silently
+    reported "no options" for a plan that actually had two.
+    """
+    containers: list[dict[str, Any]] = [plan]
+    for key in ("content", "clinical_output", "planning_data"):
+        nested = plan.get(key)
+        if isinstance(nested, dict):
+            containers.append(nested)
+    for container in containers:
+        for key in ("options", "treatment_options", "plan_options"):
+            options = container.get(key)
+            if isinstance(options, list) and options:
+                first = options[0]
+                if isinstance(first, dict):
+                    for field in ("id", "option_id"):
+                        if first.get(field):
+                            return str(first[field])
+                elif isinstance(first, str):
+                    return first
     return None
 
 
@@ -1064,6 +1239,8 @@ def step_ai_chain(chain: Chain, api: Api, pid: str) -> bool:
                 api,
                 "AI second review",
                 f"/api/v1/ai_second_review/results/{review_id}/review",
+                # this contract is extra="forbid" and takes {"reviewed": true}
+                {"reviewed": True},
             )
     else:
         chain.record("AI second review", SKIP, "needs a simulation_id from the previous step")
@@ -1123,6 +1300,18 @@ def main(argv: list[str] | None = None) -> int:
         metavar=("X", "Y", "Z"),
         help="prosthetic platform centre in DICOM patient LPS mm (default sits on the "
         "development fixture's posterior-left occlusal anatomy)",
+    )
+    parser.add_argument(
+        "--seed-clinical-record",
+        action="store_true",
+        help="enter medical context, odontogram, periodontogram and one performed "
+        "treatment so the report/copilot readiness gate has a complete case",
+    )
+    parser.add_argument(
+        "--accept-implant-plan",
+        action="store_true",
+        help="have the dentist accept the deterministic implant plan, which the risk "
+        "engine needs before the implant/nerve intersection factor resolves",
     )
     parser.add_argument(
         "--steps",
@@ -1190,7 +1379,12 @@ def main(argv: list[str] | None = None) -> int:
 
         step_risk_engine(chain, api, pid)
         step_implant_planning(chain, api, pid)
+        if args.accept_implant_plan:
+            step_implant_approval(chain, api, pid)
         step_orthodontics(chain, api, pid)
+
+    if args.seed_clinical_record:
+        step_clinical_record(chain, api, pid)
 
     if args.steps in ("all", "ai"):
         step_ai_chain(chain, api, pid)
